@@ -99,7 +99,8 @@ def main() -> None:
     ref = functions_by_unit(Path(sys.argv[3]), Path(sys.argv[4]), full_path=True)
     start, end = int(sys.argv[5], 16), int(sys.argv[6], 16)
     report_path = Path(sys.argv[7])
-    skip = tuple(sys.argv[8:])
+    dry_run = "--dry-run" in sys.argv[8:]
+    skip = tuple(a for a in sys.argv[8:] if a != "--dry-run")
 
     funcs = [f for f in gc["functions"] if f["section"] == ".text" and start <= f["address"] < end]
     sizes = [f["size"] for f in funcs]
@@ -174,7 +175,8 @@ def main() -> None:
                 existing.add(new)
                 renamed += 1
         out.append(line)
-    symbols_path.write_text("\n".join(out) + "\n")
+    if not dry_run:
+        symbols_path.write_text("\n".join(out) + "\n")
     report_path.write_text("\n".join(report) + "\n")
     print(f"placed {len(placements)} TUs; accepted {len(names)} functions; renamed {renamed}")
 

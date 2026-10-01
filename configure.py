@@ -247,7 +247,33 @@ cflags_rel = [
     "-sdata2 0",
 ]
 
+# Game code (i*, x*, z*): CodeWarrior for GameCube 1.3.2, see docs/compiler.md.
+# -inline deferred makes CW emit a TU's functions in reverse source order,
+# matching the DOL; chars are signed (extsb in xStrHash); float multiply-adds
+# are contracted.
+cflags_game = [
+    *cflags_base,
+    "-lang=c++",
+    "-inline deferred",
+    "-fp_contract on",
+    "-char signed",
+    "-str reuse,pool,readonly",
+    "-use_lmw_stmw on",
+    "-i src",
+]
+
 config.linker_version = "GC/1.3.2"
+
+
+# Helper function for game code
+def GameLib(lib_name: str, objects: List[Object]) -> Dict[str, Any]:
+    return {
+        "lib": lib_name,
+        "mw_version": "GC/1.3.2",
+        "cflags": cflags_game,
+        "progress_category": "game",
+        "objects": objects,
+    }
 
 
 # Helper function for Dolphin libraries

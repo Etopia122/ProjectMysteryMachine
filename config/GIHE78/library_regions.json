@@ -2,8 +2,8 @@
   "_comment": "Library families by .text address range in GIHE78, determined from strings and matched TUs. Used by tools/symbol_import/match_libs.py to reject implausible placements.",
   "regions": [
     { "start": "0x800DA528", "end": "0x800DE530", "family": "game (GameCube-only glue: FMV/Bink, RW resource arena)", "prefixes": [] },
-    { "start": "0x800DE530", "end": "0x800E5774", "family": "MetroTRK", "prefixes": ["debugger/", "MetroTRK/"] },
-    { "start": "0x800E5774", "end": "0x800F391C", "family": "Runtime + MSL", "prefixes": ["Runtime/", "MSL_C/", "MSL/"] },
+    { "start": "0x800DE530", "end": "0x800E5774", "family": "MetroTRK", "prefixes": ["debugger/", "MetroTRK/", "TRK_MINNOW_DOLPHIN/"] },
+    { "start": "0x800E5774", "end": "0x800F391C", "family": "Runtime + MSL", "prefixes": ["Runtime/", "MSL_C/", "MSL/", "PowerPC_EABI_Support/"] },
     { "start": "0x800F391C", "end": "0x80111EC0", "family": "Dolphin SDK", "prefixes": ["dolphin/"] },
     { "start": "0x80111EC0", "end": "0x80130AF4", "family": "Bink", "prefixes": ["bink/"] },
     { "start": "0x80130AF4", "end": "0x80137214", "family": "Dolphin SDK (CARD)", "prefixes": ["dolphin/src/card/", "dolphin/card/"] },
