@@ -75,7 +75,9 @@ def load_text_units(path: Path) -> List[Tuple[str, int, int]]:
     return out
 
 
-def functions_by_unit(symbols_path: Path, splits_path: Path) -> Dict[str, List[Dict]]:
+def functions_by_unit(
+    symbols_path: Path, splits_path: Path, full_path: bool = False
+) -> Dict[str, List[Dict]]:
     syms = [s for s in load_symbols(symbols_path) if s[1] == ".text" and s[3] == "function"]
     syms.sort(key=lambda s: s[2])
     units = load_text_units(splits_path)
@@ -85,7 +87,7 @@ def functions_by_unit(symbols_path: Path, splits_path: Path) -> Dict[str, List[D
         while ui < len(units) and addr >= units[ui][2]:
             ui += 1
         if ui < len(units) and units[ui][1] <= addr < units[ui][2]:
-            unit = units[ui][0].split("/")[-1]
+            unit = units[ui][0] if full_path else units[ui][0].split("/")[-1]
             result.setdefault(unit, []).append(
                 {"mangled": name, "key": demangle_key(name), "address": addr, "size": size}
             )
