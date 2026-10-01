@@ -25,6 +25,22 @@ python tools/symbol_import/apply_names.py GIHE78 build/symbol_import/ps2.json bu
 python tools/symbol_import/align_bfbb_platform.py GIHE78 build/symbol_import/gc.json 800055E0 80016CA8 build/symbol_import/report_bfbb_platform.txt
 ```
 
+Libraries (MetroTRK, Runtime, MSL, Dolphin SDK, Bink, RenderWare), using
+BFBB and Melee (`ref/melee/{symbols,splits}.txt` from doldecomp/melee
+`config/GALE01`) as references, constrained by
+`config/GIHE78/library_regions.json`:
+
+```
+python tools/symbol_import/match_libs.py GIHE78 build/symbol_import/gc.json ref/bfbb/symbols.txt ref/bfbb/splits.txt 800DA528 8018E5C0 build/symbol_import/report_libs_bfbb.txt SB/
+python tools/symbol_import/match_libs.py GIHE78 build/symbol_import/gc.json ref/melee/symbols.txt ref/melee/splits.txt 800DA528 8018E5C0 build/symbol_import/report_libs_melee.txt melee/ sysdolphin/
+python tools/symbol_import/resolve_overlaps.py GIHE78   # rerun dtk, drop lbl_ symbols overlapping signature objects
+python tools/symbol_import/coverage.py GIHE78
+python tools/symbol_import/identical_libs.py build/symbol_import/report_libs_bfbb.txt ref/bfbb/configure.py
+```
+
+Manual names (e.g. CARDCheck/CARDMount, named by position from assert-string
+TU evidence) are applied with `tools/rename.py`.
+
 `analyze_gc.py` needs the asm from a `ninja` run. `segment_gc.py` and
 `match_tus.py` are exploratory tools (data-reference segmentation and
 per-TU local alignment) kept for investigating TU boundaries.
