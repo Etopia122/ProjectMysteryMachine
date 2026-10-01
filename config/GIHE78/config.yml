@@ -1,8 +1,13 @@
 # See config.example.yml for documentation.
 # Scooby-Doo! Night of 100 Frights (NTSC-U, GIHE78)
-object_base: orig/GIHE78
-object: sys/main.dol
-# hash: filled in after the first run against the user's disc image
+#
+# The retail DOL (SHA-1 c77fb29d39b5898933e8ef4d1ccd2ddac404554e) has its entry
+# point set to a stack-fill routine in .text, which breaks decomp-toolkit's
+# .init detection. tools/prepare_dol.py (run by configure.py) extracts it from
+# the disc image and writes main_analysis.dol with the entry point set to
+# __start. build.sha1 still checks the build against the retail DOL.
+object: orig/GIHE78/main_analysis.dol
+hash: 11fe17e524a1c666ba6b2b3f8cebe24f75ec5ab8
 symbols: config/GIHE78/symbols.txt
 splits: config/GIHE78/splits.txt
 # Linker version still to be determined; update once confirmed.

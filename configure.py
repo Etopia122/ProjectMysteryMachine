@@ -331,6 +331,12 @@ config.progress_report_args = [
 ]
 
 if args.mode == "configure":
+    # Extract main.dol and write the entry-point-patched copy used for analysis
+    import subprocess
+
+    subprocess.run(
+        [sys.executable, "tools/prepare_dol.py", f"orig/{config.version}"], check=True
+    )
     # Write build.ninja and objdiff.json
     generate_build(config)
 elif args.mode == "progress":
