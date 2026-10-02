@@ -420,7 +420,7 @@ config.libs = [
             Object(NonMatching, "Game/zAssetTypes.cpp"),
             Object(NonMatching, "Game/zCamera.cpp"),
             Object(NonMatching, "Game/zConditional.cpp"),
-            Object(NonMatching, "Game/zCounter.cpp"),
+            Object(Matching, "Game/zCounter.cpp"),
             Object(NonMatching, "Game/zCutsceneMgr.cpp"),
             Object(NonMatching, "Game/zDispatcher.cpp"),
             Object(NonMatching, "Game/zEGenerator.cpp"),
