@@ -45,20 +45,72 @@ void xDrawSetColor(unsigned char r, unsigned char g, unsigned char b, unsigned c
     xDrawSetColorFields(iColorMake(r, g, b, a));
 }
 
-// TODO: the original loads all six coordinates before storing any of them
-// (struct-copy style scheduling); this version interleaves loads and stores.
+// TODO (96%): the original reuses one register for the constant 1 in
+// indices[1] and the numLines argument; this version loads it twice.
 void xDrawLine(_xVec3* a, _xVec3* b)
 {
     RwV3d verts[2];
     unsigned int indices[2];
+    float bz, by, bx, az, ay, ax;
 
-    verts[0].x = a->x;
-    verts[0].y = a->y;
-    verts[0].z = a->z;
-    verts[1].x = b->x;
-    verts[1].y = b->y;
-    verts[1].z = b->z;
+    ax = a->x;
+    ay = a->y;
+    az = a->z;
+    bx = b->x;
+    by = b->y;
+    bz = b->z;
+
     indices[0] = 0;
     indices[1] = 1;
+    verts[0].x = ax;
+    verts[0].y = ay;
+    verts[0].z = az;
+    verts[1].x = bx;
+    verts[1].y = by;
+    verts[1].z = bz;
     iQueueLineList(sgDrawColor, verts, indices, 0, 2, 2, 1);
+}
+
+class RwIm2DVertex
+{
+public:
+    float x;
+    float y;
+    float z;
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char a;
+    float u;
+    float v;
+    float recipZ;
+};
+
+extern "C" {
+float RwIm2DGetNearScreenZ();
+signed int RwIm2DRenderLine(RwIm2DVertex* vertices, signed int numVertices, signed int vert1,
+                            signed int vert2);
+}
+
+// GameCube only (not in the PS2 build); name is a guess.
+void xDrawLine2D(float x1, float y1, float x2, float y2)
+{
+    RwIm2DVertex verts[2];
+    float z = RwIm2DGetNearScreenZ();
+
+    verts[0].x = x1;
+    verts[0].y = y1;
+    verts[0].z = z;
+    verts[0].r = sgDrawColor.r;
+    verts[0].g = sgDrawColor.g;
+    verts[0].b = sgDrawColor.b;
+    verts[0].a = sgDrawColor.a;
+    verts[1].x = x2;
+    verts[1].y = y2;
+    verts[1].z = z;
+    verts[1].r = sgDrawColor.r;
+    verts[1].g = sgDrawColor.g;
+    verts[1].b = sgDrawColor.b;
+    verts[1].a = sgDrawColor.a;
+    RwIm2DRenderLine(verts, 2, 0, 1);
 }
