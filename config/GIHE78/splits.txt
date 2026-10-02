@@ -374,7 +374,9 @@ Game/zPortal.cpp:
 	.text       start:0x800C8AE4 end:0x800C8BDC
 
 Game/zRenderState.cpp:
-	.text       start:0x800C8BDC end:0x800C90C8
+	.text       start:0x800C8BDC end:0x800C90D4
+	.data       start:0x801C7650 end:0x801C76B0
+	.sbss       start:0x8025F068 end:0x8025F06C
 
 Game/zSaveLoad.cpp:
 	.text       start:0x800C959C end:0x800CD170
