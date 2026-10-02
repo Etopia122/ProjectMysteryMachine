@@ -342,6 +342,7 @@ Game/zFog.cpp:
 
 Game/zFX.cpp:
 	.text       start:0x800AC010 end:0x800AC0BC
+	.sdata2     start:0x80261228 end:0x80261238
 
 Game/zGame.cpp:
 	.text       start:0x800AC0BC end:0x800ADC40
