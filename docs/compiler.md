@@ -21,7 +21,7 @@ every compiler/flag combination and compares each function against the DOL
 | `-bool off` | `zConditional_Evaluate` returns comparison results with no byte mask (`clrlwi`); with `bool` enabled every comparison is truncated to 8 bits. The PS2 DWARF contains no `bool` type at all. |
 | `-inline noauto` + `-inline deferred` | `zConditionalEventCB` calls `zConditional_Evaluate` instead of inlining it, which auto-inlining does regardless of how the function is written. `xMath.cpp` does inline its helpers, so it has `#pragma auto_inline on` (probably a per-file setting in the original project). |
 | `-use_lmw_stmw on` | Game functions save registers with `stmw`/`lmw` (e.g. 0x80016A30). |
-| `-str reuse,pool,readonly` | Each TU's string literals are one pooled object in `.rodata`. |
+| `-str reuse,readonly` (no `pool`) | String literals are separate objects; short ones (<= 8 bytes) go to `.sdata2` like other small constants (zAnimList's "stop0"... at 0x802603C0). With `pool` they'd be merged into one `.rodata` blob. |
 | `-Cpp_exceptions off` | No `extab`/`extabindex` sections. |
 | `-O4,s` | Optimized for size: `xStrTok`/`xStrTokBuffer` clear a 32-byte array with a counted `bdnz` loop, which `-O4,p` fully unrolls (identical across all compiler versions, so it's the flag, not the version). `-O3` does not match. |
 

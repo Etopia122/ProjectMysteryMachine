@@ -210,10 +210,10 @@ Core/x/xSnd.cpp:
 	.text       start:0x8003CD24 end:0x8003D680
 
 Core/x/xSpline.cpp:
-	.text       start:0x8003DA28 end:0x8003FD50
+	.text       start:0x8003DA28 end:0x8003F9F8
 
 Core/x/xstransvc.cpp:
-	.text       start:0x8003FD50 end:0x80040978
+	.text       start:0x8003F9F8 end:0x80040978
 
 Core/x/xString.cpp:
 	.text       start:0x80040978 end:0x80040EE4
@@ -231,7 +231,10 @@ Game/zActionLine.cpp:
 	.text       start:0x80044780 end:0x80044C44
 
 Game/zAnimList.cpp:
-	.text       start:0x80044E20 end:0x80044EA0
+	.text       start:0x80044E20 end:0x80045174
+	.data       start:0x801B6BD8 end:0x801B6C28
+	.sbss       start:0x8025EC08 end:0x8025EC18
+	.sdata2     start:0x802603C0 end:0x80260474
 
 Game/zAssetTypes.cpp:
 	.text       start:0x800451F8 end:0x80045B28

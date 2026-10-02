@@ -263,7 +263,7 @@ cflags_game = [
     "-fp_contract on",
     "-char signed",
     "-bool off",  # comparisons are int-valued (no clrlwi); no bool in the PS2 DWARF
-    "-str reuse,pool,readonly",
+    "-str reuse,readonly",  # no pooling: short literals go to .sdata2 (zAnimList)
     "-use_lmw_stmw on",
     "-i src/Core/x",
     "-i src/Core/gc",
@@ -418,7 +418,7 @@ config.libs = [
         "Game",
         [
             Object(NonMatching, "Game/zActionLine.cpp"),
-            Object(NonMatching, "Game/zAnimList.cpp"),
+            Object(Matching, "Game/zAnimList.cpp"),
             Object(NonMatching, "Game/zAssetTypes.cpp"),
             Object(Matching, "Game/zCamera.cpp"),
             Object(NonMatching, "Game/zConditional.cpp"),
