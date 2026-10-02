@@ -519,7 +519,7 @@ config.libs = [
             Object(NonMatching, "Game/zScene.cpp"),
             Object(Matching, "Game/zScript.cpp"),
             Object(Matching, "Game/zSFX.cpp"),
-            Object(NonMatching, "Game/zSurface.cpp"),
+            Object(Matching, "Game/zSurface.cpp"),
             Object(Matching, "Game/zTimer.cpp"),
             Object(NonMatching, "Game/zUI.cpp"),
             Object(NonMatching, "Game/zUIFont.cpp"),

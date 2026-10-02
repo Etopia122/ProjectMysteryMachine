@@ -60,6 +60,20 @@ inline void xVec3Sub(_xVec3* o, _xVec3* a, _xVec3* b)
     o->z = a->z - b->z;
 }
 
+inline void xVec3SMul(_xVec3* o, _xVec3* v, float s)
+{
+    o->x = v->x * s;
+    o->y = v->y * s;
+    o->z = v->z * s;
+}
+
+inline void xVec3Add(_xVec3* o, _xVec3* a, _xVec3* b)
+{
+    o->x = a->x + b->x;
+    o->y = a->y + b->y;
+    o->z = a->z + b->z;
+}
+
 inline void xVec3AddTo(_xVec3* o, _xVec3* v)
 {
     o->x += v->x;

@@ -428,6 +428,12 @@ Game/zSFX.cpp:
 
 Game/zSurface.cpp:
 	.text       start:0x800D229C end:0x800D340C
+	.rodata     start:0x801A6DD8 end:0x801A6E40
+	.data       start:0x801C8B60 end:0x801C8BBC
+	.bss        start:0x802381C8 end:0x80238378
+	.sdata      start:0x8025E5B8 end:0x8025E5BC
+	.sbss       start:0x8025F0E8 end:0x8025F0F0
+	.sdata2     start:0x80261EB8 end:0x80261F60
 
 Game/zTimer.cpp:
 	.text       start:0x800D340C end:0x800D3608

@@ -1,24 +1,6 @@
-#include "xBase.h"
+#include "xSurface.h"
 #include "xMemMgr.h"
 
-class _xEnt;
-
-class xSurface : public xBase
-{
-public:
-    unsigned int idx;
-    unsigned int type;
-    union
-    {
-        unsigned int mat_idx;
-        _xEnt* ent;
-        void* obj;
-    };
-    float friction;
-    unsigned char state;
-    unsigned char pad[3];
-    void* moprops;
-};
 
 static xSurface* surfs;
 static unsigned short nsurfs;
@@ -56,7 +38,7 @@ void xSurfaceLoad(xSurface* ent, xSerial* s)
     xBaseLoad(ent, s);
 }
 
-void xSurfaceReset()
+void xSurfaceReset(xSurface* ent)
 {
 }
 
