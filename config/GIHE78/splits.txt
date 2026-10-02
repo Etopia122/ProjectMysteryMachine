@@ -13,3 +13,48 @@ Sections:
 
 Core/x/xBase.cpp:
 	.text       start:0x8001C088 end:0x8001C184
+
+dolphin/src/OdemuExi2/DebuggerDriver.c:
+	.text       start:0x800F391C end:0x800F439C
+	.sdata      start:0x8025E618 end:0x8025E620
+	.sbss       start:0x8025F248 end:0x8025F260
+
+dolphin/src/amcstubs/AmcExi2Stubs.c:
+	.text       start:0x800F4C5C end:0x800F4C8C
+
+dolphin/src/ax/AXSPB.c:
+	.text       start:0x800F715C end:0x800F7624
+	.bss        start:0x8024A800 end:0x8024A840
+	.sbss       start:0x8025F358 end:0x8025F380
+
+dolphin/src/os/OSAlloc.c:
+	.text       start:0x8010438C end:0x8010469C
+	.sdata      start:0x8025E688 end:0x8025E690
+	.sbss       start:0x8025F458 end:0x8025F468
+
+dolphin/src/os/OSAudioSystem.c:
+	.text       start:0x801046BC end:0x80104950
+	.data       start:0x801CCF40 end:0x801CCFC0
+
+dolphin/src/os/OSTime.c:
+	.text       start:0x80108608 end:0x80108A84
+	.data       start:0x801CD728 end:0x801CD788
+
+dolphin/src/si/SISamplingRate.c:
+	.text       start:0x8010A1F8 end:0x8010A300
+	.data       start:0x801CD858 end:0x801CD8F0
+	.sbss       start:0x8025F4E0 end:0x8025F4E8
+
+dolphin/src/dvd/dvdfs.c:
+	.text       start:0x8010E898 end:0x8010F23C
+	.data       start:0x801CDBC8 end:0x801CDD58
+	.sdata      start:0x8025E6D8 end:0x8025E6E0
+	.sbss       start:0x8025F5A8 end:0x8025F5C8
+
+dolphin/src/dvd/dvdqueue.c:
+	.text       start:0x801118F0 end:0x80111AE8
+	.bss        start:0x8025C1F8 end:0x8025C218
+
+dolphin/src/dvd/dvderror.c:
+	.text       start:0x80111AE8 end:0x80111C80
+	.data       start:0x801CDE70 end:0x801CDEB8

@@ -282,11 +282,27 @@ def GameLib(lib_name: str, objects: List[Object]) -> Dict[str, Any]:
 
 
 # Helper function for Dolphin libraries
+# Dolphin SDK (sources and headers from bfbbdecomp/bfbb, CC0)
+cflags_dolphin = [
+    *cflags_base,
+    "-lang=c",
+    "-fp fmadd",
+    "-fp_contract off",
+    "-char signed",
+    "-str reuse",
+    "-common off",
+    "-O4,p",
+    "-i src/PowerPC_EABI_Support/include",
+    "-i src/dolphin/include",
+    "-i src/dolphin/src",
+]
+
+
 def DolphinLib(lib_name: str, objects: List[Object]) -> Dict[str, Any]:
     return {
         "lib": lib_name,
         "mw_version": "GC/1.2.5n",
-        "cflags": cflags_base,
+        "cflags": cflags_dolphin,
         "progress_category": "sdk",
         "objects": objects,
     }
@@ -320,6 +336,46 @@ config.libs = [
         "Core",
         [
             Object(Matching, "Core/x/xBase.cpp"),
+        ],
+    ),
+    DolphinLib(
+        "amcstubs",
+        [
+            Object(Matching, "dolphin/src/amcstubs/AmcExi2Stubs.c"),
+        ],
+    ),
+    DolphinLib(
+        "si",
+        [
+            Object(Matching, "dolphin/src/si/SISamplingRate.c"),
+        ],
+    ),
+    DolphinLib(
+        "os",
+        [
+            Object(Matching, "dolphin/src/os/OSAudioSystem.c"),
+            Object(Matching, "dolphin/src/os/OSTime.c"),
+            Object(Matching, "dolphin/src/os/OSAlloc.c"),
+        ],
+    ),
+    DolphinLib(
+        "dvd",
+        [
+            Object(Matching, "dolphin/src/dvd/dvdqueue.c"),
+            Object(Matching, "dolphin/src/dvd/dvderror.c"),
+            Object(NonMatching, "dolphin/src/dvd/dvdfs.c"),
+        ],
+    ),
+    DolphinLib(
+        "ax",
+        [
+            Object(NonMatching, "dolphin/src/ax/AXSPB.c"),
+        ],
+    ),
+    DolphinLib(
+        "OdemuExi2",
+        [
+            Object(NonMatching, "dolphin/src/OdemuExi2/DebuggerDriver.c"),
         ],
     ),
     {
