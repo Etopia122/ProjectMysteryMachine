@@ -368,13 +368,13 @@ Game/zPendulum.cpp:
 	.text       start:0x800C7000 end:0x800C751C
 
 Game/zPlatform.cpp:
-	.text       start:0x800C7680 end:0x800C8AC4
+	.text       start:0x800C7680 end:0x800C8AE4
 
 Game/zPortal.cpp:
-	.text       start:0x800C8AE4 end:0x800C8B44
+	.text       start:0x800C8AE4 end:0x800C8BDC
 
 Game/zRenderState.cpp:
-	.text       start:0x800C8B44 end:0x800C90C8
+	.text       start:0x800C8BDC end:0x800C90C8
 
 Game/zSaveLoad.cpp:
 	.text       start:0x800C959C end:0x800CD170

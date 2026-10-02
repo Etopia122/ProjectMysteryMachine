@@ -462,7 +462,7 @@ config.libs = [
             Object(NonMatching, "Game/zParSys.cpp"),
             Object(NonMatching, "Game/zPendulum.cpp"),
             Object(NonMatching, "Game/zPlatform.cpp"),
-            Object(NonMatching, "Game/zPortal.cpp"),
+            Object(Matching, "Game/zPortal.cpp"),
             Object(NonMatching, "Game/zRenderState.cpp"),
             Object(NonMatching, "Game/zSaveLoad.cpp"),
             Object(NonMatching, "Game/zScene.cpp"),

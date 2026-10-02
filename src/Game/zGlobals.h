@@ -21,6 +21,8 @@ public:
         unsigned char pad[0x1F0];
     };
     zGlobalsUnk1F0* unk1F0; // 0x1F0
+    unsigned char pad1F4[0x2E8 - 0x1F4];
+    void* unk2E8; // 0x2E8; portals only switch scenes when set
 };
 
 extern zGlobals globals;
