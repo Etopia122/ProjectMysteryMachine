@@ -433,7 +433,7 @@ config.libs = [
             Object(NonMatching, "Core/x/xFFX.cpp"),
             Object(NonMatching, "Core/x/xFont.cpp"),
             Object(NonMatching, "Core/x/xFX.cpp"),
-            Object(NonMatching, "Core/x/xhipio.cpp"),
+            Object(Matching, "Core/x/xhipio.cpp"),
             Object(NonMatching, "Core/x/xIni.cpp"),
             Object(Matching, "Core/x/xLinkList.cpp"),
             Object(Matching, "Core/x/xMath.cpp"),
