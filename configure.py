@@ -382,7 +382,7 @@ config.libs = [
             Object(NonMatching, "Core/x/xFX.cpp"),
             Object(NonMatching, "Core/x/xhipio.cpp"),
             Object(NonMatching, "Core/x/xIni.cpp"),
-            Object(NonMatching, "Core/x/xLinkList.cpp"),
+            Object(Matching, "Core/x/xLinkList.cpp"),
             Object(NonMatching, "Core/x/xMath.cpp"),
             Object(NonMatching, "Core/x/xMath3.cpp"),
             Object(NonMatching, "Core/x/xMemMgr.cpp"),

@@ -23,6 +23,13 @@ every compiler/flag combination and compares each function against the DOL
 | `-Cpp_exceptions off` | No `extab`/`extabindex` sections. |
 | `-O4,p` | `-O4,p` and `-O4,s` produce identical code for the probed functions; `-O3` does not match. |
 
+## Writing source
+
+Because of `-inline deferred`, CW emits a TU's functions **last to first**.
+Write functions in the reverse of their DOL order (equivalently, in the PS2
+DWARF dump's order reversed). objdiff scores functions individually, so a
+wrong order still shows 100% there but breaks the DOL hash check.
+
 ## Open questions
 
 - A function that compiles differently under 1.3.2 and 2.x would settle the
