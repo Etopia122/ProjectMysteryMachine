@@ -195,15 +195,19 @@ def main() -> None:
                 cmd += ["-o", str(out), str(args.source.resolve())]
                 proc = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
                 if proc.returncode != 0 or not out.exists():
-                    if args.verbose:
+                    if args.verbose or args.diff:
                         print(f"{comp} {' '.join(variant)}: compile failed\n{proc.stdout}{proc.stderr}")
                     continue
                 funcs = object_functions(out)
                 if args.diff:
+                    found = False
                     for name, off, code, masks in funcs:
                         if args.diff in name and name in targets:
                             addr, size = targets[name]
                             print_diff(code, dol.read(addr, size), off, masks, addr)
+                            found = True
+                    if not found:
+                        print(f"no compiled function matching '{args.diff}' found in the DOL symbols")
                     return
                 total_good = total_n = 0
                 detail = []

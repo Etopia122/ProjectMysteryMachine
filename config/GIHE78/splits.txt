@@ -63,10 +63,10 @@ Core/gc/iPad.cpp:
 	.text       start:0x8000F5B0 end:0x8000FB40
 
 Core/gc/iParMgr.cpp:
-	.text       start:0x8000FB40 end:0x80011B34
+	.text       start:0x8000FB40 end:0x80011B74
 
 Core/gc/isavegame.cpp:
-	.text       start:0x80011B34 end:0x800145F8
+	.text       start:0x80011B74 end:0x800145F8
 
 Core/gc/iScrFX.cpp:
 	.text       start:0x800145F8 end:0x800149F0
@@ -168,12 +168,16 @@ Core/x/xPad.cpp:
 
 Core/x/xPar.cpp:
 	.text       start:0x800323D4 end:0x80032540
+	.bss        start:0x802001A8 end:0x802272A8
+	.sbss       start:0x8025EAD8 end:0x8025EADC
+	.sdata2     start:0x80260110 end:0x80260114
 
 Core/x/xParGroup.cpp:
 	.text       start:0x80032540 end:0x80032D28
 
 Core/x/xParMgr.cpp:
 	.text       start:0x80032D48 end:0x80032DEC
+	.sbss       start:0x8025EAE8 end:0x8025EAF0
 
 Core/x/xPartition.cpp:
 	.text       start:0x80032DEC end:0x80033618
