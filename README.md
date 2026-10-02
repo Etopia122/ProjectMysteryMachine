@@ -1,32 +1,27 @@
-Some Game  
-[![Build Status]][actions] [![Code Progress]][progress] [![Data Progress]][progress] [![Discord Badge]][discord]
-=============
+Scooby-Doo! Night of 100 Frights
+=================================
 
-<!--
-Replace with your repository's URL.
--->
-[Build Status]: https://github.com/zeldaret/tww/actions/workflows/build.yml/badge.svg
-[actions]: https://github.com/zeldaret/tww/actions/workflows/build.yml
-<!--
-decomp.dev progress badges
-See https://decomp.dev/api for an API overview.
--->
-[Code Progress]: https://decomp.dev/zeldaret/tww.svg?mode=shield&measure=code&label=Code
-[Data Progress]: https://decomp.dev/zeldaret/tww.svg?mode=shield&measure=data&label=Data
-[progress]: https://decomp.dev/zeldaret/tww
-<!--
-Replace with your Discord server's ID and invite URL.
--->
-[Discord Badge]: https://img.shields.io/discord/727908905392275526?color=%237289DA&logo=discord&logoColor=%23FFFFFF
-[discord]: https://discord.gg/hKx3FJJgrV
+A work-in-progress decompilation of *Scooby-Doo! Night of 100 Frights* for the
+Nintendo GameCube (Heavy Iron Studios / THQ, 2002).
 
-A work-in-progress decompilation of Some Game.
-
-This repository does **not** contain any game assets or assembly whatsoever. An existing copy of the game is required.
+This repository does **not** contain any game assets or assembly. An existing
+copy of the game is required.
 
 Supported versions:
 
-- `GAMEID`: Rev 0 (USA)
+- `GIHE78`: Rev 0 (USA) — `main.dol` SHA-1 `c77fb29d39b5898933e8ef4d1ccd2ddac404554e`
+
+Status
+======
+
+- The project builds a `main.dol` that is byte-identical to the retail one.
+- Symbols: ~70% of `.text` is named, from the PS2 build's DWARF data
+  ([dwarfdb](https://github.com/seilweiss/dwarfdb)) and reference GameCube
+  decomps (BFBB, Melee, Wind Waker). See `tools/symbol_import/README.md`.
+- Compiler: CodeWarrior for GameCube 1.3.2, `-inline deferred`, signed chars
+  (see `docs/compiler.md`).
+- Matching source: `Core/x/xBase.cpp` and several Dolphin SDK files (SDK
+  sources from [bfbbdecomp/bfbb](https://github.com/bfbbdecomp/bfbb), CC0).
 
 Dependencies
 ============
@@ -34,44 +29,25 @@ Dependencies
 Windows
 --------
 
-On Windows, it's **highly recommended** to use native tooling. WSL or msys2 are **not** required.  
-When running under WSL, [objdiff](#diffing) is unable to get filesystem notifications for automatic rebuilds.
+Use native tooling; WSL or msys2 are not required.
 
 - Install [Python](https://www.python.org/downloads/) and add it to `%PATH%`.
-  - Also available from the [Windows Store](https://apps.microsoft.com/store/detail/python-311/9NRWMJP3717K).
-- Download [ninja](https://github.com/ninja-build/ninja/releases) and add it to `%PATH%`.
-  - Quick install via pip: `pip install ninja`
+- Install [ninja](https://github.com/ninja-build/ninja/releases) and add it to `%PATH%`.
+- `pip install pyelftools capstone` (used by the helper tools in `tools/`).
 
-macOS
-------
+macOS / Linux
+-------------
 
-- Install [ninja](https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages):
-
-  ```sh
-  brew install ninja
-  ```
-
-[wibo](https://github.com/decompals/wibo), a minimal 32-bit Windows binary wrapper, will be automatically downloaded and used.
-
-Linux
-------
-
-- Install [ninja](https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages).
-
-[wibo](https://github.com/decompals/wibo), a minimal 32-bit Windows binary wrapper, will be automatically downloaded and used.
+- Install ninja. [wibo](https://github.com/decompals/wibo) is downloaded
+  automatically to run the Windows compilers.
 
 Building
 ========
 
-- Clone the repository:
-
-  ```sh
-  git clone https://github.com/my/repo.git
-  ```
-
-- Copy your game's disc image to `orig/GAMEID`.
-  - Supported formats: ISO (GCM), RVZ, WIA, WBFS, CISO, NFS, GCZ, TGC
-  - After the initial build, the disc image can be deleted to save space.
+- Copy your game's disc image to `orig/GIHE78`.
+  - **ISO/GCM only**: `tools/prepare_dol.py` reads `main.dol` directly from the
+    image. It extracts `orig/GIHE78/sys/main.dol`; keep that file if you delete
+    the disc image.
 
 - Configure:
 
@@ -79,21 +55,36 @@ Building
   python configure.py
   ```
 
-  To use a version other than `GAMEID` (USA), specify it with `--version`.
-
 - Build:
 
   ```sh
   ninja
   ```
 
+  The build checks the result against `config/GIHE78/build.sha1`.
+
+Notes
+-----
+
+- The retail DOL's entry point is a stack-fill routine (0x80016898) that calls
+  `__start`. decomp-toolkit locates `.init` from the entry point, so analysis
+  runs on `orig/GIHE78/main_analysis.dol`, a copy with the entry point set to
+  `__start`; the link uses `-m fn_80016898` to restore the original.
+- The linker script (`config/GIHE78/ldscript.tpl`) uses a 0x1000 debugger stack.
+
 Diffing
 =======
 
-Once the initial build succeeds, an `objdiff.json` should exist in the project root.
+After a successful build, `objdiff.json` exists in the project root. Open the
+project directory in [objdiff](https://github.com/encounter/objdiff) and pick an
+object from the sidebar. Changes to sources, headers, `configure.py`,
+`splits.txt` or `symbols.txt` rebuild automatically.
 
-Download the latest release from [encounter/objdiff](https://github.com/encounter/objdiff). Under project settings, set `Project directory`. The configuration should be loaded automatically.
+Useful tools:
 
-Select an object from the left sidebar to begin diffing. Changes to the project will rebuild automatically: changes to source files, headers, `configure.py`, `splits.txt` or `symbols.txt`.
-
-![](assets/objdiff.png)
+- `python tools/asm_fn.py GIHE78 <name or address>` — print a function's asm
+- `python tools/rename.py GIHE78 0x80001234=Name` — rename a symbol
+- `python tools/sync_symbols.py GIHE78` — adopt names from compiled objects
+- `python tools/import_splits.py GIHE78 <ref symbols> <ref splits> <TU>` —
+  derive splits for TUs shared with another decomp
+- `python tools/compiler_probe/probe.py GIHE78 <src>` — test compilers/flags
