@@ -132,6 +132,8 @@ Core/x/xEnv.cpp:
 
 Core/x/xFFX.cpp:
 	.text       start:0x80028DFC end:0x80029458
+	.sbss       start:0x8025EA50 end:0x8025EA78
+	.sdata2     start:0x8025FEE8 end:0x8025FEF0
 
 Core/x/xFont.cpp:
 	.text       start:0x800294E8 end:0x8002A460

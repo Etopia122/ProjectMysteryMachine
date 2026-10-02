@@ -430,7 +430,7 @@ config.libs = [
             Object(Matching, "Core/x/xEntDrive.cpp"),
             Object(NonMatching, "Core/x/xEntMotion.cpp"),
             Object(Matching, "Core/x/xEnv.cpp"),
-            Object(NonMatching, "Core/x/xFFX.cpp"),
+            Object(Matching, "Core/x/xFFX.cpp"),
             Object(NonMatching, "Core/x/xFont.cpp"),
             Object(NonMatching, "Core/x/xFX.cpp"),
             Object(Matching, "Core/x/xhipio.cpp"),
