@@ -570,6 +570,38 @@ config.libs = [
             Object(NonMatching, "dolphin/src/OdemuExi2/DebuggerDriver.c"),
         ],
     ),
+    # More Dolphin SDK units from bfbbdecomp/bfbb (CC0).
+    DolphinLib(
+        "bfbb_ax",
+        [
+            Object(Matching, "dolphin/src/ax/AXAlloc.c"),
+            Object(Matching, "dolphin/src/ax/AXCL.c"),
+            Object(Matching, "dolphin/src/ax/AXOut.c"),
+            Object(Matching, "dolphin/src/ax/AXProf.c"),
+        ],
+    ),
+    DolphinLib(
+        "bfbb_gx",
+        [
+            Object(Matching, "dolphin/src/gx/GXFifo.c"),
+            Object(Matching, "dolphin/src/gx/GXAttr.c"),
+            Object(Matching, "dolphin/src/gx/GXMisc.c"),
+            Object(Matching, "dolphin/src/gx/GXGeometry.c"),
+            Object(Matching, "dolphin/src/gx/GXFrameBuf.c"),
+            Object(Matching, "dolphin/src/gx/GXLight.c"),
+            Object(Matching, "dolphin/src/gx/GXTexture.c"),
+            Object(Matching, "dolphin/src/gx/GXBump.c"),
+            Object(Matching, "dolphin/src/gx/GXTransform.c"),
+        ],
+    ),
+    DolphinLib(
+        "bfbb_os",
+        [
+            Object(Matching, "dolphin/src/os/OSAlarm.c"),
+            Object(Matching, "dolphin/src/os/OSArena.c"),
+            Object(Matching, "dolphin/src/os/OSMemory.c"),
+        ],
+    ),
     # Dolphin SDK units from zeldaret/tww (CC0) whose code matches ours.
     {
         "lib": "tww_exi",
