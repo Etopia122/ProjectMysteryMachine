@@ -162,6 +162,7 @@ Core/x/xModel.cpp:
 
 Core/x/xMorph.cpp:
 	.text       start:0x80030F3C end:0x80031310
+	.sdata2     start:0x802600D0 end:0x802600E0
 
 Core/x/xMovePoint.cpp:
 	.text       start:0x80031318 end:0x800317D4
