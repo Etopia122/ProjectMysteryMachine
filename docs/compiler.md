@@ -32,6 +32,22 @@ Write functions in the reverse of their DOL order (equivalently, in the PS2
 DWARF dump's order reversed). objdiff scores functions individually, so a
 wrong order still shows 100% there but breaks the DOL hash check.
 
+Patterns that have mattered for matching:
+
+- Floats tested by truthiness (`if (f)`, `if (a || b)`) load the variable
+  before the 0.0f constant; `f != 0.0f` loads the constant first.
+- `x ? 1 : 0` keeps the branches; `if (x) return 1; return 0;` becomes a
+  branchless `mfcr` sequence (and vice versa for some shapes, so try both).
+- Byte flags cleared with a literal mask (`flags &= 0xE7`) give `andi.`;
+  `&= ~0x18` gives `rlwinm`.
+- A decrement and the test of the result are often separate statements
+  (`n--; if (n == 0)`), which reloads the value.
+- A function that is both emitted and inlined needs `#pragma auto_inline on`
+  around its definition. With `-inline deferred` it can be defined after its
+  callers, which is how to keep the emitted order right.
+- Loading all of a vector's components before storing them usually means an
+  inline helper with float parameters, or a struct copy.
+
 ## Open questions
 
 - A function that compiles differently under 1.3.2 and 2.x would settle the
