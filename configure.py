@@ -411,7 +411,7 @@ config.libs = [
             Object(NonMatching, "Core/x/xString.cpp"),
             Object(Matching, "Core/x/xSurface.cpp"),
             Object(NonMatching, "Core/x/xTRC.cpp"),
-            Object(NonMatching, "Core/x/xutil.cpp"),
+            Object(Matching, "Core/x/xutil.cpp"),
         ],
     ),
     GameLib(

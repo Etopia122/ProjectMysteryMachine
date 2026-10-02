@@ -232,10 +232,18 @@ Core/x/xTRC.cpp:
 	.text       start:0x80040FCC end:0x800411A8
 
 Core/x/xutil.cpp:
-	.text       start:0x80041CE8 end:0x8004442C
+	.text       start:0x80044780 end:0x80044C44
+	.data       start:0x801B6798 end:0x801B6BD8
+	.sdata      start:0x8025E498 end:0x8025E4A0
+	.sbss       start:0x8025EBF8 end:0x8025EC00
+	.sdata2     start:0x802603A8 end:0x802603B8
 
 Game/zActionLine.cpp:
-	.text       start:0x80044780 end:0x80044C44
+	.text       start:0x80044C44 end:0x80044E20
+	.rodata     start:0x801960D8 end:0x801960E8
+	.bss        start:0x802289E8 end:0x80228A98
+	.sbss       start:0x8025EC00 end:0x8025EC08
+	.sdata2     start:0x802603B8 end:0x802603C0
 
 Game/zAnimList.cpp:
 	.text       start:0x80044E20 end:0x80045174
