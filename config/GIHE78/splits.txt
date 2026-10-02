@@ -321,7 +321,8 @@ Game/zEntSimpleObj.cpp:
 	.sdata2     start:0x80260C48 end:0x80260C50
 
 Game/zEntTrigger.cpp:
-	.text       start:0x8007ACF8 end:0x8007B08C
+	.text       start:0x8007ACB8 end:0x8007B08C
+	.sdata2     start:0x80260C50 end:0x80260C58
 
 Game/zEntVillain.cpp:
 	.text       start:0x8007B08C end:0x800A9CE4
