@@ -1,3 +1,4 @@
+#include "xCollide.h"
 #include "xMovePoint.h"
 #include "xMemMgr.h"
 #include "xMath.h"
@@ -5,29 +6,7 @@
 #include "zScene.h"
 
 
-class _xRay3
-{
-public:
-    _xVec3 origin;
-    _xVec3 dir;
-    float min_t;
-    float max_t;
-    signed int flags;
-};
 
-class _xCollis
-{
-public:
-    unsigned int flags;
-    unsigned int oid;
-    void* optr;
-    float dist;
-    _xVec3 norm;
-    _xVec3 tohit;
-    _xVec3 depen;
-    _xVec3 hdng;
-    unsigned int ixtra;
-};
 
 class _zMovePoint : public _xMovePoint
 {

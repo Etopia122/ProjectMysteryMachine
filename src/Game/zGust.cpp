@@ -1,3 +1,4 @@
+#include "xCollide.h"
 #include "xBase.h"
 #include "xMath3.h"
 #include "xMemMgr.h"
@@ -8,35 +9,9 @@
 #include "zScene.h"
 #include "zParEmitter.h"
 
-class _xCollis
-{
-public:
-    unsigned int flags;
-    unsigned int oid;
-    void* optr;
-    float dist;
-    _xVec3 norm;
-    _xVec3 tohit;
-    _xVec3 depen;
-    _xVec3 hdng;
-    unsigned int ixtra;
-};
 
-signed int xBoundHitsBound(_xBound* a, _xBound* b, _xCollis* c);
 
-class _xBox
-{
-public:
-    _xVec3 upper;
-    _xVec3 lower;
-};
 
-class _xBBox
-{
-public:
-    _xVec3 center;
-    _xBox box;
-};
 
 class zVolumeAsset : public p2BaseAsset
 {

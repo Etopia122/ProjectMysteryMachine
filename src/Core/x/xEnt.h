@@ -3,6 +3,7 @@
 
 #include "xBase.h"
 #include "xMath3.h"
+#include "xBound.h"
 
 class RwMatrixTag;
 
@@ -55,16 +56,6 @@ public:
     unsigned int mode; // 0xEC
 };
 
-class _xBound
-{
-public:
-    unsigned char type;
-    unsigned char pad[3];
-    unsigned char data[0x24]; // _xSphere / _xBBox / _xCylinder
-    void* mat;                // 0x28 (_xMat4x3*)
-    unsigned char data2C[0xC];
-};
-
 class iShadowCache
 {
 public:
@@ -115,6 +106,5 @@ void xEntUpdate(_xEnt* ent, _xScene* sc, float dt);
 void xEntReset(_xEnt* ent);
 void xEntSetMaterialMul(_xEnt* ent, float r, float g, float b);
 
-_xVec3* xBoundCenter(_xBound* bound);
 
 #endif

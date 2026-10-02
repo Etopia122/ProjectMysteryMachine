@@ -1,3 +1,4 @@
+#include "xCollide.h"
 #include "xSurface.h"
 #include "xMath.h"
 #include "xMath3.h"
@@ -15,13 +16,6 @@ unsigned int zGroupGetCount(_zGroup* g);
 
 extern unsigned int gFrameCount;
 
-class _xCollis
-{
-public:
-    unsigned int flags; // 0x0
-    unsigned int oid;   // 0x4
-    void* optr;         // 0x8
-};
 
 class zMaterialMapEntry
 {

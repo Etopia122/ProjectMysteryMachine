@@ -1,12 +1,6 @@
 #include "rwtypes.h"
 #include "xMath3.h"
 
-class _xSphere
-{
-public:
-    _xVec3 center;
-    float r;
-};
 
 class _xFColor
 {

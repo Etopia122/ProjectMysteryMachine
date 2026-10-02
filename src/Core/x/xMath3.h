@@ -40,6 +40,57 @@ public:
     float angle;
 };
 
+class _xSphere
+{
+public:
+    _xVec3 center;
+    float r;
+};
+
+class _xBox
+{
+public:
+    _xVec3 upper;
+    _xVec3 lower;
+};
+
+class _xBBox
+{
+public:
+    _xVec3 center;
+    _xBox box;
+};
+
+class _xCylinder
+{
+public:
+    _xVec3 center;
+    float r;
+    float h;
+};
+
+class _xRay3
+{
+public:
+    _xVec3 origin;
+    _xVec3 dir;
+    float min_t;
+    float max_t;
+    signed int flags;
+};
+
+class _xIsect
+{
+public:
+    unsigned int flags;
+    float penned;
+    float contained;
+    float lapped;
+    _xVec3 point;
+    _xVec3 norm;
+    float dist;
+};
+
 extern const _xMat3x3 g_I3;
 
 void xMat3x3Euler(_xMat3x3* m, float yaw, float pitch, float roll);

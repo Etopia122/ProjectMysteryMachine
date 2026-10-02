@@ -2,39 +2,9 @@
 #include "zScene.h"
 #include "rwtypes.h"
 
-class _xBox
-{
-public:
-    _xVec3 upper;
-    _xVec3 lower;
-};
 
-class _xSphere
-{
-public:
-    _xVec3 center;
-    float r;
-};
 
-class _xCylinder
-{
-public:
-    _xVec3 center;
-    float r;
-    float h;
-};
 
-class _xIsect
-{
-public:
-    unsigned int flags;
-    float penned;
-    float contained;
-    float lapped;
-    _xVec3 point;
-    _xVec3 norm;
-    float dist;
-};
 
 class p2EntTriggerAsset
 {
@@ -102,7 +72,7 @@ void zEntTriggerUpdate(zEntTrigger* trig, _xScene* sc, float dt)
                         _xVec3* chkPos;
                         if (chkEnt->bound.type == 1)
                         {
-                            chkPos = (_xVec3*)chkEnt->bound.data;
+                            chkPos = &chkEnt->bound.sph.center;
                         }
                         else
                         {
