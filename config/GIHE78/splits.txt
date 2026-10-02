@@ -11,9 +11,6 @@ Sections:
 	.sdata2     type:rodata align:8
 	.sbss2      type:bss align:16
 
-Core/gc/iAnim.cpp:
-	.text       start:0x80005C34 end:0x80005C74
-
 Core/gc/iAnimSKB.cpp:
 	.text       start:0x80005C74 end:0x80006CC4
 
@@ -442,7 +439,10 @@ Game/zUIFont.cpp:
 	.text       start:0x800D4B0C end:0x800D527C
 
 Game/zVar.cpp:
-	.text       start:0x800D527C end:0x800D8D80
+	.text       start:0x800D527C end:0x800D7E00
+
+Core/gc/iAnim.cpp:
+	.text       start:0x800D7E00 end:0x800D84A0
 
 Game/zVolume.cpp:
 	.text       start:0x800D9E30 end:0x800DA0CC
