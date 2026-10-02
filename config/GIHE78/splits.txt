@@ -10,3 +10,6 @@ Sections:
 	.sbss       type:bss align:4
 	.sdata2     type:rodata align:8
 	.sbss2      type:bss align:16
+
+Core/x/xBase.cpp:
+	.text       start:0x8001C088 end:0x8001C184

@@ -262,7 +262,9 @@ cflags_game = [
     "-char signed",
     "-str reuse,pool,readonly",
     "-use_lmw_stmw on",
-    "-i src",
+    "-i src/Core/x",
+    "-i src/Core/gc",
+    "-i src/Game",
 ]
 
 config.linker_version = "GC/1.3.2"
@@ -314,6 +316,12 @@ def MatchingFor(*versions):
 config.warn_missing_config = True
 config.warn_missing_source = False
 config.libs = [
+    GameLib(
+        "Core",
+        [
+            Object(Matching, "Core/x/xBase.cpp"),
+        ],
+    ),
     {
         "lib": "Runtime.PPCEABI.H",
         "mw_version": config.linker_version,
