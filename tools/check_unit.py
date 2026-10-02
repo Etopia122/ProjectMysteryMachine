@@ -32,7 +32,9 @@ def func_order(path: Path):
 def main() -> None:
     version, needle = sys.argv[1], sys.argv[2]
     units = json.loads(Path("objdiff.json").read_text())["units"]
-    unit = next((u for u in units if needle in u["name"]), None)
+    stem = needle.rsplit(".", 1)[0] if needle.endswith((".c", ".cpp", ".cp")) else needle
+    exact = [u for u in units if u["name"] == stem or u["name"].endswith("/" + stem)]
+    unit = exact[0] if exact else next((u for u in units if stem in u["name"]), None)
     if unit is None:
         sys.exit(f"no unit matching {needle}")
     base, target = unit.get("base_path"), unit["target_path"]

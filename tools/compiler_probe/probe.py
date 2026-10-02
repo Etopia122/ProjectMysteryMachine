@@ -15,6 +15,7 @@
 import argparse
 import itertools
 import re
+import shlex
 import struct
 import subprocess
 import sys
@@ -169,7 +170,7 @@ def main() -> None:
     include = ROOT / "tools" / "compiler_probe" / "include"
 
     if args.variants:
-        variant_sets = [v.split() for v in args.variants.split(";")]
+        variant_sets = [shlex.split(v) for v in args.variants.split(";")]
     else:
         variant_sets = [a + b for a, b in itertools.product(*DEFAULT_VARIANTS.values())]
 
@@ -182,7 +183,7 @@ def main() -> None:
                 continue
             for variant in variant_sets:
                 out = Path(tmp) / "probe.o"
-                cmd = [str(exe), *BASE_FLAGS, *variant, *args.extra.split()]
+                cmd = [str(exe), *BASE_FLAGS, *variant, *shlex.split(args.extra)]
                 cwd = None
                 if args.bfbb:
                     cwd = ROOT / "ref" / "bfbb-src"
