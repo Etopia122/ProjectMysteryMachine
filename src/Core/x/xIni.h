@@ -32,5 +32,6 @@ xIniFile* xIniParse(char* buf, signed int len);
 void xIniDestroy(xIniFile* ini);
 signed int xIniGetInt(xIniFile* ini, char* tok, signed int def);
 float xIniGetFloat(xIniFile* ini, char* tok, float def);
+char* xIniGetString(xIniFile* ini, char* tok, char* def);
 
 #endif

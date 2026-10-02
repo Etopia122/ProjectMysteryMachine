@@ -191,3 +191,13 @@ float xIniGetFloat(xIniFile* ini, char* tok, float def)
     }
     return atof(ini->Values[index].val);
 }
+
+char* xIniGetString(xIniFile* ini, char* tok, char* def)
+{
+    signed int index = xIniGetIndex(ini, tok);
+    if (index == -1)
+    {
+        return def;
+    }
+    return ini->Values[index].val;
+}
