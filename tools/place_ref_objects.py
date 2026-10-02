@@ -316,6 +316,10 @@ def main() -> None:
     ap.add_argument("--splits", type=Path, help="write splits.txt entries for placed objects here")
     ap.add_argument("--prefix", default="", help="prefix for unit names in the written splits")
     ap.add_argument("--renames", type=Path, help="write ADDR=name lines (for tools/rename.py) for placed functions")
+    ap.add_argument("--flags", help="compiler flags to use instead of the reference's (one string)")
+    ap.add_argument("--mw", help="compiler version to use instead of the reference's, e.g. GC/1.3.2")
+    ap.add_argument("--only", action="append", default=[], help="only objects whose path contains this")
+    ap.add_argument("--no-extra", action="store_true", help="ignore the reference's per-object extra_cflags")
     args = ap.parse_args()
 
     ref = args.ref.resolve()
@@ -330,10 +334,18 @@ def main() -> None:
 
     for lib in args.libs:
         cfg = libs[lib]
-        flags = eval_cflags(ref / "configure.py", cfg["cflags"], args.define)
-        exe = ROOT / "build" / "compilers" / "GC" / cfg["mw_version"].split("/")[1] / "mwcceppc.exe"
-        print(f"## {lib} ({cfg['mw_version']}, {cfg['cflags']})")
+        if args.flags:
+            flags = shlex.split(args.flags) + [f"-D{d}" for d in args.define]
+        else:
+            flags = eval_cflags(ref / "configure.py", cfg["cflags"], args.define)
+        mw = args.mw or cfg["mw_version"]
+        exe = ROOT / "build" / "compilers" / "GC" / mw.split("/")[1] / "mwcceppc.exe"
+        print(f"## {lib} ({mw}, {'custom flags' if args.flags else cfg['cflags']})")
         for status, src, extra in cfg["objects"]:
+            if args.only and not any(o in src for o in args.only):
+                continue
+            if args.no_extra:
+                extra = []
             if not src.endswith((".c", ".cp", ".cpp")):
                 print(f"   skip (asm)  {src}")
                 continue
