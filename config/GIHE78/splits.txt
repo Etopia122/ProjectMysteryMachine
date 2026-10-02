@@ -161,6 +161,7 @@ Core/x/xMovePoint.cpp:
 
 Core/x/xordarray.cpp:
 	.text       start:0x800317D4 end:0x80031AC8
+	.sdata2     start:0x802600F0 end:0x80260100
 
 Core/x/xPad.cpp:
 	.text       start:0x80031AC8 end:0x800323D4
