@@ -25,7 +25,6 @@ enum _tagSDRumbleType
 };
 
 void zRumbleStart(signed int pad_id, _tagSDRumbleType rumble_type);
-void zEntAnimEvent(_zEnt* ent, unsigned int animEvent, float* animParam);
 
 class _zParEmitter;
 

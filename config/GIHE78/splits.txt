@@ -304,6 +304,7 @@ Game/zEntShaggy.cpp:
 
 Game/zEntSimpleObj.cpp:
 	.text       start:0x8007A8D0 end:0x8007ACB8
+	.sdata2     start:0x80260C48 end:0x80260C50
 
 Game/zEntTrigger.cpp:
 	.text       start:0x8007ACF8 end:0x8007B08C

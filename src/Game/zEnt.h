@@ -13,6 +13,9 @@ public:
 };
 
 void zEntInit(_zEnt* ent, p2EntAsset* asset, unsigned int type);
+void zEntSetup(_zEnt* ent);
+void zEntReset(_zEnt* ent);
+void zEntAnimEvent(_zEnt* ent, unsigned int animEvent, float* animParam);
 void zEntSave(_zEnt* ent, xSerial* s);
 void zEntLoad(_zEnt* ent, xSerial* s);
 
