@@ -3,6 +3,25 @@
 
 static iColor_tag sgDrawColor = { 0xFF, 0xFF, 0xFF, 0xFF };
 
+static inline iColor_tag iColorMake(unsigned char r, unsigned char g, unsigned char b,
+                                    unsigned char a)
+{
+    iColor_tag c;
+    c.r = r;
+    c.g = g;
+    c.b = b;
+    c.a = a;
+    return c;
+}
+
+static inline void xDrawSetColorFields(iColor_tag color)
+{
+    sgDrawColor.r = color.r;
+    sgDrawColor.g = color.g;
+    sgDrawColor.b = color.b;
+    sgDrawColor.a = color.a;
+}
+
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 
 void xDrawBegin()
@@ -23,16 +42,7 @@ void xDrawSetColor(iColor_tag color)
 
 void xDrawSetColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
 {
-    iColor_tag c;
-    c.r = r;
-    c.g = g;
-    c.b = b;
-    c.a = a;
-    iColor_tag tmp = c;
-    sgDrawColor.r = tmp.r;
-    sgDrawColor.g = tmp.g;
-    sgDrawColor.b = tmp.b;
-    sgDrawColor.a = tmp.a;
+    xDrawSetColorFields(iColorMake(r, g, b, a));
 }
 
 // TODO: the original loads all six coordinates before storing any of them
