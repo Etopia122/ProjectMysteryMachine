@@ -40,6 +40,10 @@ public:
     float angle;
 };
 
+extern const _xMat3x3 g_I3;
+
+void xMat3x3Euler(_xMat3x3* m, float yaw, float pitch, float roll);
+void xMat3x3LMulVec(_xVec3* o, _xMat3x3* m, _xVec3* v);
 void xMat3x3GetEuler(_xMat3x3* m, _xVec3* a);
 void xMat3x3RotY(_xMat3x3* m, float t);
 void xMat3x3Mul(_xMat3x3* o, _xMat3x3* a, _xMat3x3* b);

@@ -1,9 +1,16 @@
 #ifndef ZPAREMITTER_H
 #define ZPAREMITTER_H
 
+#include "xBase.h"
 #include "xMath3.h"
 
-class _zParEmitter;
+class _zParEmitter : public xBase
+{
+public:
+    void* tasset;             // 0x10
+    void* group;              // 0x14
+    unsigned char emit_flags; // 0x18
+};
 
 class _zParEmitterCustomSettings
 {

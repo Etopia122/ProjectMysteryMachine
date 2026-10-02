@@ -2,12 +2,15 @@
 #define XCAMERA_H
 
 #include "xBase.h"
+#include "xMath3.h"
 
 // Placeholder layouts: only the members used so far are meaningful.
 class _tagxCamFrame
 {
 public:
-    unsigned char data[0x1F0]; // GameCube size unknown (0x220 on PS2)
+    unsigned char pad0[0xC0];
+    _xMat4x3 mat; // 0xC0 (xClimate reads at and pos)
+    unsigned char pad1[0x1F0 - 0x100]; // GameCube size unknown (0x220 on PS2)
 };
 
 class xCamAsset : public p2BaseAsset
