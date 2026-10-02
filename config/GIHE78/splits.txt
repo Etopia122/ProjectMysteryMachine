@@ -222,6 +222,7 @@ Core/x/xString.cpp:
 
 Core/x/xSurface.cpp:
 	.text       start:0x80040EE4 end:0x80040FCC
+	.sbss       start:0x8025EBD0 end:0x8025EBD8
 
 Core/x/xTRC.cpp:
 	.text       start:0x80040FCC end:0x800411A8
