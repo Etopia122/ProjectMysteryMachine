@@ -146,6 +146,7 @@ Core/x/xhipio.cpp:
 
 Core/x/xIni.cpp:
 	.text       start:0x8002C190 end:0x8002C774
+	.sdata2     start:0x8025FF90 end:0x8025FFA0
 
 Core/x/xLinkList.cpp:
 	.text       start:0x8002C774 end:0x8002C86C
