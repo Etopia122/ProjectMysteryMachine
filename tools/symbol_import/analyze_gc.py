@@ -83,7 +83,7 @@ def main() -> None:
 
     funcs = []
     cur = None
-    for path in sorted(asm_dir.glob("*.s")):
+    for path in sorted(asm_dir.rglob("*.s")):
         if "_text" not in path.name and "_init" not in path.name:
             continue
         for line in path.read_text().splitlines():
