@@ -6,9 +6,12 @@
 # .init detection. tools/prepare_dol.py (run by configure.py) extracts it from
 # the disc image and writes main_analysis.dol with the entry point set to
 # __start. build.sha1 still checks the build against the retail DOL.
+name: main
 object: orig/GIHE78/main_analysis.dol
 hash: 11fe17e524a1c666ba6b2b3f8cebe24f75ec5ab8
 symbols: config/GIHE78/symbols.txt
 splits: config/GIHE78/splits.txt
-# Linker version still to be determined; update once confirmed.
+# CodeWarrior for GameCube 1.3.2 (see docs/compiler.md).
 mw_comment_version: 10
+# Custom linker script: debugger stack is 0x1000 (dtk default 0x2000).
+ldscript_template: config/GIHE78/ldscript.tpl

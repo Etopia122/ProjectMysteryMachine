@@ -176,6 +176,9 @@ config.asflags = [
 config.ldflags = [
     "-fp hardware",
     "-nodefaults",
+    # The retail entry point is a stack-fill routine in .text that calls
+    # __start (see tools/prepare_dol.py), not __start itself.
+    "-m fn_80016898",
 ]
 if args.debug:
     config.ldflags.append("-g")  # Or -gdwarf-2 for Wii linkers
