@@ -328,7 +328,10 @@ Game/zGust.cpp:
 	.text       start:0x800AFF5C end:0x800B07B4
 
 Game/zHologram.cpp:
-	.text       start:0x800B07B4 end:0x800B09C8
+	.text       start:0x800B07B4 end:0x800B09F0
+	.rodata     start:0x801A45B8 end:0x801A4728
+	.bss        start:0x8022ECB0 end:0x8022ECF0
+	.sdata2     start:0x80261388 end:0x80261390
 
 Game/zHud.cpp:
 	.text       start:0x800B09F0 end:0x800B97CC
