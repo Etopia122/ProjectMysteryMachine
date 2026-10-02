@@ -449,7 +449,7 @@ config.libs = [
             Object(NonMatching, "Game/zGust.cpp"),
             Object(Matching, "Game/zHologram.cpp"),
             Object(NonMatching, "Game/zHud.cpp"),
-            Object(NonMatching, "Game/zLaugh.cpp"),
+            Object(Matching, "Game/zLaugh.cpp"),
             Object(NonMatching, "Game/zLight.cpp"),
             Object(NonMatching, "Game/zLightning.cpp"),
             Object(NonMatching, "Game/zLobMaster.cpp"),

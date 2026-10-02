@@ -16,4 +16,7 @@ void xSndStop(unsigned int snd);
 void xSndParentDied(unsigned int pid);
 void xSndStopChildren(unsigned int pid);
 
+// GameCube: looks a sound up by asset ID (named after BFBB's iSndLookup)
+void* iSndLookup(unsigned int id);
+
 #endif
