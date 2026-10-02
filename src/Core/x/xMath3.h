@@ -53,6 +53,11 @@ inline void xVec3Copy(_xVec3* o, _xVec3* v)
     o->z = v->z;
 }
 
+inline float xVec3Dot(const _xVec3* a, const _xVec3* b)
+{
+    return a->x * b->x + a->y * b->y + a->z * b->z;
+}
+
 inline void xVec3Sub(_xVec3* o, _xVec3* a, _xVec3* b)
 {
     o->x = a->x - b->x;
