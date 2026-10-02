@@ -35,8 +35,7 @@ public:
     unsigned int pad30;
 };
 
-// A variant of iRayHitsEnv in iCollide.cpp (not yet named).
-extern "C" unsigned int fn_80007E68(_xRay3* r, _xEnv* env, _xCollis* coll);
+unsigned int iRayHitsEnv(_xRay3* r, _xEnv* env, _xCollis* coll);
 
 float xVec3Normalize(_xVec3* o, _xVec3* v);
 
@@ -323,7 +322,7 @@ signed int MVPT_dflt_chklos(void* context, _xVec3* pos, _zMovePoint* mvpt)
     ray.flags = 0xC00;
     ray.max_t = dist;
     ray.min_t = 0.0f;
-    fn_80007E68(&ray, globals.sceneCur->env, &colrec);
+    iRayHitsEnv(&ray, globals.sceneCur->env, &colrec);
     if (colrec.optr)
     {
         return 0;
