@@ -88,3 +88,10 @@ Useful tools:
 - `python tools/import_splits.py GIHE78 <ref symbols> <ref splits> <TU>` —
   derive splits for TUs shared with another decomp
 - `python tools/compiler_probe/probe.py GIHE78 <src>` — test compilers/flags
+- `python tools/check_unit.py GIHE78 <unit>` — per-function match % and order check
+- `sh tools/diff_fn.sh <src> <function>` — side-by-side diff with the real flags
+- `python tools/tu_info.py GIHE78 <unit>` — PS2 signatures, data ranges and asm for a unit
+- `python tools/ready_units.py GIHE78` — undecompiled units by size, with unnamed callees
+- `python tools/m2c_fn.py GIHE78 <function>` — first C draft of a function via
+  [m2c](https://github.com/matt-kempster/m2c)
+  (`pip install git+https://github.com/matt-kempster/m2c.git`)
