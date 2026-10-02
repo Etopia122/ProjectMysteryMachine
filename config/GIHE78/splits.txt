@@ -344,6 +344,9 @@ Game/zGroup.cpp:
 
 Game/zGust.cpp:
 	.text       start:0x800AFF5C end:0x800B07B4
+	.rodata     start:0x801A4590 end:0x801A45B8
+	.sbss       start:0x8025EF88 end:0x8025EF98
+	.sdata2     start:0x80261358 end:0x80261388
 
 Game/zHologram.cpp:
 	.text       start:0x800B07B4 end:0x800B09F0

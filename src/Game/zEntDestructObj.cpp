@@ -2,6 +2,7 @@
 #include "zGlobals.h"
 #include "xserializer.h"
 #include "rwtypes.h"
+#include "zParEmitter.h"
 
 enum _tagSDRumbleType
 {
@@ -26,33 +27,6 @@ enum _tagSDRumbleType
 
 void zRumbleStart(signed int pad_id, _tagSDRumbleType rumble_type);
 
-class _zParEmitter;
-
-class _zParEmitterCustomSettings
-{
-public:
-    unsigned int custom_flags;
-    unsigned char count;
-    unsigned char count_variation;
-    float interval;
-    unsigned int attachToID;
-    _xVec3 pos;
-    _xVec3 vel;
-    float vel_angle_variation;
-    unsigned char color_birth[4];
-    unsigned char color_death[4];
-    float size_birth;
-    float size_birth_variation;
-    float size_death;
-    float life;
-    float life_variation;
-    unsigned char rot[3];
-    float xzcircle_radius;
-    float emit_interval_current;
-};
-
-_zParEmitter* zParEmitterFind(char* asset_name);
-void zParEmitterEmitCustom(_zParEmitter* p, float dt, _zParEmitterCustomSettings* info);
 
 class zEntDestructObjAsset
 {
