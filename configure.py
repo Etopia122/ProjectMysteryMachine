@@ -256,6 +256,7 @@ cflags_rel = [
 # are contracted.
 cflags_game = [
     *cflags_base,
+    "-O4,s",  # size: loops are not unrolled (e.g. xStrTok's 32-byte clear)
     "-lang=c++",
     "-inline deferred",
     "-fp_contract on",

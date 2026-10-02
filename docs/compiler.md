@@ -1,8 +1,8 @@
 # Compiler and flags (GIHE78)
 
 Summary: game code was built with **CodeWarrior for GameCube 1.3.2**
-(`GC/1.3.2`, Ver 2.4.2 build 81) using `-inline deferred`, signed chars and
-FP contraction. See `cflags_game` in `configure.py`.
+(`GC/1.3.2`, Ver 2.4.2 build 81) using `-O4,s`, `-inline deferred`, signed
+chars and FP contraction. See `cflags_game` in `configure.py`.
 
 ## Evidence
 
@@ -21,7 +21,7 @@ every compiler/flag combination and compares each function against the DOL
 | `-use_lmw_stmw on` | Game functions save registers with `stmw`/`lmw` (e.g. 0x80016A30). |
 | `-str reuse,pool,readonly` | Each TU's string literals are one pooled object in `.rodata`. |
 | `-Cpp_exceptions off` | No `extab`/`extabindex` sections. |
-| `-O4,p` | `-O4,p` and `-O4,s` produce identical code for the probed functions; `-O3` does not match. |
+| `-O4,s` | Optimized for size: `xStrTok`/`xStrTokBuffer` clear a 32-byte array with a counted `bdnz` loop, which `-O4,p` fully unrolls (identical across all compiler versions, so it's the flag, not the version). `-O3` does not match. |
 
 ## Writing source
 
@@ -34,8 +34,7 @@ wrong order still shows 100% there but breaks the DOL hash check.
 
 - A function that compiles differently under 1.3.2 and 2.x would settle the
   version. Larger functions (loops, register pressure) are the best bet.
-- `-common on/off`, `-sdata`/`-sdata2` thresholds and `-O4,p` vs `-O4,s` still
-  need a discriminating test.
+- `-common on/off` and `-sdata`/`-sdata2` thresholds still need a discriminating test.
 - Library objects (SDK, MSL, Runtime, MetroTRK, RenderWare, Bink) use their own
   compilers; pick per library when splitting (SDK is usually `GC/1.2.5n`).
 
