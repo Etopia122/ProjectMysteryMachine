@@ -2,7 +2,7 @@
 #include "iDraw.h"
 #include "xMemMgr.h"
 
-class RwCamera;
+
 
 extern "C" {
 void _rwFrameSyncDirty();

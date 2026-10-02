@@ -1,6 +1,8 @@
 #ifndef IDRAW_H
 #define IDRAW_H
 
+#include "rwtypes.h"
+
 class iColor_tag
 {
 public:
@@ -10,13 +12,6 @@ public:
     unsigned char a;
 };
 
-class RwV3d
-{
-public:
-    float x;
-    float y;
-    float z;
-};
 
 void iDrawEnd();
 // GameCube signature inferred from xDrawLine's call (a stub in this build)
