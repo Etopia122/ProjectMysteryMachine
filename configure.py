@@ -377,7 +377,7 @@ config.libs = [
             Object(Matching, "Core/x/xDebug.cpp"),
             Object(NonMatching, "Core/x/xDraw.cpp"),
             Object(NonMatching, "Core/x/xEnt.cpp"),
-            Object(NonMatching, "Core/x/xEntDrive.cpp"),
+            Object(Matching, "Core/x/xEntDrive.cpp"),
             Object(NonMatching, "Core/x/xEntMotion.cpp"),
             Object(Matching, "Core/x/xEnv.cpp"),
             Object(NonMatching, "Core/x/xFFX.cpp"),

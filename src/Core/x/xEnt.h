@@ -14,7 +14,6 @@ public:
     RwMatrixTag* Mat; // 0x20
 };
 class _xScene;
-class _xEntFrame;
 class _xEntCollis;
 class xSurface;
 class xFFX;
@@ -38,6 +37,22 @@ public:
     float seeThruSpeed;
     unsigned int modelInfoID;
     unsigned int animListID;
+};
+
+class _xEntFrame
+{
+public:
+    _xMat4x3 mat;   // 0x0
+    _xMat4x3 dmat;  // 0x40
+    _xVec3 oldpos;  // 0x80
+    _xVec3 oldvel;  // 0x8C
+    _xRot oldrot;   // 0x98
+    _xRot drot;     // 0xA8
+    _xRot rot;      // 0xB8
+    _xVec3 dpos;    // 0xC8
+    _xVec3 dvel;    // 0xD4
+    _xVec3 vel;     // 0xE0
+    unsigned int mode; // 0xEC
 };
 
 class _xBound

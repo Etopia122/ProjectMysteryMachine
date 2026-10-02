@@ -121,6 +121,7 @@ Core/x/xEnt.cpp:
 
 Core/x/xEntDrive.cpp:
 	.text       start:0x800258F4 end:0x80025F04
+	.sdata2     start:0x8025FE50 end:0x8025FE58
 
 Core/x/xEntMotion.cpp:
 	.text       start:0x80025F04 end:0x80028D18
