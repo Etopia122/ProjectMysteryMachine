@@ -48,6 +48,11 @@ needs).
 
 Caveats:
 
+- A Matching object whose source file is missing makes configure print
+  "Missing source file" and link the original assembly instead, so the hash
+  still matches. `tools/test_units.py` refuses to test such units; copy the
+  source first.
+
 - The masked comparison ignores relocation targets, so wrappers that differ
   only in what they call look identical (`math_ppc.c`'s float wrappers matched
   the wrong functions). The hash check catches this.

@@ -66,6 +66,10 @@ def main() -> None:
         if not pat.search(original):
             print(f"SKIP      {unit} (not NonMatching)")
             continue
+        # a Matching unit without a source file silently links the original asm
+        if not (ROOT / "src" / unit).exists():
+            print(f"MISSING   {unit} (no source file; the build would fall back to asm)")
+            continue
         cfg.write_text(pat.sub(lambda m: f'Object(Matching,{m.group(1)}"{unit}"', original), newline="\n")
         result = build(timeout)
         print(f"{result:9} {unit}", flush=True)
