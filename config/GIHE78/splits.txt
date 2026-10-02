@@ -33,7 +33,7 @@ Core/gc/iDraw.cpp:
 	.text       start:0x8000A2DC end:0x8000A348
 
 Core/gc/iEnv.cpp:
-	.text       start:0x8000A39C end:0x8000A408
+	.text       start:0x8000A348 end:0x8000A49C
 
 Core/gc/iFile.cpp:
 	.text       start:0x8000A49C end:0x8000AB3C
@@ -121,6 +121,7 @@ Core/x/xEntMotion.cpp:
 
 Core/x/xEnv.cpp:
 	.text       start:0x80028D18 end:0x80028DFC
+	.sbss       start:0x8025EA48 end:0x8025EA4C
 
 Core/x/xFFX.cpp:
 	.text       start:0x80028DFC end:0x80029458

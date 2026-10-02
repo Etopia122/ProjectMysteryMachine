@@ -48,6 +48,14 @@ def main() -> None:
         capture_output=True,
         text=True,
     )
+    if proc.returncode != 0 and "Failed to open" in proc.stderr:
+        # objdiff needs every unit's object; build them all and retry
+        subprocess.run(["ninja"], capture_output=True)
+        proc = subprocess.run(
+            [str(Path(OBJDIFF).resolve()), "report", "generate", "-o", str(report), "-f", "json"],
+            capture_output=True,
+            text=True,
+        )
     if proc.returncode != 0:
         sys.exit(proc.stderr)
     data = json.loads(report.read_text())
