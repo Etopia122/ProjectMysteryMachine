@@ -581,7 +581,7 @@ config.libs = [
             Object(Matching, "TRK_MINNOW_DOLPHIN/Os/dolphin/targcont.c"),
             Object(Matching, "TRK_MINNOW_DOLPHIN/Os/dolphin/target_options.c"),
             Object(Matching, "TRK_MINNOW_DOLPHIN/Portable/main_TRK.c"),
-            Object(NonMatching, "TRK_MINNOW_DOLPHIN/MetroTRK/Export/mslsupp.c"),
+            Object(Matching, "TRK_MINNOW_DOLPHIN/MetroTRK/Export/mslsupp.c"),
         ],
     },
     {
