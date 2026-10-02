@@ -38,11 +38,59 @@ RwFrame* RwFrameTransform(RwFrame* frame, RwMatrixTag* m, signed int combine);
 RpLight* RpLightSetColor(RpLight* light, RwRGBAReal* color);
 RpLight* RpLightSetRadius(RpLight* light, float radius);
 RpLight* RpLightSetConeAngle(RpLight* light, float angle);
+RpLight* RpLightCreate(signed int type);
+RwFrame* RwFrameCreate();
+void* _rwObjectHasFrameSetFrame(void* object, RwFrame* frame);
 }
 
 extern const _xVec3 g_O3;
 
+RpWorld* gLightWorld;
+
 // Functions are in reverse DOL order (-inline deferred emits last to first).
+
+void iLightInit(RpWorld* world)
+{
+    gLightWorld = world;
+}
+
+iLight* iLightCreate(iLight* light, unsigned int type)
+{
+    RwFrame* frame;
+
+    switch (type)
+    {
+    case 1:
+        light->hw = RpLightCreate(0x80);
+        break;
+    case 2:
+        light->hw = RpLightCreate(0x81);
+        break;
+    case 3:
+        light->hw = RpLightCreate(0x82);
+        break;
+    }
+
+    frame = RwFrameCreate();
+    light->hw->object.flags = 1;
+    _rwObjectHasFrameSetFrame(light->hw, frame);
+    RwFrameUpdateObjects(frame);
+
+    light->type = type;
+    light->sph.center.x = 0.0f;
+    light->sph.center.y = 0.0f;
+    light->sph.center.z = 0.0f;
+    light->sph.r = 0.0f;
+    light->color.r = 1.0f;
+    light->color.g = 1.0f;
+    light->color.b = 1.0f;
+    light->color.a = 1.0f;
+    light->dir.x = 0.0f;
+    light->dir.y = 0.0f;
+    light->dir.z = 1.0f;
+    light->coneangle = 0.0f;
+    return light;
+}
 
 void iLightModify(iLight* light, unsigned int flags)
 {

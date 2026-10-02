@@ -40,10 +40,9 @@ Core/gc/iFont.cpp:
 	.text       start:0x8000AB58 end:0x8000B924
 
 Core/gc/iLight.cpp:
-	.text       start:0x8000BA70 end:0x8000BC28
-
-Core/gc/im3dpipe.c:
-	.text       start:0x8000BC28 end:0x8000BD14
+	.text       start:0x8000BA70 end:0x8000BD14
+	.sbss       start:0x8025E8D8 end:0x8025E8E0
+	.sdata2     start:0x8025F9D0 end:0x8025F9D8
 
 Core/gc/iMath.cpp:
 	.text       start:0x8000BD14 end:0x8000BDC0

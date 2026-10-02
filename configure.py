@@ -394,7 +394,6 @@ config.libs = [
             Object(NonMatching, "Core/gc/iFile.cpp"),
             Object(NonMatching, "Core/gc/iFont.cpp"),
             Object(Matching, "Core/gc/iLight.cpp"),
-            Object(NonMatching, "Core/gc/im3dpipe.c"),
             Object(Matching, "Core/gc/iMath.cpp"),
             Object(NonMatching, "Core/gc/iMath3.cpp"),
             Object(Matching, "Core/gc/iMemMgr.cpp"),
