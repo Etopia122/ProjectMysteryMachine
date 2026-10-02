@@ -394,6 +394,7 @@ Game/zParSys.cpp:
 
 Game/zPendulum.cpp:
 	.text       start:0x800C7000 end:0x800C751C
+	.sdata2     start:0x80261B90 end:0x80261BA0
 
 Game/zPlatform.cpp:
 	.text       start:0x800C7680 end:0x800C8AE4

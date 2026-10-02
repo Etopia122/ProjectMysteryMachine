@@ -510,7 +510,7 @@ config.libs = [
             Object(NonMatching, "Game/zParCmd.cpp"),
             Object(NonMatching, "Game/zParEmitter.cpp"),
             Object(NonMatching, "Game/zParSys.cpp"),
-            Object(NonMatching, "Game/zPendulum.cpp"),
+            Object(Matching, "Game/zPendulum.cpp"),
             Object(NonMatching, "Game/zPlatform.cpp"),
             Object(Matching, "Game/zPortal.cpp"),
             Object(Matching, "Game/zRenderState.cpp"),
