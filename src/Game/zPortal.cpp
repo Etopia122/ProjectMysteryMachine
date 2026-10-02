@@ -58,7 +58,7 @@ signed int zPortalEventCB(xBase* from, xBase* to, unsigned int toEvent, float* t
         xBaseReset(p, p->passet);
         break;
     case 0x10:
-        if (globals.unk2E8)
+        if (globals.player.Health)
         {
             zSceneSwitch(p);
         }

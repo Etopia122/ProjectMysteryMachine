@@ -270,7 +270,10 @@ Game/zEntButton.cpp:
 	.text       start:0x8004A508 end:0x8004AAD4
 
 Game/zEntDestructObj.cpp:
-	.text       start:0x8004AE18 end:0x8004B0BC
+	.text       start:0x8004AAD4 end:0x8004B0BC
+	.rodata     start:0x801961E8 end:0x80196228
+	.sbss       start:0x8025EC40 end:0x8025EC50
+	.sdata2     start:0x802605A8 end:0x802605B8
 
 Game/zEntHangable.cpp:
 	.text       start:0x8004B0BC end:0x8004C83C

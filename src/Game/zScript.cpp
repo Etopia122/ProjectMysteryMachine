@@ -150,7 +150,7 @@ void zScriptUpdate(xBase* to, float dt)
     }
     else if (t->state == 3)
     {
-        if (globals.unk1F0 && (globals.unk1F0->flags & 0x40000))
+        if (globals.pad0 && (globals.pad0->on & 0x40000))
         {
             t->state = 1;
         }

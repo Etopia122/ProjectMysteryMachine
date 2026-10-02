@@ -429,7 +429,7 @@ config.libs = [
             Object(NonMatching, "Game/zEnt.cpp"),
             Object(NonMatching, "Game/zEntBubble.cpp"),
             Object(NonMatching, "Game/zEntButton.cpp"),
-            Object(NonMatching, "Game/zEntDestructObj.cpp"),
+            Object(Matching, "Game/zEntDestructObj.cpp"),
             Object(NonMatching, "Game/zEntHangable.cpp"),
             Object(NonMatching, "Game/zEntPickup.cpp"),
             Object(NonMatching, "Game/zEntPlayer.cpp"),
