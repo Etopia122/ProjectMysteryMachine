@@ -4,5 +4,6 @@
 extern unsigned int gActiveHeap;
 
 void* xMemAlloc(unsigned int heapID, unsigned int size);
+unsigned int xMemGetBase();
 
 #endif

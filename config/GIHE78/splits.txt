@@ -26,14 +26,15 @@ Core/gc/iCollide.cpp:
 Core/gc/iCollideFast.cpp:
 	.text       start:0x80009424 end:0x800099FC
 
+Core/gc/iDraw.cpp:
+	.text       start:0x80009CC0 end:0x80009CCC
+
 Core/gc/iCutscene.cpp:
 	.text       start:0x80009CCC end:0x8000A2DC
 
-Core/gc/iDraw.cpp:
-	.text       start:0x8000A2DC end:0x8000A348
-
 Core/gc/iEnv.cpp:
-	.text       start:0x8000A348 end:0x8000A49C
+	.text       start:0x8000A2DC end:0x8000A49C
+	.sdata2     start:0x8025F978 end:0x8025F980
 
 Core/gc/iFile.cpp:
 	.text       start:0x8000A49C end:0x8000AB3C

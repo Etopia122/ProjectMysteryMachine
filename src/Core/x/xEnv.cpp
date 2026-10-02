@@ -16,7 +16,7 @@ void xEnvLoadBsp(_xEnv* env, void* data, unsigned int datasize, signed int dataT
 
 void xEnvSetup(_xEnv* env)
 {
-    iEnvSetup(env->geom);
+    iEnvDefaultLighting(env->geom);
     gCurXEnv = env;
 }
 
