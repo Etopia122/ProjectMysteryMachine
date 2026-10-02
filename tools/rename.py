@@ -18,7 +18,7 @@ def main() -> None:
     version = sys.argv[1]
     renames = {}
     for arg in sys.argv[2:]:
-        addr, name = arg.split("=", 1)
+        addr, name = arg.strip().split("=", 1)
         renames[int(addr, 16)] = name
     path = Path("config") / version / "symbols.txt"
     lines = path.read_text().splitlines()

@@ -580,6 +580,8 @@ config.libs = [
             Object(Matching, "TRK_MINNOW_DOLPHIN/ppc/Generic/mpc_7xx_603e.c"),
             Object(Matching, "TRK_MINNOW_DOLPHIN/Os/dolphin/targcont.c"),
             Object(Matching, "TRK_MINNOW_DOLPHIN/Os/dolphin/target_options.c"),
+            Object(Matching, "TRK_MINNOW_DOLPHIN/Portable/main_TRK.c"),
+            Object(NonMatching, "TRK_MINNOW_DOLPHIN/MetroTRK/Export/mslsupp.c"),
         ],
     },
     {
@@ -589,6 +591,8 @@ config.libs = [
         "progress_category": "sdk",
         "objects": [
             Object(Matching, "PowerPC_EABI_Support/Runtime/Src/__va_arg.c"),
+            Object(Matching, "PowerPC_EABI_Support/Runtime/Src/global_destructor_chain.c"),
+            Object(NonMatching, "PowerPC_EABI_Support/Runtime/Src/runtime.c"),
         ],
     },
     {
@@ -598,6 +602,13 @@ config.libs = [
         "progress_category": "sdk",
         "objects": [
             Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/ctype.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/abort_exit.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/arith.c"),
+            Object(NonMatching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/mbstring.c", extra_cflags=["-inline noauto"]),
+            Object(NonMatching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/printf.c"),
+            Object(NonMatching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/string.c"),
+            Object(NonMatching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/strtoul.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Src/uart_console_io.c"),
             Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/direct_io.c"),
             Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/file_io.c", extra_cflags=["-inline noauto"]),
             Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/FILE_POS.c"),

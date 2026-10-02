@@ -262,6 +262,13 @@ def place_data(obj: Path, func_addr: Dict[int, int], funcs: Funcs, refs, symbols
                     continue
                 target = (0 if sym["st_info"]["type"] == "STT_SECTION" else sym["st_value"]) + r["r_addend"]
                 votes[shndx].append(symbols[ref[0]] + ref[1] - target)
+        # fallback for sections .text doesn't reference: named symbols that
+        # already exist in our symbols.txt
+        for s in syms:
+            shndx = s["st_shndx"]
+            if isinstance(shndx, int) and shndx in data_secs and not votes[shndx]:
+                if s.name and s["st_info"]["type"] in ("STT_OBJECT", "STT_NOTYPE") and s.name in symbols:
+                    votes[shndx].append(symbols[s.name] - s["st_value"])
         for i, sec in data_secs.items():
             v = set(votes[i])
             if len(v) == 1:
@@ -283,6 +290,7 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=ROOT / "build" / "tmp" / "ref_objects")
     ap.add_argument("--splits", type=Path, help="write splits.txt entries for placed objects here")
     ap.add_argument("--prefix", default="", help="prefix for unit names in the written splits")
+    ap.add_argument("--renames", type=Path, help="write ADDR=name lines (for tools/rename.py) for placed functions")
     args = ap.parse_args()
 
     ref = args.ref.resolve()
@@ -293,6 +301,7 @@ def main() -> None:
     refs = load_asm_refs(args.version)
     symbols = load_symbols(args.version)
     split_out: List[str] = []
+    renames: List[str] = []
 
     for lib in args.libs:
         cfg = libs[lib]
@@ -342,6 +351,9 @@ def main() -> None:
                     print(f"   none  [{ref_status}] {src}")
             if placement:
                 ts, te, offs, stripped = placement
+                for fo, _, fname in funcs:
+                    if fo in offs and not fname.startswith(("@", ".")):
+                        renames.append(f"{offs[fo]:08X}={fname}")
                 data = place_data(out, offs, funcs, refs, symbols)
                 for name, (b, size, note) in data.items():
                     where = f"{b:08X}-{b + size:08X}" if b is not None else "?"
@@ -355,7 +367,9 @@ def main() -> None:
                             lines.append(f"\t{name:<11} start:0x{b:08X} end:0x{b + size:08X}")
                     split_out.append(("" if ok else "# UNCERTAIN\n") + "\n".join(lines))
     if args.splits:
-        args.splits.write_text("\n\n".join(split_out) + "\n")
+        args.splits.write_text("\n\n".join(split_out) + "\n", newline="\n")
+    if args.renames:
+        args.renames.write_text("\n".join(renames) + "\n", newline="\n")
 
 
 if __name__ == "__main__":
