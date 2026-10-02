@@ -183,6 +183,9 @@ Core/x/xPar.cpp:
 
 Core/x/xParGroup.cpp:
 	.text       start:0x80032540 end:0x80032D28
+	.bss        start:0x802272A8 end:0x802276A8
+	.sbss       start:0x8025EAE0 end:0x8025EAE8
+	.sdata2     start:0x80260118 end:0x80260120
 
 Core/x/xParMgr.cpp:
 	.text       start:0x80032D48 end:0x80032DEC
