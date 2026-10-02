@@ -110,7 +110,8 @@ Core/x/xDebug.cpp:
 	.text       start:0x80021B24 end:0x80021D50
 
 Core/x/xDraw.cpp:
-	.text       start:0x80021D50 end:0x80021E18
+	.text       start:0x80021D50 end:0x80021E70
+	.sdata      start:0x8025E410 end:0x8025E414
 
 Core/x/xEnt.cpp:
 	.text       start:0x80021EB8 end:0x8002576C
