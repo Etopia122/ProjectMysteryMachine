@@ -2,9 +2,8 @@
 #include "xMemMgr.h"
 #include "xMath.h"
 #include "zGlobals.h"
+#include "zScene.h"
 
-class _xEnv;
-class zScene;
 
 class _xRay3
 {
@@ -324,7 +323,7 @@ signed int MVPT_dflt_chklos(void* context, _xVec3* pos, _zMovePoint* mvpt)
     ray.flags = 0xC00;
     ray.max_t = dist;
     ray.min_t = 0.0f;
-    fn_80007E68(&ray, *(_xEnv**)((char*)globals.sceneCur + 0x40), &colrec);
+    fn_80007E68(&ray, globals.sceneCur->env, &colrec);
     if (colrec.optr)
     {
         return 0;

@@ -2,6 +2,7 @@
 #include "xString.h"
 #include "iMath.h"
 #include "zGlobals.h"
+#include "zScene.h"
 #include "zEnt.h"
 #include "zParEmitter.h"
 #include "rwtypes.h"
@@ -40,13 +41,6 @@ class _tagClimate
 public:
     _tagRain rain;
     _tagWind wind;
-};
-
-class zScene
-{
-public:
-    unsigned char pad0[0x6C];
-    unsigned int sceneID; // 0x6C
 };
 
 #define CLIMATE_SCENE_ID(s) ((((s)[0] & ~0x20) << 24) | ((s)[1] << 16) | ((s)[2] << 8) | (s)[3])
