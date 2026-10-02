@@ -383,7 +383,7 @@ config.libs = [
     GameLib(
         "Core/gc",
         [
-            Object(NonMatching, "Core/gc/iAnim.cpp"),
+            Object(Matching, "Core/gc/iAnim.cpp"),
             Object(NonMatching, "Core/gc/iAnimSKB.cpp"),
             Object(NonMatching, "Core/gc/iCamera.cpp"),
             Object(NonMatching, "Core/gc/iCollide.cpp"),
