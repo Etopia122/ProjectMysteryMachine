@@ -1,6 +1,8 @@
 #include "xBase.h"
 #include "iCamera.h"
 
+class _xScene;
+
 class xSerial;
 
 class zFogAsset : public p2BaseAsset
@@ -87,4 +89,8 @@ signed int zFogEventCB(xBase* from, xBase* to, unsigned int toEvent, float* toPa
         break;
     }
     return 1;
+}
+
+void zFogUpdate(xBase* to, _xScene* sc, float dt)
+{
 }
