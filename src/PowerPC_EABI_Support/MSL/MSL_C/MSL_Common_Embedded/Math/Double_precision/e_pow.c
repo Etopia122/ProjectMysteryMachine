@@ -167,7 +167,7 @@ double __ieee754_pow(x, y) double x, y;
 	int hx, hy, ix, iy;
 	u32 lx, ly;
 
-	i0 = ((*(int*)&one) >> 29) ^ 1;
+	i0 = (0x3FF00000 >> 29) ^ 1; // Scooby: no address-taken (emitted) copy of one
 	i1 = 1 - i0;
 	hx = __HI(x);
 	lx = __LO(x);

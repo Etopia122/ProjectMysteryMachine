@@ -89,7 +89,7 @@ inline float tanf(float x) { return tan(x); }
 namespace std {
 #endif
 extern inline float sqrtf(float x) {
-#ifdef DECOMPCTX // Hack, see comment in dolzel.pch for details
+#if defined(DECOMPCTX) || defined(SCOOBY_MSL) // Scooby's MSL doesn't emit these constants per unit
     const double _half = .5;
     const double _three = 3.0;
 #else
