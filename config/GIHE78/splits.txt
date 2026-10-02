@@ -446,8 +446,17 @@ Core/gc/iAnim.cpp:
 	.rodata     start:0x801A7B10 end:0x801A7B20
 	.sdata2     start:0x80262040 end:0x80262070
 
-Game/zVolume.cpp:
-	.text       start:0x800D9E30 end:0x800DA0CC
+Core/gc/iSnd.cpp:
+	.text       start:0x800D84A0 end:0x800DB168
+
+Core/gc/iFMV.cpp:
+	.text       start:0x800DB168 end:0x800DC29C
+
+Core/gc/iFX.cpp:
+	.text       start:0x800DC29C end:0x800DC95C
+
+Core/gc/iMix.c:
+	.text       start:0x800DC95C end:0x800DE530
 
 TRK_MINNOW_DOLPHIN/Portable/mainloop.c:
 	.text       start:0x800DE530 end:0x800DE628

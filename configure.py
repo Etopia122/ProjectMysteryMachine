@@ -404,6 +404,11 @@ config.libs = [
             Object(NonMatching, "Core/gc/isavegame.cpp"),
             Object(NonMatching, "Core/gc/iScrFX.cpp"),
             Object(NonMatching, "Core/gc/iSystem.cpp"),
+            # GameCube-only units linked after the game code (names by role)
+            Object(NonMatching, "Core/gc/iSnd.cpp"),
+            Object(NonMatching, "Core/gc/iFMV.cpp"),
+            Object(NonMatching, "Core/gc/iFX.cpp"),
+            Object(NonMatching, "Core/gc/iMix.c"),  # older Dolphin MIX library
             Object(NonMatching, "Core/gc/itools.c"),
             Object(NonMatching, "Core/gc/iTRC.cpp"),
         ],
@@ -519,7 +524,6 @@ config.libs = [
             Object(NonMatching, "Game/zUI.cpp"),
             Object(NonMatching, "Game/zUIFont.cpp"),
             Object(NonMatching, "Game/zVar.cpp"),
-            Object(NonMatching, "Game/zVolume.cpp"),
         ],
     ),
     DolphinLib(
