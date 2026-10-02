@@ -51,10 +51,13 @@ Core/gc/iMath.cpp:
 	.sdata2     start:0x8025F9D8 end:0x8025F9E8
 
 Core/gc/iMath3.cpp:
-	.text       start:0x8000BDC0 end:0x8000DA64
+	.text       start:0x8000BDC0 end:0x8000DA6C
+
+Core/gc/iMemMgr.cpp:
+	.text       start:0x8000DA6C end:0x8000DBA4
 
 Core/gc/iModel.cpp:
-	.text       start:0x8000DAA8 end:0x8000EBC0
+	.text       start:0x8000DBA4 end:0x8000EBC0
 
 Core/gc/iMorph.cpp:
 	.text       start:0x8000EBC0 end:0x8000EC88
@@ -158,13 +161,13 @@ Core/x/xMath.cpp:
 	.sdata2     start:0x8025FFA0 end:0x80260008
 
 Core/x/xMath3.cpp:
-	.text       start:0x8002CF48 end:0x8002F874
+	.text       start:0x8002CF48 end:0x8002F920
 
 Core/x/xMemMgr.cpp:
-	.text       start:0x8002F874 end:0x8002FF28
+	.text       start:0x8002F920 end:0x800300A8
 
 Core/x/xModel.cpp:
-	.text       start:0x800301A4 end:0x80030D18
+	.text       start:0x800300A8 end:0x80030D18
 
 Core/x/xMorph.cpp:
 	.text       start:0x80030F3C end:0x80031310

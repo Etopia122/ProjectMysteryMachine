@@ -397,6 +397,7 @@ config.libs = [
             Object(NonMatching, "Core/gc/im3dpipe.c"),
             Object(Matching, "Core/gc/iMath.cpp"),
             Object(NonMatching, "Core/gc/iMath3.cpp"),
+            Object(NonMatching, "Core/gc/iMemMgr.cpp"),
             Object(NonMatching, "Core/gc/iModel.cpp"),
             Object(NonMatching, "Core/gc/iMorph.cpp"),
             Object(NonMatching, "Core/gc/iPad.cpp"),
