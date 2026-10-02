@@ -407,6 +407,11 @@ dolphin/src/ax/AXSPB.c:
 	.bss        start:0x8024A800 end:0x8024A840
 	.sbss       start:0x8025F358 end:0x8025F380
 
+dolphin/src/dsp/dsp_task.c:
+	.text       start:0x800F8C3C end:0x800F94C0
+	.data       start:0x801CC6B0 end:0x801CC7F0
+	.sbss       start:0x8025F3B0 end:0x8025F3C8
+
 dolphin/src/os/OSAlloc.c:
 	.text       start:0x8010438C end:0x8010469C
 	.sdata      start:0x8025E688 end:0x8025E690
@@ -415,6 +420,10 @@ dolphin/src/os/OSAlloc.c:
 dolphin/src/os/OSAudioSystem.c:
 	.text       start:0x801046BC end:0x80104950
 	.data       start:0x801CCF40 end:0x801CCFC0
+
+dolphin/src/os/OSResetSW.c:
+	.text       start:0x80106AA8 end:0x80106E34
+	.sbss       start:0x8025F4A0 end:0x8025F4C0
 
 dolphin/src/os/OSTime.c:
 	.text       start:0x80108608 end:0x80108A84
@@ -438,3 +447,10 @@ dolphin/src/dvd/dvdqueue.c:
 dolphin/src/dvd/dvderror.c:
 	.text       start:0x80111AE8 end:0x80111C80
 	.data       start:0x801CDE70 end:0x801CDEB8
+
+dolphin/src/dvd/emu_level2/fstload.c:
+	.text       start:0x80111C80 end:0x80111EC0
+	.data       start:0x801CDEB8 end:0x801CDF28
+	.bss        start:0x8025C218 end:0x8025C288
+	.sdata      start:0x8025E6E8 end:0x8025E6F8
+	.sbss       start:0x8025F618 end:0x8025F624

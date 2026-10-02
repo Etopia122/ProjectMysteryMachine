@@ -494,6 +494,7 @@ config.libs = [
             Object(Matching, "dolphin/src/os/OSAudioSystem.c"),
             Object(Matching, "dolphin/src/os/OSTime.c"),
             Object(Matching, "dolphin/src/os/OSAlloc.c"),
+            Object(Matching, "dolphin/src/os/OSResetSW.c"),
         ],
     ),
     DolphinLib(
@@ -502,6 +503,13 @@ config.libs = [
             Object(Matching, "dolphin/src/dvd/dvdqueue.c"),
             Object(Matching, "dolphin/src/dvd/dvderror.c"),
             Object(NonMatching, "dolphin/src/dvd/dvdfs.c"),
+            Object(Matching, "dolphin/src/dvd/emu_level2/fstload.c"),
+        ],
+    ),
+    DolphinLib(
+        "dsp",
+        [
+            Object(Matching, "dolphin/src/dsp/dsp_task.c"),
         ],
     ),
     DolphinLib(
