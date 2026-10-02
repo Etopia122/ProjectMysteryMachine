@@ -165,7 +165,8 @@ Core/x/xMorph.cpp:
 	.sdata2     start:0x802600D0 end:0x802600E0
 
 Core/x/xMovePoint.cpp:
-	.text       start:0x80031318 end:0x800317D4
+	.text       start:0x80031310 end:0x800317D4
+	.sdata2     start:0x802600E0 end:0x802600F0
 
 Core/x/xordarray.cpp:
 	.text       start:0x800317D4 end:0x80031AC8
