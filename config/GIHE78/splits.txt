@@ -45,10 +45,10 @@ Core/gc/iLight.cpp:
 	.text       start:0x8000BA70 end:0x8000BC28
 
 Core/gc/im3dpipe.c:
-	.text       start:0x8000BC28 end:0x8000BD58
+	.text       start:0x8000BC28 end:0x8000BD14
 
 Core/gc/iMath.cpp:
-	.text       start:0x8000BD80 end:0x8000BDC0
+	.text       start:0x8000BD14 end:0x8000BDC0
 
 Core/gc/iMath3.cpp:
 	.text       start:0x8000BDC0 end:0x8000DA64
@@ -311,10 +311,10 @@ Game/zGameState.cpp:
 	.text       start:0x800AF8D8 end:0x800AFA64
 
 Game/zGroup.cpp:
-	.text       start:0x800AFEEC end:0x800AFF5C
+	.text       start:0x800AFD6C end:0x800AFF5C
 
 Game/zGust.cpp:
-	.text       start:0x800AFFC8 end:0x800B07B4
+	.text       start:0x800AFF5C end:0x800B07B4
 
 Game/zHologram.cpp:
 	.text       start:0x800B07B4 end:0x800B09C8
