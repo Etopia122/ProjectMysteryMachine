@@ -427,7 +427,7 @@ Game/zSFX.cpp:
 	.sdata2     start:0x80261EA8 end:0x80261EB8
 
 Game/zSurface.cpp:
-	.text       start:0x800D2454 end:0x800D340C
+	.text       start:0x800D229C end:0x800D340C
 
 Game/zTimer.cpp:
 	.text       start:0x800D340C end:0x800D3608
