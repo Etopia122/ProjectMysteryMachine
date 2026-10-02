@@ -394,7 +394,9 @@ Game/zScript.cpp:
 	.text       start:0x800D1B20 end:0x800D1E50
 
 Game/zSFX.cpp:
-	.text       start:0x800D2230 end:0x800D229C
+	.text       start:0x800D1E50 end:0x800D229C
+	.data       start:0x801C8B18 end:0x801C8B5C
+	.sdata2     start:0x80261EA8 end:0x80261EB8
 
 Game/zSurface.cpp:
 	.text       start:0x800D2454 end:0x800D340C
