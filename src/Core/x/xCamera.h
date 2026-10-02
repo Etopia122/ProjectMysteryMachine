@@ -7,7 +7,7 @@
 class _tagxCamFrame
 {
 public:
-    unsigned char data[0x220];
+    unsigned char data[0x1F0]; // GameCube size unknown (0x220 on PS2)
 };
 
 class xCamAsset : public p2BaseAsset

@@ -3,6 +3,8 @@
 
 class xBase;
 
+void zEntEvent(xBase* from, unsigned int fromEvent, xBase* to, unsigned int toEvent, float* toParam,
+               xBase* toParamWidget, signed int forceEvent);
 void zEntEvent(xBase* from, xBase* to, unsigned int toEvent);
 void zEntEvent(xBase* to, unsigned int toEvent, float* toParam, xBase* toParamWidget);
 void zEntEvent(xBase* to, unsigned int toEvent, float* toParam);

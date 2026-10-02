@@ -80,7 +80,7 @@ def main() -> None:
         pairs = [(tname, bdefs.get(key)) for key, tname in tdefs.items()]
         pairs += [(tname, brelocs.get(key)) for key, tname in trelocs.items()]
         for tname, bname in pairs:
-            if bname and bname != tname and AUTO.match(tname) and not AUTO.match(bname):
+            if bname and bname != tname and AUTO.match(tname) and not AUTO.match(bname) and not bname.startswith("..."):
                 if renames.get(tname, bname) != bname:
                     print(f"conflict: {tname} -> {renames[tname]} / {bname}")
                     continue
