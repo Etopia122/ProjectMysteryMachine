@@ -447,6 +447,69 @@ Game/zVar.cpp:
 Game/zVolume.cpp:
 	.text       start:0x800D9E30 end:0x800DA0CC
 
+TRK_MINNOW_DOLPHIN/Portable/mainloop.c:
+	.text       start:0x800DE530 end:0x800DE628
+
+TRK_MINNOW_DOLPHIN/Portable/nubevent.c:
+	.text       start:0x800DE628 end:0x800DE850
+	.bss        start:0x8023E5D0 end:0x8023E5F8
+
+TRK_MINNOW_DOLPHIN/Portable/usr_put.c:
+	.text       start:0x800DF9A4 end:0x800DFA30
+
+TRK_MINNOW_DOLPHIN/Portable/mutex_TRK.c:
+	.text       start:0x800E2BEC end:0x800E2C04
+
+TRK_MINNOW_DOLPHIN/ppc/Generic/flush_cache.c:
+	.text       start:0x800E2CDC end:0x800E2D14
+
+TRK_MINNOW_DOLPHIN/ppc/Generic/mpc_7xx_603e.c:
+	.text       start:0x800E47C0 end:0x800E4B38
+
+TRK_MINNOW_DOLPHIN/Os/dolphin/targcont.c:
+	.text       start:0x800E5028 end:0x800E505C
+
+TRK_MINNOW_DOLPHIN/Os/dolphin/target_options.c:
+	.text       start:0x800E505C end:0x800E5078
+	.bss        start:0x80242790 end:0x80242798
+
+PowerPC_EABI_Support/Runtime/Src/__va_arg.c:
+	.text       start:0x800E56AC end:0x800E5774
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/ctype.c:
+	.text       start:0x800E9A7C end:0x800E9AA0
+	.data       start:0x801CA510 end:0x801CA810
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/direct_io.c:
+	.text       start:0x800E9AA0 end:0x800E9DCC
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/file_io.c:
+	.text       start:0x800EA44C end:0x800EA644
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/FILE_POS.c:
+	.text       start:0x800EA644 end:0x800EA910
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/mem.c:
+	.text       start:0x800EAC80 end:0x800EADF0
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/mem_funcs.c:
+	.text       start:0x800EADF0 end:0x800EB0D0
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/misc_io.c:
+	.text       start:0x800EB0D0 end:0x800EB0E0
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/scanf.c:
+	.text       start:0x800ED36C end:0x800ED3FC
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/wchar_io.c:
+	.text       start:0x800F015C end:0x800F01E4
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/s_copysign.c:
+	.text       start:0x800F2F68 end:0x800F2F90
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/s_modf.c:
+	.text       start:0x800F33FC end:0x800F34F8
+
 dolphin/src/OdemuExi2/DebuggerDriver.c:
 	.text       start:0x800F391C end:0x800F439C
 	.sdata      start:0x8025E618 end:0x8025E620

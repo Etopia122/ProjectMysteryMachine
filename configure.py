@@ -243,6 +243,44 @@ cflags_runtime = [
     "-inline auto",
 ]
 
+# MetroTRK / Runtime / MSL flags, as in zeldaret/tww (whose copies are
+# byte-identical to ours). Headers they need from TWW live in include/tww.
+cflags_tww_base = [
+    *cflags_base,
+    "-i include/tww",
+    "-i src",
+    "-i src/PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Include",
+    "-i src/PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Include",
+    "-i src/PowerPC_EABI_Support/MSL/MSL_C/PPC_EABI/Include",
+    "-i src/PowerPC_EABI_Support/MSL/MSL_C++/MSL_Common/Include",
+    "-i src/PowerPC_EABI_Support/Runtime/Inc",
+    "-i src/PowerPC_EABI_Support/MetroTRK",
+    "-DVERSION=2",  # TWW's VERSION_USA
+]
+
+cflags_tww_runtime = [
+    *cflags_tww_base,
+    "-O4,p",
+    "-use_lmw_stmw on",
+    "-str reuse,pool,readonly",
+    "-common off",
+    "-inline deferred,auto",
+    "-char signed",
+]
+
+cflags_tww_trk = [
+    *cflags_tww_base,
+    "-O4,p",
+    "-use_lmw_stmw on",
+    "-rostr",
+    "-str reuse",
+    "-common off",
+    "-inline deferred,auto",
+    "-char signed",
+    "-sdata 0",
+    "-sdata2 0",
+]
+
 # REL flags
 cflags_rel = [
     *cflags_base,
@@ -525,14 +563,50 @@ config.libs = [
             Object(NonMatching, "dolphin/src/OdemuExi2/DebuggerDriver.c"),
         ],
     ),
+    # MetroTRK, Runtime and MSL: byte-identical to The Wind Waker's copies.
+    # Sources and flags from zeldaret/tww (CC0); see tools/place_ref_objects.py.
+    {
+        "lib": "TRK_MINNOW_DOLPHIN",
+        "mw_version": "GC/1.3.2",
+        "cflags": cflags_tww_trk,
+        "progress_category": "sdk",
+        "objects": [
+            Object(Matching, "TRK_MINNOW_DOLPHIN/Portable/mainloop.c", extra_cflags=["-enum min"]),
+            Object(Matching, "TRK_MINNOW_DOLPHIN/Portable/nubevent.c", extra_cflags=["-enum min"]),
+            Object(Matching, "TRK_MINNOW_DOLPHIN/Portable/usr_put.c"),
+            Object(Matching, "TRK_MINNOW_DOLPHIN/Portable/mutex_TRK.c"),
+            Object(Matching, "TRK_MINNOW_DOLPHIN/ppc/Generic/flush_cache.c"),
+            Object(Matching, "TRK_MINNOW_DOLPHIN/ppc/Generic/mpc_7xx_603e.c"),
+            Object(Matching, "TRK_MINNOW_DOLPHIN/Os/dolphin/targcont.c"),
+            Object(Matching, "TRK_MINNOW_DOLPHIN/Os/dolphin/target_options.c"),
+        ],
+    },
     {
         "lib": "Runtime.PPCEABI.H",
-        "mw_version": config.linker_version,
-        "cflags": cflags_runtime,
-        "progress_category": "sdk",  # str | List[str]
+        "mw_version": "GC/1.3",
+        "cflags": cflags_tww_runtime,
+        "progress_category": "sdk",
         "objects": [
-            Object(NonMatching, "Runtime.PPCEABI.H/global_destructor_chain.c"),
-            Object(NonMatching, "Runtime.PPCEABI.H/__init_cpp_exceptions.cpp"),
+            Object(Matching, "PowerPC_EABI_Support/Runtime/Src/__va_arg.c"),
+        ],
+    },
+    {
+        "lib": "MSL_C",
+        "mw_version": "GC/1.3",
+        "cflags": cflags_tww_runtime,
+        "progress_category": "sdk",
+        "objects": [
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/ctype.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/direct_io.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/file_io.c", extra_cflags=["-inline noauto"]),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/FILE_POS.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/mem.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/mem_funcs.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/misc_io.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/scanf.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/wchar_io.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/s_copysign.c"),
+            Object(Matching, "PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/s_modf.c"),
         ],
     },
 ]

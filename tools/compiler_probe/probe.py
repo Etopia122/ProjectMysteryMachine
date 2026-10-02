@@ -106,7 +106,8 @@ def object_functions(path: Path):
             if isinstance(sec, RelocationSection) and sec["sh_info"] == text_idx:
                 for r in sec.iter_relocations():
                     t = r["r_info_type"]
-                    masks[r["r_offset"]] = masks.get(r["r_offset"], 0) | RELOC_MASK.get(t, 0xFFFFFFFF)
+                    at = r["r_offset"] & ~3  # 16-bit fields point at the instruction's low half
+                    masks[at] = masks.get(at, 0) | RELOC_MASK.get(t, 0xFFFFFFFF)
         funcs = []
         symtab = elf.get_section_by_name(".symtab")
         for s in symtab.iter_symbols():

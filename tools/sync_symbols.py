@@ -12,7 +12,11 @@
 # renamed. Run `ninja` first so both objects exist, then re-run ninja.
 #
 # Usage:
-#   python tools/sync_symbols.py <version> [unit name substring ...]
+#   python tools/sync_symbols.py <version> [--force] [unit name substring ...]
+#
+# --force also replaces non-auto names of symbols *defined* in the selected
+# units (e.g. wrong bulk-imported names inside a unit copied from another
+# decomp). Use it with a unit filter.
 ###
 
 import json
@@ -57,7 +61,8 @@ def read_obj(path: Path):
 
 def main() -> None:
     version = sys.argv[1]
-    filters = sys.argv[2:]
+    force = "--force" in sys.argv
+    filters = [a for a in sys.argv[2:] if a != "--force"]
     objdiff = json.loads(Path("objdiff.json").read_text())
     symbols_path = Path("config") / version / "symbols.txt"
     lines = symbols_path.read_text().splitlines()
@@ -77,10 +82,11 @@ def main() -> None:
             continue
         bdefs, brelocs = read_obj(Path(base))
         tdefs, trelocs = read_obj(Path(target))
-        pairs = [(tname, bdefs.get(key)) for key, tname in tdefs.items()]
-        pairs += [(tname, brelocs.get(key)) for key, tname in trelocs.items()]
-        for tname, bname in pairs:
-            if bname and bname != tname and AUTO.match(tname) and not AUTO.match(bname) and not bname.startswith("..."):
+        pairs = [(tname, bdefs.get(key), True) for key, tname in tdefs.items()]
+        pairs += [(tname, brelocs.get(key), False) for key, tname in trelocs.items()]
+        for tname, bname, is_def in pairs:
+            replaceable = AUTO.match(tname) or (force and is_def)
+            if bname and bname != tname and replaceable and not AUTO.match(bname) and not bname.startswith("..."):
                 if renames.get(tname, bname) != bname:
                     print(f"conflict: {tname} -> {renames[tname]} / {bname}")
                     continue
