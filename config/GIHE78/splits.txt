@@ -49,6 +49,8 @@ Core/gc/im3dpipe.c:
 
 Core/gc/iMath.cpp:
 	.text       start:0x8000BD14 end:0x8000BDC0
+	.sbss       start:0x8025E8E0 end:0x8025E8E4
+	.sdata2     start:0x8025F9D8 end:0x8025F9E8
 
 Core/gc/iMath3.cpp:
 	.text       start:0x8000BDC0 end:0x8000DA64
