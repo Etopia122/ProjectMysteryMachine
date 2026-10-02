@@ -642,10 +642,27 @@ dolphin/src/ax/AXSPB.c:
 	.bss        start:0x8024A800 end:0x8024A840
 	.sbss       start:0x8025F358 end:0x8025F380
 
+dolphin/base/PPCArch.c:
+	.text       start:0x800F877C end:0x800F87E0
+
+dolphin/db/db.c:
+	.text       start:0x800F8824 end:0x800F8910
+	.data       start:0x801CC660 end:0x801CC678
+	.sbss       start:0x8025F3A0 end:0x8025F3A8
+
 dolphin/src/dsp/dsp_task.c:
 	.text       start:0x800F8C3C end:0x800F94C0
 	.data       start:0x801CC6B0 end:0x801CC7F0
 	.sbss       start:0x8025F3B0 end:0x8025F3C8
+
+dolphin/exi/EXIUart.c:
+	.text       start:0x800FAD8C end:0x800FAFFC
+	.sbss       start:0x8025F3C8 end:0x8025F3D8
+
+dolphin/mtx/mtx.c:
+	.text       start:0x80103188 end:0x80103280
+	.sdata      start:0x8025E680 end:0x8025E688
+	.sdata2     start:0x80262758 end:0x80262784
 
 dolphin/src/os/OSAlloc.c:
 	.text       start:0x8010438C end:0x8010469C
@@ -656,6 +673,29 @@ dolphin/src/os/OSAudioSystem.c:
 	.text       start:0x801046BC end:0x80104950
 	.data       start:0x801CCF40 end:0x801CCFC0
 
+dolphin/os/OSContext.c:
+	.text       start:0x801051A8 end:0x80105548
+	.data       start:0x801CD1F0 end:0x801CD3C8
+
+dolphin/os/OSFont.c:
+	.text       start:0x80105890 end:0x801058E8
+	.sdata      start:0x8025E6A0 end:0x8025E6A8
+
+dolphin/os/OSInterrupt.c:
+	.text       start:0x801058E8 end:0x80106104
+	.data       start:0x801CD6E8 end:0x801CD714
+	.sbss       start:0x8025F470 end:0x8025F488
+
+dolphin/os/OSLink.c:
+	.text       start:0x80106150 end:0x80106168
+
+dolphin/os/OSMutex.c:
+	.text       start:0x80106448 end:0x801064B8
+
+dolphin/os/OSReset.c:
+	.text       start:0x801066C4 end:0x80106AA8
+	.sbss       start:0x8025F498 end:0x8025F4A0
+
 dolphin/src/os/OSResetSW.c:
 	.text       start:0x80106AA8 end:0x80106E34
 	.sbss       start:0x8025F4A0 end:0x8025F4C0
@@ -664,10 +704,22 @@ dolphin/src/os/OSTime.c:
 	.text       start:0x80108608 end:0x80108A84
 	.data       start:0x801CD728 end:0x801CD788
 
+dolphin/os/__ppc_eabi_init.cpp:
+	.text       start:0x80108A84 end:0x80108B18
+
 dolphin/src/si/SISamplingRate.c:
 	.text       start:0x8010A1F8 end:0x8010A300
 	.data       start:0x801CD858 end:0x801CD8F0
 	.sbss       start:0x8025F4E0 end:0x8025F4E8
+
+dolphin/pad/Padclamp.c:
+	.text       start:0x8010BD44 end:0x8010BE74
+
+dolphin/dvd/dvdlow.c:
+	.text       start:0x8010DD78 end:0x8010E898
+	.bss        start:0x8025C038 end:0x8025C108
+	.sdata      start:0x8025E6D0 end:0x8025E6D4
+	.sbss       start:0x8025F560 end:0x8025F5A8
 
 dolphin/src/dvd/dvdfs.c:
 	.text       start:0x8010E898 end:0x8010F23C
@@ -689,3 +741,6 @@ dolphin/src/dvd/emu_level2/fstload.c:
 	.bss        start:0x8025C218 end:0x8025C288
 	.sdata      start:0x8025E6E8 end:0x8025E6F8
 	.sbss       start:0x8025F618 end:0x8025F624
+
+dolphin/card/CARDOpen.c:
+	.text       start:0x801353A8 end:0x801353D8

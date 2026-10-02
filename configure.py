@@ -282,6 +282,12 @@ cflags_tww_trk = [
     "-sdata2 0",
 ]
 
+cflags_tww_dolphin = [
+    *cflags_tww_base,
+    "-O4,p",
+    "-fp_contract off",
+]
+
 # REL flags
 cflags_rel = [
     *cflags_base,
@@ -564,6 +570,85 @@ config.libs = [
             Object(NonMatching, "dolphin/src/OdemuExi2/DebuggerDriver.c"),
         ],
     ),
+    # Dolphin SDK units from zeldaret/tww (CC0) whose code matches ours.
+    {
+        "lib": "tww_exi",
+        "mw_version": "GC/1.2.5n",
+        "cflags": [*cflags_tww_base],
+        "progress_category": "sdk",
+        "objects": [
+            Object(Matching, "dolphin/exi/EXIUart.c", extra_cflags=['-O4,p']),
+        ],
+    },
+    {
+        "lib": "tww_base",
+        "mw_version": "GC/1.2.5n",
+        "cflags": cflags_tww_dolphin,
+        "progress_category": "sdk",
+        "objects": [
+            Object(NonMatching, "dolphin/base/PPCArch.c"),
+        ],
+    },
+    {
+        "lib": "tww_os",
+        "mw_version": "GC/1.2.5n",
+        "cflags": cflags_tww_dolphin,
+        "progress_category": "sdk",
+        "objects": [
+            Object(NonMatching, "dolphin/os/OSContext.c"),
+            Object(Matching, "dolphin/os/OSFont.c"),
+            Object(NonMatching, "dolphin/os/OSInterrupt.c"),
+            Object(Matching, "dolphin/os/OSLink.c"),
+            Object(Matching, "dolphin/os/OSMutex.c"),
+            Object(Matching, "dolphin/os/OSReset.c"),
+            Object(Matching, "dolphin/os/__ppc_eabi_init.cpp"),
+        ],
+    },
+    {
+        "lib": "tww_db",
+        "mw_version": "GC/1.2.5n",
+        "cflags": cflags_tww_dolphin,
+        "progress_category": "sdk",
+        "objects": [
+            Object(Matching, "dolphin/db/db.c"),
+        ],
+    },
+    {
+        "lib": "tww_mtx",
+        "mw_version": "GC/1.2.5n",
+        "cflags": cflags_tww_dolphin,
+        "progress_category": "sdk",
+        "objects": [
+            Object(NonMatching, "dolphin/mtx/mtx.c"),
+        ],
+    },
+    {
+        "lib": "tww_dvd",
+        "mw_version": "GC/1.2.5n",
+        "cflags": cflags_tww_dolphin,
+        "progress_category": "sdk",
+        "objects": [
+            Object(NonMatching, "dolphin/dvd/dvdlow.c"),
+        ],
+    },
+    {
+        "lib": "tww_pad",
+        "mw_version": "GC/1.2.5n",
+        "cflags": cflags_tww_dolphin,
+        "progress_category": "sdk",
+        "objects": [
+            Object(NonMatching, "dolphin/pad/Padclamp.c"),
+        ],
+    },
+    {
+        "lib": "tww_card",
+        "mw_version": "GC/1.2.5n",
+        "cflags": cflags_tww_dolphin,
+        "progress_category": "sdk",
+        "objects": [
+            Object(Matching, "dolphin/card/CARDOpen.c"),
+        ],
+    },
     # MetroTRK, Runtime and MSL: byte-identical to The Wind Waker's copies.
     # Sources and flags from zeldaret/tww (CC0); see tools/place_ref_objects.py.
     {

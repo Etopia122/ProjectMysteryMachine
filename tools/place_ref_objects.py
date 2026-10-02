@@ -90,6 +90,20 @@ def parse_ref_configure(path: Path) -> Dict[str, dict]:
                 extra = ast.literal_eval(em.group(1))
             objs.append((om.group(1), om.group(2), extra))
         libs[name] = {"mw_version": mw.group(1) if mw else None, "cflags": cf.group(1).strip() if cf else None, "objects": objs}
+    # helper functions, e.g. def DolphinLib(lib_name, objects): return {...}
+    for hm in re.finditer(r"^def (\w+)\(lib_name[^)]*\)[^:]*:\s*return \{(.*?)\}", text, re.S | re.M):
+        helper, body = hm.group(1), hm.group(2)
+        mw = re.search(r'"mw_version":\s*"([^"]+)"', body)
+        cf = re.search(r'"cflags":\s*(\w+)', body)
+        for cm in re.finditer(rf'\b{helper}\(\s*"([^"]+)",\s*\[(.*?)\]\s*,?\s*\)', text, re.S):
+            objs = []
+            for om in re.finditer(r'Object\(\s*([\w]+(?:\([^)]*\))?)\s*,\s*"([^"]+)"(.*?)\)\s*,', cm.group(2)):
+                extra = []
+                em = re.search(r"extra_cflags=(\[[^\]]*\])", om.group(3))
+                if em:
+                    extra = ast.literal_eval(em.group(1))
+                objs.append((om.group(1), om.group(2), extra))
+            libs[cm.group(1)] = {"mw_version": mw.group(1) if mw else None, "cflags": cf.group(1) if cf else None, "objects": objs}
     return libs
 
 
@@ -114,7 +128,17 @@ def eval_cflags(path: Path, name: str, defines: List[str]) -> List[str]:
                 out.append(ast.literal_eval(line))
         return out
 
-    flags = [f for f in get(name) if not f.startswith("-DVERSION")]
+    if name.startswith("["):  # inline list, e.g. [*cflags_base, "-O3"]
+        raw: List[str] = []
+        for item in name.strip("[]").split(","):
+            item = item.strip()
+            if item.startswith("*"):
+                raw += get(item[1:])
+            elif item:
+                raw.append(ast.literal_eval(item))
+    else:
+        raw = get(name)
+    flags = [f for f in raw if not f.startswith("-DVERSION")]
     flags += ["-DNDEBUG=1"] + [f"-D{d}" for d in defines]
     return [word for f in flags for word in shlex.split(f)]
 
