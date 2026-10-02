@@ -702,8 +702,14 @@ dolphin/src/gx/GXTexture.c:
 dolphin/src/gx/GXBump.c:
 	.text       start:0x80100DBC end:0x80100E04
 
+dolphin/gx/GXDisplayList.c:
+	.text       start:0x801021A0 end:0x80102210
+
 dolphin/src/gx/GXTransform.c:
 	.text       start:0x80102834 end:0x801028E0
+
+dolphin/gx/GXPerf.c:
+	.text       start:0x80103178 end:0x80103188
 
 dolphin/mtx/mtx.c:
 	.text       start:0x80103188 end:0x80103280

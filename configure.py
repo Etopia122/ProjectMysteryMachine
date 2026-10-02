@@ -681,6 +681,16 @@ config.libs = [
             Object(Matching, "dolphin/card/CARDOpen.c"),
         ],
     },
+    {
+        "lib": "tww_gx",
+        "mw_version": "GC/1.2.5n",
+        "cflags": cflags_tww_dolphin,
+        "progress_category": "sdk",
+        "objects": [
+            Object(Matching, "dolphin/gx/GXDisplayList.c"),
+            Object(NonMatching, "dolphin/gx/GXPerf.c"),
+        ],
+    },
     # MetroTRK, Runtime and MSL: byte-identical to The Wind Waker's copies.
     # Sources and flags from zeldaret/tww (CC0); see tools/place_ref_objects.py.
     {

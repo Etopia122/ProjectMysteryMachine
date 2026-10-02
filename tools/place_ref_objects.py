@@ -95,7 +95,8 @@ def parse_ref_configure(path: Path) -> Dict[str, dict]:
         helper, body = hm.group(1), hm.group(2)
         mw = re.search(r'"mw_version":\s*"([^"]+)"', body)
         cf = re.search(r'"cflags":\s*(\w+)', body)
-        for cm in re.finditer(rf'\b{helper}\(\s*"([^"]+)",\s*\[(.*?)\]\s*,?\s*\)', text, re.S):
+        # the object list ends on its own line ("],"), so extra_cflags=[...] inside is fine
+        for cm in re.finditer(rf'\b{helper}\(\s*"([^"]+)",\s*\[(.*?)\n\s*\],?\s*(?:\w+=\w+,?\s*)*\)', text, re.S):
             objs = []
             for om in re.finditer(r'Object\(\s*([\w]+(?:\([^)]*\))?)\s*,\s*"([^"]+)"(.*?)\)\s*,', cm.group(2)):
                 extra = []
