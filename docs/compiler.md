@@ -18,6 +18,8 @@ every compiler/flag combination and compares each function against the DOL
 | 1.3.2 over 2.0-2.7 | Codegen for the probed functions is identical across 1.3.2 and 2.0-2.7, so the decision rests on the libraries shipped with the toolchain: MetroTRK matches Wind Waker's (a 1.3.2 game) function-for-function (172/178 exact sizes across TRK/Runtime/MSL, every TRK TU exact) versus 166/184 for BFBB's (2.0) copy, where several TRK TUs and MSL `mem_funcs.c` (0/4) differ. Not yet confirmed by a codegen difference. |
 | `-fp_contract on` | `xQuatMul`, `xMat3x3RMulVec`, `xMat4x3MoveLocalAt` use `fmadds`/`fnmsubs`; without contraction they don't match. |
 | `-char signed` | `xStrHash` sign-extends characters (`extsb`); with `-char unsigned` it no longer matches (BFBB uses unsigned). |
+| `-bool off` | `zConditional_Evaluate` returns comparison results with no byte mask (`clrlwi`); with `bool` enabled every comparison is truncated to 8 bits. The PS2 DWARF contains no `bool` type at all. |
+| `-inline noauto` + `-inline deferred` | `zConditionalEventCB` calls `zConditional_Evaluate` instead of inlining it, which auto-inlining does regardless of how the function is written. `xMath.cpp` does inline its helpers, so it has `#pragma auto_inline on` (probably a per-file setting in the original project). |
 | `-use_lmw_stmw on` | Game functions save registers with `stmw`/`lmw` (e.g. 0x80016A30). |
 | `-str reuse,pool,readonly` | Each TU's string literals are one pooled object in `.rodata`. |
 | `-Cpp_exceptions off` | No `extab`/`extabindex` sections. |

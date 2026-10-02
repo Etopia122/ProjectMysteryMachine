@@ -1,5 +1,9 @@
 #include "xMath.h"
 
+// The game builds with -inline noauto; this TU inlines xMathSolveQuadratic
+// and xAngleClamp into xMathSolveCubic, so auto-inlining must be on here.
+#pragma auto_inline on
+
 void iMathInit();
 void iMathExit();
 void xMath3Init();

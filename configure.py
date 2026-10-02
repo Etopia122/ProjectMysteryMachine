@@ -258,9 +258,11 @@ cflags_game = [
     *cflags_base,
     "-O4,s",  # size: loops are not unrolled (e.g. xStrTok's 32-byte clear)
     "-lang=c++",
+    "-inline noauto",  # no automatic inlining (zConditional_Evaluate stays a call)
     "-inline deferred",
     "-fp_contract on",
     "-char signed",
+    "-bool off",  # comparisons are int-valued (no clrlwi); no bool in the PS2 DWARF
     "-str reuse,pool,readonly",
     "-use_lmw_stmw on",
     "-i src/Core/x",
