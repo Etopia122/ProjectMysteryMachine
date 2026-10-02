@@ -279,6 +279,9 @@ Game/zCounter.cpp:
 
 Game/zCutsceneMgr.cpp:
 	.text       start:0x800460E0 end:0x8004651C
+	.data       start:0x801B7540 end:0x801B7CB0
+	.sbss       start:0x8025EC18 end:0x8025EC20
+	.sdata2     start:0x802604A0 end:0x802604C8
 
 Game/zDispatcher.cpp:
 	.text       start:0x8004651C end:0x80047668

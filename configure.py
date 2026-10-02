@@ -473,7 +473,7 @@ config.libs = [
             Object(Matching, "Game/zCamera.cpp"),
             Object(NonMatching, "Game/zConditional.cpp"),
             Object(Matching, "Game/zCounter.cpp"),
-            Object(NonMatching, "Game/zCutsceneMgr.cpp"),
+            Object(Matching, "Game/zCutsceneMgr.cpp"),
             Object(NonMatching, "Game/zDispatcher.cpp"),
             Object(NonMatching, "Game/zEGenerator.cpp"),
             Object(NonMatching, "Game/zEnt.cpp"),
