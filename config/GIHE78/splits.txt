@@ -218,6 +218,7 @@ Core/x/xsavegame.cpp:
 
 Core/x/xScene.cpp:
 	.text       start:0x80038D48 end:0x800394B4
+	.sdata2     start:0x80260148 end:0x80260150
 
 Core/x/xScrFx.cpp:
 	.text       start:0x800394C4 end:0x80039C90
