@@ -269,7 +269,7 @@ Core/x/xSurface.cpp:
 	.sbss       start:0x8025EBD0 end:0x8025EBD8
 
 Core/x/xTRC.cpp:
-	.text       start:0x80040FCC end:0x800411A8
+	.text       start:0x80040FCC end:0x80044780
 
 Core/x/xutil.cpp:
 	.text       start:0x80044780 end:0x80044C44
