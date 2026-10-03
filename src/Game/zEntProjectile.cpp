@@ -1,7 +1,8 @@
-// TODO: first pass (NonMatching). Startup inlines addCat with the category
-// kept in a register; prepSystem, solv_velvec, colAccum, acquire, the render
-// and collision paths still differ. .rodata is missing unused zero buffers in
-// the 0x8019A2C4 block.
+// TODO: 99.3% (NonMatching). Startup inlines addCat with the category still in
+// a register (li r0, N; mulli) while addProps is folded; prepSystem,
+// catFromPrjType, Init, ZPRJ_render and gen_aimer differ only in register
+// allocation or one empty switch case. zEntProjectileDeadStrippedConst must be
+// stripped by the linker once this unit is Matching.
 #include "zEntProjectile.h"
 #include "xMath.h"
 #include "xMath3.h"
@@ -438,13 +439,19 @@ static inline void ZPRJ_poolAdd(signed int idx)
     AddTail(&depot->prjpool, &prj->linknode.node);
 }
 
-signed int zEntProjectile_poolUpdate(zScene* scn, float dt)
+signed int zEntProjectile_poolUpdate(en_ZPRJ_CATEGORY cat, zScene* scn, float dt)
 {
     st_ELIST holdlist;
-    signed int cnt = 0;
+    st_ELIST* inuse;
     zEntProjectile* tmpprj;
-    st_PROJECTILE_DEPOT* depot = &g_prjdepot;
-    st_ZPRJ_LINKNODE* tmplink = (st_ZPRJ_LINKNODE*)depot->prjinuse.head;
+    st_PROJECTILE_DEPOT* depot;
+    signed int cnt;
+    st_ZPRJ_LINKNODE* tmplink;
+
+    cnt = 0;
+    depot = &g_prjdepot;
+    inuse = &depot->prjinuse;
+    tmplink = (st_ZPRJ_LINKNODE*)inuse->head;
 
     while (tmplink->node.next != NULL)
     {
@@ -465,7 +472,7 @@ signed int zEntProjectile_poolUpdate(zScene* scn, float dt)
         }
         else
         {
-            AddTail(&depot->prjinuse, &tmpprj->linknode.node);
+            AddTail(inuse, &tmpprj->linknode.node);
         }
     }
     return cnt;
@@ -1083,6 +1090,9 @@ signed int zEntProjectile::DoColCheck(float dt)
     st_ZPRJ_CATEGORY_FUNCS* catfuncs;
     signed int result = 0;
     static signed int heuristic = 2.0f;
+    // Unused, but their initializers fill 0xFC bytes of .rodata here.
+    _xEntFrame unused_frame = {};
+    _xVec3 unused_vec = {};
 
     if (tmr_coldelay > 0.0f)
     {
@@ -1637,7 +1647,7 @@ float zEntProjectile_colAccum(zEntProjectile* prj, _xVec3* dir_away)
 
     if (prj->collis == NULL)
     {
-        dir_away->z = dir_away->y = dir_away->x = mag_hit;
+        dir_away->x = dir_away->y = dir_away->z = mag_hit;
         return mag_hit;
     }
 
@@ -1910,6 +1920,13 @@ static signed int ZPRJ_solv_velvec(float grav, float arc_factor, float spd_limit
     *vec_vel = vec_tmp;
     return limit_tally;
 }
+// Stand-in for a function the linker dead-stripped (DoEffects sits here in the
+// PS2 build); only its 0.5f constant remains in .sdata2.
+float zEntProjectileDeadStrippedConst()
+{
+    return 0.5f;
+}
+
 void zEntProjectile::PEFX_flight(en_ZPRJ_FX_TYPE fxtyp, float dt)
 {
     _zParEmitterCustomSettings info;
