@@ -321,6 +321,11 @@ Core/x/xserializer.cpp:
 
 Core/x/xShadow.cpp:
 	.text       start:0x8003AD40 end:0x8003CD24
+	.rodata     start:0x80193EA8 end:0x80193EE8
+	.bss        start:0x80227738 end:0x80227748
+	.sdata      start:0x8025E488 end:0x8025E498
+	.sbss       start:0x8025EB90 end:0x8025EBC0
+	.sdata2     start:0x80260188 end:0x80260260
 
 Core/x/xSnd.cpp:
 	.text       start:0x8003CD24 end:0x8003D680
