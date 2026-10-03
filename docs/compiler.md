@@ -161,6 +161,15 @@ Patterns that have mattered for matching:
   no `xoris`) was cast: `(unsigned int)(w + 3)`.
 - A zero-initialised global that sits in `.data` needs an explicit `= { 0 }`
   (xFont `gFontGlobals`); without it MWCC puts it in `.bss`.
+- A struct field loaded once before a loop (`lwz` in the preheader) while the
+  loop stores through the same base pointer was copied to a local in the source
+  (`_zEnt** bubbles = sc->bubbles;`); MWCC does not hoist it on its own.
+- A `switch` compare tree's shape gives away the case set: zEntBubble's
+  villain response tests 2 first, which needs a fourth (empty) case.
+- `switch` case bodies are emitted in source order; a case placed out of
+  numeric order in the DOL was written that way.
+- Large struct copies (`_xMat4x3`, even `_xVec3` in places) that show up as
+  `memcpy` calls were written as `memcpy` (or an inline that calls it).
 
 ## Open questions
 
