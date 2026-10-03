@@ -90,7 +90,9 @@ public:
     _zEnt ent;                      // 0x0
     unsigned int Visible;           // 0xEC
     unsigned int Health;            // 0xF0
-    unsigned char unkF4[0x128 - 0xF4];
+    unsigned char unkF4[0x114 - 0xF4];
+    signed int JumpState;           // 0x114
+    unsigned char unk118[0x128 - 0x118];
     unsigned int LastProjectile;    // 0x128
     unsigned char unk12C[0x1B0 - 0x12C];
     _zEnt* FireTarget;              // 0x1B0
@@ -100,7 +102,9 @@ public:
     _zEntHangable* HangEnt;         // 0x2D4
     _zEntHangable* HangEntLast;     // 0x2D8
     _xVec3 HangPivot;               // 0x2DC
-    unsigned char unk2E8[0x3C8 - 0x2E8];
+    unsigned char unk2E8[0x308 - 0x2E8];
+    iModelTag HangPawTag[4];        // 0x308
+    unsigned char unk388[0x3C8 - 0x388];
     signed int Inv_Ammo[2];         // 0x3C8
     signed int Inv_AmmoMax[2];      // 0x3D0
     iModelTag BubbleTag;            // 0x3D8

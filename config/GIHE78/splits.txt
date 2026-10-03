@@ -422,6 +422,11 @@ Game/zEnv.cpp:
 
 Game/zFeet.cpp:
 	.text       start:0x800AA338 end:0x800ABD84
+	.rodata     start:0x801A4140 end:0x801A4268
+	.data       start:0x801C54A0 end:0x801C5590
+	.bss        start:0x8022C678 end:0x8022EAD8
+	.sbss       start:0x8025EEB8 end:0x8025EEC8
+	.sdata2     start:0x802610E8 end:0x80261200
 
 Game/zFog.cpp:
 	.text       start:0x800ABE88 end:0x800AC010
