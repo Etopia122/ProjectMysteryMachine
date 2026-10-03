@@ -60,7 +60,7 @@ signed int RwIm3DEnd();
 void _rwDlTextureRasterFlush(signed int mode, volatile void* data);
 // TODO: unidentified RenderWare functions
 RxRenderStateVector* fn_8018B9A0(RxRenderStateVector* rsv);
-RwV3d* fn_80165CC8(_xVec3* pointsOut, const _xVec3* pointsIn, signed int numPoints,
+RwV3d* RwV3dTransformPoints(_xVec3* pointsOut, const _xVec3* pointsIn, signed int numPoints,
                    const RwMatrixTag* matrix);
 }
 
@@ -185,7 +185,7 @@ void iShadowCollide(iShadowCache* cache, _xEnt* ent, float radius, float ecc)
         tmppos[3].x = -ecc * radius;
         tmppos[3].y = 0.0f;
         tmppos[3].z = 0.0f;
-        fn_80165CC8(cache->corner, tmppos, 4, ent->model->Mat);
+        RwV3dTransformPoints(cache->corner, tmppos, 4, ent->model->Mat);
         cache->corner[0].y += height;
         cache->corner[1].y += height;
         cache->corner[2].y += height;
