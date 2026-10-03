@@ -429,6 +429,10 @@ Game/zParCmd.cpp:
 
 Game/zParEmitter.cpp:
 	.text       start:0x800C4BE0 end:0x800C6708
+	.rodata     start:0x801A5E38 end:0x801A5F28
+	.data       start:0x801C75E8 end:0x801C7618
+	.bss        start:0x80237FF0 end:0x80238048
+	.sdata2     start:0x80261B40 end:0x80261B88
 
 Game/zParSys.cpp:
 	.text       start:0x800C6708 end:0x800C6FE0
