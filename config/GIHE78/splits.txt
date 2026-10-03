@@ -107,6 +107,7 @@ Core/x/xClimate.cpp:
 
 Core/x/xCollide.cpp:
 	.text       start:0x80020F08 end:0x80021620
+	.sdata2     start:0x8025FCB8 end:0x8025FCD8
 
 Core/x/xCollideFast.cpp:
 	.text       start:0x80021620 end:0x80021AF0
