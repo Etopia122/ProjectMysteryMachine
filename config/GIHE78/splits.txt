@@ -175,7 +175,13 @@ Core/x/xDraw.cpp:
 	.sdata      start:0x8025E410 end:0x8025E414
 
 Core/x/xEnt.cpp:
-	.text       start:0x80021EB8 end:0x8002576C
+	.text       start:0x80021E70 end:0x800258F4
+	.rodata     start:0x80192E40 end:0x80193118
+	.data       start:0x801AE858 end:0x801AE880
+	.bss        start:0x801FE5B8 end:0x801FF270
+	.sdata      start:0x8025E418 end:0x8025E428
+	.sbss       start:0x8025EA00 end:0x8025EA40
+	.sdata2     start:0x8025FD08 end:0x8025FE50
 
 Core/x/xEntDrive.cpp:
 	.text       start:0x800258F4 end:0x80025F04

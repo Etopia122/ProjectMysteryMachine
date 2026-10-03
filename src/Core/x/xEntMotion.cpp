@@ -31,7 +31,7 @@ public:
 extern const iColor_tag g_NEON_RED;
 extern const iColor_tag g_NEON_GREEN;
 extern const iColor_tag g_PIMP_GOLD;
-extern _xScene* lbl_8025EB78; // current scene
+extern _xScene* g_xSceneCur;
 extern _tagxPad* gDebugPad;
 
 void xprintf(char* fmt, ...);
@@ -1079,7 +1079,7 @@ static void xEntMotionDebugIPad(_xEntMotion* xem)
         {
             xEntReset(xem->owner);
         }
-        xEntMotionReset(xem, lbl_8025EB78);
+        xEntMotionReset(xem, g_xSceneCur);
     }
 
     if (gDebugPad->pressed & 0x20000)
@@ -1142,7 +1142,7 @@ static void xEntMotionDebugWrite(_xEntMotion* xem)
     xprintf("type:             %s\n", name);
     xprintf("stopped:          %s\n", (xem->flags & 4) ? "true " : "false");
     xprintf("owner:            %s\n",
-            xem->owner ? xSceneID2Name(lbl_8025EB78, xem->owner->id) : "null");
+            xem->owner ? xSceneID2Name(g_xSceneCur, xem->owner->id) : "null");
     xprintf("t:  %.3f   d: %.3f   tmr: %.3f\n", xem->t, xem->d, xem->tmr);
 
     switch (xem->type)
@@ -1167,9 +1167,9 @@ static void xEntMotionDebugWrite(_xEntMotion* xem)
         break;
     case 3:
         xprintf("src-mp:           %s\n",
-                xem->mp.src ? xSceneID2Name(lbl_8025EB78, xem->mp.src->id) : "");
+                xem->mp.src ? xSceneID2Name(g_xSceneCur, xem->mp.src->id) : "");
         xprintf("dest-mp:          %s\n",
-                xem->mp.dest ? xSceneID2Name(lbl_8025EB78, xem->mp.dest->id) : "");
+                xem->mp.dest ? xSceneID2Name(g_xSceneCur, xem->mp.dest->id) : "");
         xprintf("dist:  %.3f\n", xem->mp.dist);
         xprintf("speed: %.3f\n", xem->mp.speed);
         break;

@@ -57,7 +57,7 @@ float fn_8002947C(float t);
 float fn_800294A0(float t);
 float fn_800294C4(float t);
 
-extern _xScene* lbl_8025EB78; // current scene
+extern _xScene* g_xSceneCur;
 extern unsigned int lbl_8025F0D0; // current scene ID
 extern signed int lbl_8025ECC0;
 extern signed int lbl_8025ECC4;
@@ -238,7 +238,7 @@ static inline void xCameraSeeThru(_tagxCamFrame* cam, _tagxCam* c)
     ray.min_t = 0.0f;
     ray.flags = 0xC00;
     ray.dir = cam->hi_cam.mat.at;
-    xRayHitsCameraScene(lbl_8025EB78, &ray, xCameraSeeThruCallback);
+    xRayHitsCameraScene(g_xSceneCur, &ray, xCameraSeeThruCallback);
 
     {
         _xVec3 offset;
@@ -247,7 +247,7 @@ static inline void xCameraSeeThru(_tagxCamFrame* cam, _tagxCam* c)
         xMat3x3RMulVec(&offset, &rot, &offset);
         xVec3AddTo(&ray.dir, &offset);
         ray.max_t *= xVec3Normalize(&ray.dir, &ray.dir);
-        xRayHitsCameraScene(lbl_8025EB78, &ray, xCameraSeeThruCallback);
+        xRayHitsCameraScene(g_xSceneCur, &ray, xCameraSeeThruCallback);
     }
 }
 
