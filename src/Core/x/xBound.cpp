@@ -6,23 +6,6 @@ void xMat3x3Normalize(_xMat3x3* o, _xMat3x3* m);
 signed int iSphereHitsModel3(_xSphere* b, xModelInstance* m, _xCollis* colls, unsigned char ncolls,
                              float sth);
 
-// xsqrt with the result written back to x: closer here than xMath.h's form
-// (which xMath.cpp needs).
-static inline float xsqrt2(float x)
-{
-    if (x > 0.0f)
-    {
-        volatile float y;
-        double guess = __frsqrte((double)x);
-        guess = 0.5 * guess * (3.0 - guess * guess * x);
-        guess = 0.5 * guess * (3.0 - guess * guess * x);
-        guess = 0.5 * guess * (3.0 - guess * guess * x);
-        y = (float)(x * guess);
-        x = y;
-    }
-    return x;
-}
-
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 
 _xVec3* xBoundCenter(_xBound* b)
@@ -114,9 +97,11 @@ void xBoundHitsModel(_xBound* b, xModelInstance* m, _xCollis* colls, unsigned ch
     }
 }
 
-// TODO (87%) and the two callers below (90%, 93%): the original loads all of
-// r->origin / v before subtracting mat->pos; xMat4x3Tolocal's xVec3Sub here
-// loads and stores one component at a time.
+static inline float xVec3Length2(const _xVec3* v)
+{
+    return v->x * v->x + v->y * v->y + v->z * v->z;
+}
+
 #pragma auto_inline on
 void xRayHitsBound(const _xRay3* r, const _xBound* b, _xCollis* c)
 {
@@ -131,12 +116,9 @@ void xRayHitsBound(const _xRay3* r, const _xBound* b, _xCollis* c)
     }
     else if (b->type == 4)
     {
-        float len2 = b->mat->right.x * b->mat->right.x + b->mat->right.y * b->mat->right.y +
-                     b->mat->right.z * b->mat->right.z;
-        if ((float)__fabs(len2 - 1.0f) >= 0.001f)
+        if ((float)__fabs(xVec3Length2(&b->mat->right) - 1.0f) >= 0.001f)
         {
-            len2 = xsqrt2(len2);
-            float one_ms = 1.0f / len2;
+            float one_ms = 1.0f / xsqrt(xVec3Length2(&b->mat->right));
             lr.max_t = r->max_t * one_ms;
             lr.min_t = r->min_t * one_ms;
             xMat3x3Normalize(&mn, (_xMat3x3*)b->mat);
