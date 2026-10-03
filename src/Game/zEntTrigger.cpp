@@ -45,8 +45,8 @@ void zEntTriggerInit(void* ent, void* asset)
     }
 }
 
-// TODO (97.8%): the original computes each `penned <= 0.0f` result in r0
-// and then copies it to collide (r27); here it goes straight to r27.
+// Built with -bool on: each `penned <= 0.0f` result is a bool computed in r0
+// and then copied into collide (r27).
 void zEntTriggerUpdate(zEntTrigger* trig, _xScene* sc, float dt)
 {
     if (xBaseIsEnabled(trig))
