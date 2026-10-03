@@ -231,7 +231,7 @@ _xEnt* xEntCollCheckOneTrigNoDepen(_xEnt* ent, _xScene* sc, void* data);
 void xEntCollideFloor(_xEnt* p, _xScene* sc, float dt);
 static void xEntCollideCeiling(_xEnt* p, _xScene* sc, float dt);
 void xEntCollideWalls(_xEnt* p, _xScene* sc, float dt);
-void xEntBeginCollide(_xEnt* ent);
+void xEntBeginCollide(_xEnt* ent, _xScene* sc, float dt);
 void xEntBeginCollCheckTrigs(_xEnt* ent);
 void xEntEndCollCheckTrigs(_xEnt* ent);
 void xEntEndCollide(_xEnt* ent, _xScene* sc, float dt);
@@ -831,7 +831,7 @@ void xEntCollide(_xEnt* ent, _xScene* sc, float dt)
 
     if (ent->collis->chk & 0x2E)
     {
-        xEntBeginCollide(ent);
+        xEntBeginCollide(ent, sc, dt);
     }
     if (ent->collis->chk & 0x8)
     {
@@ -918,7 +918,7 @@ void xEntCollide(_xEnt* ent, _xScene* sc, float dt)
 }
 
 #pragma auto_inline on
-void xEntBeginCollide(_xEnt* ent)
+void xEntBeginCollide(_xEnt* ent, _xScene* sc, float dt)
 {
     if (ent->bupdate != NULL)
     {

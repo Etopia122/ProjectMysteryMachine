@@ -314,10 +314,11 @@ public:
     zGustData raw_gust;       // 0x308
 
     void PEFX_flight(en_ZPRJ_FX_TYPE fxtyp, float dt);
-    signed int LookForFloorRoof();
+    unsigned char LookForFloorRoof(zScene* scn, float dt);
     signed int ZPRJ_render();
     signed int DoColCheck(float dt);
     signed int ZPRJ_update(zScene* scn, float dt);
+    void OrientToPath(_xEntFrame* frame, signed int flg_orient);
     void OrientSet(signed int orient);
     signed int Setup_xEnt();
     void SetupFrame(_xVec3* pos, _xVec3* veloc);

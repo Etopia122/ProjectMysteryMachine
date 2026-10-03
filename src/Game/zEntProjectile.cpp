@@ -19,7 +19,6 @@
 extern "C" {
 void* memset(void* dst, int c, unsigned int n);
 void* memcpy(void* dst, const void* src, unsigned int n);
-double fabs(double x);
 }
 
 class _zEnt;
@@ -65,7 +64,7 @@ void xModelPoolInit(unsigned int count, unsigned int numMatrices);
 void xEntRender(_xEnt* ent);
 void xEntBeginUpdate(_xEnt* ent, _xScene* sc, float dt);
 void xEntEndUpdate(_xEnt* ent, _xScene* sc, float dt);
-void xEntBeginCollide(_xEnt* ent);
+void xEntBeginCollide(_xEnt* ent, _xScene* sc, float dt);
 void xEntEndCollide(_xEnt* ent, _xScene* sc, float dt);
 void xEntCollide(_xEnt* ent, _xScene* sc, float dt);
 void xEntApplyPhysics(_xEnt* ent, _xScene* sc, float dt);
@@ -104,6 +103,7 @@ static inline st_ZPRJ_TYPERECORD* ZPRJ_findType(unsigned int aid);
 static inline signed int ZPRJ_SetupPrelim(zEntProjectile* prj, en_ZPRJ_CATEGORY cat,
                                           unsigned int ptaid);
 
+static inline void ZPRJ_poolAdd(signed int idx);
 static signed int g_prj_init;
 static st_PROJECTILE_DEPOT g_prjdepot = {};
 static st_ZPRJ_CATEGORY_FUNCS g_catFuncs[13] = {};
@@ -334,7 +334,7 @@ void zEntProjectile_sceneReset()
     {
         zEntProjectile* prj = ((st_ZPRJ_LINKNODE*)RemHead(&depot->prjinuse))->backref;
         ZPRJ_recycle(prj);
-        AddTail(&depot->prjpool, &prj->linknode.node);
+        AddTail(&g_prjdepot.prjpool, &prj->linknode.node);
     }
 }
 
@@ -350,79 +350,92 @@ void zEntProjectile_sceneFinish()
     }
 }
 
-void zEntProjectile_prepSystem(signed int num_ptype)
+static inline st_ZPRJ_TYPERECORD* ZPRJ_allocTypes(signed int cnt)
 {
-    signed int i;
-    st_PROJECTILE_DEPOT* depot = &g_prjdepot;
-
-    if (depot->typetable != NULL)
+    st_ZPRJ_TYPERECORD* table;
+    if (cnt < 1)
     {
-        return;
-    }
-    if (depot->rawpool != NULL)
-    {
-        return;
-    }
-
-    if (num_ptype)
-    {
-        st_ZPRJ_TYPERECORD* table;
-        if (num_ptype < 1)
-        {
-            table = NULL;
-        }
-        else
-        {
-            table = (st_ZPRJ_TYPERECORD*)xMemAlloc(gActiveHeap, num_ptype * sizeof(st_ZPRJ_TYPERECORD));
-            memset(table, 0, num_ptype * sizeof(st_ZPRJ_TYPERECORD));
-        }
-        depot->typetable = table;
-        if (table != NULL)
-        {
-            depot->typecnt = num_ptype;
-        }
-    }
-
-    if (depot->typetable != NULL)
-    {
-        zEntProjectile* pool = (zEntProjectile*)xMemAlloc(gActiveHeap, 100 * sizeof(zEntProjectile));
-        memset(pool, 0, 100 * sizeof(zEntProjectile));
-        depot->rawpool = pool;
-        if (pool != NULL)
-        {
-            depot->rawcnt = 100;
-            xModelPoolInit(100, 2);
-        }
-    }
-
-    for (i = 0; i < depot->rawcnt; i++)
-    {
-        zEntProjectile* prj = &depot->rawpool[i];
-        memset(prj, 0, sizeof(zEntProjectile));
-        prj->linknode.backref = prj;
-        AddTail(&depot->prjpool, &prj->linknode.node);
-    }
-
-    if (g_sfxnames[0] == NULL)
-    {
-        g_sounds[0] = NULL;
+        table = NULL;
     }
     else
     {
-        g_sounds[0] = (zSFX*)zSceneFindObject(xStrHash(g_sfxnames[0]));
+        table = (st_ZPRJ_TYPERECORD*)xMemAlloc(gActiveHeap, cnt * sizeof(st_ZPRJ_TYPERECORD));
+        memset(table, 0, cnt * (signed int)sizeof(st_ZPRJ_TYPERECORD));
     }
+    return table;
+}
 
-    for (i = 0; i < 32; i++)
+void zEntProjectile_prepSystem(signed int num_ptype)
+{
+    st_PROJECTILE_DEPOT* depot = &g_prjdepot;
+    signed int i;
+
+    if (depot->typetable != NULL || depot->rawpool != NULL)
     {
-        if (g_parname[i] == NULL)
+        return;
+    }
+    {
+        if (num_ptype != 0)
         {
-            g_paremit[i] = NULL;
+            st_ZPRJ_TYPERECORD* table = ZPRJ_allocTypes(num_ptype);
+            depot->typetable = table;
+            if (table != NULL)
+            {
+                depot->typecnt = num_ptype;
+            }
         }
-        else
+
+        if (depot->typetable != NULL)
         {
-            g_paremit[i] = (_zParEmitter*)zSceneFindObject(xStrHash(g_parname[i]));
+            zEntProjectile* pool =
+                (zEntProjectile*)xMemAlloc(gActiveHeap, 100 * sizeof(zEntProjectile));
+            memset(pool, 0x33, 100 * sizeof(zEntProjectile));
+            depot->rawpool = pool;
+            if (pool != NULL)
+            {
+                depot->rawcnt = 100;
+                xModelPoolInit(100, 2);
+            }
+        }
+
+        for (i = 0; i < depot->rawcnt; i++)
+        {
+            ZPRJ_poolAdd(i);
+        }
+
+        for (i = 0; i < 1; i++)
+        {
+            if (g_sfxnames[i] == NULL)
+            {
+                g_sounds[i] = NULL;
+            }
+            else
+            {
+                g_sounds[i] = (zSFX*)zSceneFindObject(xStrHash(g_sfxnames[i]));
+            }
+        }
+
+        for (i = 0; i < 32; i++)
+        {
+            if (g_parname[i] == NULL)
+            {
+                g_paremit[i] = NULL;
+            }
+            else
+            {
+                g_paremit[i] = (_zParEmitter*)zSceneFindObject(xStrHash(g_parname[i]));
+            }
         }
     }
+}
+
+static inline void ZPRJ_poolAdd(signed int idx)
+{
+    st_PROJECTILE_DEPOT* depot = &g_prjdepot;
+    zEntProjectile* prj = &depot->rawpool[idx];
+    memset(prj, 0, sizeof(zEntProjectile));
+    prj->linknode.backref = prj;
+    AddTail(&depot->prjpool, &prj->linknode.node);
 }
 
 signed int zEntProjectile_poolUpdate(zScene* scn, float dt)
@@ -430,7 +443,8 @@ signed int zEntProjectile_poolUpdate(zScene* scn, float dt)
     st_ELIST holdlist;
     signed int cnt = 0;
     zEntProjectile* tmpprj;
-    st_ZPRJ_LINKNODE* tmplink = (st_ZPRJ_LINKNODE*)g_prjdepot.prjinuse.head;
+    st_PROJECTILE_DEPOT* depot = &g_prjdepot;
+    st_ZPRJ_LINKNODE* tmplink = (st_ZPRJ_LINKNODE*)depot->prjinuse.head;
 
     while (tmplink->node.next != NULL)
     {
@@ -440,7 +454,7 @@ signed int zEntProjectile_poolUpdate(zScene* scn, float dt)
     }
 
     NewList(&holdlist);
-    MoveList(&holdlist, &g_prjdepot.prjinuse);
+    MoveList(&holdlist, &depot->prjinuse);
     while (holdlist.head->next != NULL)
     {
         tmpprj = ((st_ZPRJ_LINKNODE*)RemHead(&holdlist))->backref;
@@ -451,7 +465,7 @@ signed int zEntProjectile_poolUpdate(zScene* scn, float dt)
         }
         else
         {
-            AddTail(&g_prjdepot.prjinuse, &tmpprj->linknode.node);
+            AddTail(&depot->prjinuse, &tmpprj->linknode.node);
         }
     }
     return cnt;
@@ -492,11 +506,12 @@ en_ZPRJ_CATEGORY zEntProjectile_catFromPrjType(unsigned int ptypeID, en_ZPRJ_CAT
 
 static inline zEntProjectile* ZPRJ_getNextAvail()
 {
-    static signed int warned = 0.0f;
+    st_PROJECTILE_DEPOT* depot = &g_prjdepot;
     st_ZPRJ_LINKNODE* link;
     zEntProjectile* prj;
+    static signed int warned = 0.0f;
 
-    if (g_prjdepot.prjpool.head->next == NULL)
+    if (depot->prjpool.head->next == NULL)
     {
         if (!warned)
         {
@@ -506,7 +521,7 @@ static inline zEntProjectile* ZPRJ_getNextAvail()
     }
 
     warned = 0;
-    link = (st_ZPRJ_LINKNODE*)RemHead(&g_prjdepot.prjpool);
+    link = (st_ZPRJ_LINKNODE*)RemHead(&depot->prjpool);
     prj = link->backref;
     memset(prj, 0, sizeof(zEntProjectile));
     prj->linknode.backref = prj;
@@ -515,9 +530,13 @@ static inline zEntProjectile* ZPRJ_getNextAvail()
 
 zEntProjectile* zEntProjectile_acquire(en_ZPRJ_CATEGORY cat, unsigned int ptypeID)
 {
-    signed int status = 1;
-    zEntProjectile* prj = ZPRJ_getNextAvail();
-    zEntProjectile* rc = prj;
+    zEntProjectile* rc;
+    zEntProjectile* prj;
+    signed int status;
+
+    status = 1;
+    prj = ZPRJ_getNextAvail();
+    rc = prj;
 
     if (prj == NULL)
     {
@@ -550,10 +569,14 @@ en_ZPRJ_STATES zEntProjectile::StateSet(en_ZPRJ_STATES state)
 
     switch (this->state)
     {
+    case ZPRJ_STATE_UNUSED:
+        break;
     case ZPRJ_STATE_STANDBY:
     case ZPRJ_STATE_ACTIVE:
         flg_stat &= 0xFFFF;
         flg_stat |= 0x10000;
+        break;
+    case ZPRJ_STATE_DEAD:
         break;
     }
 
@@ -563,6 +586,9 @@ en_ZPRJ_STATES zEntProjectile::StateSet(en_ZPRJ_STATES state)
 
     switch (this->state)
     {
+    case ZPRJ_STATE_UNUSED:
+    case ZPRJ_STATE_STANDBY:
+        break;
     case ZPRJ_STATE_ACTIVE:
         tmr_alive = 0.0f;
         tmr_emit = 0.0f;
@@ -609,23 +635,26 @@ void zEntProjectile::Abort()
 #pragma auto_inline on
 void zEntProjectile::SyncFrame(signed int applyToModel)
 {
-    if (frame->mode != 0)
+    _xEnt* ent = this;
+    if (ent->frame->mode != 0)
     {
-        xEntMotionToMatrix(this, frame);
+        xEntMotionToMatrix(ent, ent->frame);
         if (applyToModel)
         {
-            if (!(frame->mode & 0x20000))
+            if (!(ent->frame->mode & 0x20000))
             {
-                memcpy(model->Mat, frame, sizeof(_xMat3x3));
+                memcpy(ent->model->Mat, ent->frame, sizeof(_xMat3x3));
             }
-            if (!(frame->mode & 0x10000))
+            if (!(ent->frame->mode & 0x10000))
             {
-                xVec3Copy(&((_xMat4x3*)model->Mat)->pos, &frame->mat.pos);
+                _xVec3* upos = &ent->frame->mat.pos;
+                _xVec3* mpos = &((_xMat4x3*)ent->model->Mat)->pos;
+                xVec3Copy(mpos, upos);
             }
-            xModelEval(model);
-            if (bupdate != NULL)
+            xModelEval(ent->model);
+            if (ent->bupdate != NULL)
             {
-                bupdate(this, &((_xMat4x3*)model->Mat)->pos);
+                ent->bupdate(ent, &((_xMat4x3*)ent->model->Mat)->pos);
             }
         }
         frame->mode = 0;
@@ -688,9 +717,10 @@ inline void zEntProjectile_AssignModel(zEntProjectile* prj, en_ZPRJ_MODEL_INDEX 
 
 signed int zEntProjectile::AimAtTarget(ST_CAT_AIMDATA* info, signed int apply)
 {
-    if (g_catFuncs[cat_proj].aimer != NULL)
+    st_ZPRJ_CATEGORY_FUNCS* catf = &g_catFuncs[cat_proj];
+    if (catf->aimer != NULL)
     {
-        return g_catFuncs[cat_proj].aimer(this, info, apply);
+        return catf->aimer(this, info, apply);
     }
     return 0;
 }
@@ -904,13 +934,51 @@ void zEntProjectile::OrientSet(signed int orient)
 }
 #pragma auto_inline reset
 
+static inline void ZPRJ_hitPlayer(zEntProjectile* prj, _xCollis* colrec)
+{
+    memset(colrec, 0, sizeof(_xCollis));
+    colrec->optr = &globals.player.ent;
+    colrec->oid = globals.player.ent.id;
+    colrec->flags = 0x1F00;
+    if (prj->collis->chk & 0x10)
+    {
+        xBoundHitsBound(&prj->bound, &globals.player.ent.bound, colrec);
+    }
+}
+
+inline void zEntProjectile::OrientToPath(_xEntFrame* frame, signed int flg_orient)
+{
+    _xVec3 unused = {};
+    _xVec3 vec_tmp = {};
+    signed int opt_orient = flg_prop & 0x70000000;
+
+    switch (opt_orient)
+    {
+    case 0:
+        break;
+    case 0x30000000:
+        xVec3SMul(&vec_tmp, &frame->vel, -1.0f);
+        xMat3x3LookVec((_xMat3x3*)&frame->mat, &vec_tmp);
+        break;
+    case 0x10000000:
+    {
+        _xVec3* center = xBoundCenter(&((_xEnt*)&globals.player.ent)->bound);
+        xVec3Sub(&vec_tmp, &frame->mat.pos, center);
+        xMat3x3LookVec((_xMat3x3*)&frame->mat, &vec_tmp);
+        break;
+    }
+    case 0x20000000:
+        xVec3Sub(&vec_tmp, &frame->mat.pos, &globals.camera.hi_cam.mat.pos);
+        xMat3x3LookVec((_xMat3x3*)&frame->mat, &vec_tmp);
+        break;
+    }
+}
+
 signed int zEntProjectile::ZPRJ_update(zScene* scn, float dt)
 {
-    _xVec3 vec = {};
     _xEntCollis colls = {};
     _xCollis colrec = {};
     st_ZPRJ_CATEGORY_FUNCS* catfuncs;
-    _xEntFrame* frm;
 
     if (state == ZPRJ_STATE_STANDBY)
     {
@@ -925,45 +993,41 @@ signed int zEntProjectile::ZPRJ_update(zScene* scn, float dt)
         return 0;
     }
 
+    catfuncs = &g_catFuncs[cat_proj];
     plyr_colrec = &colrec;
     collis = &colls;
-    catfuncs = &g_catFuncs[cat_proj];
     collis->chk = flg_chk;
     collis->pen = flg_pen;
 
     if (frame != NULL)
     {
-        SyncFrame(1);
+        if (frame->mode != 0)
+        {
+            SyncFrame(1);
+        }
         frame = NULL;
     }
     frame = &raw_frame;
 
     xEntEndUpdate(this, scn, dt);
     xEntBeginUpdate(this, scn, dt);
-    xEntBeginCollide(this);
+    xEntBeginCollide(this, scn, dt);
 
-    memset(plyr_colrec, 0, sizeof(_xCollis));
-    plyr_colrec->optr = &globals.player.ent;
-    plyr_colrec->oid = ((xBase*)&globals.player.ent)->id;
-    plyr_colrec->flags = 0x1F00;
-    if (collis->chk & 0x10)
-    {
-        xBoundHitsBound(&bound, &((_xEnt*)&globals.player.ent)->bound, plyr_colrec);
-    }
+    ZPRJ_hitPlayer(this, plyr_colrec);
 
     if (DoColCheck(dt))
     {
         xEntCollide(this, scn, dt);
         if (collis->idx > 6 && !(collis->colls[0].flags & 1) && !(collis->colls[1].flags & 1))
         {
-            LookForFloorRoof();
+            LookForFloorRoof(scn, dt);
         }
     }
     xEntEndCollide(this, scn, dt);
 
     tmr_alive += dt;
     tmr_curstate += dt;
-    tmr_coldelay = tmr_coldelay - dt < -1.0f ? -1.0f : tmr_coldelay - dt;
+    tmr_coldelay = -1.0f > tmr_coldelay - dt ? -1.0f : tmr_coldelay - dt;
     flg_stat &= 0x9FFFFFFF;
 
     zEntProjectile_SendEvent(this, ZPRJ_EVNT_NEWTIME, dt, NULL);
@@ -973,30 +1037,12 @@ signed int zEntProjectile::ZPRJ_update(zScene* scn, float dt)
     }
 
     catfuncs->logix(this, dt, scn, frame);
-    SyncFrame(0);
+    if (frame->mode != 0)
+    {
+        SyncFrame(0);
+    }
 
-    frm = frame;
-    vec.x = 0.0f;
-    switch (flg_prop & 0x70000000)
-    {
-    case 0:
-        break;
-    case 0x30000000:
-        xVec3SMul(&vec, &frm->vel, -1.0f);
-        xMat3x3LookVec((_xMat3x3*)&frm->mat, &vec);
-        break;
-    case 0x10000000:
-    {
-        _xVec3* center = xBoundCenter(&((_xEnt*)&globals.player.ent)->bound);
-        xVec3Sub(&vec, &frm->mat.pos, center);
-        xMat3x3LookVec((_xMat3x3*)&frm->mat, &vec);
-        break;
-    }
-    case 0x20000000:
-        xVec3Sub(&vec, &frm->mat.pos, &globals.camera.hi_cam.mat.pos);
-        xMat3x3LookVec((_xMat3x3*)&frm->mat, &vec);
-        break;
-    }
+    OrientToPath(frame, 1);
 
     if (pflags & 2)
     {
@@ -1007,7 +1053,10 @@ signed int zEntProjectile::ZPRJ_update(zScene* scn, float dt)
         if (catfuncs->calcmove != NULL)
         {
             catfuncs->calcmove(this, dt, scn, frame);
-            SyncFrame(0);
+            if (frame->mode != 0)
+            {
+                SyncFrame(0);
+            }
         }
     }
     if (flg_prop & 2)
@@ -1031,9 +1080,9 @@ signed int zEntProjectile::ZPRJ_update(zScene* scn, float dt)
 
 signed int zEntProjectile::DoColCheck(float dt)
 {
-    static signed int heuristic = 2.0f;
-    signed int result = 0;
     st_ZPRJ_CATEGORY_FUNCS* catfuncs;
+    signed int result = 0;
+    static signed int heuristic = 2.0f;
 
     if (tmr_coldelay > 0.0f)
     {
@@ -1061,9 +1110,10 @@ signed int zEntProjectile::DoColCheck(float dt)
     case 3:
         return xUtil_yesno(pct_docol);
     case 4:
-        return (float)fabs((float)cos(tmr_alive)) < pct_docol;
+        return (float)__fabs((float)cos(tmr_alive)) < pct_docol;
     case 6:
-        return dt * xsqrt(xVec3Dot(&frame->vel, &frame->vel)) > 0.49f * bound.sph.r;
+        return dt * xsqrt(frame->vel.x * frame->vel.x + frame->vel.y * frame->vel.y +
+                          frame->vel.z * frame->vel.z) > 0.49f * bound.sph.r;
     case 5:
         if (pct_docol < 0.0f)
         {
@@ -1099,7 +1149,8 @@ signed int zEntProjectile::ZPRJ_render()
         return 1;
     }
 
-    g_catFuncs[cat_proj].render(this);
+    st_ZPRJ_CATEGORY_FUNCS* catf = &g_catFuncs[cat_proj];
+    catf->render(this);
 
     if (flg_prop & 8)
     {
@@ -1113,10 +1164,13 @@ signed int zEntProjectile::ZPRJ_render()
         float dst2_plyr;
 
         xVec3Sub(&vec, &globals.camera.hi_cam.mat.pos, &mat->pos);
-        dst2 = xVec3Dot(&vec, &vec);
+        dst2 = vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
         xVec3Sub(&vec, &pmat->pos, &mat->pos);
-        dst2_plyr = xVec3Dot(&vec, &vec);
-        if (!(dst2 < dst2_plyr))
+        dst2_plyr = vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
+        if (dst2 < dst2_plyr)
+        {
+        }
+        else
         {
             dst2 = dst2_plyr;
         }
@@ -1136,100 +1190,107 @@ signed int zEntProjectile::ZPRJ_render()
     return 1;
 }
 
-signed int zEntProjectile::LookForFloorRoof()
+unsigned char zEntProjectile::LookForFloorRoof(zScene* scn, float dt)
 {
-    _xEntCollis* coll = collis;
-    _xCollis* best;
-    _xCollis* colrec = NULL;
     signed int i;
+    _xCollis* best;
+    _xCollis* flor;
+    _xCollis* ceil;
+    _xCollis* cur_rec;
 
-    if (!(coll->colls[0].flags & 1))
-    {
-        best = NULL;
-        for (i = coll->stat_sidx; i < coll->stat_eidx; i++)
-        {
-            colrec = &coll->colls[i];
-            if (!(colrec->hdng.y > -0.9f))
-            {
-                if (best == NULL)
-                {
-                    best = colrec;
-                }
-                else if (!(colrec->hdng.y > best->hdng.y))
-                {
-                    best = colrec;
-                }
-            }
-        }
-        for (i = coll->env_sidx; i < coll->env_eidx; i++)
-        {
-            colrec = &coll->colls[i];
-            if (!(colrec->hdng.y > -0.9f))
-            {
-                if (best == NULL)
-                {
-                    best = colrec;
-                }
-                else if (!(colrec->hdng.y > best->hdng.y))
-                {
-                    best = colrec;
-                }
-            }
-        }
-        if (best != NULL)
-        {
-            memcpy(&coll->colls[0], best, sizeof(_xCollis));
-            colrec->flags |= 6;
-        }
-    }
+    best = NULL;
+    cur_rec = NULL;
+    flor = &collis->colls[0];
+    ceil = &collis->colls[1];
 
-    if (!(coll->colls[1].flags & 1))
+    if (!(flor->flags & 1))
     {
-        best = NULL;
         for (i = collis->stat_sidx; i < collis->stat_eidx; i++)
         {
-            colrec = &collis->colls[i];
-            if (!(colrec->hdng.y < 0.9f))
+            cur_rec = &collis->colls[i];
+            if (!(cur_rec->hdng.y > -0.9f))
             {
                 if (best == NULL)
                 {
-                    best = colrec;
+                    best = cur_rec;
                 }
-                else if (!(colrec->hdng.y > best->hdng.y))
+                else if (!(cur_rec->hdng.y > best->hdng.y))
                 {
-                    best = colrec;
+                    best = cur_rec;
                 }
             }
         }
         for (i = collis->env_sidx; i < collis->env_eidx; i++)
         {
-            colrec = &collis->colls[i];
-            if (!(colrec->hdng.y < 0.9f))
+            cur_rec = &collis->colls[i];
+            if (!(cur_rec->hdng.y > -0.9f))
             {
                 if (best == NULL)
                 {
-                    best = colrec;
+                    best = cur_rec;
                 }
-                else if (!(colrec->hdng.y > best->hdng.y))
+                else if (!(cur_rec->hdng.y > best->hdng.y))
                 {
-                    best = colrec;
+                    best = cur_rec;
                 }
             }
         }
         if (best != NULL)
         {
-            memcpy(&coll->colls[1], best, sizeof(_xCollis));
-            colrec->flags |= 0xA;
+            memcpy(flor, best, sizeof(_xCollis));
+            cur_rec->flags |= 6;
         }
     }
 
-    return (coll->colls[0].flags & 1) || (coll->colls[1].flags & 1);
+    if (!(ceil->flags & 1))
+    {
+        best = NULL;
+        for (i = collis->stat_sidx; i < collis->stat_eidx; i++)
+        {
+            cur_rec = &collis->colls[i];
+            if (!(cur_rec->hdng.y < 0.9f))
+            {
+                if (best == NULL)
+                {
+                    best = cur_rec;
+                }
+                else if (!(cur_rec->hdng.y > best->hdng.y))
+                {
+                    best = cur_rec;
+                }
+            }
+        }
+        for (i = collis->env_sidx; i < collis->env_eidx; i++)
+        {
+            cur_rec = &collis->colls[i];
+            if (!(cur_rec->hdng.y < 0.9f))
+            {
+                if (best == NULL)
+                {
+                    best = cur_rec;
+                }
+                else if (!(cur_rec->hdng.y > best->hdng.y))
+                {
+                    best = cur_rec;
+                }
+            }
+        }
+        if (best != NULL)
+        {
+            memcpy(ceil, best, sizeof(_xCollis));
+            cur_rec->flags |= 0xA;
+        }
+    }
+
+    return (flor->flags & 1) || (ceil->flags & 1);
 }
 
 signed int zEntProjectile_gen_attach(zEntProjectile* prj)
 {
     switch (prj->cat_proj)
     {
+    case ZPRJ_CAT_UNKNOWN:
+        break;
     case ZPRJ_CAT_ARROW:
         prj->cat_data.arrow.amStuck = 0;
         break;
@@ -1307,8 +1368,9 @@ static signed int ZPRJ_arrow_logix(zEntProjectile* prj, float dt, zScene* scn, _
             if (arrow->amStuck == 0)
             {
                 arrow->amStuck = 1;
-                arrow->ent_stuck = (_xEnt*)&globals.player.ent;
-                xVec3Sub(&arrow->pos_stuck, &((_xMat4x3*)arrow->ent_stuck->model->Mat)->pos,
+                _xEnt* plyr = &globals.player.ent;
+                arrow->ent_stuck = plyr;
+                xVec3Sub(&arrow->pos_stuck, &((_xMat4x3*)plyr->model->Mat)->pos,
                          &((_xMat4x3*)prj->model->Mat)->pos);
                 prj->frame->dvel.x = 0.0f;
                 prj->frame->dvel.y = 0.0f;
@@ -1630,15 +1692,15 @@ float zEntProjectile_colAccum(zEntProjectile* prj, _xVec3* dir_away)
         }
     }
 
-    if ((float)fabs(vec_accum.x) < 0.00001f)
+    if ((float)__fabs(vec_accum.x) < 0.00001f)
     {
         vec_accum.x = 0.0f;
     }
-    if ((float)fabs(vec_accum.y) < 0.00001f)
+    if ((float)__fabs(vec_accum.y) < 0.00001f)
     {
         vec_accum.y = 0.0f;
     }
-    if ((float)fabs(vec_accum.z) < 0.00001f)
+    if ((float)__fabs(vec_accum.z) < 0.00001f)
     {
         vec_accum.z = 0.0f;
     }
@@ -1722,13 +1784,13 @@ signed int zEntProjectile_gen_aimer(zEntProjectile* prj, ST_CAT_AIMDATA* info, s
         st_ZPRJ_AUTOCALC_INFO autinf = {};
         didit = 0;
         xVec3Sub(&info->dir_base, &grav->pos_tgt, &grav->pos_src);
-        autinf.dir_launch = info->dir_base;
         autinf.spd_muzzle = info->spd_base;
-        xVec3SMul(&autinf.vel_launch, &autinf.dir_launch, autinf.spd_muzzle);
+        autinf.dir_launch = info->dir_base;
         autinf.pos_launch = grav->pos_src;
         autinf.pos_target = grav->pos_tgt;
         autinf.fac_arcness = grav->fac_arcness;
         autinf.acc_gravity = grav->acc_gravity;
+        xVec3SMul(&autinf.vel_launch, &autinf.dir_launch, autinf.spd_muzzle);
 
         switch (autinf.method)
         {
@@ -1742,7 +1804,10 @@ signed int zEntProjectile_gen_aimer(zEntProjectile* prj, ST_CAT_AIMDATA* info, s
             break;
         }
         case 1:
+            didit = 0;
+            break;
         case 2:
+            didit = 0;
             break;
         }
 
@@ -1772,18 +1837,20 @@ signed int zEntProjectile_gen_aimer(zEntProjectile* prj, ST_CAT_AIMDATA* info, s
 static signed int ZPRJ_solv_velvec(float grav, float arc_factor, float spd_limit,
                                    float dst_range, _xVec3 vec_tgt, _xVec3* vec_vel)
 {
+    float dst_tgt;
     _xVec3 vec_tgtOrig = {};
     float sol[2] = {};
     _xVec3 vec_tmp = {};
+    _xVec3 unused0 = {};
+    _xVec3 unused1 = {};
     signed int limit_tally = 0;
     float tym_limit = -1.0f;
     float tym_ariv;
-    float dst_tgt;
     float b;
     unsigned int solcnt;
 
-    dst_tgt = xsqrt(vec_tgt.x * vec_tgt.x + vec_tgt.z * vec_tgt.z);
     vec_tgtOrig = vec_tgt;
+    dst_tgt = xsqrt(vec_tgt.x * vec_tgt.x + vec_tgt.z * vec_tgt.z);
 
     if (dst_range > 0.0f && dst_tgt > dst_range)
     {
@@ -1800,13 +1867,15 @@ static signed int ZPRJ_solv_velvec(float grav, float arc_factor, float spd_limit
         tym_limit = dst_range / spd_limit;
     }
 
+    float a = -0.5f * grav;
     b = xsqrt(2.0f * grav * (1.5f * arc_factor));
+    float c = -vec_tgtOrig.y;
 
     vec_vel->x = 0.0f;
     vec_vel->y = 0.0f;
     vec_vel->z = 0.0f;
 
-    solcnt = xMathSolveQuadratic(-0.5f * grav, b, -vec_tgtOrig.y, &sol[0], &sol[1]);
+    solcnt = xMathSolveQuadratic(a, b, c, &sol[0], &sol[1]);
     if (solcnt == 2)
     {
         tym_ariv = sol[0] > sol[1] ? sol[0] : sol[1];
