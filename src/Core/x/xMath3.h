@@ -134,6 +134,13 @@ inline void xVec3Add(_xVec3* o, const _xVec3* a, const _xVec3* b)
     o->z = a->z + b->z;
 }
 
+inline void xVec3Lerp(_xVec3* o, const _xVec3* a, const _xVec3* b, float t)
+{
+    o->x = t * (b->x - a->x) + a->x;
+    o->y = t * (b->y - a->y) + a->y;
+    o->z = t * (b->z - a->z) + a->z;
+}
+
 inline void xVec3AddTo(_xVec3* o, const _xVec3* v)
 {
     o->x += v->x;
