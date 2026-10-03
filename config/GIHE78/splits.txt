@@ -522,6 +522,9 @@ Game/zPendulum.cpp:
 
 Game/zPlatform.cpp:
 	.text       start:0x800C7680 end:0x800C8AE4
+	.rodata     start:0x801A5F28 end:0x801A5F58
+	.sbss       start:0x8025F060 end:0x8025F068
+	.sdata2     start:0x80261BB0 end:0x80261BE8
 
 Game/zPortal.cpp:
 	.text       start:0x800C8AE4 end:0x800C8BDC

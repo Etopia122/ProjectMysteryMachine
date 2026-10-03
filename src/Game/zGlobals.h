@@ -5,6 +5,7 @@
 #include "zEnt.h"
 #include "iCamera.h"
 #include "iModel.h"
+#include "xEntDrive.h"
 
 class zScene;
 
@@ -86,7 +87,8 @@ public:
     signed int Inv_Ammo[2];         // 0x3C8
     signed int Inv_AmmoMax[2];      // 0x3D0
     iModelTag BubbleTag;            // 0x3D8
-    unsigned char unk3F8[0x510 - 0x3F8];
+    _xEntDrive drv;                 // 0x3F8
+    unsigned char unk448[0x510 - 0x448];
     zPlayerStatic s;                // 0x510
     unsigned char unk64C[0x660 - 0x64C];
 };

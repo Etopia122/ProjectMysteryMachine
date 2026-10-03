@@ -1,23 +1,5 @@
-#include "xEnt.h"
+#include "xEntDrive.h"
 
-class _xEntDrive
-{
-public:
-    unsigned int flags;
-    float otm;
-    float otmr;
-    float os;
-    float tm;
-    float tmr;
-    float s;
-    _xEnt* odriver;
-    _xEnt* driver;
-    _xEnt* driven;
-    _xVec3 op;
-    _xVec3 p;
-    _xVec3 q;
-    float yaw;
-};
 
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 
