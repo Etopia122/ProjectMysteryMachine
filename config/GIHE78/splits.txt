@@ -435,7 +435,12 @@ Game/zMain.cpp:
 	.text       start:0x800BE608 end:0x800BF644
 
 Game/zMenu.cpp:
-	.text       start:0x800BF64C end:0x800BFD28
+	.text       start:0x800BF644 end:0x800BFD30
+	.rodata     start:0x801A5990 end:0x801A59C0
+	.sdata      start:0x8025E578 end:0x8025E588
+	.sbss       start:0x8025F020 end:0x8025F038
+	.sdata2     start:0x80261778 end:0x802617A8
+	.sbss2      start:0x80262CD0 end:0x80262CD8
 
 Game/zMovePoint.cpp:
 	.text       start:0x800BFD30 end:0x800C0524

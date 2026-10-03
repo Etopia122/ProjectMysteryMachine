@@ -11,11 +11,11 @@ void iPadStopRumble(_tagxPad* pad);
 void iPadStartRumble(_tagxPad* pad, _tagxRumble* rumble);
 void iPadKill();
 signed int zGameIsPaused();
+signed int zMenuRunning();
 
 extern "C" {
 // TODO: unidentified game-state checks
 unsigned int fn_800CD24C();
-signed int fn_800BFD28();
 signed int fn_800CD170();
 }
 
@@ -150,7 +150,7 @@ signed int xPadUpdate(signed int idx, float time_passed)
     {
         xPadAnalogIsDigital(idx, 0);
     }
-    else if (fn_800BFD28() || zGameIsPaused() ||
+    else if (zMenuRunning() || zGameIsPaused() ||
              (globals.sceneCur && globals.sceneCur->sceneID == SCENE_ID("h003")))
     {
         xPadAnalogIsDigital(idx, 1);

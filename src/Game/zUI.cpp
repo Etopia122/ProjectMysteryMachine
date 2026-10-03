@@ -61,8 +61,6 @@ signed int RwIm2DRenderIndexedPrimitive(signed int primType, RwIm2DVertex* verti
                                         signed int numVertices, unsigned short* indices,
                                         signed int numIndices);
 float RwIm2DGetNearScreenZ();
-// TODO: unidentified (true when the entity should be drawn)
-unsigned int fn_80021E70(_xEnt* ent);
 // TODO: unidentified zVar setter (the current level's scene id)
 void fn_800D77CC(unsigned int id);
 }
@@ -356,7 +354,7 @@ void zUIRenderAll()
 
     for (signed int i = 0; i < (signed int)sSortedCount; i++)
     {
-        if (fn_80021E70(sSorted[i]))
+        if (xEntIsVisible(sSorted[i]))
         {
             if (sSorted[i]->baseType == 0x20)
             {
@@ -396,7 +394,7 @@ void zUI_Render(_xEnt* ent)
 
     if (ui->uiFlags & 4)
     {
-        if (fn_80021E70(ui))
+        if (xEntIsVisible(ui))
         {
             if (ui->sasset->textureID)
             {

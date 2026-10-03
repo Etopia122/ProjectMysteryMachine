@@ -504,7 +504,7 @@ config.libs = [
             Object(NonMatching, "Game/zLightning.cpp"),
             Object(NonMatching, "Game/zLobMaster.cpp"),
             Object(NonMatching, "Game/zMain.cpp"),
-            Object(NonMatching, "Game/zMenu.cpp"),
+            Object(Matching, "Game/zMenu.cpp"),
             Object(NonMatching, "Game/zMovePoint.cpp"),
             Object(NonMatching, "Game/zMusic.cpp"),
             Object(NonMatching, "Game/zParCmd.cpp"),

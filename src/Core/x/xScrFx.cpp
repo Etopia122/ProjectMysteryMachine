@@ -62,8 +62,6 @@ signed int RwIm2DRenderIndexedPrimitive(signed int primType, RwIm2DVertex* verti
 RwCamera* RwCameraClear(RwCamera* camera, void* colour, signed int clearMode);
 // TODO: unidentified (iEnv.cpp: z-buffer enable around the fancy fade)
 void fn_8000A080(unsigned int mode);
-// TODO: unidentified (true while letterboxing is not allowed)
-signed int fn_800BFD28();
 // TODO: unidentified flag set while a scene loads
 extern unsigned int lbl_8025EEC8;
 }
@@ -75,6 +73,7 @@ void iScrFxEnd();
 void iScrFxDrawFade(RwCamera* cam, iColor_tag* col);
 void iScrFxDrawLetterbox(RwCamera* cam, signed int y_offset);
 signed int zGameIsPaused();
+signed int zMenuRunning();
 void xModelRenderSingle(xModelInstance* modelInst);
 
 #define PLAYER_MODEL ((xModelInstanceView*)globals.player.ent.model)
@@ -295,8 +294,9 @@ void xScrFxUpdate(RwCamera* cam, float seconds)
     iScrFxEnd();
 }
 
+// TODO: the last argument is unused here (1 from most callers, 0 from zMenu).
 void xScrFxFade(iColor_tag* base, iColor_tag* dest, float seconds, void (*callback)(),
-                signed int hold)
+                signed int hold, signed int unused)
 {
     mFade.active = 1;
     mFade.src.r = base->r;
@@ -323,7 +323,7 @@ void xScrFxFade(iColor_tag* base, iColor_tag* dest, float seconds, void (*callba
 
 void xScrFxLetterbox(signed int enable)
 {
-    if (fn_800BFD28())
+    if (zMenuRunning())
     {
         enable = 0;
     }

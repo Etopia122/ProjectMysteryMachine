@@ -103,6 +103,7 @@ public:
 };
 
 void xEntUpdate(_xEnt* ent, _xScene* sc, float dt);
+unsigned int xEntIsVisible(_xEnt* ent);
 void xEntReset(_xEnt* ent);
 void xEntSetMaterialMul(_xEnt* ent, float r, float g, float b);
 

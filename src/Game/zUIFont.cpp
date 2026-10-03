@@ -20,8 +20,6 @@ void zVarMagicProcessText(char* in, char* out);
 void xEntUpdate(_xEnt* ent, _xScene* sc, float dt);
 
 extern "C" {
-// TODO: unidentified (true when the entity should be drawn)
-unsigned int fn_80021E70(_xEnt* ent);
 // TODO: unidentified save-slot check
 unsigned int fn_800C9738(signed int slot);
 // TODO: unidentified xFont global (text scale while rendering)
@@ -307,7 +305,7 @@ void zUIFont_Render(_xEnt* e)
     char processedText[512];
     iColor_tag c;
 
-    if (!fn_80021E70(e))
+    if (!xEntIsVisible(e))
     {
         return;
     }
