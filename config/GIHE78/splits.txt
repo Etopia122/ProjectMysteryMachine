@@ -94,6 +94,9 @@ Core/gc/iPad.cpp:
 
 Core/gc/iParMgr.cpp:
 	.text       start:0x8000FB40 end:0x80011B74
+	.data       start:0x801AD470 end:0x801AD498
+	.bss        start:0x801E1898 end:0x801E6D60
+	.sdata2     start:0x8025FA68 end:0x8025FA98
 
 Core/gc/isavegame.cpp:
 	.text       start:0x80011B74 end:0x800146C0
