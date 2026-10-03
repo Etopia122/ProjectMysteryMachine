@@ -108,8 +108,18 @@ Patterns that have mattered for matching:
 - Constant operands: `x * k` with a literal `k` is emitted constant-first; when
   the target has the variable first, the factor came in as a variable, usually
   through an inline helper's parameter (`xVec3SMul(&o, &v, -0.25f)`).
-- Uninitialized `char buf[5] = { 0 };` copies from a zero pool in `.sbss2`;
+- Uninitialized `char buf[5] = { 0};` copies from a zero pool in `.sbss2`;
   give the unit an `.sbss2` split for it.
+- A function under `#pragma auto_inline on` is not emitted at its own source
+  position: its out-of-line copy follows the function that first needed it.
+  Move the definition around (zParSys needed it right after its caller) and
+  check the order with `build/tmp/fnorder.py <obj>`.
+- A recursive `auto_inline` function is inlined into itself several levels deep
+  (zParGroupUpdateR: five copies, then a real call); other callers still call it.
+- A loop duplicated in two functions can come from one inline helper in one and
+  hand-written code in the other (zParSysUpdate vs zParGroupUpdateR): try both.
+- Imported names of statics often carry the wrong signature (PS2 vs GC). Fix the
+  mangled name in symbols.txt, or check_unit can't pair the function.
 
 ## Open questions
 
