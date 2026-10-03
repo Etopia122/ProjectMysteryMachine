@@ -57,10 +57,9 @@ static zCutSceneNames zCutSceneNamesTable[14] = {
 
 static signed int gCutsceneSkipOK;
 
-// Not yet named: an iCamera.cpp function, an xCutscene.cpp function and the
-// FMV player.
+// Not yet named: an iCamera.cpp function and the FMV player.
 extern "C" void fn_800072D4(float a, float b);
-extern "C" void fn_80021B10(xCutscene* csn);
+signed int xCutscene_Destroy(xCutscene* csn);
 extern "C" void fn_800ABD9C(char* name, unsigned int flags, float time);
 
 void zMusicPause();
@@ -164,7 +163,7 @@ signed int zCutsceneMgrEventCB(xBase* from, xBase* to, unsigned int toEvent, flo
         xBaseReset(t, t->tasset);
         if (t->csn)
         {
-            fn_80021B10(t->csn);
+            xCutscene_Destroy(t->csn);
         }
         t->csn = 0;
         break;
