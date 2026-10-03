@@ -217,6 +217,9 @@ Core/x/xMath.cpp:
 
 Core/x/xMath3.cpp:
 	.text       start:0x8002CF48 end:0x8002F920
+	.rodata     start:0x801936B0 end:0x80193730
+	.data       start:0x801AEE28 end:0x801AEE38
+	.sdata2     start:0x80260008 end:0x80260048
 
 Core/x/xMemMgr.cpp:
 	.text       start:0x8002F920 end:0x800300A8

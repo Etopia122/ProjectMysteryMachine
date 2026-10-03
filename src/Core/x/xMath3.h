@@ -91,7 +91,9 @@ public:
     float dist;
 };
 
+#ifndef XMATH3_DEFINE_GLOBALS
 extern const _xMat3x3 g_I3;
+#endif
 
 void xMat3x3Euler(_xMat3x3* m, float yaw, float pitch, float roll);
 void xMat3x3LMulVec(_xVec3* o, _xMat3x3* m, _xVec3* v);
