@@ -3,6 +3,8 @@
 // is decompiled so far. The RenderWare file/memory callbacks, iSystemInit/Exit
 // and the date helpers above it are still to do.
 
+#include "iSnd.h"
+
 class RwResEntry
 {
 public:
@@ -36,8 +38,6 @@ extern unsigned int _stack_end[];
 
 // TODO: unidentified (xTRC: reports the disc state, returns its result)
 signed int fn_8004442C(signed int state);
-// TODO: unidentified (iSnd: stops all sound before a reset)
-void fn_800D84A0();
 // TODO: unidentified (stops the movie player before a reset)
 void fn_800FDA54();
 // TODO: unidentified (size of the RenderWare resource arena)
@@ -147,7 +147,7 @@ extern "C" void fn_80016730()
 
 extern "C" void fn_80016698(signed int toMenu)
 {
-    fn_800D84A0();
+    iSndDIEDIEDIE();
     PADRecalibrate(0xF0000000);
     fn_800FDA54();
     GXDrawDone();

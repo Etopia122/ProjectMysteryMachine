@@ -4,6 +4,8 @@
 #include "zGlobals.h"
 #include "xserializer.h"
 #include "zScene.h"
+#include "xSnd.h"
+#include "iSnd.h"
 
 extern "C" {
 int sprintf(char* s, const char* format, ...);
@@ -38,12 +40,6 @@ public:
     unsigned char pad[4];
 };
 
-class xSndGlobals
-{
-public:
-    unsigned char pad0[8];
-    float categoryVolFader[3][2]; // 0x8
-};
 
 unsigned int zCutSceneNamesTable_getStatus(unsigned int idx);
 unsigned int zEntPickup_WarpIsOpen(unsigned int idx);
@@ -63,7 +59,6 @@ signed int xStricmp(char* a, char* b);
 void zSaveLoad_BuildName(char* buffer, signed int slot);
 
 extern zSaveLoadGame zSaveLoadGameTable[];
-extern xSndGlobals gSnd;
 
 class zVarMagicEntry
 {
@@ -480,11 +475,6 @@ static inline void zVarGameSlotInfo(signed int i)
 
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 
-static inline float zVarCatVol(signed int c)
-{
-    return (gSnd.categoryVolFader[c][0] + gSnd.categoryVolFader[c][1]) * 0.5f;
-}
-
 static inline void zVarMagicInit()
 {
     for (zVarMagicEntry* e = sVarMagicEntryTrable; e->varName; e++)
@@ -595,7 +585,7 @@ unsigned int zVarEntryCB_SndMode()
 // (target: sum in f3, 0.5f in f2, 10.0 in f1).
 unsigned int zVarEntryCB_SndMasterVol()
 {
-    double d = (gSnd.categoryVolFader[0][0] + gSnd.categoryVolFader[0][1]) * 0.5f * 10.0;
+    double d = (gSnd.mastervol.left + gSnd.mastervol.right) * 0.5f * 10.0;
     d = 0.5 + d;
     return (unsigned int)d;
 }
@@ -604,7 +594,7 @@ unsigned int zVarEntryCB_SndMasterVol()
 // (target: sum in f3, 0.5f in f2, 10.0 in f1).
 unsigned int zVarEntryCB_SndMusicVol()
 {
-    double d = (gSnd.categoryVolFader[1][0] + gSnd.categoryVolFader[1][1]) * 0.5f * 10.0;
+    double d = (gSnd.streamvol.left + gSnd.streamvol.right) * 0.5f * 10.0;
     d = 0.5 + d;
     return (unsigned int)d;
 }
@@ -613,7 +603,7 @@ unsigned int zVarEntryCB_SndMusicVol()
 // (target: sum in f3, 0.5f in f2, 10.0 in f1).
 unsigned int zVarEntryCB_SndFXVol()
 {
-    double d = (gSnd.categoryVolFader[2][0] + gSnd.categoryVolFader[2][1]) * 0.5f * 10.0;
+    double d = (gSnd.fxvol.left + gSnd.fxvol.right) * 0.5f * 10.0;
     d = 0.5 + d;
     return (unsigned int)d;
 }
@@ -780,7 +770,7 @@ char* zVMCB_PlayerChancesCount(char* buffer)
 // (target: sum in f3, 0.5f in f2, 10.0 in f1).
 char* zVMCB_SoundMusicVolume(char* buffer)
 {
-    double d = (gSnd.categoryVolFader[1][0] + gSnd.categoryVolFader[1][1]) * 0.5f * 10.0;
+    double d = (gSnd.streamvol.left + gSnd.streamvol.right) * 0.5f * 10.0;
     d = 0.5 + d;
     return buffer + sprintf(buffer, "%d", (unsigned int)d);
 }
@@ -789,7 +779,7 @@ char* zVMCB_SoundMusicVolume(char* buffer)
 // (target: sum in f3, 0.5f in f2, 10.0 in f1).
 char* zVMCB_SoundFXVolume(char* buffer)
 {
-    double d = (gSnd.categoryVolFader[2][0] + gSnd.categoryVolFader[2][1]) * 0.5f * 10.0;
+    double d = (gSnd.fxvol.left + gSnd.fxvol.right) * 0.5f * 10.0;
     d = 0.5 + d;
     return buffer + sprintf(buffer, "%d", (unsigned int)d);
 }

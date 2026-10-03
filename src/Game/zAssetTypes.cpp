@@ -1,3 +1,4 @@
+#include "iSnd.h"
 #include "zGlobals.h"
 #include "zScene.h"
 #include "xAnim.h"
@@ -9,8 +10,6 @@ void* memcpy(void* dst, const void* src, unsigned int n);
 void* malloc(unsigned int size);
 // TODO: unidentified iSystem debug print (a stub that returns 0)
 int fn_80015EAC(const char* format, ...);
-// TODO: unidentified (iSnd: registers the sound info asset)
-void fn_800D8570(void* sndInfo);
 // TODO: unidentified iSystem flag set while the H003 world streams in
 extern signed int lbl_8025E984;
 }
@@ -691,7 +690,7 @@ static void* SndInfoRead(void*, unsigned int, void* indata, unsigned int insize,
         return dest;
     }
     memcpy(dest, indata, insize);
-    fn_800D8570(dest);
+    iSndLoadSounds(dest);
     *outsize = insize;
     return dest;
 }
