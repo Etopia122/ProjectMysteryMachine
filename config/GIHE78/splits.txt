@@ -683,6 +683,9 @@ Core/gc/iAnim.cpp:
 
 Core/gc/iSnd.cpp:
 	.text       start:0x800D84A0 end:0x800DB168
+	.bss        start:0x8023B3C8 end:0x8023CF90
+	.sbss       start:0x8025F170 end:0x8025F1A8
+	.sdata2     start:0x80262070 end:0x802620B8
 
 Core/gc/iFMV.cpp:
 	.text       start:0x800DB168 end:0x800DC29C
