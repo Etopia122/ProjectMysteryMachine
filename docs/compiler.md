@@ -197,6 +197,19 @@ Patterns that have mattered for matching:
   (`zEntRecurseModelInfo`).
 - A by-value struct parameter copied to the frame on entry (`lwz`/`stw` before
   the first call) was copied into a local first (`_xVec3 vec = def;`).
+- A function-scope static with a non-constant initializer gets a one-byte
+  guard in .sbss (`lbz; extsb.; bne` then store the value and set the guard).
+  When the stored value is a constant, a float initializer reproduces it:
+  `static signed int last_idx = 0.0f;` (zParCmd DamagePlayer).
+- The PS2 DWARF drops unused parameters anywhere in the list, not just at the
+  end. Functions called through a table (the zParCmd update functions) read
+  later parameters from r4/f1 on GameCube, so give them the full signature.
+- A vector copied by assignment and then scaled (`v = cmd->dir;
+  xVec3SMulBy(&v, dt);`) keeps its components in fresh registers. Scalar
+  locals or `xVec3SMul` into a local reuse the `dt` register instead.
+- `mdt / (xVec3LengthFast(...) + x)` is emitted with the operands reversed;
+  storing the call result in a local first (`len`) keeps the call result as
+  the first operand.
 
 ## Open questions
 
