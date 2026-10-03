@@ -7,9 +7,9 @@ void xMat3x3Normalize(_xMat3x3* o, _xMat3x3* m);
 void iBoxIsectRay(_xBox* b, _xRay3* r, _xIsect* isx);
 void iCylinderIsectRay(_xCylinder* c, _xRay3* r, _xIsect* isx);
 void iCollideFastInit(_xScene* sc);
-unsigned int iRayHitsEnvFast(_xRay3* r, _xEnv* env);
-unsigned int iRayHitsEnvSpecialFast(_xRay3* r, _xEnv* env);
-unsigned int iRayHitsModelFast(_xRay3* r, xModelInstance* m);
+unsigned int iRayHitsEnvFast(const _xRay3* r, const _xEnv* env);
+unsigned int iRayHitsEnvSpecialFast(const _xRay3* r, const _xEnv* env);
+unsigned int iRayHitsModelFast(const _xRay3* r, const xModelInstance* m);
 void xQuickCullForRay(xQCData* q, _xRay3* r);
 
 static inline unsigned int xRayHitsSphereFast(const _xRay3* r, const _xSphere* s)

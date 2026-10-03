@@ -55,10 +55,28 @@ static RpCollisionTriangle* rayHitsEnvFastCB(RpIntersection*, RpWorldSector*, Rp
 static RpCollisionTriangle* rayHitsModelFastCB(RpIntersection*, RpCollisionTriangle*, float, void*);
 
 // Builds a line intersection from a ray in the local `isx`.
-// TODO (the three ray functions are 72-77%): the original loads each source
-// vector completely before storing into isx (docs/compiler.md, open
-// questions); the logic matches.
-#define IRAY_TO_LINE(r, isx)                                                                           isx.type = 1;                                                                                      if ((r)->flags & 0x400)                                                                            {                                                                                                      _xVec3 delta;                                                                                      delta.x = (r)->dir.x * (r)->min_t;                                                                 delta.y = (r)->dir.y * (r)->min_t;                                                                 delta.z = (r)->dir.z * (r)->min_t;                                                                 isx.line.start.x = (r)->origin.x + delta.x;                                                        isx.line.start.y = (r)->origin.y + delta.y;                                                        isx.line.start.z = (r)->origin.z + delta.z;                                                    }                                                                                                  else                                                                                               {                                                                                                      isx.line.start.x = (r)->origin.x;                                                                  isx.line.start.y = (r)->origin.y;                                                                  isx.line.start.z = (r)->origin.z;                                                              }                                                                                                  if ((r)->flags & 0x800)                                                                            {                                                                                                      float len = ((r)->flags & 0x400) ? (r)->max_t - (r)->min_t : (r)->max_t;                           isx.line.end.x = (r)->dir.x * len;                                                                 isx.line.end.y = (r)->dir.y * len;                                                                 isx.line.end.z = (r)->dir.z * len;                                                             }                                                                                                  else                                                                                               {                                                                                                      isx.line.end.x = (r)->dir.x;                                                                       isx.line.end.y = (r)->dir.y;                                                                       isx.line.end.z = (r)->dir.z;                                                                   }                                                                                                  isx.line.end.x = isx.line.start.x + isx.line.end.x;                                                isx.line.end.y = isx.line.start.y + isx.line.end.y;                                                isx.line.end.z = isx.line.start.z + isx.line.end.z;
+#define IRAY_TO_LINE(r, isx)                                                                       \
+    isx.type = 1;                                                                                  \
+    if ((r)->flags & 0x400)                                                                        \
+    {                                                                                              \
+        _xVec3 delta;                                                                              \
+        xVec3SMul(&delta, &(r)->dir, (r)->min_t);                                                  \
+        xVec3Add(&isx.line.start, &(r)->origin, &delta);                                           \
+    }                                                                                              \
+    else                                                                                           \
+    {                                                                                              \
+        xVec3Copy(&isx.line.start, &(r)->origin);                                                  \
+    }                                                                                              \
+    if ((r)->flags & 0x800)                                                                        \
+    {                                                                                              \
+        float len = ((r)->flags & 0x400) ? (r)->max_t - (r)->min_t : (r)->max_t;                   \
+        xVec3SMul(&isx.line.end, &(r)->dir, len);                                                  \
+    }                                                                                              \
+    else                                                                                           \
+    {                                                                                              \
+        xVec3Copy(&isx.line.end, &(r)->dir);                                                       \
+    }                                                                                              \
+    xVec3Add(&isx.line.end, &isx.line.start, &isx.line.end);
 
 #define ILINE_SWAP(isx)                                                                                {                                                                                                      _xVec3 tmp = isx.line.start;                                                                       isx.line.start = isx.line.end;                                                                     isx.line.end = tmp;                                                                            }
 
@@ -81,7 +99,7 @@ static RpCollisionTriangle* rayHitsEnvFastCB(RpIntersection*, RpWorldSector*, Rp
     return 0;
 }
 
-unsigned int iRayHitsModelFast(_xRay3* r, xModelInstance* m)
+unsigned int iRayHitsModelFast(const _xRay3* r, const xModelInstance* m)
 {
     RpIntersection isx;
 
@@ -98,7 +116,7 @@ unsigned int iRayHitsModelFast(_xRay3* r, xModelInstance* m)
     return hitzhit;
 }
 
-unsigned int iRayHitsEnvFast(_xRay3* r, _xEnv* env)
+unsigned int iRayHitsEnvFast(const _xRay3* r, const _xEnv* env)
 {
     RpIntersection isx;
 
@@ -115,7 +133,7 @@ unsigned int iRayHitsEnvFast(_xRay3* r, _xEnv* env)
     return hitzhit;
 }
 
-unsigned int iRayHitsEnvSpecialFast(_xRay3* r, _xEnv* env)
+unsigned int iRayHitsEnvSpecialFast(const _xRay3* r, const _xEnv* env)
 {
     RpIntersection isx;
 
