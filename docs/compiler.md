@@ -239,6 +239,29 @@ Patterns that have mattered for matching:
 - `mdt / (xVec3LengthFast(...) + x)` is emitted with the operands reversed;
   storing the call result in a local first (`len`) keeps the call result as
   the first operand.
+- A DOL order that equals the PS2 order does not prove a TU was built without
+  deferred codegen. xCamera is a normal reverse-order unit: Create's function
+  statics sit in .sbss between the globals declared before and after it, and
+  that only happens when Create is defined first. Check where function statics
+  land before using `#pragma defer_codegen off`.
+- A local struct copy initialized at its declaration (`_xVec3 v = c->pos;`)
+  stays in memory and is copied with lwz/stw. Assigning it after the
+  declaration lets MWCC scalarize it, giving lfs/stfs or registers. Writing
+  the members through a pointer (`_xVec3* p = &v; p->x = ...`) also keeps it in
+  memory (xCamera FollowState's preline_test_pos).
+- An unfused interpolation (`fsubs; fmuls; fadds; fmr`) comes from separate
+  statements on a new local: `float r = b - a; r *= t; r += a; return r;`.
+  `(b - a) * t + a` fuses into fmadds.
+- `else { return; }` after an if-chain leaves a dead `blr` right after the
+  join branch (`b L; blr`), and the conditional becomes `bltlr`/`bnelr`.
+- The three ways to pick a pointer compile differently:
+  - `c = &a; if (p) c = p;` gives `addi; cmplwi; beq; mr`.
+  - `p ? p : &a` gives `cmplwi; beq; b; addi`.
+  - An explicit if/else gives `beq; mr; b; addi`.
+  Match the form per function.
+- Locals of a nested inline are given lower stack slots than those of the
+  inline that calls it. Splitting a helper in two (xMat3x3LookAtPos inside
+  ShoulderLookAtTarget) fixes interleaved slot orders.
 
 ## Open questions
 
