@@ -28,10 +28,11 @@ Core/gc/iDraw.cpp:
 	.text       start:0x80009CC0 end:0x80009CCC
 
 Core/gc/iCutscene.cpp:
-	.text       start:0x80009CCC end:0x8000A2DC
+	.text       start:0x80009CCC end:0x8000A080
 
 Core/gc/iEnv.cpp:
-	.text       start:0x8000A2DC end:0x8000A49C
+	.text       start:0x8000A080 end:0x8000A49C
+	.sdata      start:0x8025E3E8 end:0x8025E3F8
 	.sdata2     start:0x8025F978 end:0x8025F980
 
 Core/gc/iFile.cpp:

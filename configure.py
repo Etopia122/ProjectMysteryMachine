@@ -390,7 +390,7 @@ config.libs = [
             Object(Matching, "Core/gc/iCollideFast.cpp"),
             Object(NonMatching, "Core/gc/iCutscene.cpp"),
             Object(Matching, "Core/gc/iDraw.cpp"),
-            Object(Matching, "Core/gc/iEnv.cpp"),
+            Object(NonMatching, "Core/gc/iEnv.cpp"),
             Object(NonMatching, "Core/gc/iFile.cpp"),
             Object(NonMatching, "Core/gc/iFont.cpp"),
             Object(Matching, "Core/gc/iLight.cpp"),
