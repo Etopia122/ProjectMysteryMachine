@@ -83,6 +83,20 @@ Patterns that have mattered for matching:
   computed in r0 and then copied with `mr` into the variable's register.
   Under the project-wide `-bool off` it goes straight to that register. Give
   such units `extra_cflags=["-bool on"]`.
+- Register assignment follows the order locals are declared (and the order
+  independent statements are written) more than anything semantic. When only
+  registers differ, run `tools/perm_decls.py` on a `// PERM_BEGIN` /
+  `// PERM_END` block of declarations (iMix `MIXUpdateSettings` went from 94.7%
+  to 100%).
+- Stack layout reflects how locals were introduced: every inline expansion
+  adds its own locals. zParEmitter `Emit` only got the original frame once each
+  `switch` case called its own inline helper, as the original did.
+- Initialized local aggregates (`_xVec3 v = {0, 1, 0};`) copy from a `.rodata`
+  pool that is emitted once per function *definition*: an inline helper
+  expanded six times shares one pool, so separate pools mean separate helpers.
+- RenderWare-style setters are macros, not inline functions: their arguments
+  are evaluated in place (loads interleaved with stores), unlike an inline
+  call whose arguments are evaluated first, right to left.
 
 ## Open questions
 
