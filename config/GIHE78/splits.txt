@@ -207,6 +207,9 @@ Core/x/xordarray.cpp:
 
 Core/x/xPad.cpp:
 	.text       start:0x80031AC8 end:0x800323D4
+	.bss        start:0x801FFE08 end:0x802001A8
+	.sbss       start:0x8025EAD0 end:0x8025EAD8
+	.sdata2     start:0x80260100 end:0x80260110
 
 Core/x/xPar.cpp:
 	.text       start:0x800323D4 end:0x80032540
