@@ -520,6 +520,10 @@ Core/gc/iFMV.cpp:
 
 Core/gc/iFX.cpp:
 	.text       start:0x800DC29C end:0x800DC95C
+	.rodata     start:0x801A7C70 end:0x801A7C80
+	.data       start:0x801C9548 end:0x801C9558
+	.sbss       start:0x8025F1F0 end:0x8025F208
+	.sdata2     start:0x80262110 end:0x80262150
 
 Core/gc/iMix.c:
 	.text       start:0x800DC95C end:0x800DE530

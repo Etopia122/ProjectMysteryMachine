@@ -1,4 +1,5 @@
 #include "xEnv.h"
+#include "iFX.h"
 #include "xstransvc.h"
 #include "xCamera.h"
 #include "iEnv.h"
@@ -52,7 +53,6 @@ public:
 };
 
 extern "C" RpMaterial* RpMaterialSetTexture(RpMaterial* material, RwTexture* texture);
-extern "C" void fn_800DC80C(signed int which, float* param);
 
 unsigned int zGroupGetItem(_zGroup* g, unsigned int index);
 void zLightResetAll(_xEnv* env);
@@ -196,10 +196,10 @@ signed int zEnvEventCB(xBase* from, xBase* to, unsigned int toEvent, float* toPa
         zEnvReset((_zEnv*)to);
         break;
     case 0x10A:
-        fn_800DC80C(1, toParam);
+        iFXWarbSetParams(1, toParam);
         break;
     case 0x10B:
-        fn_800DC80C(2, toParam);
+        iFXWarbSetParams(2, toParam);
         break;
     case 0x122:
         xClimateSetSnow(toParam[0]);

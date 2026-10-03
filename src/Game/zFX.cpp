@@ -1,4 +1,5 @@
 #include "xBase.h"
+#include "iFX.h"
 #include "xString.h"
 #include "zScene.h"
 
@@ -7,10 +8,8 @@ class RpWorld;
 void xFX_SceneEnter(RpWorld* world);
 void xFX_SceneExit(RpWorld* world);
 
-// Not yet named: an xFX.cpp setter and two iFX.cpp functions.
+// Not yet named: an xFX.cpp setter.
 extern "C" void fn_8002A5F4(signed int);
-extern "C" void fn_800DC80C(signed int which, float* param);
-extern "C" void fn_800DC85C(xBase* obj, signed int mode);
 
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 
@@ -36,12 +35,12 @@ void zFX_SceneEnter(RpWorld* world)
 
     if (obj)
     {
-        fn_800DC85C(obj, mode);
+        iFXWarbInit(obj, mode);
     }
 }
 
 void zFX_SceneExit(RpWorld* world)
 {
     xFX_SceneExit(world);
-    fn_800DC80C(0, 0);
+    iFXWarbSetParams(0, 0);
 }
