@@ -110,10 +110,13 @@ Patterns that have mattered for matching:
   through an inline helper's parameter (`xVec3SMul(&o, &v, -0.25f)`).
 - Uninitialized `char buf[5] = { 0};` copies from a zero pool in `.sbss2`;
   give the unit an `.sbss2` split for it.
-- A function under `#pragma auto_inline on` is not emitted at its own source
-  position: its out-of-line copy follows the function that first needed it.
-  Move the definition around (zParSys needed it right after its caller) and
-  check the order with `build/tmp/fnorder.py <obj>`.
+- Ordinary functions, `auto_inline` ones included, are emitted at their own
+  source position (reversed like everything else); move the definition to move
+  the function (zParSys, iAnimSKB `iAnimDurationSKB`). Out-of-line copies of
+  header `inline` functions are different: they are emitted right after the
+  function that needed them. zEnt's `xBaseIsEnabled/Enable/Disable` sit at the
+  end of the unit, so there they are ordinary `auto_inline` functions defined
+  at the top of zEnt.cpp. Check the order with `tools/fnorder.py <obj>`.
 - A recursive `auto_inline` function is inlined into itself several levels deep
   (zParGroupUpdateR: five copies, then a real call); other callers still call it.
 - A loop duplicated in two functions can come from one inline helper in one and
@@ -188,9 +191,12 @@ Patterns that have mattered for matching:
 - When loads for later statements are hoisted above earlier stores, the original
   computed the values into locals before storing them (`x = ...; y = ...; z = ...;`
   then `tran->x = x; ...`).
-- An `auto_inline` helper's out-of-line copy is emitted right after its first
-  caller in DOL order, so put its definition after that caller in the source
-  (iAnimSKB `iAnimDurationSKB` follows `_iAnimSKBFixTransPop` in the source).
+- Inlining stops at a fixed depth: a recursive `auto_inline` function inlined
+  into itself calls the small inline helpers it uses at the third level (zEnt
+  `zEntEvent`), and big functions are only inlined into themselves once
+  (`zEntRecurseModelInfo`).
+- A by-value struct parameter copied to the frame on entry (`lwz`/`stw` before
+  the first call) was copied into a local first (`_xVec3 vec = def;`).
 
 ## Open questions
 
