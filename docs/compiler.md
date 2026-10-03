@@ -170,6 +170,16 @@ Patterns that have mattered for matching:
   numeric order in the DOL was written that way.
 - Large struct copies (`_xMat4x3`, even `_xVec3` in places) that show up as
   `memcpy` calls were written as `memcpy` (or an inline that calls it).
+- Sums of squares built with separate `fmuls` and `fadds` (no `fmadds`) and
+  loading x before y come from code compiled without contraction: wrap the
+  lines in `#pragma fp_contract off` / `on` and write the products out
+  (`(a - x) * (a - x) + ...`, iModel `iModelTagInternal`, `iModelCull`). Other
+  functions in the same file still contract.
+- Arguments are evaluated right to left, so a nested call as an argument
+  (`SkinXform(..., RpSkinGetSkinToBoneMatrices(RpSkinGeometryGetSkin(g)), tag->wt, ...)`)
+  computes the later arguments (`tag->wt`) before the calls.
+- `p + n + 1` gets reassociated to `(p + 1) + n`; to get `add` then `addi`,
+  keep a separate pointer (`rootmat = mat; mat++;` then `mat + n`).
 
 ## Open questions
 
