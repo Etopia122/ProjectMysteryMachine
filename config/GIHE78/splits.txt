@@ -440,7 +440,10 @@ Game/zEntHangable.cpp:
 	.sdata2     start:0x802605B8 end:0x802605F8
 
 Game/zEntPickup.cpp:
-	.text       start:0x8004C83C end:0x8004FD38
+	.text       start:0x8004C83C end:0x8004FD58
+	.rodata     start:0x801962E0 end:0x801965A0
+	.data       start:0x801B7E90 end:0x801B8140
+	.sdata2     start:0x802605F8 end:0x802606D0
 
 Game/zEntPlayer.cpp:
 	.text       start:0x8004FD58 end:0x8006919C

@@ -30,13 +30,14 @@ void fn_800162D4();
 void fn_80043E78();
 void fn_800443AC();
 void fn_80044714();
-void fn_8004C84C();
 void fn_8006D398();
 void fn_8006D39C();
 void fn_800A9CE4();
 void fn_800A9CF4();
 void fn_800CD270();
 }
+
+void zEntPickupResetWarps();
 
 enum eGameMode
 {
@@ -242,7 +243,7 @@ static void zMainLoop()
         xSerialWipeMainBuffer();
         fn_800CD270();
         zCutSceneNamesTable_clearAll();
-        fn_8004C84C();
+        zEntPickupResetWarps();
 
         if (sShowMenuOnBoot)
         {
