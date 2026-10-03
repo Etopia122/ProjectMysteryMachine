@@ -347,7 +347,7 @@ void zPlatform_Update(_xEnt* entplat, _xScene* sc, float dt)
                 zEntEvent(plat, 0x39);
             }
             else if ((unsigned short)(state - 6) <= 1 ||
-                     (!(masset->data[1] & 0x2) && (state == 0 || state == 1)))
+                     (!(masset->mech.flags & 0x2) && (state == 0 || state == 1)))
             {
                 zEntEvent(plat, 0x1F);
             }

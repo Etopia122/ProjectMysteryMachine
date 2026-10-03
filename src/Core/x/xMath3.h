@@ -33,6 +33,13 @@ public:
     unsigned int pad3;
 };
 
+class _xQuat
+{
+public:
+    _xVec3 v;
+    float s;
+};
+
 class _xRot
 {
 public:

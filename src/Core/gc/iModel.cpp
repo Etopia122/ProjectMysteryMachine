@@ -1,12 +1,6 @@
 #include "iModel.h"
 #include "rwtypes.h"
 
-class _xQuat
-{
-public:
-    _xVec3 v; // 0x0
-    float s;  // 0xC
-};
 
 class RwSphere
 {

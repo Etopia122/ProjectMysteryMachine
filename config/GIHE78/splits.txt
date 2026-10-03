@@ -173,6 +173,11 @@ Core/x/xEntDrive.cpp:
 
 Core/x/xEntMotion.cpp:
 	.text       start:0x80025F04 end:0x80028D18
+	.rodata     start:0x80193118 end:0x80193698
+	.data       start:0x801AE880 end:0x801AE8A0
+	.sdata      start:0x8025E428 end:0x8025E430
+	.sbss       start:0x8025EA40 end:0x8025EA48
+	.sdata2     start:0x8025FE58 end:0x8025FEE8
 
 Core/x/xEnv.cpp:
 	.text       start:0x80028D18 end:0x80028DFC

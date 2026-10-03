@@ -9,12 +9,6 @@ double asin(double);
 double acos(double);
 }
 
-class _xQuat
-{
-public:
-    _xVec3 v;
-    float s;
-};
 
 void iMath3Init();
 float xAngleClamp(float a);

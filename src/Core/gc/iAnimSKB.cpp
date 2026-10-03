@@ -3,12 +3,6 @@
 
 extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
-class _xQuat
-{
-public:
-    _xVec3 v; // 0x0
-    float s;  // 0xC
-};
 
 class iAnimSKBHeader
 {

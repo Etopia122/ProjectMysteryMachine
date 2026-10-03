@@ -1,12 +1,6 @@
 #include "xMath3.h"
 #include "rwtypes.h"
 
-class _xQuat
-{
-public:
-    _xVec3 v;
-    float s;
-};
 
 class iAnimSKBHeader;
 

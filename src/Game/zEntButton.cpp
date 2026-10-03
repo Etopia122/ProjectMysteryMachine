@@ -25,7 +25,7 @@ public:
 };
 
 // mech.state of the motion's union (0x34 into it)
-#define MECH_STATE(m) (*(signed int*)((m).data + 0x34))
+#define MECH_STATE(m) ((m).mech.state)
 
 void zEntButton_Update(_zEntButton* ent, _xScene* sc, float dt);
 void zEntButton_Move(_zEntButton* ent, _xScene* s, float dt, _xEntFrame* frame);
