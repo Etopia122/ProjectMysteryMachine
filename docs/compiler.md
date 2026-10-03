@@ -180,6 +180,17 @@ Patterns that have mattered for matching:
   computes the later arguments (`tag->wt`) before the calls.
 - `p + n + 1` gets reassociated to `(p + 1) + n`; to get `add` then `addi`,
   keep a separate pointer (`rootmat = mat; mat++;` then `mat + n`).
+- Local arrays and structs get stack slots in reverse declaration order: the
+  last one declared sits lowest (iAnimSKB `_iAnimSKBAdjustTranslate`).
+- Conversion temporaries (`(float)short`) get one stack slot per use, grouped by
+  statement in source order, which shows the order the original computed things
+  (`_s` before `_x`, `_y`, `_z` in `_iAnimSKBFlip180`).
+- When loads for later statements are hoisted above earlier stores, the original
+  computed the values into locals before storing them (`x = ...; y = ...; z = ...;`
+  then `tran->x = x; ...`).
+- An `auto_inline` helper's out-of-line copy is emitted right after its first
+  caller in DOL order, so put its definition after that caller in the source
+  (iAnimSKB `iAnimDurationSKB` follows `_iAnimSKBFixTransPop` in the source).
 
 ## Open questions
 
