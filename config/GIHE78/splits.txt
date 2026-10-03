@@ -368,7 +368,13 @@ Game/zCutsceneMgr.cpp:
 	.sdata2     start:0x802604A0 end:0x802604C8
 
 Game/zDispatcher.cpp:
-	.text       start:0x8004651C end:0x80047668
+	.text       start:0x8004651C end:0x80047670
+	.rodata     start:0x80196198 end:0x801961A8
+	.data       start:0x801B7CB0 end:0x801B7D28
+	.sdata      start:0x8025E4A8 end:0x8025E4B0
+	.sbss       start:0x8025EC20 end:0x8025EC30
+	.sdata2     start:0x802604C8 end:0x802604E8
+	.sbss2      start:0x80262C88 end:0x80262C90
 
 Game/zEGenerator.cpp:
 	.text       start:0x80047670 end:0x80048094
