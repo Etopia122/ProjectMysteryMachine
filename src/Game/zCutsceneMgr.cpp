@@ -57,8 +57,7 @@ static zCutSceneNames zCutSceneNamesTable[14] = {
 
 static signed int gCutsceneSkipOK;
 
-// Not yet named: an iCamera.cpp function.
-extern "C" void fn_800072D4(float a, float b);
+void iCameraSetNearFarClip(float nearPlane, float farPlane);
 signed int xCutscene_Destroy(xCutscene* csn);
 unsigned int zFMVPlay(char* filename, unsigned int buttons, float time);
 
@@ -211,7 +210,7 @@ void zCutsceneMgrUpdate(xBase* to, _xScene* sc, float dt)
         zEntEvent(t, t, 0xBF);
         zEntEvent(&globals.player.ent, 9);
         zEntEvent(&globals.player.ent, 3);
-        fn_800072D4(0.0f, 0.0f);
+        iCameraSetNearFarClip(0.0f, 0.0f);
         t->stop = 0;
     }
 }

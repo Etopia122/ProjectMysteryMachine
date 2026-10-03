@@ -3,6 +3,7 @@
 
 #include "xCamera.h"
 #include "zEnt.h"
+#include "iCamera.h"
 
 class zScene;
 
@@ -79,6 +80,13 @@ public:
     char profFunc[6][128];   // 0x864
     zScene* sceneCur;        // 0xB64
     zScene* scenePreload;    // 0xB68
+    signed int sceneFirst;   // 0xB6C
+    char sceneStart[32];     // 0xB70
+    iFogParams fog;          // 0xB90
+    iFogParams fogA;         // 0xBAC
+    iFogParams fogB;         // 0xBC8
+    long long fog_t0;        // 0xBE8
+    long long fog_t1;        // 0xBF0
 };
 
 extern zGlobals globals;

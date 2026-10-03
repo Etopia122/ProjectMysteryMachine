@@ -16,6 +16,8 @@ Core/gc/iAnimSKB.cpp:
 
 Core/gc/iCamera.cpp:
 	.text       start:0x80006CC4 end:0x80007738
+	.sdata      start:0x8025E3E0 end:0x8025E3E8
+	.sdata2     start:0x8025F900 end:0x8025F938
 
 Core/gc/iCollide.cpp:
 	.text       start:0x800078B4 end:0x80009180

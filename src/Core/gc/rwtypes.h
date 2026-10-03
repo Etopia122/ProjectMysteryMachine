@@ -11,6 +11,15 @@ public:
     float z;
 };
 
+class RwRGBA
+{
+public:
+    unsigned char red;
+    unsigned char green;
+    unsigned char blue;
+    unsigned char alpha;
+};
+
 class RwMatrixTag
 {
 public:

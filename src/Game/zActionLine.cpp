@@ -11,15 +11,6 @@ public:
     RwRaster* raster;
 };
 
-class RwRGBA
-{
-public:
-    unsigned char red;
-    unsigned char green;
-    unsigned char blue;
-    unsigned char alpha;
-};
-
 class RxObjSpace3DVertex
 {
 public:
