@@ -23,8 +23,8 @@ public:
     _iCollis ixtra;     // 0x40
 };
 
-unsigned int xSphereHitsOBB(_xSphere* a, _xBox* b, _xMat4x3* m, _xCollis* coll);
-unsigned int xSphereHitsBox(_xSphere* a, _xBox* b, _xCollis* coll);
-unsigned int xSphereHitsSphere(_xSphere* a, _xSphere* b, _xCollis* coll);
+unsigned int xSphereHitsOBB(const _xSphere* a, const _xBox* b, const _xMat4x3* m, _xCollis* coll);
+unsigned int xSphereHitsBox(const _xSphere* a, const _xBox* b, _xCollis* coll);
+unsigned int xSphereHitsSphere(const _xSphere* a, const _xSphere* b, _xCollis* coll);
 
 #endif

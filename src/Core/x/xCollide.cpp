@@ -26,16 +26,6 @@ static inline void xVec3Inv(_xVec3* o, _xVec3* v)
     xVec3SMul(o, v, -1.0f);
 }
 
-static inline void xVec3SubL(_xVec3* o, const _xVec3* a, const _xVec3* b)
-{
-    float x = a->x - b->x;
-    float y = a->y - b->y;
-    float z = a->z - b->z;
-    o->x = x;
-    o->y = y;
-    o->z = z;
-}
-
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 
 _xCollsIdx xCollideGetCollsIdx(_xVec3* tohit, _xMat3x3* mat)
@@ -83,7 +73,7 @@ void xCollideInit(_xScene* sc)
     iCollideInit(sc);
 }
 
-unsigned int xSphereHitsSphere(_xSphere* a, _xSphere* b, _xCollis* coll)
+unsigned int xSphereHitsSphere(const _xSphere* a, const _xSphere* b, _xCollis* coll)
 {
     _xIsect isx;
 
@@ -134,7 +124,7 @@ unsigned int xSphereHitsSphere(_xSphere* a, _xSphere* b, _xCollis* coll)
 }
 
 #pragma auto_inline on
-unsigned int xSphereHitsBox(_xSphere* a, _xBox* b, _xCollis* coll)
+unsigned int xSphereHitsBox(const _xSphere* a, const _xBox* b, _xCollis* coll)
 {
     _xIsect isx;
 
@@ -178,9 +168,7 @@ unsigned int xSphereHitsBox(_xSphere* a, _xBox* b, _xCollis* coll)
 }
 #pragma auto_inline off
 
-// TODO (98.9%): the original computes the three differences in x, y, z order
-// and stores x first; here the scheduler starts with y.
-unsigned int xSphereHitsOBB(_xSphere* a, _xBox* b, _xMat4x3* m, _xCollis* coll)
+unsigned int xSphereHitsOBB(const _xSphere* a, const _xBox* b, const _xMat4x3* m, _xCollis* coll)
 {
     _xSphere xs;
     _xMat3x3 mn;
@@ -188,7 +176,7 @@ unsigned int xSphereHitsOBB(_xSphere* a, _xBox* b, _xMat4x3* m, _xCollis* coll)
 
     scale = xsqrt(m->right.x * m->right.x + m->right.y * m->right.y + m->right.z * m->right.z);
     xMat3x3Normalize(&mn, (_xMat3x3*)m);
-    xVec3SubL(&xs.center, &a->center, &m->pos);
+    xVec3Sub(&xs.center, &a->center, &m->pos);
     xMat3x3Tolocal(&xs.center, (_xMat3x3*)m, &xs.center);
     xs.r = a->r / scale;
 
