@@ -45,6 +45,8 @@ inline void xBaseValidate(xBase* xb)
     xb->baseFlags |= 4;
 }
 
+// zEnt.cpp defines these as ordinary functions (they are emitted there out of line)
+#ifndef XBASE_ENABLE_OUTOFLINE
 inline unsigned int xBaseIsEnabled(xBase* xb)
 {
     return xb->baseFlags & 1;
@@ -59,5 +61,10 @@ inline void xBaseDisable(xBase* xb)
 {
     xb->baseFlags &= ~1;
 }
+#else
+unsigned int xBaseIsEnabled(xBase* xb);
+void xBaseEnable(xBase* xb);
+void xBaseDisable(xBase* xb);
+#endif
 
 #endif

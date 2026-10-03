@@ -1,3 +1,4 @@
 #!/bin/sh
-# usage: dasm.sh <asm file> <fn name prefix>
-awk -v f="$2" 'index($0, ".fn " f)==1{p=1} p{print} p&&index($0, ".endfn " f)==1{exit}' "$1" | grep -v "^$\|^# " | sed -E 's/^\/\* [0-9A-F]+ [0-9A-F]+  [0-9A-F ]+ \*\/\t//'
+# Dumps one function's asm with its .L_ labels kept.
+# usage: tools/dasm.sh <asm file> <exact symbol name>
+awk -v f="$2" '$1==".fn" && ($2==f"," || $2==f){p=1} p{print} p&&$1==".endfn"{exit}' "$1" | grep -v "^$\|^# " | sed -E 's/^\/\* [0-9A-F]+ [0-9A-F]+  [0-9A-F ]+ \*\/\t//'
