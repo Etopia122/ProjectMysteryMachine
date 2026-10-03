@@ -364,7 +364,7 @@ void xParCmdKillDistance_Update(zParCmd* c, xParGroup* ps, float dt)
 {
     xPar* p = ps->m_root;
     xParCmdKillDistance* cmd = (xParCmdKillDistance*)c->tasset;
-    _xVec3* camera_pos = &globals.camera.mat.pos;
+    _xVec3* camera_pos = &globals.camera.hi_cam.mat.pos;
 
     if (cmd->kill_greater_than)
     {
@@ -856,7 +856,7 @@ void xParCmdVelocityApply_Update(zParCmd* c, xParGroup* ps, float dt)
 void xParCmdApplyCamMat_Update(zParCmd* c, xParGroup* ps, float dt)
 {
     xParCmdApplyCamMat* cmd = (xParCmdApplyCamMat*)c->tasset;
-    _xMat4x3* mat = &globals.camera.mat;
+    _xMat4x3* mat = &globals.camera.hi_cam.mat;
     xPar* p;
 
     if (cmd->apply.x != 0.0f)

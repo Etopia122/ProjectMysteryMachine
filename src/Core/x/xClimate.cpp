@@ -76,7 +76,7 @@ static inline void xClimateVecFromAngle(float angleDegrees, _xVec3* vec)
 
 static inline void GetPosBigDogWhattupFool(_xVec3* vec)
 {
-    _xMat4x3* mat = &globals.camera.mat;
+    _xMat4x3* mat = &globals.camera.hi_cam.mat;
     vec->x = 10.0f * mat->at.x + mat->pos.x;
     vec->y = 10.0f * mat->at.y + mat->pos.y;
     vec->z = 10.0f * mat->at.z + mat->pos.z;

@@ -413,15 +413,15 @@ void zGameLoop()
         {
             globals.player.ent.update(&globals.player.ent, globals.sceneCur, sTimeElapsed);
         }
-        xSndSetFrame(&globals.camera.mat.right, &globals.camera.mat.up, &globals.camera.mat.at,
-                     &globals.camera.mat.pos, 25.0f);
+        xSndSetFrame(&globals.camera.hi_cam.mat.right, &globals.camera.hi_cam.mat.up, &globals.camera.hi_cam.mat.at,
+                     &globals.camera.hi_cam.mat.pos, 25.0f);
         xSndSetFrameFar(&xEntGetFrameMat(&globals.player.ent)->pos);
         xSndUpdate(sTimeElapsed);
         zHud_Update(globals.sceneCur, sTimeElapsed);
         xCameraUpdate(&globals.camera, sTimeElapsed);
         fn_800CD2A4(sTimeElapsed);
         xCameraBegin(&globals.camera, 1);
-        fn_800056F8(&globals.camera.mat.pos);
+        fn_800056F8(&globals.camera.hi_cam.mat.pos);
         zSceneRender();
         fn_8004436C();
         fn_80021B20();
@@ -1008,5 +1008,5 @@ static void zGameCheats(float dt)
 
 signed int zGameIsNickCam2()
 {
-    return xStrHash("NICK CAM 2") == globals.camera.cam->id;
+    return xStrHash("NICK CAM 2") == globals.camera.hi_cam.asset->id;
 }

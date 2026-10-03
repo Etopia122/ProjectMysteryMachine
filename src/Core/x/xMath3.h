@@ -9,6 +9,15 @@ public:
     float z;
 };
 
+class _xVec4
+{
+public:
+    float x;
+    float y;
+    float z;
+    float w;
+};
+
 class _xMat3x3
 {
 public:

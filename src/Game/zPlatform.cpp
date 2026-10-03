@@ -534,7 +534,7 @@ void zPlatform_Tremble(_zPlatform* plat, float ampl, float freq, float dur)
                 return;
             }
 
-            xVec3SMul(&shake->disp, &globals.camera.mat.right, 0.06f);
+            xVec3SMul(&shake->disp, &globals.camera.hi_cam.mat.right, 0.06f);
             shake->dur = d;
             shake->alpha = 1.0f / d;
             shake->freq = 25.132742f;

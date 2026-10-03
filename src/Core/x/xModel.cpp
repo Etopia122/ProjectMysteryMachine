@@ -639,8 +639,8 @@ void xModelRender2D(xModelInstance* modelInst, _xRect* sr, _xVec3* from, _xVec3*
     {
         RwCameraBeginUpdate(camera);
     }
-    iCameraUpdatePos(*(RwCamera**)&globals.camera, &globals.camera.mat);
-    iCameraSetFOV(*(RwCamera**)&globals.camera, *(float*)((unsigned char*)&globals.camera + 0x110));
+    iCameraUpdatePos(globals.camera.lo_cam, &globals.camera.hi_cam.mat);
+    iCameraSetFOV(globals.camera.lo_cam, *(float*)((unsigned char*)&globals.camera + 0x110));
 }
 
 // Dead-stripped by the linker: only its constants survive (they open the

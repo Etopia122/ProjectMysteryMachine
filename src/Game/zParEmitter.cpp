@@ -535,7 +535,7 @@ static inline signed int zParEmitterCull(zParEmitterAsset* a, xPar* p)
 {
     if (a->emit_flags & 2)
     {
-        _xVec3* cam = (_xVec3*)&globals.camera.mat.pos;
+        _xVec3* cam = (_xVec3*)&globals.camera.hi_cam.mat.pos;
         float dx = cam->x - p->m_pos.x;
         float dy = cam->y - p->m_pos.y;
         float dz = cam->z - p->m_pos.z;
