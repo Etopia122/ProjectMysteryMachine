@@ -15,10 +15,11 @@ signed int fn_800C9698(char* buffer);
 signed int fn_800C96C0(char* buffer);
 signed int fn_800C96E8(char* buffer);
 signed int fn_800C9710(char* buffer);
-signed int fn_800CCFC0();
-signed int fn_800CCFC8();
 unsigned int fn_800D8C14();
 }
+
+signed int zSaveLoad_getcard();
+signed int zSaveLoad_getgame();
 
 #ifndef NULL
 #define NULL 0
@@ -839,13 +840,13 @@ char* zVMCB_GameSlot7(char* buffer)
 
 char* zVMCB_MCSelectedGame(char* buffer)
 {
-    return buffer + sprintf(buffer, "%d", fn_800CCFC8() + 1);
+    return buffer + sprintf(buffer, "%d", zSaveLoad_getgame() + 1);
 }
 
 char* zVMCB_MCSelectedCard(char* buffer)
 {
     signed int len = 0;
-    switch (fn_800CCFC0())
+    switch (zSaveLoad_getcard())
     {
     case 0:
         len = sprintf(buffer, "%s", "A");

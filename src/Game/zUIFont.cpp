@@ -19,9 +19,9 @@ void xFontBoxDestroy(xFontBox* box);
 void zVarMagicProcessText(char* in, char* out);
 void xEntUpdate(_xEnt* ent, _xScene* sc, float dt);
 
+unsigned int zSaveLoad_slotIsEmpty(unsigned int slot);
+
 extern "C" {
-// TODO: unidentified save-slot check
-unsigned int fn_800C9738(signed int slot);
 // iFont.cpp: wiggle amplitude while rendering
 extern float gFontWiggle;
 }
@@ -172,7 +172,7 @@ void zUIFont_Update(_zUIFont* ent, _xScene* sc, float dt)
         {
             zEntEvent(ent, ent, 0x49);
             if ((ent->id == xStrHash("LD GAMESLOT 0") || ent->id == xStrHash("LD GAMESLOT 2")) &&
-                !fn_800C9738(0) && fn_800C9738(1) && !fn_800C9738(2))
+                !zSaveLoad_slotIsEmpty(0) && zSaveLoad_slotIsEmpty(1) && !zSaveLoad_slotIsEmpty(2))
             {
                 zEntEvent(ent, ent, 0x4A);
             }
@@ -181,7 +181,7 @@ void zUIFont_Update(_zUIFont* ent, _xScene* sc, float dt)
         {
             zEntEvent(ent, ent, 0x4A);
             if ((ent->id == xStrHash("LD GAMESLOT 0") || ent->id == xStrHash("LD GAMESLOT 2")) &&
-                !fn_800C9738(0) && fn_800C9738(1) && !fn_800C9738(2))
+                !zSaveLoad_slotIsEmpty(0) && zSaveLoad_slotIsEmpty(1) && !zSaveLoad_slotIsEmpty(2))
             {
                 zEntEvent(ent, ent, 0x49);
             }
