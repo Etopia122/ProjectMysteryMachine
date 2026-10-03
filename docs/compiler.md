@@ -53,6 +53,18 @@ Patterns that have mattered for matching:
   callers, which is how to keep the emitted order right.
 - Loading all of a vector's components before storing them usually means an
   inline helper with float parameters, or a struct copy.
+- An auto-inlined helper that contains a switch is still emitted out of line,
+  and its jump table stays in .data. Use `static inline` for such helpers
+  (xpkrsvc's layerLoadDest), or .data grows by one table per helper.
+- File-scope statics get .sbss slots in declaration order. A function's statics
+  are slotted where the function is defined, so a global that comes after them
+  must be declared after that function. It can then be used only through
+  helpers defined later, which deferred inlining still inlines
+  (xpkrsvc g_RWarena_*).
+- Empty case ranges (`case 3: ... case 9: break;`) fold into the default when
+  the compare tree is built, but the target sometimes keeps them as separate
+  entries (zDispatcher). An explicit `case 3:` next to `default:` does keep the
+  entry (zGame TestCheat's sound switch).
 - Two calls in one expression are evaluated right to left: `sin(a) * exp(b)`
   calls `exp` first and keeps `sin`'s result as the first `fmuls` operand.
 - A recursive static function under `#pragma auto_inline on` is emitted once
