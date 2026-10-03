@@ -408,6 +408,7 @@ config.libs = [
             # GameCube-only units linked after the game code (names by role)
             Object(NonMatching, "Core/gc/iSnd.cpp"),
             Object(NonMatching, "Core/gc/iFMV.cpp"),
+            Object(NonMatching, "Core/gc/iRad3D.c"),  # Bink RAD 3D image helpers
             Object(NonMatching, "Core/gc/iFX.cpp"),
             Object(Matching, "Core/gc/iMix.c"),  # older Dolphin MIX library
             Object(Matching, "Core/gc/iTime.cpp"),

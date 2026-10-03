@@ -696,7 +696,20 @@ Core/gc/iSnd.cpp:
 	.sdata2     start:0x80262070 end:0x802620B8
 
 Core/gc/iFMV.cpp:
-	.text       start:0x800DB168 end:0x800DC29C
+	.text       start:0x800DB168 end:0x800DBDA8
+	.rodata     start:0x801A7B20 end:0x801A7C08
+	.bss        start:0x8023CF90 end:0x8023CFA8
+	.sdata      start:0x8025E5C8 end:0x8025E5D0
+	.sbss       start:0x8025F1A8 end:0x8025F1E8
+	.sdata2     start:0x802620B8 end:0x802620F8
+	.sbss2      start:0x80262CF0 end:0x80262CF4
+
+Core/gc/iRad3D.c:
+	.text       start:0x800DBDA8 end:0x800DC29C
+	.rodata     start:0x801A7C08 end:0x801A7C70
+	.bss        start:0x8023CFA8 end:0x8023CFD0
+	.sbss       start:0x8025F1E8 end:0x8025F1F0
+	.sdata2     start:0x802620F8 end:0x80262110
 
 Core/gc/iFX.cpp:
 	.text       start:0x800DC29C end:0x800DC95C
