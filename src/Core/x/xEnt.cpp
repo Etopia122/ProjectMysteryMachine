@@ -241,7 +241,7 @@ void xEntCollCheckStats(_xEnt* p, _xScene* sc, _xEnt* (*hitIt)(_xEnt*, _xScene*,
 void xEntApplyPhysics(_xEnt* ent, _xScene* sc, float dt);
 void xEntMove(_xEnt* ent, _xScene* sc, float dt);
 void xEntCollide(_xEnt* ent, _xScene* sc, float dt);
-void xEntBeginUpdate(_xEnt* ent, float dt);
+void xEntBeginUpdate(_xEnt* ent, _xScene* sc, float dt);
 void xEntEndUpdate(_xEnt* ent, _xScene* sc, float dt);
 void xEntDefaultBoundUpdate(_xEnt* ent, _xVec3* pos);
 void xEntDefaultTranslate(_xEnt* ent, _xVec3* dpos);
@@ -597,7 +597,7 @@ xModelInstance* xEntLoadModel(_xEnt* ent, RpAtomic* imodel)
 
 void xEntUpdate(_xEnt* ent, _xScene* sc, float dt)
 {
-    xEntBeginUpdate(ent, dt);
+    xEntBeginUpdate(ent, sc, dt);
 
     if (ent->pflags & 2)
     {
@@ -617,7 +617,7 @@ void xEntUpdate(_xEnt* ent, _xScene* sc, float dt)
 }
 
 #pragma auto_inline on
-void xEntBeginUpdate(_xEnt* ent, float dt)
+void xEntBeginUpdate(_xEnt* ent, _xScene* sc, float dt)
 {
     if (ent->model != NULL)
     {
