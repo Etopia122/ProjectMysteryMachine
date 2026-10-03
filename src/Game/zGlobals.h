@@ -56,6 +56,17 @@ public:
     float d_timer;            // 0x64
 };
 
+class _zEntHangable;
+
+class zShaggy1Globals
+{
+public:
+    unsigned char unk0[0x14];
+    _xVec3 ReleaseTrans; // 0x14
+    _xVec3 HangTrans;    // 0x20
+    unsigned char unk2C[0xE8 - 0x2C];
+};
+
 // Only the fields used so far; offsets from the PS2 DWARF (same on GameCube).
 class zPlayerStatic
 {
@@ -83,7 +94,13 @@ public:
     unsigned int LastProjectile;    // 0x128
     unsigned char unk12C[0x1B0 - 0x12C];
     _zEnt* FireTarget;              // 0x1B0
-    unsigned char unk1B4[0x3C8 - 0x1B4];
+    unsigned char unk1B4[0x1E0 - 0x1B4];
+    zShaggy1Globals Shaggy1;        // 0x1E0
+    unsigned char unk2C8[0x2D4 - 0x2C8];
+    _zEntHangable* HangEnt;         // 0x2D4
+    _zEntHangable* HangEntLast;     // 0x2D8
+    _xVec3 HangPivot;               // 0x2DC
+    unsigned char unk2E8[0x3C8 - 0x2E8];
     signed int Inv_Ammo[2];         // 0x3C8
     signed int Inv_AmmoMax[2];      // 0x3D0
     iModelTag BubbleTag;            // 0x3D8

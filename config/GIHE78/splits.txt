@@ -387,9 +387,12 @@ Game/zEntDestructObj.cpp:
 
 Game/zEntHangable.cpp:
 	.text       start:0x8004B0BC end:0x8004C83C
+	.rodata     start:0x80196228 end:0x801962E0
+	.sbss       start:0x8025EC50 end:0x8025EC60
+	.sdata2     start:0x802605B8 end:0x802605F8
 
 Game/zEntPickup.cpp:
-	.text       start:0x8004C84C end:0x8004FD38
+	.text       start:0x8004C83C end:0x8004FD38
 
 Game/zEntPlayer.cpp:
 	.text       start:0x8004FD58 end:0x8006919C
