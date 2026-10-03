@@ -264,6 +264,9 @@ Core/x/xShadow.cpp:
 
 Core/x/xSnd.cpp:
 	.text       start:0x8003CD24 end:0x8003D680
+	.rodata     start:0x80193EE8 end:0x80193EF8
+	.bss        start:0x80227748 end:0x802289B8
+	.sdata2     start:0x80260260 end:0x80260280
 
 Core/x/xSpline.cpp:
 	.text       start:0x8003DA28 end:0x8003F9F8
