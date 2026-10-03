@@ -207,6 +207,10 @@ Patterns that have mattered for matching:
 - A vector copied by assignment and then scaled (`v = cmd->dir;
   xVec3SMulBy(&v, dt);`) keeps its components in fresh registers. Scalar
   locals or `xVec3SMul` into a local reuse the `dt` register instead.
+- The PS2 DWARF drops `const` from parameters. When loads from a pointer
+  parameter are scheduled ahead of the stores they feed (iCollide's ray to
+  line conversion), the GameCube function took a `const` pointer: rename the
+  symbol to the `PC` mangling and update the callers' declarations.
 - `mdt / (xVec3LengthFast(...) + x)` is emitted with the operands reversed;
   storing the call result in a local first (`len`) keeps the call result as
   the first operand.
