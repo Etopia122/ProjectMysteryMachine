@@ -61,10 +61,13 @@ Core/gc/iModel.cpp:
 	.text       start:0x8000DBA4 end:0x8000EBC0
 
 Core/gc/iMorph.cpp:
-	.text       start:0x8000EBC0 end:0x8000EC88
+	.text       start:0x8000EBC0 end:0x8000F5AC
+	.rodata     start:0x8018E730 end:0x8018E740
+	.sbss       start:0x8025E908 end:0x8025E920
+	.sdata2     start:0x8025FA38 end:0x8025FA48
 
 Core/gc/iPad.cpp:
-	.text       start:0x8000F5B0 end:0x8000FB40
+	.text       start:0x8000F5AC end:0x8000FB40
 
 Core/gc/iParMgr.cpp:
 	.text       start:0x8000FB40 end:0x80011B74
