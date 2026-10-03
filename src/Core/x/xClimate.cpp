@@ -143,13 +143,13 @@ void xClimateSetRain(float stre)
 // f31 and 1.0f f23 in the snow loop; here 1.0f takes f31.
 void UpdateRain(_tagClimate* climate, float seconds)
 {
-    _tagRain* r = &climate->rain;
+
     _zParEmitterCustomSettings info;
     info.custom_flags = 0x20;
 
-    if (r->rain)
+    if (climate->rain.rain)
     {
-        signed int total_rain_drops = 25.0f * r->strength;
+        signed int total_rain_drops = 25.0f * climate->rain.strength;
         if (globals.sceneCur->sceneID == CLIMATE_SCENE_ID("R004"))
         {
             for (signed int i = 0; i < 5; i++)
@@ -160,7 +160,7 @@ void UpdateRain(_tagClimate* climate, float seconds)
                 info.pos.x += 25.0f * iurand() - 12.5f;
                 info.pos.y += 10.0f;
                 info.pos.z += 25.0f * iurand() - 12.5f;
-                zParEmitterEmitCustom(r->rain_emitter, seconds, &info);
+                zParEmitterEmitCustom(climate->rain.rain_emitter, seconds, &info);
             }
             for (signed int i = 0; i < 5; i++)
             {
@@ -168,7 +168,7 @@ void UpdateRain(_tagClimate* climate, float seconds)
                 info.pos.x += 25.0f * iurand() - 12.5f;
                 info.pos.y += 10.0f;
                 info.pos.z += 25.0f * iurand() - 12.5f;
-                zParEmitterEmitCustom(r->rain_emitter, seconds, &info);
+                zParEmitterEmitCustom(climate->rain.rain_emitter, seconds, &info);
             }
             for (signed int i = 0; i < total_rain_drops; i++)
             {
@@ -176,7 +176,7 @@ void UpdateRain(_tagClimate* climate, float seconds)
                 info.pos.x += 25.0f * iurand() - 12.5f;
                 info.pos.y += 10.0f;
                 info.pos.z += 25.0f * iurand() - 12.5f;
-                zParEmitterEmitCustom(r->rain_emitter, seconds, &info);
+                zParEmitterEmitCustom(climate->rain.rain_emitter, seconds, &info);
             }
         }
         else
@@ -187,14 +187,14 @@ void UpdateRain(_tagClimate* climate, float seconds)
                 info.pos.x += 25.0f * iurand() - 12.5f;
                 info.pos.y += 10.0f;
                 info.pos.z += 25.0f * iurand() - 12.5f;
-                zParEmitterEmitCustom(r->rain_emitter, seconds, &info);
+                zParEmitterEmitCustom(climate->rain.rain_emitter, seconds, &info);
             }
         }
         return;
     }
 
     _xVec3 fool;
-    signed int total_snow_flakes = 25.0f * r->strength;
+    signed int total_snow_flakes = 25.0f * climate->rain.strength;
     info.custom_flags |= 1;
     GetPosBigDogWhattupFool(&fool);
     for (signed int i = 0; i < total_snow_flakes; i++)
@@ -203,12 +203,10 @@ void UpdateRain(_tagClimate* climate, float seconds)
         info.pos.x += 45.0f * iurand() - 22.5f;
         info.pos.z += 45.0f * iurand() - 22.5f;
 
-        float xx = info.pos.x - fool.x;
-        float zz = info.pos.z - fool.z;
-        float perc = 1.0f - xx * zz / 506.25f;
+        float perc = 1.0f - (info.pos.x - fool.x) * (info.pos.z - fool.z) / 506.25f;
         info.pos.y += 5.0f * perc + 5.0f;
         info.life = 2.5f * perc + 2.5f;
-        zParEmitterEmitCustom(r->snow_emitter, seconds, &info);
+        zParEmitterEmitCustom(climate->rain.snow_emitter, seconds, &info);
     }
 }
 
