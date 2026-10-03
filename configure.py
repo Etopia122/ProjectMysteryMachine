@@ -423,7 +423,7 @@ config.libs = [
             Object(NonMatching, "Core/x/xCamera.cpp"),
             Object(NonMatching, "Core/x/xClimate.cpp"),
             Object(NonMatching, "Core/x/xCollide.cpp"),
-            Object(NonMatching, "Core/x/xCollideFast.cpp"),
+            Object(Matching, "Core/x/xCollideFast.cpp"),
             Object(Matching, "Core/x/xDebug.cpp"),
             Object(NonMatching, "Core/x/xDraw.cpp"),
             Object(NonMatching, "Core/x/xEnt.cpp"),

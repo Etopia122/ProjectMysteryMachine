@@ -12,7 +12,7 @@ unsigned int iRayHitsEnvSpecialFast(_xRay3* r, _xEnv* env);
 unsigned int iRayHitsModelFast(_xRay3* r, xModelInstance* m);
 void xQuickCullForRay(xQCData* q, _xRay3* r);
 
-static inline unsigned int xRayHitsSphereFast(_xRay3* r, _xSphere* s)
+static inline unsigned int xRayHitsSphereFast(const _xRay3* r, const _xSphere* s)
 {
     _xVec3 length;
     xVec3Sub(&length, &r->origin, &s->center);
@@ -33,10 +33,10 @@ static inline unsigned int xRayHitsSphereFast(_xRay3* r, _xSphere* s)
     return dot * dot >= d;
 }
 
-static inline unsigned char xRayHitsCylinderFast(_xRay3* r, _xCylinder* c)
+static inline unsigned char xRayHitsCylinderFast(const _xRay3* r, const _xCylinder* c)
 {
     _xIsect isect;
-    iCylinderIsectRay(c, r, &isect);
+    iCylinderIsectRay((_xCylinder*)c, (_xRay3*)r, &isect);
     unsigned char hit = 0;
     if (isect.penned <= 0.0f || isect.contained <= 0.0f)
     {
@@ -45,10 +45,10 @@ static inline unsigned char xRayHitsCylinderFast(_xRay3* r, _xCylinder* c)
     return hit;
 }
 
-static inline unsigned char xRayHitsBoxFast(_xRay3* r, _xBox* b)
+static inline unsigned char xRayHitsBoxFast(const _xRay3* r, const _xBox* b)
 {
     _xIsect isect;
-    iBoxIsectRay(b, r, &isect);
+    iBoxIsectRay((_xBox*)b, (_xRay3*)r, &isect);
     unsigned char hit = 0;
     if (isect.penned <= 0.0f || isect.contained <= 0.0f)
     {
@@ -57,7 +57,7 @@ static inline unsigned char xRayHitsBoxFast(_xRay3* r, _xBox* b)
     return hit;
 }
 
-static inline unsigned char xRayHitsOBBFast(_xRay3* r, _xBound* b)
+static inline unsigned char xRayHitsOBBFast(const _xRay3* r, const _xBound* b)
 {
     _xIsect isect;
     _xMat3x3 mn;
@@ -68,11 +68,11 @@ static inline unsigned char xRayHitsOBBFast(_xRay3* r, _xBound* b)
                   b->mat->right.z * b->mat->right.z);
     xMat3x3Normalize(&mn, (_xMat3x3*)b->mat);
     xMat4x3Tolocal(&lr.origin, b->mat, &r->origin);
-    xMat3x3Tolocal(&lr.dir, &mn, &r->dir);
+    xMat3x3Tolocal(&lr.dir, &mn, (_xVec3*)&r->dir);
     lr.flags = r->flags;
     lr.max_t = r->max_t / scale;
     lr.min_t = r->min_t / scale;
-    iBoxIsectRay(&b->box.box, &lr, &isect);
+    iBoxIsectRay((_xBox*)&b->box.box, &lr, &isect);
     unsigned char hit = 0;
     if (isect.penned <= 0.0f || isect.contained <= 0.0f)
     {
@@ -90,7 +90,7 @@ void xCollideFastInit(_xScene* sc)
 
 // TODO (94%): in the OBB case the original moves the loads of r->origin and
 // r->max_t/min_t ahead of the stores to lr (see docs/compiler.md).
-unsigned int xRayHitsBoundFast(_xRay3* r, _xBound* b)
+unsigned int xRayHitsBoundFast(const _xRay3* r, const _xBound* b)
 {
     if (b->type == 1)
     {

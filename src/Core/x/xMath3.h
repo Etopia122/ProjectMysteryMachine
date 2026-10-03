@@ -101,7 +101,7 @@ void xMat3x3Mul(_xMat3x3* o, _xMat3x3* a, _xMat3x3* b);
 void xMat3x3RMulVec(_xVec3* o, _xMat3x3* m, _xVec3* v);
 void xMat3x3Tolocal(_xVec3* o, _xMat3x3* m, _xVec3* v);
 
-inline void xVec3Copy(_xVec3* o, _xVec3* v)
+inline void xVec3Copy(_xVec3* o, const _xVec3* v)
 {
     o->x = v->x;
     o->y = v->y;
@@ -113,28 +113,28 @@ inline float xVec3Dot(const _xVec3* a, const _xVec3* b)
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
-inline void xVec3Sub(_xVec3* o, _xVec3* a, _xVec3* b)
+inline void xVec3Sub(_xVec3* o, const _xVec3* a, const _xVec3* b)
 {
     o->x = a->x - b->x;
     o->y = a->y - b->y;
     o->z = a->z - b->z;
 }
 
-inline void xVec3SMul(_xVec3* o, _xVec3* v, float s)
+inline void xVec3SMul(_xVec3* o, const _xVec3* v, float s)
 {
     o->x = v->x * s;
     o->y = v->y * s;
     o->z = v->z * s;
 }
 
-inline void xVec3Add(_xVec3* o, _xVec3* a, _xVec3* b)
+inline void xVec3Add(_xVec3* o, const _xVec3* a, const _xVec3* b)
 {
     o->x = a->x + b->x;
     o->y = a->y + b->y;
     o->z = a->z + b->z;
 }
 
-inline void xVec3AddTo(_xVec3* o, _xVec3* v)
+inline void xVec3AddTo(_xVec3* o, const _xVec3* v)
 {
     o->x += v->x;
     o->y += v->y;
@@ -148,13 +148,13 @@ inline void xVec3SMulBy(_xVec3* v, float s)
     v->z *= s;
 }
 
-inline void xMat4x3Toworld(_xVec3* o, _xMat4x3* m, _xVec3* v)
+inline void xMat4x3Toworld(_xVec3* o, const _xMat4x3* m, const _xVec3* v)
 {
-    xMat3x3RMulVec(o, (_xMat3x3*)m, v);
+    xMat3x3RMulVec(o, (_xMat3x3*)m, (_xVec3*)v);
     xVec3AddTo(o, &m->pos);
 }
 
-inline void xMat4x3Tolocal(_xVec3* o, _xMat4x3* m, _xVec3* v)
+inline void xMat4x3Tolocal(_xVec3* o, const _xMat4x3* m, const _xVec3* v)
 {
     xVec3Sub(o, v, &m->pos);
     xMat3x3Tolocal(o, (_xMat3x3*)m, o);
