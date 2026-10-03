@@ -114,7 +114,7 @@ Core/gc/iTime.cpp:
 	.sdata2     start:0x8025FB88 end:0x8025FB90
 
 Core/x/xAnim.cpp:
-	.text       start:0x80016CF4 end:0x8001C088
+	.text       start:0x80016A30 end:0x8001C088
 
 Core/x/xBase.cpp:
 	.text       start:0x8001C088 end:0x8001C184

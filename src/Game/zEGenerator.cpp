@@ -92,10 +92,8 @@ xAnimFile* xAnimFileNew(void* rawData, char* name, unsigned int flags, xAnimFile
 xAnimTable* xAnimTableNew(char* name, xAnimTable** linkedList);
 void zEntSetup(_zEnt* ent);
 
-extern "C" {
-// TODO: unidentified (xAnim: allocates an anim player for the model from a pool)
-void fn_80016CA8(void* pool, void* object, xAnimTable* table, xModelInstance* model);
-}
+xAnimPlay* xAnimPoolAlloc(xMemPool* pool, void* object, xAnimTable* table,
+                          xModelInstance* modelInst);
 
 #define SCENE_ID(s) ((((s)[0] & ~0x20) << 24) | ((s)[1] << 16) | ((s)[2] << 8) | (s)[3])
 
@@ -166,7 +164,7 @@ void zEGenerator_Init(zEGenerator* egen, p2EntAsset* asset)
             egen->atbl = xAnimTableNew("", 0);
             xAnimTableNewState(egen->atbl, "On", 0x10, 0, 1.0f, 0, 0, 0.0f, 0);
             xAnimTableAddFile(egen->atbl, egen->afile, "On");
-            fn_80016CA8((unsigned char*)globals.sceneCur + 0x44, egen, egen->atbl, egen->model);
+            xAnimPoolAlloc(&globals.sceneCur->mempool, egen, egen->atbl, egen->model);
         }
     }
 }
