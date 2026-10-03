@@ -1,9 +1,8 @@
-// TODO: 97.5% (NonMatching). Left: register allocation in xEntCollide, the
-// collision helpers and xEntRender; xEntReset/BeginUpdate scheduling; the
-// debug pad/CB functions; the .sdata2 order of the ceiling cos(PI/4) constant
-// (it belongs before the xsqrt literals). xEntDeadStrippedNames must be
+// TODO: 99.3% (NonMatching). Left: register allocation in xEntCollide (the
+// inlined ceiling/collision helpers), xEntCollideFloor and xEntDebugWrite;
+// xEntRender's visibility test branches as `bne; b` in the target;
+// xEntDefaultTranslate reloads ent->model. xEntDeadStrippedNames must be
 // stripped by the linker once this unit is Matching.
-
 #include "xEnt.h"
 #include "xMath.h"
 #include "xMath3.h"
@@ -145,8 +144,8 @@ extern _xScene* g_xSceneCur;
 extern _tagxPad* gDebugPad;
 extern unsigned int gActiveHeap;
 extern float ShadowThreshold;
-extern _xVec3 g_O3;
-extern _xVec3 g_NY3;
+extern const _xVec3 g_O3;
+extern const _xVec3 g_NY3;
 
 void xprintf(char* fmt, ...);
 char* xSceneID2Name(_xScene* sc, unsigned int id);
@@ -160,8 +159,8 @@ void xDebugModeRegisterCallback(signed int mode, void (*func)());
 float iTimeDiffSec(iTime t);
 unsigned int iSphereHitsEnv3(const _xSphere* b, const _xEnv* env, _xCollis* colls,
                              unsigned char ncolls, float sth);
-unsigned char iSphereHitsModel3(const _xSphere* b, const xModelInstance* m, _xCollis* colls,
-                                unsigned char ncolls, float sth);
+unsigned int iSphereHitsModel3(const _xSphere* b, const xModelInstance* m, _xCollis* colls,
+                               unsigned char ncolls, float sth);
 void iBoxInitBoundVec(_xBox* b, const _xVec3* v);
 void iBoxBoundVec(_xBox* o, const _xBox* b, const _xVec3* v);
 signed int iModelCull(RpAtomic* model, RwMatrixTag* mat);
@@ -230,6 +229,7 @@ void xEntRender(_xEnt* ent);
 _xEnt* xEntCollCheckOneEntNoDepen(_xEnt* ent, _xScene* sc, void* data);
 _xEnt* xEntCollCheckOneTrigNoDepen(_xEnt* ent, _xScene* sc, void* data);
 void xEntCollideFloor(_xEnt* p, _xScene* sc, float dt);
+static void xEntCollideCeiling(_xEnt* p, _xScene* sc, float dt);
 void xEntCollideWalls(_xEnt* p, _xScene* sc, float dt);
 void xEntBeginCollide(_xEnt* ent);
 void xEntBeginCollCheckTrigs(_xEnt* ent);
@@ -525,11 +525,11 @@ void xEntReset(_xEnt* ent)
         memcpy(ent->model->Mat, &frame, sizeof(_xMat4x3));
         if (ent->bound.type == 2)
         {
-            fn_800077C0(&ent->bound.box, ent->model);
+            fn_800077C0(&ent->bound.box.box, ent->model);
         }
         else if (ent->bound.type == 4)
         {
-            fn_80007738(&ent->bound.box, ent->model);
+            fn_80007738(&ent->bound.box.box, ent->model);
         }
     }
 
@@ -541,11 +541,14 @@ void xEntReset(_xEnt* ent)
         xVec3Copy(&ent->frame->oldvel, &g_O3);
         xVec3Copy(&ent->frame->rot.axis, &ent->asset->ang);
         ent->frame->rot.angle = 0.0f;
-        ent->frame->oldrot = ent->frame->rot;
+        xVec3Copy(&ent->frame->oldrot.axis, &ent->frame->rot.axis);
+        ent->frame->oldrot.angle = ent->frame->rot.angle;
     }
 
     switch (ent->bound.type)
     {
+    case 0:
+        break;
     case 1:
         xVec3Copy(&ent->bound.sph.center, &ent->asset->pos);
         break;
@@ -623,7 +626,8 @@ void xEntBeginUpdate(_xEnt* ent, float dt)
         {
             xVec3Copy(&ent->frame->oldvel, &ent->frame->vel);
             xVec3Copy(&ent->frame->oldpos, &ent->frame->mat.pos);
-            ent->frame->oldrot = ent->frame->rot;
+            xVec3Copy(&ent->frame->oldrot.axis, &ent->frame->rot.axis);
+            ent->frame->oldrot.angle = ent->frame->rot.angle;
             memcpy(&ent->frame->mat, ent->model->Mat, sizeof(_xMat4x3));
             ent->frame->mode = 0;
         }
@@ -810,56 +814,13 @@ void xEntApplyPhysics(_xEnt* ent, _xScene* sc, float dt)
 
 static inline unsigned int xEntCollDepenOk(_xEnt* ent, _xScene* sc, _xCollis* coll, float dt)
 {
-    if (ent->collis->depenq != NULL)
-    {
-        return ent->collis->depenq(ent, (_xEnt*)coll->optr, sc, dt, coll);
-    }
-    unsigned int ok = 0;
-    if ((((_xEnt*)coll->optr)->collType & ent->collis->pen) &&
-        (((_xEnt*)coll->optr)->penby & ent->collType))
-    {
-        ok = 1;
-    }
-    return ok;
+    _xEnt* fent = (_xEnt*)coll->optr;
+    return ent->collis->depenq != NULL
+               ? ent->collis->depenq(ent, fent, sc, dt, coll)
+               : (unsigned char)((fent->collType & ent->collis->pen) &&
+                                 (fent->penby & ent->collType));
 }
 
-static inline void xEntCollideCeiling(_xEnt* p, _xScene* sc, float dt)
-{
-    _xEntCollis* collis = p->collis;
-    _xCollis* cl = &collis->colls[1];
-    _xCollis* hit = cl;
-    float sph_r = (p->bound.type == 1) ? p->bound.sph.r : 0.7f;
-
-    for (unsigned char idx = 6; idx < p->collis->idx; idx++)
-    {
-        _xCollis* coll = &p->collis->colls[idx];
-        if (coll->optr != NULL)
-        {
-            if (xEntCollDepenOk(p, sc, coll, dt))
-            {
-            }
-        }
-        else if (p->collis->pen & 0x20)
-        {
-            if (coll->hdng.y > (float)cos(0.78539819f) && coll->dist < hit->dist)
-            {
-                hit = coll;
-            }
-        }
-    }
-
-    if (hit != cl)
-    {
-        float depen = hit->dist * (float)fabs(hit->hdng.y);
-        *cl = *hit;
-        hit->flags |= 0xA;
-        if (depen < sph_r)
-        {
-            p->frame->mat.pos.y -= sph_r - depen;
-            p->frame->vel.y = 0.0f;
-        }
-    }
-}
 
 void xEntCollide(_xEnt* ent, _xScene* sc, float dt)
 {
@@ -1052,6 +1013,7 @@ static inline void xModCollAddSample(_xEnt* xent, long long elapsed)
 _xEnt* xEntCollCheckOneEntNoDepen(_xEnt* ent, _xScene* sc, void* data)
 {
     _xEnt* p = (_xEnt*)data;
+    _xCollis* coll;
     unsigned int modl_coll = 0;
 
     if (p->collis->idx >= 15)
@@ -1067,7 +1029,7 @@ _xEnt* xEntCollCheckOneEntNoDepen(_xEnt* ent, _xScene* sc, void* data)
         return ent;
     }
 
-    _xCollis* coll = &p->collis->colls[p->collis->idx];
+    coll = &p->collis->colls[p->collis->idx];
     if (ent->collLev == 5 && (p->collType & 0x18))
     {
         modl_coll = 1;
@@ -1111,11 +1073,12 @@ _xEnt* xEntCollCheckOneEntNoDepen(_xEnt* ent, _xScene* sc, void* data)
             float dz = p->bound.sph.center.z - ent->bound.sph.center.z;
             float dx = p->bound.sph.center.x - ent->bound.sph.center.x;
             float rsum = p->bound.sph.r + ent->bound.sph.r;
-            float hsqr = rsum * rsum - (dx * dx + dz * dz);
+            float dy = p->bound.sph.center.y - ent->bound.sph.center.y;
+            float hsqr = rsum * rsum - (dz * dz + dx * dx);
             if (hsqr >= 0.0f)
             {
                 coll->depen.x = 0.0f;
-                coll->depen.y = xsqrt(hsqr) - (p->bound.sph.center.y - ent->bound.sph.center.y);
+                coll->depen.y = xsqrt(hsqr) - dy;
                 coll->depen.z = 0.0f;
                 coll->dist = 0.7f - coll->depen.y;
                 coll->hdng.x = 0.0f;
@@ -1139,17 +1102,18 @@ _xEnt* xEntCollCheckOneTrigNoDepen(_xEnt* ent, _xScene* sc, void* data)
 void xEntCollideFloor(_xEnt* p, _xScene* sc, float dt)
 {
     _xCollis* coll = &p->collis->colls[0];
+    unsigned char idx;
     _xCollis* ml = coll;
+    _xVec3 motion;
+    float mlen;
     signed int stepping = 0;
     float sbr = (p->bound.type == 1) ? p->bound.sph.r : 0.7f;
-    _xVec3 motion;
 
-    motion.x = p->frame->mat.pos.x - p->frame->oldpos.x;
+    xVec3Sub(&motion, &p->frame->mat.pos, &p->frame->oldpos);
     motion.y = 0.0f;
-    motion.z = p->frame->mat.pos.z - p->frame->oldpos.z;
-    float mlen = xVec3Length(&motion);
+    mlen = xVec3Length(&motion);
 
-    for (unsigned char idx = 6; idx < p->collis->idx; idx++)
+    for (idx = 6; idx < p->collis->idx; idx++)
     {
         _xCollis* mf = &p->collis->colls[idx];
         if (!(mf->flags & 1))
@@ -1218,6 +1182,46 @@ void xEntCollideFloor(_xEnt* p, _xScene* sc, float dt)
     }
 }
 
+#pragma auto_inline on
+static void xEntCollideCeiling(_xEnt* p, _xScene* sc, float dt)
+{
+    _xEntCollis* collis = p->collis;
+    _xCollis* cl = &collis->colls[1];
+    _xCollis* hit = cl;
+    float sph_r = (p->bound.type == 1) ? p->bound.sph.r : 0.7f;
+
+    for (unsigned char idx = 6; idx < p->collis->idx; idx++)
+    {
+        _xCollis* coll = &p->collis->colls[idx];
+        if (coll->optr != NULL)
+        {
+            if (xEntCollDepenOk(p, sc, coll, dt))
+            {
+            }
+        }
+        else if (p->collis->pen & 0x20)
+        {
+            if (coll->hdng.y > (float)cos(0.78539819f) && coll->dist < hit->dist)
+            {
+                hit = coll;
+            }
+        }
+    }
+
+    if (hit != cl)
+    {
+        float depen = hit->dist * (float)fabs(hit->hdng.y);
+        *cl = *hit;
+        hit->flags |= 0xA;
+        if (depen < sph_r)
+        {
+            p->frame->mat.pos.y -= sph_r - depen;
+            p->frame->vel.y = 0.0f;
+        }
+    }
+}
+#pragma auto_inline reset
+
 void xEntCollideWalls(_xEnt* p, _xScene* sc, float dt)
 {
     float sbr = (p->bound.type == 1) ? p->bound.sph.r : 0.7f;
@@ -1230,16 +1234,17 @@ void xEntCollideWalls(_xEnt* p, _xScene* sc, float dt)
         for (sidx = p->collis->npc_sidx; sidx < idx; sidx++)
         {
             _xCollis* coll = &p->collis->colls[sidx];
+            _xEnt* cent = (_xEnt*)coll->optr;
             if (!(coll->flags & 2) && coll->dist < sbr)
             {
                 unsigned int ok;
                 if (p->collis->depenq != NULL)
                 {
-                    ok = p->collis->depenq(p, (_xEnt*)coll->optr, sc, dt, coll);
+                    ok = p->collis->depenq(p, cent, sc, dt, coll);
                 }
                 else
                 {
-                    ok = ((_xEnt*)coll->optr)->penby & p->collType;
+                    ok = cent->penby & p->collType;
                 }
                 if (ok)
                 {
@@ -1259,16 +1264,17 @@ void xEntCollideWalls(_xEnt* p, _xScene* sc, float dt)
         for (sidx = p->collis->dyn_sidx; sidx < idx; sidx++)
         {
             _xCollis* coll = &p->collis->colls[sidx];
+            _xEnt* cent = (_xEnt*)coll->optr;
             if (!(coll->flags & 2) && coll->dist < sbr)
             {
                 unsigned int ok;
                 if (p->collis->depenq != NULL)
                 {
-                    ok = p->collis->depenq(p, (_xEnt*)coll->optr, sc, dt, coll);
+                    ok = p->collis->depenq(p, cent, sc, dt, coll);
                 }
                 else
                 {
-                    ok = ((_xEnt*)coll->optr)->penby & p->collType;
+                    ok = cent->penby & p->collType;
                 }
                 if (ok)
                 {
@@ -1285,16 +1291,17 @@ void xEntCollideWalls(_xEnt* p, _xScene* sc, float dt)
         for (sidx = p->collis->stat_sidx; sidx < idx; sidx++)
         {
             _xCollis* coll = &p->collis->colls[sidx];
+            _xEnt* cent = (_xEnt*)coll->optr;
             if (!(coll->flags & 2) && coll->dist < sbr)
             {
                 unsigned int ok;
                 if (p->collis->depenq != NULL)
                 {
-                    ok = p->collis->depenq(p, (_xEnt*)coll->optr, sc, dt, coll);
+                    ok = p->collis->depenq(p, cent, sc, dt, coll);
                 }
                 else
                 {
-                    ok = ((_xEnt*)coll->optr)->penby & p->collType;
+                    ok = cent->penby & p->collType;
                 }
                 if (ok)
                 {
@@ -1350,9 +1357,8 @@ void xEntRender(_xEnt* ent)
         }
 
         static signed int sFadeMode = xEntFadeMode();
-        switch (sFadeMode)
+        if (sFadeMode == 0)
         {
-        case 0:
             ent->material_alpha -= ent->asset->seeThruSpeed * sEntityTimePassed;
             if (ent->asset->seeThru < 0.3f)
             {
@@ -1369,22 +1375,24 @@ void xEntRender(_xEnt* ent)
                     ent->material_alpha = min;
                 }
             }
-            break;
-        case 1:
+        }
+        else if (sFadeMode == 1)
+        {
             ent->material_alpha -= 2000.0f * sEntityTimePassed;
             if (ent->material_alpha <= 0.0f)
             {
                 ent->material_alpha = 0.0f;
             }
-            break;
-        case 2:
+        }
+        else if (sFadeMode == 2)
+        {
             ent->material_alpha -= 150.0f * sEntityTimePassed;
             if (ent->material_alpha <= 0.0f)
             {
                 ent->material_alpha = 0.0f;
             }
-            break;
-        default:
+        }
+        else
         {
             ent->material_alpha -= ent->asset->seeThruSpeed * sEntityTimePassed;
             float min = 255.0f * ent->asset->seeThru;
@@ -1392,8 +1400,6 @@ void xEntRender(_xEnt* ent)
             {
                 ent->material_alpha = min;
             }
-            break;
-        }
         }
 
         if (globals.cmgr == NULL)
@@ -1560,15 +1566,16 @@ _xBox* xEntGetAllEntsBox()
     return &all_ents_box;
 }
 
-static void xEntDebugIPad();
+static void xEntDebugIPad(_xEnt* xent);
 static void xEntDebugWrite(_xEnt* xent);
 
 static void xEntDebugCB()
 {
     if (dbg_idx != -1 && dbg_num != 0)
     {
-        xEntDebugWrite(dbg_xents[dbg_idx]);
-        xEntDebugIPad();
+        _xEnt* xent = dbg_xents[dbg_idx];
+        xEntDebugWrite(xent);
+        xEntDebugIPad(xent);
     }
 }
 
@@ -1849,7 +1856,7 @@ static void xEntDebugWrite(_xEnt* xent)
     }
 }
 
-static void xEntDebugIPad()
+static void xEntDebugIPad(_xEnt* xent)
 {
     float now = iTimeDiffSec(iTimeGet());
     float dt = now - dbg_ltm;
@@ -1873,19 +1880,18 @@ static void xEntDebugIPad()
         }
         else if (dbg_tmr >= 0.065f)
         {
-        inc:
-            dbg_tmr = 0.0f;
-            dbg_idx++;
-            if (dbg_idx >= dbg_num)
-            {
-                dbg_idx = 0;
-            }
+            goto inc;
         }
     }
     else if (dbg_holding_inc)
     {
         dbg_holding_inc = 0;
-        goto inc;
+    inc:
+        dbg_tmr = 0.0f;
+        if (++dbg_idx >= dbg_num)
+        {
+            dbg_idx = 0;
+        }
     }
     else if (gDebugPad->on & 0x80)
     {
@@ -1904,19 +1910,18 @@ static void xEntDebugIPad()
         }
         else if (dbg_tmr >= 0.065f)
         {
-        dec:
-            dbg_tmr = 0.0f;
-            dbg_idx--;
-            if (dbg_idx < 0)
-            {
-                dbg_idx = dbg_num - 1;
-            }
+            goto dec;
         }
     }
     else if (dbg_holding_dec)
     {
         dbg_holding_dec = 0;
-        goto dec;
+    dec:
+        dbg_tmr = 0.0f;
+        if (--dbg_idx < 0)
+        {
+            dbg_idx = dbg_num - 1;
+        }
     }
 
     if (gDebugPad->pressed & 0x40000)
