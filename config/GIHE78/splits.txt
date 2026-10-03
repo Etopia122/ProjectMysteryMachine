@@ -462,7 +462,9 @@ Game/zParEmitter.cpp:
 	.sdata2     start:0x80261B40 end:0x80261B88
 
 Game/zParSys.cpp:
-	.text       start:0x800C6708 end:0x800C6FE0
+	.text       start:0x800C6708 end:0x800C7000
+	.data       start:0x801C7618 end:0x801C7650
+	.sdata2     start:0x80261B88 end:0x80261B90
 
 Game/zPendulum.cpp:
 	.text       start:0x800C7000 end:0x800C751C

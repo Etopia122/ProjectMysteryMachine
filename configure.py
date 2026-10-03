@@ -509,7 +509,7 @@ config.libs = [
             Object(NonMatching, "Game/zMusic.cpp"),
             Object(NonMatching, "Game/zParCmd.cpp"),
             Object(NonMatching, "Game/zParEmitter.cpp"),
-            Object(NonMatching, "Game/zParSys.cpp"),
+            Object(Matching, "Game/zParSys.cpp"),
             Object(Matching, "Game/zPendulum.cpp"),
             Object(NonMatching, "Game/zPlatform.cpp"),
             Object(Matching, "Game/zPortal.cpp"),
