@@ -408,7 +408,7 @@ config.libs = [
             Object(NonMatching, "Core/gc/iSnd.cpp"),
             Object(NonMatching, "Core/gc/iFMV.cpp"),
             Object(NonMatching, "Core/gc/iFX.cpp"),
-            Object(NonMatching, "Core/gc/iMix.c"),  # older Dolphin MIX library
+            Object(Matching, "Core/gc/iMix.c"),  # older Dolphin MIX library
             Object(NonMatching, "Core/gc/iTRC.cpp"),
         ],
     ),
