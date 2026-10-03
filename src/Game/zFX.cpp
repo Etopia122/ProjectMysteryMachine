@@ -8,14 +8,14 @@ class RpWorld;
 void xFX_SceneEnter(RpWorld* world);
 void xFX_SceneExit(RpWorld* world);
 
-// Not yet named: an xFX.cpp setter.
-extern "C" void fn_8002A5F4(signed int);
+class RwTexture;
+void xFXanimUV2PSetTexture(RwTexture* texture);
 
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 
 void zFX_SceneEnter(RpWorld* world)
 {
-    fn_8002A5F4(0);
+    xFXanimUV2PSetTexture(0);
     xFX_SceneEnter(world);
 
     signed int mode = 1;

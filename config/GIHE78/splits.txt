@@ -169,7 +169,12 @@ Core/x/xFont.cpp:
 	.text       start:0x800294E8 end:0x8002A460
 
 Core/x/xFX.cpp:
-	.text       start:0x8002A66C end:0x8002B4D8
+	.text       start:0x8002A460 end:0x8002B4D8
+	.rodata     start:0x80193698 end:0x801936B0
+	.bss        start:0x801FFA40 end:0x801FFC00
+	.sdata      start:0x8025E438 end:0x8025E480
+	.sbss       start:0x8025EA80 end:0x8025EAB0
+	.sdata2     start:0x8025FF58 end:0x8025FF90
 
 Core/x/xhipio.cpp:
 	.text       start:0x8002B4D8 end:0x8002C100
