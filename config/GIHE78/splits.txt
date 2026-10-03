@@ -242,6 +242,10 @@ Core/x/xScene.cpp:
 
 Core/x/xScrFx.cpp:
 	.text       start:0x800394C4 end:0x80039C90
+	.bss        start:0x802276A8 end:0x80227738
+	.sdata      start:0x8025E480 end:0x8025E488
+	.sbss       start:0x8025EB80 end:0x8025EB88
+	.sdata2     start:0x80260150 end:0x80260180
 
 Core/x/xserializer.cpp:
 	.text       start:0x80039C90 end:0x8003AD40
