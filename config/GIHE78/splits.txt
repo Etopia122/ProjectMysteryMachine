@@ -47,7 +47,7 @@ Core/gc/iFont.cpp:
 	.text       start:0x8000AB58 end:0x8000B924
 
 Core/gc/iLight.cpp:
-	.text       start:0x8000BA70 end:0x8000BD14
+	.text       start:0x8000B9C4 end:0x8000BD14
 	.sbss       start:0x8025E8D8 end:0x8025E8E0
 	.sdata2     start:0x8025F9D0 end:0x8025F9D8
 
@@ -438,6 +438,11 @@ Game/zLaugh.cpp:
 
 Game/zLight.cpp:
 	.text       start:0x800B9AB0 end:0x800BA800
+	.rodata     start:0x801A5128 end:0x801A5160
+	.data       start:0x801C6D98 end:0x801C6E78
+	.bss        start:0x802336E0 end:0x80233820
+	.sbss       start:0x8025EFF8 end:0x8025F008
+	.sdata2     start:0x802615B0 end:0x802615C8
 
 Game/zLightning.cpp:
 	.text       start:0x800BAE00 end:0x800BBB1C

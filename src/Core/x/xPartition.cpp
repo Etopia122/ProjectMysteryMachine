@@ -252,7 +252,7 @@ void xPartitionGetVirtualIdx(_tagPartition* part, _xVec3* insert_pos, signed int
     }
 }
 
-void xPartitionDump()
+void xPartitionDump(_tagPartition* part, char* name)
 {
 }
 

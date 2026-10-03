@@ -34,6 +34,8 @@ RpLight* RpLightSetRadius(RpLight* light, float radius);
 RpLight* RpLightSetConeAngle(RpLight* light, float angle);
 RpLight* RpLightCreate(signed int type);
 RwFrame* RwFrameCreate();
+RpWorld* RpWorldAddLight(RpWorld* world, RpLight* light);
+RpWorld* RpWorldRemoveLight(RpWorld* world, RpLight* light);
 void* _rwObjectHasFrameSetFrame(void* object, RwFrame* frame);
 }
 
@@ -144,4 +146,36 @@ void iLightDestroy(iLight* light)
         RwFrameDestroy(frame);
     }
     RpLightDestroy(light->hw);
+}
+
+void iLightAdd(iLight* light)
+{
+    RpWorldAddLight(gLightWorld, light->hw);
+}
+
+void iLightRemove(iLight* light)
+{
+    RpWorldRemoveLight(gLightWorld, light->hw);
+}
+
+void iLightEnv(iLight* light, signed int env)
+{
+    unsigned char flags = 0;
+
+    switch (env)
+    {
+    case 0:
+        flags = 0;
+        break;
+    case 1:
+        flags = 2;
+        break;
+    case 2:
+        flags = 1;
+        break;
+    case 3:
+        flags = 3;
+        break;
+    }
+    light->hw->object.flags = flags;
 }

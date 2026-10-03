@@ -500,7 +500,7 @@ config.libs = [
             Object(Matching, "Game/zHologram.cpp"),
             Object(NonMatching, "Game/zHud.cpp"),
             Object(Matching, "Game/zLaugh.cpp"),
-            Object(NonMatching, "Game/zLight.cpp"),
+            Object(Matching, "Game/zLight.cpp"),
             Object(NonMatching, "Game/zLightning.cpp"),
             Object(NonMatching, "Game/zLobMaster.cpp"),
             Object(NonMatching, "Game/zMain.cpp"),
