@@ -36,7 +36,9 @@ Core/gc/iEnv.cpp:
 	.sdata2     start:0x8025F978 end:0x8025F980
 
 Core/gc/iFile.cpp:
-	.text       start:0x8000A49C end:0x8000AB3C
+	.text       start:0x8000A49C end:0x8000AB58
+	.bss        start:0x801DF648 end:0x801E06D8
+	.sbss       start:0x8025E8A8 end:0x8025E8B8
 
 Core/gc/iFont.cpp:
 	.text       start:0x8000AB58 end:0x8000B924
