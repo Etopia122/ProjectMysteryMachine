@@ -22,9 +22,9 @@ public:
     xQCData qcd;           // 0x2C
 };
 
-void xVecHitsBound(_xVec3* v, _xBound* b, _xCollis* c);
-void xRayHitsBound(_xRay3* r, xQCData* q, _xBound* b, _xCollis* c);
-void xRayHitsBound(_xRay3* r, _xBound* b, _xCollis* c);
+void xVecHitsBound(const _xVec3* v, const _xBound* b, _xCollis* c);
+void xRayHitsBound(const _xRay3* r, const xQCData* q, const _xBound* b, _xCollis* c);
+void xRayHitsBound(const _xRay3* r, const _xBound* b, _xCollis* c);
 void xBoundHitsModel(_xBound* b, xModelInstance* m, _xCollis* colls, unsigned char ncolls,
                      float sth);
 void xBoundHitsBound(_xBound* a, _xBound* b, _xCollis* c);

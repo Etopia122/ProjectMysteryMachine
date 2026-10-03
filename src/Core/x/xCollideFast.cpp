@@ -1,11 +1,10 @@
+#include "iMath3.h"
 #include "xBound.h"
 #include "xEnt.h"
 #include "xScene.h"
 #include "xMath.h"
 
 void xMat3x3Normalize(_xMat3x3* o, _xMat3x3* m);
-void iBoxIsectRay(_xBox* b, _xRay3* r, _xIsect* isx);
-void iCylinderIsectRay(_xCylinder* c, _xRay3* r, _xIsect* isx);
 void iCollideFastInit(_xScene* sc);
 unsigned int iRayHitsEnvFast(const _xRay3* r, const _xEnv* env);
 unsigned int iRayHitsEnvSpecialFast(const _xRay3* r, const _xEnv* env);
@@ -36,7 +35,7 @@ static inline unsigned int xRayHitsSphereFast(const _xRay3* r, const _xSphere* s
 static inline unsigned char xRayHitsCylinderFast(const _xRay3* r, const _xCylinder* c)
 {
     _xIsect isect;
-    iCylinderIsectRay((_xCylinder*)c, (_xRay3*)r, &isect);
+    iCylinderIsectRay(c, r, &isect);
     unsigned char hit = 0;
     if (isect.penned <= 0.0f || isect.contained <= 0.0f)
     {
@@ -48,7 +47,7 @@ static inline unsigned char xRayHitsCylinderFast(const _xRay3* r, const _xCylind
 static inline unsigned char xRayHitsBoxFast(const _xRay3* r, const _xBox* b)
 {
     _xIsect isect;
-    iBoxIsectRay((_xBox*)b, (_xRay3*)r, &isect);
+    iBoxIsectRay(b, r, &isect);
     unsigned char hit = 0;
     if (isect.penned <= 0.0f || isect.contained <= 0.0f)
     {
@@ -72,7 +71,7 @@ static inline unsigned char xRayHitsOBBFast(const _xRay3* r, const _xBound* b)
     lr.flags = r->flags;
     lr.max_t = r->max_t / scale;
     lr.min_t = r->min_t / scale;
-    iBoxIsectRay((_xBox*)&b->box.box, &lr, &isect);
+    iBoxIsectRay(&b->box.box, &lr, &isect);
     unsigned char hit = 0;
     if (isect.penned <= 0.0f || isect.contained <= 0.0f)
     {

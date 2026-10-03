@@ -1,11 +1,8 @@
+#include "iMath3.h"
 #include "xBound.h"
 #include "xMath.h"
 
 void xMat3x3Normalize(_xMat3x3* o, _xMat3x3* m);
-void iBoxIsectVec(_xBox* b, _xVec3* v, _xIsect* isx);
-void iBoxIsectRay(_xBox* b, _xRay3* r, _xIsect* isx);
-void iSphereIsectVec(_xSphere* s, _xVec3* v, _xIsect* isx);
-void iSphereIsectRay(_xSphere* s, _xRay3* r, _xIsect* isx);
 signed int iSphereHitsModel3(_xSphere* b, xModelInstance* m, _xCollis* colls, unsigned char ncolls,
                              float sth);
 
@@ -121,7 +118,7 @@ void xBoundHitsModel(_xBound* b, xModelInstance* m, _xCollis* colls, unsigned ch
 // r->origin / v before subtracting mat->pos; xMat4x3Tolocal's xVec3Sub here
 // loads and stores one component at a time.
 #pragma auto_inline on
-void xRayHitsBound(_xRay3* r, _xBound* b, _xCollis* c)
+void xRayHitsBound(const _xRay3* r, const _xBound* b, _xCollis* c)
 {
     _xIsect isect;
     _xRay3 lr;
@@ -152,7 +149,7 @@ void xRayHitsBound(_xRay3* r, _xBound* b, _xCollis* c)
             lr.min_t = r->min_t;
         }
         xMat4x3Tolocal(&lr.origin, b->mat, &r->origin);
-        xMat3x3Tolocal(&lr.dir, dmp, &r->dir);
+        xMat3x3Tolocal(&lr.dir, dmp, (_xVec3*)&r->dir);
         lr.flags = r->flags;
         iBoxIsectRay(&b->box.box, &lr, &isect);
     }
@@ -173,7 +170,7 @@ void xRayHitsBound(_xRay3* r, _xBound* b, _xCollis* c)
 }
 #pragma auto_inline off
 
-void xRayHitsBound(_xRay3* r, xQCData* q, _xBound* b, _xCollis* c)
+void xRayHitsBound(const _xRay3* r, const xQCData* q, const _xBound* b, _xCollis* c)
 {
     if (!xQuickCullIsects(q, &b->qcd))
     {
@@ -185,7 +182,7 @@ void xRayHitsBound(_xRay3* r, xQCData* q, _xBound* b, _xCollis* c)
     }
 }
 
-void xVecHitsBound(_xVec3* v, _xBound* b, _xCollis* c)
+void xVecHitsBound(const _xVec3* v, const _xBound* b, _xCollis* c)
 {
     _xIsect isect;
 

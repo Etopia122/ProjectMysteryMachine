@@ -12,6 +12,6 @@ public:
 };
 
 void xQuickCullForBound(xQCData* q, _xBound* b);
-signed int xQuickCullIsects(xQCData* a, xQCData* b);
+signed int xQuickCullIsects(const xQCData* a, const xQCData* b);
 
 #endif

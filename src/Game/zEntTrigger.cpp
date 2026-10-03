@@ -1,3 +1,4 @@
+#include "iMath3.h"
 #include "zEnt.h"
 #include "zScene.h"
 #include "rwtypes.h"
@@ -18,9 +19,6 @@ class zEntTrigger : public _zEnt
 {
 };
 
-void iBoxIsectVec(_xBox* b, _xVec3* v, _xIsect* isx);
-void iCylinderIsectVec(_xCylinder* c, _xVec3* v, _xIsect* isx);
-void iSphereIsectVec(_xSphere* s, _xVec3* v, _xIsect* isx);
 
 void zEntTriggerUpdate(zEntTrigger* trig, _xScene* sc, float dt);
 signed int zEntTriggerEventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,

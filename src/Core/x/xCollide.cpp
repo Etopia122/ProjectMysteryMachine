@@ -1,3 +1,4 @@
+#include "iMath3.h"
 #include "xCollide.h"
 #include "xMath.h"
 
@@ -18,8 +19,6 @@ extern const _xVec3 g_O3;
 
 float xVec3Normalize(_xVec3* o, _xVec3* v);
 void xMat3x3Normalize(_xMat3x3* o, _xMat3x3* m);
-void iBoxIsectSphere(_xBox* box, _xSphere* p, _xIsect* isx);
-void iSphereIsectSphere(_xSphere* s, _xSphere* p, _xIsect* isx);
 void iCollideInit(_xScene* sc);
 
 static inline void xVec3Inv(_xVec3* o, _xVec3* v)
