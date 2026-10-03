@@ -506,3 +506,28 @@ signed int xSTGetAssetInfoByType(unsigned int type, signed int idx, st_xST_XASSE
     }
     return rc;
 }
+
+inline char* xST_xAssetID_HIPFullPath(unsigned int aid, unsigned int* sceneID)
+{
+    char* id = 0;
+    signed int cnt = XST_cnt_locked();
+    for (signed int i = 0; i < cnt; i++)
+    {
+        st_STRAN_SCENE* sdata = XST_nth_locked(i);
+        if (g_pkrf->PkgHasAsset(sdata->spkg, aid))
+        {
+            id = sdata->fnam;
+            if (sceneID != 0)
+            {
+                *sceneID = sdata->scnid;
+            }
+            break;
+        }
+    }
+    return id;
+}
+
+char* xST_xAssetID_HIPFullPath(unsigned int aid)
+{
+    return xST_xAssetID_HIPFullPath(aid, 0);
+}

@@ -17,5 +17,6 @@ void* xSTFindAssetByType(unsigned int type, signed int idx, unsigned int* size);
 signed int xSTAssetCountByType(unsigned int type);
 void* xSTFindAsset(unsigned int aid, unsigned int* size);
 char* xSTAssetName(unsigned int aid);
+char* xST_xAssetID_HIPFullPath(unsigned int aid);
 
 #endif

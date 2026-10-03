@@ -329,10 +329,10 @@ Core/x/xSnd.cpp:
 	.sdata2     start:0x80260260 end:0x80260280
 
 Core/x/xSpline.cpp:
-	.text       start:0x8003DA28 end:0x8003F9F8
+	.text       start:0x8003DA28 end:0x8003F904
 
 Core/x/xstransvc.cpp:
-	.text       start:0x8003F9F8 end:0x80040978
+	.text       start:0x8003F904 end:0x80040978
 	.rodata     start:0x80193F08 end:0x80193F60
 	.data       start:0x801B5D08 end:0x801B6610
 	.sbss       start:0x8025EBC0 end:0x8025EBD0
