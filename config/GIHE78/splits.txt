@@ -83,6 +83,9 @@ Core/gc/iScrFX.cpp:
 
 Core/gc/iShadow.cpp:
 	.text       start:0x80014A3C end:0x80015168
+	.bss        start:0x801FAD60 end:0x801FE3B8
+	.sbss       start:0x8025E958 end:0x8025E968
+	.sdata2     start:0x8025FAE8 end:0x8025FB30
 
 Core/gc/iSystem.cpp:
 	.text       start:0x80015168 end:0x80016584
