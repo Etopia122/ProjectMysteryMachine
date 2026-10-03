@@ -21,7 +21,8 @@ Core/gc/iCollide.cpp:
 	.text       start:0x800078B4 end:0x80009180
 
 Core/gc/iCollideFast.cpp:
-	.text       start:0x80009424 end:0x800099FC
+	.text       start:0x80009424 end:0x80009A20
+	.sbss       start:0x8025E888 end:0x8025E890
 
 Core/gc/iDraw.cpp:
 	.text       start:0x80009CC0 end:0x80009CCC
