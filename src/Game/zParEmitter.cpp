@@ -549,26 +549,26 @@ static inline signed int zParEmitterCull(zParEmitterAsset* a, xPar* p)
     return 0;
 }
 
-// TODO (98.9%): same instructions and stack layout; the saved registers are
-// assigned differently (pe gets r30 instead of r31, g r31 instead of r26).
+// TODO (99.3%): same instructions and stack layout; some saved registers are
+// assigned differently (pe, the .rodata base and several float temporaries).
 xPar* zParEmitterEmit(_zParEmitter* pe, float dt)
 {
+    signed int attachGroupTotal;
+    zParSys* ps;
     xPar* last_p;
     zParEmitterAsset* a;
-    zParSys* ps;
-    xPar* p;
-    float life;
-    float size_birth;
-    unsigned int count;
+    unsigned int get_rnd_group_idx;
     signed int attachGroupIndex;
-    signed int attachGroupTotal;
+    _xVec3 pos;
+    unsigned int count;
     signed int emitAgain;
     xBase* emitObj;
     signed int marker;
-    _zGroup* g;
-    unsigned int get_rnd_group_idx;
+    float life;
+    float size_birth;
+    xPar* p;
     signed int i;
-    _xVec3 pos;
+    _zGroup* g;
 
     a = pe->tasset;
     last_p = 0;
