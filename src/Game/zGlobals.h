@@ -68,20 +68,66 @@ public:
 };
 
 // Only the fields used so far; offsets from the PS2 DWARF (same on GameCube).
+class zJumpParam
+{
+public:
+    float PeakHeight;     // 0x0
+    float TimeGravChange; // 0x4
+    float TimeHold;       // 0x8
+    float ImpulseVel;     // 0xC
+};
+
 class zPlayerStatic
 {
 public:
-    unsigned char unk0[0xF4];
-    float FireTargetYaw;    // 0xF4
-    float FireTargetPitch;  // 0xF8
-    float FireTargetDist;   // 0xFC
-    float FireTargetRadius; // 0x100
-    float FireTrack;        // 0x104
-    float FireGumSpeed;     // 0x108
-    float FireSoapSpeed;    // 0x10C
-    float FireGumTimer;     // 0x110
-    float FireSoapTimer;    // 0x114
-    unsigned char unk118[0x13C - 0x118];
+    unsigned short AnalogMin;     // 0x0
+    unsigned short AnalogMax;     // 0x2
+    float SpeedSneak[4];          // 0x4
+    float SpeedWalk[4];           // 0x14
+    float SpeedRun[4];            // 0x24
+    float SpeedAir[4];            // 0x34
+    float SpeedHotsauce[4];       // 0x44
+    float AnimSneak[3];           // 0x54
+    float AnimWalk[3];            // 0x60
+    float Gravity;                // 0x6C
+    float JumpGravity;            // 0x70
+    float GravSmooth;             // 0x74
+    float FloatSpeed;             // 0x78
+    float ButtsmashSpeed;         // 0x7C
+    zJumpParam Jump;              // 0x80
+    zJumpParam Double;            // 0x90
+    zJumpParam Bounce;            // 0xA0
+    zJumpParam Spring;            // 0xB0
+    zJumpParam Toss;              // 0xC0
+    float HeadbuttSpeedMin;       // 0xD0
+    float HeadbuttSpeedMax;       // 0xD4
+    float HeadbuttAccel;          // 0xD8
+    float HeadbuttTimeMin;        // 0xDC
+    float HeadbuttTimeMax;        // 0xE0
+    float HeadbuttTurn;           // 0xE4
+    float FireDelay;              // 0xE8
+    float FireRepeat;             // 0xEC
+    float FirePress;              // 0xF0
+    float FireTargetYaw;          // 0xF4
+    float FireTargetPitch;        // 0xF8
+    float FireTargetDist;         // 0xFC
+    float FireTargetRadius;       // 0x100
+    float FireTrack;              // 0x104
+    float FireGumSpeed;           // 0x108
+    float FireSoapSpeed;          // 0x10C
+    float FireGumTimer;           // 0x110
+    float FireSoapTimer;          // 0x114
+    unsigned int Initial_Specials; // 0x118
+    unsigned int TakeDamage;      // 0x11C
+    float StartSlideAngle;        // 0x120
+    float StopSlideAngle;         // 0x124
+    float RotMatchMaxAngle;       // 0x128
+    float RotMatchMatchTime;      // 0x12C
+    float RotMatchRelaxTime;      // 0x130
+    unsigned short AmmoCapacityGum;  // 0x134
+    unsigned short AmmoCapacitySoap; // 0x136
+    unsigned short AmmoSceneGum;  // 0x138
+    unsigned short AmmoSceneSoap; // 0x13A
 };
 
 class zPlayerGlobals

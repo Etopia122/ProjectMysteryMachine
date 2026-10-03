@@ -32,6 +32,12 @@ Write functions in the reverse of their DOL order (equivalently, in the PS2
 DWARF dump's order reversed). objdiff scores functions individually, so a
 wrong order still shows 100% there but breaks the DOL hash check.
 
+Some TUs were built without deferred codegen (zMain). There the DOL order
+matches the PS2 order, and `.rodata`/`.sdata2` literals follow the PS2 source
+order including inlined helpers. Put `#pragma defer_codegen off` at the top of
+the file and write it in DOL order. Inlining still works because the helpers
+are defined before their callers.
+
 Patterns that have mattered for matching:
 
 - Floats tested by truthiness (`if (f)`, `if (a || b)`) load the variable
