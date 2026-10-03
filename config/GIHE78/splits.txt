@@ -74,10 +74,15 @@ Core/gc/iParMgr.cpp:
 	.text       start:0x8000FB40 end:0x80011B74
 
 Core/gc/isavegame.cpp:
-	.text       start:0x80011B74 end:0x800145F8
+	.text       start:0x80011B74 end:0x800146C0
 
 Core/gc/iScrFX.cpp:
-	.text       start:0x800145F8 end:0x800149F0
+	.text       start:0x800146C0 end:0x80014A3C
+	.sbss       start:0x8025E950 end:0x8025E958
+	.sdata2     start:0x8025FAC0 end:0x8025FAE8
+
+Core/gc/iShadow.cpp:
+	.text       start:0x80014A3C end:0x80015168
 
 Core/gc/iSystem.cpp:
 	.text       start:0x80015168 end:0x80016584

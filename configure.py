@@ -402,7 +402,8 @@ config.libs = [
             Object(NonMatching, "Core/gc/iPad.cpp"),
             Object(NonMatching, "Core/gc/iParMgr.cpp"),
             Object(NonMatching, "Core/gc/isavegame.cpp"),
-            Object(NonMatching, "Core/gc/iScrFX.cpp"),
+            Object(Matching, "Core/gc/iScrFX.cpp"),
+            Object(NonMatching, "Core/gc/iShadow.cpp"),
             Object(NonMatching, "Core/gc/iSystem.cpp"),
             # GameCube-only units linked after the game code (names by role)
             Object(NonMatching, "Core/gc/iSnd.cpp"),
