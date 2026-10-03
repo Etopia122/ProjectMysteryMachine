@@ -444,6 +444,10 @@ Game/zLight.cpp:
 	.sbss       start:0x8025EFF8 end:0x8025F008
 	.sdata2     start:0x802615B0 end:0x802615C8
 
+Game/zLightEffect.cpp:
+	.text       start:0x800BA800 end:0x800BAE00
+	.sdata2     start:0x802615C8 end:0x802615F8
+
 Game/zLightning.cpp:
 	.text       start:0x800BAE00 end:0x800BBB1C
 	.rodata     start:0x801A5160 end:0x801A51D0

@@ -501,6 +501,7 @@ config.libs = [
             Object(NonMatching, "Game/zHud.cpp"),
             Object(Matching, "Game/zLaugh.cpp"),
             Object(Matching, "Game/zLight.cpp"),
+            Object(Matching, "Game/zLightEffect.cpp"),
             Object(NonMatching, "Game/zLightning.cpp"),
             Object(NonMatching, "Game/zLobMaster.cpp"),
             Object(NonMatching, "Game/zMain.cpp"),

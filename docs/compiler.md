@@ -130,6 +130,12 @@ Patterns that have mattered for matching:
 - Imported names of statics often carry the wrong signature (PS2 vs GC). Fix the
   mangled name in symbols.txt, or check_unit can't pair the function.
 
+- A call result assigned to a local inside a tiny inline helper
+  (`float ret = iurand(); return ret;`, zLightEffect's `leGetRandom`) colors
+  registers differently from calling `iurand()` directly in the expression.
+- Clamp helpers written with `if (x < y) x = y; return x;` avoid the extra
+  branches that `return (x < y) ? y : x;` produces in each arm.
+
 ## Open questions
 
 
