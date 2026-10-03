@@ -336,6 +336,7 @@ Game/zDispatcher.cpp:
 
 Game/zEGenerator.cpp:
 	.text       start:0x80047670 end:0x80048094
+	.sdata2     start:0x802604E8 end:0x80260530
 
 Game/zEnt.cpp:
 	.text       start:0x80048250 end:0x8004945C

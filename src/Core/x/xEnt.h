@@ -7,11 +7,17 @@
 
 class RwMatrixTag;
 
-// Placeholder: only Mat's offset is known on GameCube.
+class xAnimPlay;
+
+// Placeholder: only these offsets are confirmed on GameCube.
 class xModelInstance
 {
 public:
-    unsigned char pad0[0x20];
+    xModelInstance* Next;   // 0x0
+    xModelInstance* Parent; // 0x4
+    void* Pool;             // 0x8
+    xAnimPlay* Anim;        // 0xC
+    unsigned char pad10[0x20 - 0x10];
     RwMatrixTag* Mat; // 0x20
 };
 class _xScene;

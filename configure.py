@@ -475,7 +475,7 @@ config.libs = [
             Object(Matching, "Game/zCounter.cpp"),
             Object(Matching, "Game/zCutsceneMgr.cpp"),
             Object(NonMatching, "Game/zDispatcher.cpp"),
-            Object(NonMatching, "Game/zEGenerator.cpp"),
+            Object(Matching, "Game/zEGenerator.cpp"),
             Object(NonMatching, "Game/zEnt.cpp"),
             Object(NonMatching, "Game/zEntBubble.cpp"),
             Object(NonMatching, "Game/zEntButton.cpp"),
