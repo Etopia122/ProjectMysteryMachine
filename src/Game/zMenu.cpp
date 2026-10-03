@@ -95,13 +95,13 @@ void fn_80014A34(unsigned int frames);
 // TODO: unidentified (empty; just before xDebug)
 void fn_80021B20();
 // TODO: unidentified (xTRC: draws the TRC message)
-void fn_8004436C();
 // TODO: unidentified (xTRC: true while a TRC message is up)
 unsigned int fn_800443F8();
 // TODO: unidentified retrace counters (iSystem?)
 extern volatile unsigned int lbl_8025E968;
 extern unsigned int lbl_8025EF10;
 }
+void xTRCRender();
 
 extern _zEnv* gCurEnv;
 extern unsigned int gScreenDump;
@@ -282,7 +282,7 @@ unsigned int zMenuLoop()
         zSceneRender();
         xFontRender();
         fn_80021B20();
-        fn_8004436C();
+        xTRCRender();
         xDrawEnd();
         if (gScreenDump)
         {

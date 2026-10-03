@@ -36,8 +36,6 @@ void __start();
 extern unsigned int _stack_addr[];
 extern unsigned int _stack_end[];
 
-// TODO: unidentified (xTRC: reports the disc state, returns its result)
-signed int fn_8004442C(signed int state);
 // TODO: unidentified (stops the movie player before a reset)
 void fn_800FDA54();
 // TODO: unidentified (size of the RenderWare resource arena)
@@ -49,8 +47,17 @@ extern signed int lbl_8025E970;       // reset requested
 extern void (*lbl_8025E974)(signed int);
 extern signed int lbl_8025E978;
 extern unsigned char lbl_801FE3D4[0x14];
-extern xTRCState lbl_8025EBD8;
+extern xTRCState gTrcDisk;
 }
+
+enum _tagTRCState
+{
+    TRC_Unknown
+};
+
+// xTRCDisk returns void; its last store leaves &gTrcDisk in r3, which this
+// function passes on as its result.
+signed int xTRCDisk(_tagTRCState state);
 
 class iTRCDisk
 {
@@ -70,12 +77,12 @@ signed int fn_80016918();
 
 extern "C" signed int fn_80016918()
 {
-    return lbl_8025EBD8.state;
+    return gTrcDisk.state;
 }
 
 extern "C" unsigned int fn_80016900()
 {
-    return (unsigned char)((&lbl_8025EBD8)->mode == 6);
+    return (unsigned char)((&gTrcDisk)->mode == 6);
 }
 
 extern "C" unsigned char* fn_800168F4()
@@ -205,5 +212,5 @@ signed int iTRCDisk::CheckDVDAndResetState()
         break;
     }
 
-    return fn_8004442C(state);
+    return xTRCDisk((_tagTRCState)state);
 }

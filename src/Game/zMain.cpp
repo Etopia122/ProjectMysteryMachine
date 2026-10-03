@@ -29,13 +29,13 @@ void fn_800162D0(char* elf, signed int profile);
 void fn_800162D4();
 void fn_80043E78();
 void fn_800443AC();
-void fn_80044714();
 void fn_8006D398();
 void fn_8006D39C();
 void fn_800A9CE4();
 void fn_800A9CF4();
 void fn_800CD270();
 }
+void xTRCInit();
 
 void zEntPickupResetWarps();
 
@@ -403,7 +403,7 @@ void main()
     xMemRegisterBaseNotifyFunc(zMainMemLvlChkCB);
     memset(&globals, 0, sizeof(zGlobals));
     globals.sceneFirst = 1;
-    fn_80044714();
+    xTRCInit();
     zMainCheckINI();
     fn_800162D0("scooby.elf", globals.profile);
     xUtilStartup();

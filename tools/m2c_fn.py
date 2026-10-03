@@ -62,6 +62,8 @@ def main() -> None:
     asm_root = Path("build") / version / "asm"
     needle = f".fn {func},"
     matches = [p for p in asm_root.rglob("*.s") if needle in p.read_text(errors="ignore")]
+    # dtk leaves stale auto_* files behind when splits change; use the newest copy.
+    matches.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     if not matches:
         sys.exit(f"{func} not found under {asm_root} (run ninja first?)")
     text = matches[0].read_text(errors="ignore")

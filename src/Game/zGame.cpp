@@ -71,12 +71,12 @@ unsigned int VIGetRetraceCount();
 void fn_800056F8(_xVec3* pos);
 void fn_80014A34(signed int mode);
 void fn_80021B20();
-void fn_8004436C();
 void fn_8005D858(_xEnt* ent, p2EntAsset* asset);
 void fn_8006DAF0(zScene* sc);
 void fn_800B74D8();
 void fn_800CD2A4(float dt);
 }
+void xTRCRender();
 
 void zEntPickupCheat_allWarps();
 
@@ -424,7 +424,7 @@ void zGameLoop()
         xCameraBegin(&globals.camera, 1);
         fn_800056F8(&globals.camera.hi_cam.mat.pos);
         zSceneRender();
-        fn_8004436C();
+        xTRCRender();
         fn_80021B20();
         xDrawEnd();
         xCameraEnd(&globals.camera, sTimeElapsed, 1);
@@ -757,7 +757,7 @@ void zGameScreenTransitionUpdate(float percentComplete, char* msg, unsigned char
     }
 
     loadMeter++;
-    fn_8004436C();
+    xTRCRender();
     xFontRender();
     fn_80021B20();
     xDrawEnd();

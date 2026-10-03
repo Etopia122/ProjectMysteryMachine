@@ -149,7 +149,7 @@ signed int DVDReadAsyncPrio(DVDFileInfo* fileInfo, void* addr, signed int length
 // TODO: unidentified xTRC functions
 void fn_800443AC();
 unsigned int fn_800443F8();
-extern xTRCState lbl_8025EBD8;
+extern xTRCState gTrcDisk;
 }
 
 unsigned int iFileOpen(char* name, signed int flags, tag_xFile* file);
@@ -335,7 +335,7 @@ static inline void iSndStopStream(iSndStream* s)
 
 static inline unsigned char iSndDiskReady()
 {
-    return lbl_8025EBD8.mode == 6;
+    return gTrcDisk.mode == 6;
 }
 
 // TODO: NonMatching. iSndWaitForDeadSounds keeps its 140-frame limit in a saved

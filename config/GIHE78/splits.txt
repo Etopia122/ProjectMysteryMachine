@@ -355,6 +355,12 @@ Core/x/xSurface.cpp:
 
 Core/x/xTRC.cpp:
 	.text       start:0x80040FCC end:0x80044780
+	.rodata     start:0x80193F60 end:0x801960D8
+	.data       start:0x801B6610 end:0x801B6798
+	.bss        start:0x802289B8 end:0x802289E8
+	.sbss       start:0x8025EBD8 end:0x8025EBF8
+	.sdata2     start:0x80260310 end:0x802603A8
+	.sbss2      start:0x80262C70 end:0x80262C80
 
 Core/x/xutil.cpp:
 	.text       start:0x80044780 end:0x80044C44

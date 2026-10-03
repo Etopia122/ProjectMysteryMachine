@@ -171,7 +171,6 @@ void fn_80103280(float m[4][4], float t, float b, float l, float r, float n, flo
 // TODO: unidentified iSystem/xTRC functions
 void fn_80014A34(signed int);
 void fn_800167F0();
-void fn_8004436C();
 void fn_800443AC();
 unsigned int fn_800443F8();
 signed int fn_80164200();
@@ -179,6 +178,7 @@ extern RwModuleInfo lbl_8025F798; // resourcesModule
 extern unsigned char* RwEngineInstance;
 extern _tagxPad mPad;
 }
+void xTRCRender();
 
 unsigned int iFileOpen(char* name, signed int flags, tag_xFile* file);
 void iPadStopRumble(_tagxPad* pad);
@@ -374,7 +374,7 @@ static void Show_frame()
         verts[3].y = 480.0f;
         RwIm2DRenderIndexedPrimitive(4, verts, 4, indices, 4);
     }
-    fn_8004436C();
+    xTRCRender();
     RwCameraEndUpdate(cam);
     RwCameraShowRaster(cam, NULL, 0);
 }
