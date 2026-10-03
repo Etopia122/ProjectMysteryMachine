@@ -507,7 +507,7 @@ config.libs = [
             Object(NonMatching, "Game/zMain.cpp"),
             Object(Matching, "Game/zMenu.cpp"),
             Object(NonMatching, "Game/zMovePoint.cpp"),
-            Object(NonMatching, "Game/zMusic.cpp"),
+            Object(Matching, "Game/zMusic.cpp", extra_cflags=["-bool on"]),
             Object(NonMatching, "Game/zParCmd.cpp"),
             Object(NonMatching, "Game/zParEmitter.cpp"),
             Object(Matching, "Game/zParSys.cpp"),

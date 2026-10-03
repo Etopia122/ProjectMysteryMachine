@@ -527,6 +527,12 @@ Game/zMovePoint.cpp:
 
 Game/zMusic.cpp:
 	.text       start:0x800C0524 end:0x800C2EB0
+	.rodata     start:0x801A5A40 end:0x801A5DE0
+	.data       start:0x801C7338 end:0x801C7488
+	.bss        start:0x80237DE0 end:0x80237F70
+	.sdata      start:0x8025E588 end:0x8025E598
+	.sbss       start:0x8025F040 end:0x8025F050
+	.sdata2     start:0x802617D0 end:0x80261AB0
 
 Game/zParCmd.cpp:
 	.text       start:0x800C2EB0 end:0x800C4BE0
