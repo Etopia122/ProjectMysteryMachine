@@ -410,7 +410,6 @@ config.libs = [
             Object(NonMatching, "Core/gc/iFMV.cpp"),
             Object(NonMatching, "Core/gc/iFX.cpp"),
             Object(Matching, "Core/gc/iMix.c"),  # older Dolphin MIX library
-            Object(NonMatching, "Core/gc/iTRC.cpp"),
             Object(Matching, "Core/gc/iTime.cpp"),
         ],
     ),

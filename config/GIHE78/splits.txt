@@ -93,10 +93,7 @@ Core/gc/iShadow.cpp:
 	.sdata2     start:0x8025FAE8 end:0x8025FB30
 
 Core/gc/iSystem.cpp:
-	.text       start:0x80015168 end:0x80016600
-
-Core/gc/iTRC.cpp:
-	.text       start:0x80016600 end:0x80016920
+	.text       start:0x80015168 end:0x80016920
 
 Core/gc/iTime.cpp:
 	.text       start:0x80016920 end:0x80016A30
