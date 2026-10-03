@@ -207,6 +207,13 @@ Patterns that have mattered for matching:
 - A vector copied by assignment and then scaled (`v = cmd->dir;
   xVec3SMulBy(&v, dt);`) keeps its components in fresh registers. Scalar
   locals or `xVec3SMul` into a local reuse the `dt` register instead.
+- String literals (.rodata, or .sdata2 when 8 bytes or less) and float
+  constants are pooled in compile order, which is the reverse of the order in
+  which function bodies are defined. That includes `#pragma auto_inline`
+  statics that get inlined everywhere and dead-stripped. A literal that sits
+  out of place in the pool therefore came from a helper defined at that spot
+  (zGameExtras: the thunder hashes, fireworks start, Halloween bats and snow
+  climate are separate helpers called from zGameExtrasInit).
 - The PS2 DWARF drops `const` from parameters. When loads from a pointer
   parameter are scheduled ahead of the stores they feed (iCollide's ray to
   line conversion), the GameCube function took a `const` pointer: rename the
