@@ -91,6 +91,11 @@ Core/x/xBase.cpp:
 
 Core/x/xbinio.cpp:
 	.text       start:0x8001C184 end:0x8001D1F8
+	.rodata     start:0x80192D20 end:0x80192E20
+	.data       start:0x801AD9C0 end:0x801AE6E0
+	.sdata      start:0x8025E400 end:0x8025E408
+	.sbss       start:0x8025E9B0 end:0x8025E9B8
+	.sdata2     start:0x8025FBE0 end:0x8025FBE8
 
 Core/x/xBound.cpp:
 	.text       start:0x8001D1F8 end:0x8001D9A0
