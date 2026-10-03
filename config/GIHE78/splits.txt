@@ -13,6 +13,8 @@ Sections:
 
 Core/gc/iAnimSKB.cpp:
 	.text       start:0x80005C74 end:0x80006CC4
+	.rodata     start:0x8018E600 end:0x8018E628
+	.sdata2     start:0x8025F8C8 end:0x8025F900
 
 Core/gc/iCamera.cpp:
 	.text       start:0x80006CC4 end:0x80007738
