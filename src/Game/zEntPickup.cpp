@@ -1,3 +1,8 @@
+// TODO: 13 of 25 functions match (98.8%). Most of what is left is register
+// allocation (Update's idx/type registers, Give's specials bit, the two
+// UpdateFlyToInterface loops) and scheduling (Drop's xsqrt, lastSnackInArea's
+// epilogue, UnlockSnackGate's prologue). objdiff still scores .bss at 50%;
+// the DOL itself is identical.
 #include "zEnt.h"
 #include "zGlobals.h"
 #include "zScene.h"
@@ -216,7 +221,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt);
 signed int zEntPickupEventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
                              xBase* toParamWidget);
 void zEntPickup_GiveFX(_zEntPickup* ent);
-void zEntPickup_UpdateFX(_zEntPickup* ent, float dt);
+void zEntPickup_UpdateFX(_zEntPickup* ent, _xScene* sc, float dt);
 void zEntPickup_FlyToInterface(_zEntPickup* ent, float dt);
 signed int zPickup_Give(_zEntPickup* ent, zAssetPickup* p, unsigned short value);
 void zEntPickup_Reset(_zEntPickup* ent);
@@ -315,8 +320,6 @@ static inline void zEntPickup_TallyClue(_zEntPickup* ent)
             break;
         case 7:
             zSceneGameStatsTally_clue();
-            break;
-        case 8:
             break;
         }
     }
@@ -763,11 +766,11 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
             zAssetPickup* p;
             float dz;
             float dy;
-            float hdx;
+            float dx;
             float d1;
             _xVec3* pos;
             float hdz;
-            float dx;
+            float hdx;
             float d2;
             p = ent->p;
             pos = (_xVec3*)&ent->model->Mat->pos;
@@ -1005,7 +1008,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
             ent->animTime -= duration;
         }
         _xQuat* quat = (_xQuat*)giAnimScratch;
-        _xVec3* tran = (_xVec3*)(giAnimScratch + 0x410);
+        _xVec3* tran = (_xVec3*)((unsigned char*)quat + 0x410);
         iAnimEval(ent->anim, ent->animTime, 0, tran, quat);
         iModelAnimMatrices(ent->model->Data, quat, tran, ent->model->Mat + 1);
     }
@@ -1030,13 +1033,16 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
         if (ent->p->pickupType == 1 && ent->p->pickupIndex == 8)
         {
             _xVec3* ppos = (_xVec3*)&globals.player.ent.model->Mat->pos;
+            float px = ppos->x;
+            float py = 1.0f + ppos->y;
+            float pz = ppos->z;
             float dist = 0.0f;
             if (zWarpPointTable[((zEntPickupAsset*)ent->asset)->pickupValue].status)
             {
                 _xVec3 dir;
-                dir.x = ppos->x - ent->model->Mat->pos.x;
-                dir.y = (1.0f + ppos->y) - ent->model->Mat->pos.y;
-                dir.z = ppos->z - ent->model->Mat->pos.z;
+                dir.x = px - ent->model->Mat->pos.x;
+                dir.y = py - ent->model->Mat->pos.y;
+                dir.z = pz - ent->model->Mat->pos.z;
                 dist = xMat3x3LookVec((_xMat3x3*)ent->model->Mat, &dir);
             }
             if (zWarpPointTable[((zEntPickupAsset*)ent->asset)->pickupValue].status &&
@@ -1064,13 +1070,11 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
             if (tpos != NULL)
             {
                 *(_xVec3*)&ent->model->Mat->pos = *tpos;
-                ent->model->Mat->pos.x += ent->followOffset.x;
-                ent->model->Mat->pos.y += ent->followOffset.y;
-                ent->model->Mat->pos.z += ent->followOffset.z;
+                xVec3AddTo((_xVec3*)&ent->model->Mat->pos, &ent->followOffset);
             }
         }
         ent->fx_scale = 1.0f;
-        zEntPickup_UpdateFX(ent, dt);
+        zEntPickup_UpdateFX(ent, sc, dt);
         break;
     case 2:
     {
@@ -1133,7 +1137,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
             xMat3x3RMulRotY((_xMat3x3*)ent->model->Mat, (_xMat3x3*)ent->model->Mat,
                             ((3.1415927f * deg) / 180.0f) * dt * (ent->timer / total));
         }
-        zEntPickup_UpdateFX(ent, dt);
+        zEntPickup_UpdateFX(ent, sc, dt);
         break;
     case 4:
         ent->timer -= dt;
@@ -1141,18 +1145,17 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
         {
             if (ent->p->pickupType == 1)
             {
-                switch (ent->p->pickupIndex)
+                if (ent->p->pickupIndex == 0 || ent->p->pickupIndex == 4)
                 {
-                case 0:
-                case 4:
                     zHud_ShakeSnackCounter();
                     if (zPickup_Give(ent, ent->p, ((zEntPickupAsset*)ent->asset)->pickupValue))
                     {
                         fn_800527A8(ent);
                         zEntEvent(ent, ent, 0x23);
                     }
-                    break;
-                case 5:
+                }
+                else if (ent->p->pickupIndex == 5)
+                {
                     if (keyCounter != NULL && sKeyCounterEnabledBeforeGive)
                     {
                         zEntPlayer_GiveKey(ent->p->quantity);
@@ -1169,16 +1172,16 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                                 _tagKeyShake* ks = &sKeyShake[idx - 1];
                                 ks->shake_timer = 1.0f;
                                 ks->ui = (_zUI*)ui;
-                                ks->orig_pos.x = ((_zUILike*)ks->ui)->uiasset->x;
-                                ks->orig_pos.y = ((_zUILike*)ks->ui)->uiasset->y;
-                                ks->orig_pos.z = ((_zUILike*)ks->ui)->uiasset->z;
+                                _zUILike::_zUIAsset* a = ((_zUILike*)ks->ui)->uiasset;
+                                ks->orig_pos.x = a->x;
+                                ks->orig_pos.y = a->y;
+                                ks->orig_pos.z = a->z;
                                 ks->shake_it = 10.0f;
                             }
                         }
                         zEntPickup_ShowKeyCnt(keyCounter->asset->count - keyCounter->count,
                                               keyCounter->asset->count);
                     }
-                    break;
                 }
             }
             ent->state = (ent->state & ~0x3F) | 8;
@@ -1326,7 +1329,7 @@ void zEntPickup_Drop(_zEntPickup* ent)
 }
 #pragma auto_inline reset
 
-void zEntPickup_UpdateFX(_zEntPickup* ent, float dt)
+void zEntPickup_UpdateFX(_zEntPickup* ent, _xScene* sc, float dt)
 {
     signed int doGlow = 0;
 
