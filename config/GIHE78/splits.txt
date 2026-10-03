@@ -441,6 +441,12 @@ Game/zGame.cpp:
 
 Game/zGameExtras.cpp:
 	.text       start:0x800ADC68 end:0x800AF8D8
+	.rodata     start:0x801A4450 end:0x801A4590
+	.data       start:0x801C5D58 end:0x801C5E08
+	.bss        start:0x8022EB48 end:0x8022ECB0
+	.sdata      start:0x8025E520 end:0x8025E528
+	.sbss       start:0x8025EF28 end:0x8025EF80
+	.sdata2     start:0x802612D0 end:0x80261358
 
 Game/zGameState.cpp:
 	.text       start:0x800AF8D8 end:0x800AFD6C
