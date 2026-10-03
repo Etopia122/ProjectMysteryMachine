@@ -100,6 +100,11 @@ Core/gc/iParMgr.cpp:
 
 Core/gc/isavegame.cpp:
 	.text       start:0x80011B74 end:0x800146C0
+	.rodata     start:0x8018E740 end:0x80192BE8
+	.data       start:0x801AD498 end:0x801AD940
+	.bss        start:0x801E6D60 end:0x801FAD60
+	.sbss       start:0x8025E920 end:0x8025E950
+	.sdata2     start:0x8025FA98 end:0x8025FAC0
 
 Core/gc/iScrFX.cpp:
 	.text       start:0x800146C0 end:0x80014A3C
