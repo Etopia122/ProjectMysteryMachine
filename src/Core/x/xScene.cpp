@@ -20,21 +20,19 @@ unsigned int iRayHitsEnv(_xRay3* r, _xEnv* env, _xCollis* coll);
 
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 
-// TODO (84%): the original zero-extends num_stats/dyns/npcs after the
-// allocations and never num_trigs; here each is extended at its first use.
 void xSceneInit(_xScene* sc, unsigned short num_trigs, unsigned short num_stats,
                 unsigned short num_dyns, unsigned short num_npcs)
 {
     sc->flags = 0;
     sc->num_trigs_allocd = num_trigs;
-    sc->trigs = (_xEnt**)xMemAlloc(gActiveHeap, num_trigs * sizeof(_xEnt*));
+    sc->trigs = (_xEnt**)xMemAlloc(gActiveHeap, (unsigned int)num_trigs * sizeof(_xEnt*));
     sc->num_stats_allocd = num_stats;
-    sc->stats = (_xEnt**)xMemAlloc(gActiveHeap, num_stats * sizeof(_xEnt*));
+    sc->stats = (_xEnt**)xMemAlloc(gActiveHeap, (unsigned int)num_stats * sizeof(_xEnt*));
     sc->num_dyns_allocd = num_dyns;
-    sc->dyns = (_xEnt**)xMemAlloc(gActiveHeap, num_dyns * sizeof(_xEnt*));
+    sc->dyns = (_xEnt**)xMemAlloc(gActiveHeap, (unsigned int)num_dyns * sizeof(_xEnt*));
     sc->num_npcs_allocd = num_npcs;
-    sc->npcs = (_xEnt**)xMemAlloc(gActiveHeap, num_npcs * sizeof(_xEnt*));
-    sc->num_ents_allocd = num_trigs + (num_stats + num_dyns + num_npcs);
+    sc->npcs = (_xEnt**)xMemAlloc(gActiveHeap, (unsigned int)num_npcs * sizeof(_xEnt*));
+    sc->num_ents_allocd = num_trigs + num_stats + num_dyns + num_npcs;
     sc->num_act_ents = 0;
     sc->act_ents = (_xEnt**)xMemAlloc(gActiveHeap, sc->num_ents_allocd * sizeof(_xEnt*));
     sc->num_nact_ents = 0;

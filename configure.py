@@ -451,7 +451,7 @@ config.libs = [
             Object(NonMatching, "Core/x/xpkrsvc.cpp"),
             Object(Matching, "Core/x/xQuickCull.cpp"),
             Object(NonMatching, "Core/x/xsavegame.cpp"),
-            Object(NonMatching, "Core/x/xScene.cpp"),
+            Object(Matching, "Core/x/xScene.cpp"),
             Object(NonMatching, "Core/x/xScrFx.cpp"),
             Object(NonMatching, "Core/x/xserializer.cpp"),
             Object(NonMatching, "Core/x/xShadow.cpp"),
