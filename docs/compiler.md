@@ -259,6 +259,16 @@ Patterns that have mattered for matching:
   - `p ? p : &a` gives `cmplwi; beq; b; addi`.
   - An explicit if/else gives `beq; mr; b; addi`.
   Match the form per function.
+- Some units inline only part of their call graph. In xsavegame the ReadData
+  base is inlined into its wrappers, but the WriteData base, the full xSGSetup
+  and the Add*Client functions are called out of line. `#pragma auto_inline
+  on/off` regions reproduce this, because the pragma state at a function's
+  definition decides whether it can be auto-inlined. Look at the
+  target's `bl` targets inside the unit to find the regions.
+- With deferred inlining a helper can be defined after its callers. Its
+  aggregate initializers (`char buf[64] = {}` blobs in .rodata) are emitted
+  where it is defined, so if they sit at the end of the TU's .rodata, define
+  those helpers last.
 - Locals of a nested inline are given lower stack slots than those of the
   inline that calls it. Splitting a helper in two (xMat3x3LookAtPos inside
   ShoulderLookAtTarget) fixes interleaved slot orders.
