@@ -395,7 +395,7 @@ config.libs = [
             Object(Matching, "Core/gc/iFont.cpp"),
             Object(Matching, "Core/gc/iLight.cpp"),
             Object(Matching, "Core/gc/iMath.cpp"),
-            Object(NonMatching, "Core/gc/iMath3.cpp"),
+            Object(NonMatching, "Core/gc/iMath3.cpp", extra_cflags=["-bool on"]),
             Object(Matching, "Core/gc/iMemMgr.cpp"),
             Object(NonMatching, "Core/gc/iModel.cpp"),
             Object(NonMatching, "Core/gc/iMorph.cpp"),

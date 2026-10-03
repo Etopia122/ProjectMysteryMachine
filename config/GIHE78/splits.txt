@@ -68,6 +68,7 @@ Core/gc/iMath.cpp:
 
 Core/gc/iMath3.cpp:
 	.text       start:0x8000BDC0 end:0x8000DA6C
+	.sdata2     start:0x8025F9E8 end:0x8025FA18
 
 Core/gc/iMemMgr.cpp:
 	.text       start:0x8000DA6C end:0x8000DBA4
