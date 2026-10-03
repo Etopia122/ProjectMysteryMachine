@@ -270,7 +270,10 @@ Core/x/xPartition.cpp:
 	.text       start:0x80032DEC end:0x8003361C
 
 Core/x/xpkrsvc.cpp:
-	.text       start:0x80033620 end:0x80035854
+	.text       start:0x8003361C end:0x80035854
+	.rodata     start:0x80193730 end:0x80193B38
+	.data       start:0x801AEE78 end:0x801B3778
+	.sbss       start:0x8025EAF0 end:0x8025EB18
 
 Core/x/xQuickCull.cpp:
 	.text       start:0x800367E0 end:0x80036810
