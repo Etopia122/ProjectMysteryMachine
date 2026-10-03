@@ -196,14 +196,14 @@ void zEntPlayer_GiveHotsauce(unsigned int num);
 void zEntPlayer_GiveScoobySnack(unsigned int num);
 signed int zEntPlayer_HasScoobySnack(unsigned int num);
 void zEntPlayer_TakeScoobySnack(_xEnt* ent, unsigned int num);
-void zEntPlayer_SNDAmmoPickup();
-void zEntPlayer_SNDSpecialPickup();
-void zEntPlayer_SNDTokenPickup();
-void zEntPlayer_SNDSavePickup();
-void zEntPlayer_SNDInfoPickup();
-void zEntPlayer_SNDKeyPickup();
-void zEntPlayer_SNDErrorPickup();
-void zEntPlayer_SNDBitePickup();
+void zEntPlayer_SNDAmmoPickup(_xEnt* ent);
+void zEntPlayer_SNDSpecialPickup(_xEnt* ent);
+void zEntPlayer_SNDTokenPickup(_xEnt* ent);
+void zEntPlayer_SNDSavePickup(_xEnt* ent);
+void zEntPlayer_SNDInfoPickup(_xEnt* ent);
+void zEntPlayer_SNDKeyPickup(_xEnt* ent);
+void zEntPlayer_SNDErrorPickup(_xEnt* ent);
+void zEntPlayer_SNDBitePickup(_xEnt* ent);
 void Write_b7(xSerial* s, unsigned int bits);
 void Read_b7(xSerial* s, unsigned int* bits);
 
@@ -217,7 +217,7 @@ signed int zEntPickupEventCB(xBase* from, xBase* to, unsigned int toEvent, float
                              xBase* toParamWidget);
 void zEntPickup_GiveFX(_zEntPickup* ent);
 void zEntPickup_UpdateFX(_zEntPickup* ent, float dt);
-void zEntPickup_FlyToInterface(_zEntPickup* ent);
+void zEntPickup_FlyToInterface(_zEntPickup* ent, float dt);
 signed int zPickup_Give(_zEntPickup* ent, zAssetPickup* p, unsigned short value);
 void zEntPickup_Reset(_zEntPickup* ent);
 void zEntPickup_Drop(_zEntPickup* ent);
@@ -261,70 +261,47 @@ static zEntPickupWarpPoint zWarpPointTable[27] = {
 static _xEntFrame gPickupFrame;
 static _xEntCollis gPickupCollis;
 
-static inline void zEntPickup_ShowKeyCnt(unsigned int collected, unsigned int total)
-{
-    char s[64];
-    for (signed int i = 1; i <= (signed int)total; i++)
-    {
-        if (i > (signed int)collected)
-        {
-            sprintf(s, "KEY OFF %d UI", i);
-            zEntEvent(s, 3);
-            sprintf(s, "KEY ON %d UI", i);
-            zEntEvent(s, 4);
-        }
-        else
-        {
-            sprintf(s, "KEY OFF %d UI", i);
-            zEntEvent(s, 4);
-            sprintf(s, "KEY ON %d UI", i);
-            zEntEvent(s, 3);
-        }
-    }
-    if (collected == total)
-    {
-        sKeysOffTimer = 1.5f;
-    }
-}
+static void zEntPickup_ShowKeyCnt(unsigned int collected, unsigned int total);
 
 static inline void zEntPickup_PlaySound(_zEntPickup* ent)
 {
-    switch (ent->p->pickupType)
+    if (ent->p->pickupType == 1)
     {
-    case 1:
         switch (ent->p->pickupIndex)
         {
         case 0:
         case 1:
         case 3:
         case 4:
-            zEntPlayer_SNDBitePickup();
-            break;
-        case 5:
-            zEntPlayer_SNDKeyPickup();
-            break;
-        case 6:
-            zEntPlayer_SNDSavePickup();
+            zEntPlayer_SNDBitePickup(ent);
             break;
         case 7:
-            zEntPlayer_SNDInfoPickup();
+            zEntPlayer_SNDInfoPickup(ent);
             break;
+        case 5:
+            zEntPlayer_SNDKeyPickup(ent);
+            break;
+        case 6:
+            zEntPlayer_SNDSavePickup(ent);
+            break;
+        case 2:
         default:
-            zEntPlayer_SNDSpecialPickup();
+            zEntPlayer_SNDSpecialPickup(ent);
             break;
         }
-        break;
-    case 2:
-        zEntPlayer_SNDSpecialPickup();
+    }
+    else if (ent->p->pickupType == 2)
+    {
+        zEntPlayer_SNDSpecialPickup(ent);
         zMusicNotify(2);
-        break;
-    case 3:
-    case 5:
-        zEntPlayer_SNDAmmoPickup();
-        break;
-    default:
-        zEntPlayer_SNDTokenPickup();
-        break;
+    }
+    else if (ent->p->pickupType == 3 || ent->p->pickupType == 5)
+    {
+        zEntPlayer_SNDAmmoPickup(ent);
+    }
+    else
+    {
+        zEntPlayer_SNDTokenPickup(ent);
     }
 }
 
@@ -334,8 +311,12 @@ static inline void zEntPickup_TallyClue(_zEntPickup* ent)
     {
         switch (ent->p->pickupIndex)
         {
+        case 6:
+            break;
         case 7:
             zSceneGameStatsTally_clue();
+            break;
+        case 8:
             break;
         }
     }
@@ -348,11 +329,6 @@ static inline void zEntPickup_MakeDroppableInline(_zEntPickup* ent, _xVec3* pos,
     ent->state = 0x10;
     ent->flags &= ~1;
     ent->dropParent = parent;
-}
-
-static inline unsigned int zEntPickup_InRange(float d1, float d2, float r)
-{
-    return d1 <= r || d2 <= r;
 }
 
 // Functions are in reverse DOL order (-inline deferred emits last to first).
@@ -588,6 +564,9 @@ signed int zEntPickupEventCB(xBase* from, xBase* to, unsigned int toEvent, float
     return 1;
 }
 
+#define PICKUP_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define PICKUP_MAX(a, b) ((a) < (b) ? (b) : (a))
+
 signed int zPickup_Give(_zEntPickup* ent, zAssetPickup* p, unsigned short value)
 {
     switch (p->pickupType)
@@ -595,6 +574,21 @@ signed int zPickup_Give(_zEntPickup* ent, zAssetPickup* p, unsigned short value)
     case 1:
         switch (p->pickupIndex)
         {
+        case 7:
+            zEntPlayer_GiveClue(p->quantity);
+            return 0;
+        case 5:
+            if (keyCounter != NULL && (keyCounter->baseFlags & 1))
+            {
+                zEntPickup_ShowKeyCnt(keyCounter->asset->count - keyCounter->count,
+                                      keyCounter->asset->count);
+            }
+            break;
+        case 4:
+            fn_800B751C();
+            zEntPlayer_GiveScoobySnack(5);
+            fn_80050744(0x24);
+            break;
         case 0:
             zEntPlayer_GiveScoobySnack(p->quantity);
             break;
@@ -613,21 +607,6 @@ signed int zPickup_Give(_zEntPickup* ent, zAssetPickup* p, unsigned short value)
         case 3:
             zEntPlayer_GiveHotsauce(value);
             break;
-        case 4:
-            fn_800B751C();
-            zEntPlayer_GiveScoobySnack(5);
-            fn_80050744(0x24);
-            break;
-        case 5:
-            if (keyCounter != NULL && (keyCounter->baseFlags & 1))
-            {
-                zEntPickup_ShowKeyCnt(keyCounter->asset->count - keyCounter->count,
-                                      keyCounter->asset->count);
-            }
-            break;
-        case 7:
-            zEntPlayer_GiveClue(p->quantity);
-            return 0;
         case 9:
             if (!zEntPlayer_HasScoobySnack(value))
             {
@@ -643,23 +622,23 @@ signed int zPickup_Give(_zEntPickup* ent, zAssetPickup* p, unsigned short value)
         break;
     case 3:
     {
-        signed int* ammo = &globals.player.Inv_Ammo[p->pickupIndex];
-        signed int max = globals.player.Inv_AmmoMax[p->pickupIndex];
-        if (*ammo >= max)
+        if (globals.player.Inv_Ammo[p->pickupIndex] >= globals.player.Inv_AmmoMax[p->pickupIndex])
         {
             return 0;
         }
-        signed int n = *ammo + p->quantity;
-        *ammo = (n < max ? n : max) < 0 ? 0 : (n < max ? n : max);
+        globals.player.Inv_Ammo[p->pickupIndex] =
+            PICKUP_MAX(PICKUP_MIN(globals.player.Inv_Ammo[p->pickupIndex] + (signed int)p->quantity,
+                                  globals.player.Inv_AmmoMax[p->pickupIndex]),
+                       0);
         break;
     }
     case 5:
     {
         globals.player.Inv_AmmoMax[p->pickupIndex] += p->quantity;
-        signed int max = globals.player.Inv_AmmoMax[p->pickupIndex];
-        signed int n = globals.player.Inv_Ammo[p->pickupIndex] + p->quantity;
         globals.player.Inv_Ammo[p->pickupIndex] =
-            (n < max ? n : max) < 0 ? 0 : (n < max ? n : max);
+            PICKUP_MAX(PICKUP_MIN(globals.player.Inv_Ammo[p->pickupIndex] + (signed int)p->quantity,
+                                  globals.player.Inv_AmmoMax[p->pickupIndex]),
+                       0);
         break;
     }
     case 4:
@@ -671,9 +650,13 @@ signed int zPickup_Give(_zEntPickup* ent, zAssetPickup* p, unsigned short value)
     return 1;
 }
 
-void zEntPickup_FlyToInterface(_zEntPickup* ent)
+void zEntPickup_FlyToInterface(_zEntPickup* ent, float dt)
 {
-    _xMat4x3 mat = *xCameraGetCurMatrix((_tagxCamFrame*)&globals.camera);
+    _xMat4x3 mat;
+    float t;
+    float s;
+    _xVec3 d;
+    mat = *xCameraGetCurMatrix((_tagxCamFrame*)&globals.camera);
 
     if (ent->p->pickupIndex == 5)
     {
@@ -689,6 +672,7 @@ void zEntPickup_FlyToInterface(_zEntPickup* ent)
         case 3:
             xMat4x3MoveLocalRight(&mat, -0.08f);
             break;
+        case 4:
         default:
             xMat4x3MoveLocalRight(&mat, -0.17f);
             break;
@@ -702,7 +686,7 @@ void zEntPickup_FlyToInterface(_zEntPickup* ent)
         xMat4x3MoveLocalAt(&mat, 0.5f);
     }
 
-    float t = 1.0f - ent->timer / 0.4f;
+    t = 1.0f - ent->timer / 0.4f;
     if (t < 0.0f)
     {
         t = 0.0f;
@@ -712,10 +696,12 @@ void zEntPickup_FlyToInterface(_zEntPickup* ent)
         t = 1.0f;
     }
     t = fn_800294A0(t);
-    ent->model->Mat->pos.x = (mat.pos.x - ent->grab_pos.x) * t + ent->grab_pos.x;
-    ent->model->Mat->pos.y = (mat.pos.y - ent->grab_pos.y) * t + ent->grab_pos.y;
-    ent->model->Mat->pos.z = (mat.pos.z - ent->grab_pos.z) * t + ent->grab_pos.z;
-    ent->fx_scale = 1.0f - 0.9f * t;
+    xVec3Sub(&d, &mat.pos, &ent->grab_pos);
+    s = 0.9f * t;
+    ent->model->Mat->pos.x = d.x * t + ent->grab_pos.x;
+    ent->model->Mat->pos.y = d.y * t + ent->grab_pos.y;
+    ent->model->Mat->pos.z = d.z * t + ent->grab_pos.z;
+    ent->fx_scale = 1.0f - s;
     ent->vel.x = 0.0f;
     ent->vel.y = 0.0f;
     ent->vel.z = 0.0f;
@@ -729,18 +715,24 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
         {
             return;
         }
-        if (!(ent->timer > 0.0f))
+        if (ent->timer > 0.0f)
+        {
+            ent->timer -= dt;
+            if (ent->timer <= 0.0f)
+            {
+                ent->timer = 0.5f;
+                ent->state = (ent->state & ~0x3F) | 1;
+                ent->flags |= 1;
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
         {
             return;
         }
-        ent->timer -= dt;
-        if (!(ent->timer <= 0.0f))
-        {
-            return;
-        }
-        ent->timer = 0.5f;
-        ent->state = (ent->state & ~0x3F) | 1;
-        ent->flags |= 1;
     }
 
     if (!xEntIsVisible(ent))
@@ -768,21 +760,35 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
         }
         else
         {
-            zAssetPickup* p = ent->p;
-            _xVec3* pos = (_xVec3*)&ent->model->Mat->pos;
-            float dx = globals.player.ent.bound.sph.center.x - pos->x;
-            float hdx = globals.player.head_sph.center.x - pos->x;
-            float dy = globals.player.ent.bound.sph.center.y - pos->y;
-            float dy2 = dy * dy;
-            float dz = globals.player.ent.bound.sph.center.z - pos->z;
-            float hdz = globals.player.head_sph.center.z - pos->z;
-            float d1 = dx * dx + dy2 + dz * dz;
-            float d2 = hdx * hdx + dy2 + hdz * hdz;
+            zAssetPickup* p;
+            float dz;
+            float dy;
+            float hdx;
+            float d1;
+            _xVec3* pos;
+            float hdz;
+            float dx;
+            float d2;
+            p = ent->p;
+            pos = (_xVec3*)&ent->model->Mat->pos;
+            dx = globals.player.ent.bound.sph.center.x - pos->x;
+            hdx = globals.player.head_sph.center.x - pos->x;
+            dy = globals.player.ent.bound.sph.center.y - pos->y;
+            dx *= dx;
+            hdx *= hdx;
+            dy *= dy;
+            dz = globals.player.ent.bound.sph.center.z - pos->z;
+            hdz = globals.player.head_sph.center.z - pos->z;
+            dz *= dz;
+            hdz *= hdz;
+            d1 = dz + (dx + dy);
+            d2 = hdz + (hdx + dy);
 
             if (p->pickupType == 1 && p->pickupIndex == 8)
             {
-                float r = 2.5f * globals.player.ent.bound.sph.r;
-                if (globals.sceneCur->pendingPortal == NULL && zEntPickup_InRange(d1, d2, r * r))
+                if (globals.sceneCur->pendingPortal == NULL &&
+                    (d1 <= (2.5f * globals.player.ent.bound.sph.r) * (2.5f * globals.player.ent.bound.sph.r) ||
+                     d2 <= (2.5f * globals.player.ent.bound.sph.r) * (2.5f * globals.player.ent.bound.sph.r)))
                 {
                     if (zHudShowWarpGateInfo == -1)
                     {
@@ -824,7 +830,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                 if (lbl_8025ECFC == 0)
                 {
                     float r = 2.5f * globals.player.ent.bound.sph.r;
-                    if (zEntPickup_InRange(d1, d2, r * r))
+                    if ((d1 <= r * r || d2 <= r * r))
                     {
                         if (ent->snackGateInfoDisplayed == -1)
                         {
@@ -863,7 +869,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
             else if (p->pickupType == 1 && p->pickupIndex == 7)
             {
                 float r = 1.5f * globals.player.ent.bound.sph.r;
-                if (zEntPickup_InRange(d1, d2, r * r))
+                if ((d1 <= r * r || d2 <= r * r))
                 {
                     zEntPickup_GiveFX(ent);
                     ent->state = (ent->state & ~0x3F) | 0x20;
@@ -879,7 +885,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
             else if (p->pickupType == 1 && p->pickupIndex == 6)
             {
                 float r = 1.5f * globals.player.ent.bound.sph.r;
-                if (zEntPickup_InRange(d1, d2, r * r))
+                if ((d1 <= r * r || d2 <= r * r))
                 {
                     zEntPickup_GiveFX(ent);
                     ent->state = (ent->state & ~0x3F) | 0x20;
@@ -895,7 +901,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
             else
             {
                 float r = 1.5f * globals.player.ent.bound.sph.r;
-                if (zEntPickup_InRange(d1, d2, r * r))
+                if ((d1 <= r * r || d2 <= r * r))
                 {
                     if (p->pickupType == 1 && (p->pickupIndex == 0 || p->pickupIndex == 4))
                     {
@@ -972,7 +978,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                         }
                         else if (ent->shake_timer <= 0.0f)
                         {
-                            zEntPlayer_SNDErrorPickup();
+                            zEntPlayer_SNDErrorPickup(ent);
                             ent->shake_pos = *(_xVec3*)&ent->model->Mat->pos;
                             ent->shake_timer = 3.0f;
                         }
@@ -981,7 +987,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                 else
                 {
                     float r8 = 8.0f * globals.player.ent.bound.sph.r;
-                    if (zEntPickup_InRange(d1, d2, r8 * r8) && p->pickupType == 4)
+                    if ((d1 <= r8 * r8 || d2 <= r8 * r8) && p->pickupType == 4)
                     {
                         fn_80050744(3);
                     }
@@ -1198,6 +1204,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
     }
 }
 
+#pragma auto_inline on
 void zEntPickup_hideSnackGateInfo(_zEntPickup* ent)
 {
     if (ent->snackGateInfoDisplayed != -1)
@@ -1206,7 +1213,9 @@ void zEntPickup_hideSnackGateInfo(_zEntPickup* ent)
         ent->snackGateInfoDisplayed = -1;
     }
 }
+#pragma auto_inline reset
 
+#pragma auto_inline on
 void zEntPickup_Reset(_zEntPickup* ent)
 {
     zEntReset(ent);
@@ -1237,6 +1246,7 @@ void zEntPickup_Reset(_zEntPickup* ent)
     }
     sKeyCounterEnabledBeforeGive = 0;
 }
+#pragma auto_inline reset
 
 void zEntPickup_Save(_zEntPickup* ent, xSerial* s)
 {
@@ -1275,6 +1285,7 @@ void zEntPickup_MakeDroppable(_zEntPickup* ent, _xVec3* pos, xBase* parent)
     zEntPickup_MakeDroppableInline(ent, pos, parent);
 }
 
+#pragma auto_inline on
 void zEntPickup_Drop(_zEntPickup* ent)
 {
     ent->state = 0xC2;
@@ -1287,15 +1298,16 @@ void zEntPickup_Drop(_zEntPickup* ent)
             *(_xVec3*)&ent->model->Mat->pos = *(_xVec3*)&ent->useThisEntPos->model->Mat->pos;
         }
     }
+    float h = ent->model->Mat->pos.y - ent->droppos.y;
+    float vy = xsqrt(75.0f);
     ent->vel.x = 0.0f;
-    ent->vel.y = xsqrt(75.0f);
+    ent->vel.y = vy;
     ent->vel.z = 0.0f;
     if (!(ent->flg_opts & 1))
     {
-        float t1;
         float t2;
-        unsigned int n = xMathSolveQuadratic(-7.5f, ent->vel.y,
-                                             ent->model->Mat->pos.y - ent->droppos.y, &t1, &t2);
+        float t1;
+        unsigned int n = xMathSolveQuadratic(-7.5f, vy, h, &t1, &t2);
         if (n != 0)
         {
             if (n == 2 && t2 > t1)
@@ -1312,6 +1324,7 @@ void zEntPickup_Drop(_zEntPickup* ent)
     }
     ent->timer = 1.2f;
 }
+#pragma auto_inline reset
 
 void zEntPickup_UpdateFX(_zEntPickup* ent, float dt)
 {
@@ -1339,14 +1352,21 @@ void zEntPickup_UpdateFX(_zEntPickup* ent, float dt)
             _xMat4x3* m = (_xMat4x3*)ent->model->Mat;
             info.pos = m->pos;
             info.pos.x = -0.35f * m->right.x + info.pos.x;
-            info.pos.y = info.pos.y + 0.05f;
+            info.pos.y += 0.05f;
             info.pos.z = -0.35f * m->right.z + info.pos.z;
             info.pos.x = 0.4f * m->at.x + info.pos.x;
             info.pos.z = 0.4f * m->at.z + info.pos.z;
-            info.count = (ent->state & 0x20) ? 5 : 2;
+            if (ent->state & 0x20)
+            {
+                info.count = 5;
+            }
+            else
+            {
+                info.count = 2;
+            }
             m = (_xMat4x3*)ent->model->Mat;
-            info.vel.y = 0.2f;
             info.vel.x = -0.2f * -m->right.x;
+            info.vel.y = 0.2f;
             info.vel.z = -0.2f * -m->right.z;
             zParEmitterEmitCustom(sEmitMiniVanPuff, dt, &info);
         }
@@ -1403,21 +1423,13 @@ void zEntPickup_UpdateFX(_zEntPickup* ent, float dt)
     _zParEmitterCustomSettings info;
     info.custom_flags = 0x1A0;
     info.pos = *(_xVec3*)&ent->model->Mat->pos;
-    switch (ent->p->pickupType)
+    if (ent->p->pickupType == 1)
     {
-    case 1:
         switch (ent->p->pickupIndex)
         {
-        case 0:
-            ent->fx_timer = 999.0f;
-            return;
-        case 1:
-        case 3:
-        case 4:
+        case 2:
+        default:
             doGlow = 1;
-            r = 0xFF;
-            g = 0xFF;
-            b = 0;
             break;
         case 5:
         case 6:
@@ -1427,20 +1439,34 @@ void zEntPickup_UpdateFX(_zEntPickup* ent, float dt)
             g = 0;
             b = 0xFF;
             break;
+        case 0:
+            ent->fx_timer = 999.0f;
+            return;
+        case 3:
+        case 4:
+            doGlow = 1;
+            r = 0xFF;
+            g = 0xFF;
+            b = 0;
+            break;
+        case 1:
+            doGlow = 1;
+            r = 0xFF;
+            g = 0xFF;
+            b = 0;
+            break;
         case 8:
         case 9:
             doGlow = 0;
             break;
-        default:
-            doGlow = 1;
-            break;
         }
-        break;
-    case 2:
+    }
+    else if (ent->p->pickupType == 2)
+    {
         doGlow = 1;
-        break;
-    case 3:
-    case 5:
+    }
+    else if (ent->p->pickupType == 3 || ent->p->pickupType == 5)
+    {
         if (ent->p->pickupIndex == 1)
         {
             ent->fx_timer = 0.3f * iurand() + 0.1f;
@@ -1454,16 +1480,17 @@ void zEntPickup_UpdateFX(_zEntPickup* ent, float dt)
             ent->fx_par = zParEmitterEmitCustom(sEmitGum, 1.0f / 30.0f, &info);
             ent->fx_emit = sEmitGum;
         }
-        break;
-    case 4:
+    }
+    else if (ent->p->pickupType == 4)
+    {
         info.custom_flags |= 0x600;
         doGlow = 1;
-        info.size_birth = 5.0f;
         info.size_death = 5.0f;
-        break;
-    default:
+        info.size_birth = 5.0f;
+    }
+    else
+    {
         doGlow = 1;
-        break;
     }
 
     if (doGlow && ent->fx_timer != 0.0f && sEmitGlow != NULL)
@@ -1548,8 +1575,8 @@ void zEntPickup_RenderList(_zEntPickup* plist, unsigned int pcount)
 void zEntPickup_GiveFX(_zEntPickup* ent)
 {
     signed int killPar = 1;
-    unsigned char type = ent->p->pickupType;
-    unsigned char index = ent->p->pickupIndex;
+    signed int type = ent->p->pickupType;
+    signed int index = ent->p->pickupIndex;
     signed int fx;
 
     if (type == 2 || type == 4)
@@ -1559,9 +1586,8 @@ void zEntPickup_GiveFX(_zEntPickup* ent)
 
     fx = 0;
     _xMat4x3* m = (_xMat4x3*)ent->model->Mat;
-    switch (type)
+    if (type == 1)
     {
-    case 1:
         switch (index)
         {
         case 0:
@@ -1590,12 +1616,13 @@ void zEntPickup_GiveFX(_zEntPickup* ent)
             fx = 4;
             break;
         }
-        break;
-    case 2:
+    }
+    else if (type == 2)
+    {
         fx = 9;
-        break;
-    case 3:
-    case 5:
+    }
+    else if (type == 3 || type == 5)
+    {
         if (index == 0)
         {
             fx = 5;
@@ -1604,10 +1631,10 @@ void zEntPickup_GiveFX(_zEntPickup* ent)
         {
             fx = 6;
         }
-        break;
-    default:
+    }
+    else
+    {
         fx = 7;
-        break;
     }
 
     _zParEmitterCustomSettings info;
@@ -1627,6 +1654,10 @@ void zEntPickup_GiveFX(_zEntPickup* ent)
     {
         switch (fx)
         {
+        case 0:
+        case 1:
+        case 2:
+            break;
         case 3:
             if (sEmitGrabMmm != NULL)
             {
@@ -1690,45 +1721,53 @@ unsigned int zEntPickup_WarpIsOpen(unsigned int index)
 
 void zEntPickup_UpdateFlyToInterface(_zEntPickup* ent, unsigned int pcount, float dt)
 {
-    for (signed int i = 0; i < (signed int)pcount; i++, ent++)
+    _zUILike::_zUIAsset* a;
+    signed int i;
+    float sx;
+    float sy;
+    for (i = 0; i < (signed int)pcount; ent++, i++)
     {
         if ((ent->state & 4) && (ent->flyflags & 1))
         {
-            zEntPickup_FlyToInterface(ent);
+            zEntPickup_FlyToInterface(ent, dt);
         }
     }
 
-    for (signed int i = 0; i < 4; i++)
+    for (i = 0; i < 4; i++)
     {
-        _tagKeyShake* ks = &sKeyShake[i];
-        if (ks->shake_timer > 0.0f)
+        if (sKeyShake[i].shake_timer > 0.0f)
         {
-            ks->shake_timer -= dt;
-            if (ks->shake_timer <= 0.0f)
+            sKeyShake[i].shake_timer -= dt;
+            if (sKeyShake[i].shake_timer <= 0.0f)
             {
-                ks->shake_timer = 0.0f;
+                sKeyShake[i].shake_timer = 0.0f;
             }
-            if (ks->ui != NULL)
+            if (sKeyShake[i].ui != NULL)
             {
-                _zUILike::_zUIAsset* a = ((_zUILike*)ks->ui)->uiasset;
-                ks->shake_it = -0.85f * ks->shake_it;
-                float sx = ks->shake_it;
-                float sy = sx;
+                a = ((_zUILike*)sKeyShake[i].ui)->uiasset;
+                sKeyShake[i].shake_it = -0.85f * sKeyShake[i].shake_it;
+                sx = sKeyShake[i].shake_it;
+                sy = sx;
                 if (irand() & 1)
                 {
                     sy = -sx;
                 }
-                a->x = sx + ks->orig_pos.x;
-                a->y = sy + ks->orig_pos.y;
+                a->x = sx + sKeyShake[i].orig_pos.x;
+                a->y = sy + sKeyShake[i].orig_pos.y;
             }
         }
     }
 }
 
-unsigned int zEntPickup_lastSnackInArea()
+static inline unsigned int zEntPickup_snacksLeftInArea()
 {
     signed int total = zSceneGetAreaConstTotalSnacks(globals.sceneCur->sceneID);
-    return zSceneGetAreaSnacksCollected(globals.sceneCur->sceneID) == total;
+    return total - zSceneGetAreaSnacksCollected(globals.sceneCur->sceneID) != 0;
+}
+
+unsigned int zEntPickup_lastSnackInArea()
+{
+    return zEntPickup_snacksLeftInArea() == 0;
 }
 
 void zEntPickup_UnlockSnackGate(_xEnt* ent)
@@ -1770,3 +1809,31 @@ void zEntPickup_SceneUpdate(float dt)
 {
     sKeysOffTimer -= dt;
 }
+
+#pragma auto_inline on
+static void zEntPickup_ShowKeyCnt(unsigned int collected, unsigned int total)
+{
+    char s[64];
+    for (signed int i = 1; i <= (signed int)total; i++)
+    {
+        if (i > (signed int)collected)
+        {
+            sprintf(s, "KEY OFF %d UI", i);
+            zEntEvent(s, 3);
+            sprintf(s, "KEY ON %d UI", i);
+            zEntEvent(s, 4);
+        }
+        else
+        {
+            sprintf(s, "KEY OFF %d UI", i);
+            zEntEvent(s, 4);
+            sprintf(s, "KEY ON %d UI", i);
+            zEntEvent(s, 3);
+        }
+    }
+    if (collected == total)
+    {
+        sKeysOffTimer = 1.5f;
+    }
+}
+#pragma auto_inline reset
