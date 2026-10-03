@@ -44,7 +44,12 @@ Core/gc/iFile.cpp:
 	.sbss       start:0x8025E8A8 end:0x8025E8B8
 
 Core/gc/iFont.cpp:
-	.text       start:0x8000AB58 end:0x8000B924
+	.text       start:0x8000AB58 end:0x8000B9C4
+	.rodata     start:0x8018E650 end:0x8018E730
+	.data       start:0x801AD420 end:0x801AD440
+	.bss        start:0x801E06D8 end:0x801E1498
+	.sbss       start:0x8025E8B8 end:0x8025E8D8
+	.sdata2     start:0x8025F980 end:0x8025F9D0
 
 Core/gc/iLight.cpp:
 	.text       start:0x8000B9C4 end:0x8000BD14

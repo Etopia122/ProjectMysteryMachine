@@ -23,7 +23,7 @@ extern "C" {
 // TODO: unidentified save-slot check
 unsigned int fn_800C9738(signed int slot);
 // TODO: unidentified xFont global (text scale while rendering)
-extern float lbl_8025E8C0;
+extern float gFontWiggle;
 }
 
 void zUIFont_Render(_xEnt* e);
@@ -363,14 +363,14 @@ void zUIFont_Render(_xEnt* e)
                     (ent->uiFontHackFlags & 2) ||
                     ((ent->uiFontFlags & 0x200) && (ent->uiFlags & 2)))
                 {
-                    lbl_8025E8C0 = 1.0f;
+                    gFontWiggle = 1.0f;
                 }
                 else
                 {
-                    lbl_8025E8C0 = 0.0f;
+                    gFontWiggle = 0.0f;
                 }
                 xFontBoxRender(b);
-                lbl_8025E8C0 = 0.0f;
+                gFontWiggle = 0.0f;
             }
             xFontBoxDestroy(b);
         }

@@ -135,6 +135,19 @@ Patterns that have mattered for matching:
   registers differently from calling `iurand()` directly in the expression.
 - Clamp helpers written with `if (x < y) x = y; return x;` avoid the extra
   branches that `return (x < y) ? y : x;` produces in each arm.
+- Struct assignment is member-wise: a nested 4-byte `RwRGBA` member is copied
+  as one word, separate `unsigned char` members byte by byte. iFont's
+  `RwIm2DVertex` copies match only with the color as four byte members.
+- A literal added with the variable first (`fadds f1, v, k`) came in through a
+  local (`float d = 0.49999991f; v + d`), like the multiply case above.
+- A loop counter that is truncated (`clrlwi`) at its use was a wider integer
+  than the `unsigned char` it is stored into; a pointer difference
+  (`s - characters`) gets strength-reduced into the same counter but with a
+  different schedule.
+- An inline helper's parameter can keep its own saved register when its body is
+  a separate block of statements (xFX `xFXanimUVAtomicSetup`'s apply loop).
+- `.sdata2`/`.rodata` pools are padded to 8 bytes at the end; secdiff shows the
+  trailing zero word as a size difference, which is harmless.
 
 ## Open questions
 

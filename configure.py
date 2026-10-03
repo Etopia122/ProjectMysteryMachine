@@ -392,7 +392,7 @@ config.libs = [
             Object(Matching, "Core/gc/iDraw.cpp"),
             Object(NonMatching, "Core/gc/iEnv.cpp"),
             Object(NonMatching, "Core/gc/iFile.cpp"),
-            Object(NonMatching, "Core/gc/iFont.cpp"),
+            Object(Matching, "Core/gc/iFont.cpp"),
             Object(Matching, "Core/gc/iLight.cpp"),
             Object(Matching, "Core/gc/iMath.cpp"),
             Object(NonMatching, "Core/gc/iMath3.cpp"),
