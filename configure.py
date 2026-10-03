@@ -439,7 +439,7 @@ config.libs = [
             Object(Matching, "Core/x/xMath.cpp"),
             Object(NonMatching, "Core/x/xMath3.cpp"),
             Object(NonMatching, "Core/x/xMemMgr.cpp"),
-            Object(NonMatching, "Core/x/xModel.cpp"),
+            Object(Matching, "Core/x/xModel.cpp"),
             Object(Matching, "Core/x/xMorph.cpp"),
             Object(Matching, "Core/x/xMovePoint.cpp"),
             Object(Matching, "Core/x/xordarray.cpp"),

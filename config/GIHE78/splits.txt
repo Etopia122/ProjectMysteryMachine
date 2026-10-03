@@ -196,7 +196,10 @@ Core/x/xMemMgr.cpp:
 	.sbss       start:0x8025EAB8 end:0x8025EAC0
 
 Core/x/xModel.cpp:
-	.text       start:0x800300A8 end:0x80030D18
+	.text       start:0x800300A8 end:0x80030F28
+	.data       start:0x801AEE38 end:0x801AEE78
+	.sbss       start:0x8025EAC0 end:0x8025EAD0
+	.sdata2     start:0x80260048 end:0x802600D0
 
 Core/x/xMorph.cpp:
 	.text       start:0x80030F3C end:0x80031310

@@ -8,17 +8,24 @@
 class RwMatrixTag;
 
 class xAnimPlay;
+class xModelPool;
+class RpAtomic;
 
-// Placeholder: only these offsets are confirmed on GameCube.
 class xModelInstance
 {
 public:
-    xModelInstance* Next;   // 0x0
-    xModelInstance* Parent; // 0x4
-    void* Pool;             // 0x8
-    xAnimPlay* Anim;        // 0xC
-    unsigned char pad10[0x20 - 0x10];
-    RwMatrixTag* Mat; // 0x20
+    xModelInstance* Next;     // 0x0
+    xModelInstance* Parent;   // 0x4
+    xModelPool* Pool;         // 0x8
+    xAnimPlay* Anim;          // 0xC
+    RpAtomic* Data;           // 0x10
+    void* Object;             // 0x14
+    unsigned short Flags;     // 0x18
+    unsigned char BoneCount;  // 0x1A
+    unsigned char BoneIndex;  // 0x1B
+    unsigned char* BoneRemap; // 0x1C
+    RwMatrixTag* Mat;         // 0x20
+    _xVec3 Scale;             // 0x24
 };
 class _xScene;
 class _xEntCollis;

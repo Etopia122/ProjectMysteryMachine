@@ -118,6 +118,15 @@ Patterns that have mattered for matching:
   (zParGroupUpdateR: five copies, then a real call); other callers still call it.
 - A loop duplicated in two functions can come from one inline helper in one and
   hand-written code in the other (zParSysUpdate vs zParGroupUpdateR): try both.
+- `.sdata2` constants are pooled in code-generation (DOL) order. A unit whose pool
+  starts with constants its first float-using function doesn't load first had a
+  function the linker dead-stripped: add a global stand-in that uses them, in the
+  right DOL position (xModel's `xModelScreenSize`); the linker strips it again.
+- A function with a `switch` big enough for a jump table needs its `.data`
+  split, or the table appears twice and `.data` grows (0x40 for 16 cases).
+- Loading struct fields into locals first (`float x = sr->x; float y = sr->y;`)
+  lets later loads move ahead of stores; it reproduced xModelRender2D's
+  schedule without making the pointer `const` (which hoisted too much).
 - Imported names of statics often carry the wrong signature (PS2 vs GC). Fix the
   mangled name in symbols.txt, or check_unit can't pair the function.
 
