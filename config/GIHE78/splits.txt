@@ -241,6 +241,10 @@ Core/x/xSpline.cpp:
 
 Core/x/xstransvc.cpp:
 	.text       start:0x8003F9F8 end:0x80040978
+	.rodata     start:0x80193F08 end:0x80193F60
+	.data       start:0x801B5D08 end:0x801B6610
+	.sbss       start:0x8025EBC0 end:0x8025EBD0
+	.sdata2     start:0x802602F0 end:0x80260310
 
 Core/x/xString.cpp:
 	.text       start:0x80040978 end:0x80040EE4
