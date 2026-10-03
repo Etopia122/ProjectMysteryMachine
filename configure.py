@@ -449,7 +449,7 @@ config.libs = [
             Object(NonMatching, "Core/x/xParMgr.cpp"),
             Object(NonMatching, "Core/x/xPartition.cpp"),
             Object(NonMatching, "Core/x/xpkrsvc.cpp"),
-            Object(Matching, "Core/x/xQuickCull.cpp"),
+            Object(NonMatching, "Core/x/xQuickCull.cpp"),
             Object(NonMatching, "Core/x/xsavegame.cpp"),
             Object(Matching, "Core/x/xScene.cpp"),
             Object(NonMatching, "Core/x/xScrFx.cpp"),

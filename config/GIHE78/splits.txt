@@ -286,10 +286,12 @@ Core/x/xpkrsvc.cpp:
 	.sbss       start:0x8025EAF0 end:0x8025EB18
 
 Core/x/xQuickCull.cpp:
-	.text       start:0x800367E0 end:0x80036810
+	.text       start:0x80035854 end:0x80036908
+	.sbss       start:0x8025EB18 end:0x8025EB70
+	.sdata2     start:0x80260128 end:0x80260138
 
 Core/x/xsavegame.cpp:
-	.text       start:0x80036810 end:0x80038D48
+	.text       start:0x80036908 end:0x80038D48
 
 Core/x/xScene.cpp:
 	.text       start:0x80038D48 end:0x800394B4
