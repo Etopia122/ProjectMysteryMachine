@@ -4,6 +4,7 @@
 #include "xBase.h"
 #include "xBound.h"
 #include "xMath3.h"
+#include "iModel.h"
 
 class xPar;
 class xParGroup;
@@ -81,14 +82,6 @@ public:
     unsigned char cull_mode;       // 0x6E
     float cull_dist_sqr;           // 0x70
     unsigned char max_emit;        // 0x74
-};
-
-class iModelTag
-{
-public:
-    _xVec3 v;            // 0x0
-    unsigned int matidx; // 0xC
-    float wt[4];         // 0x10
 };
 
 class _zParEmitter : public xBase

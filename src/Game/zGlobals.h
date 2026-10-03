@@ -4,6 +4,7 @@
 #include "xCamera.h"
 #include "zEnt.h"
 #include "iCamera.h"
+#include "iModel.h"
 
 class zScene;
 
@@ -54,13 +55,40 @@ public:
     float d_timer;            // 0x64
 };
 
+// Only the fields used so far; offsets from the PS2 DWARF (same on GameCube).
+class zPlayerStatic
+{
+public:
+    unsigned char unk0[0xF4];
+    float FireTargetYaw;    // 0xF4
+    float FireTargetPitch;  // 0xF8
+    float FireTargetDist;   // 0xFC
+    float FireTargetRadius; // 0x100
+    float FireTrack;        // 0x104
+    float FireGumSpeed;     // 0x108
+    float FireSoapSpeed;    // 0x10C
+    float FireGumTimer;     // 0x110
+    float FireSoapTimer;    // 0x114
+    unsigned char unk118[0x13C - 0x118];
+};
+
 class zPlayerGlobals
 {
 public:
-    _zEnt ent;            // 0x0
-    unsigned int Visible; // 0xEC
-    unsigned int Health;  // 0xF0
-    unsigned char unkF4[0x660 - 0xF4];
+    _zEnt ent;                      // 0x0
+    unsigned int Visible;           // 0xEC
+    unsigned int Health;            // 0xF0
+    unsigned char unkF4[0x128 - 0xF4];
+    unsigned int LastProjectile;    // 0x128
+    unsigned char unk12C[0x1B0 - 0x12C];
+    _zEnt* FireTarget;              // 0x1B0
+    unsigned char unk1B4[0x3C8 - 0x1B4];
+    signed int Inv_Ammo[2];         // 0x3C8
+    signed int Inv_AmmoMax[2];      // 0x3D0
+    iModelTag BubbleTag;            // 0x3D8
+    unsigned char unk3F8[0x510 - 0x3F8];
+    zPlayerStatic s;                // 0x510
+    unsigned char unk64C[0x660 - 0x64C];
 };
 
 class zGlobals

@@ -359,10 +359,13 @@ Game/zEGenerator.cpp:
 	.sdata2     start:0x802604E8 end:0x80260530
 
 Game/zEnt.cpp:
-	.text       start:0x80048250 end:0x8004945C
+	.text       start:0x80048250 end:0x80049488
 
 Game/zEntBubble.cpp:
-	.text       start:0x80049540 end:0x8004A508
+	.text       start:0x80049488 end:0x8004A508
+	.rodata     start:0x801961B8 end:0x801961E8
+	.sbss       start:0x8025EC30 end:0x8025EC40
+	.sdata2     start:0x80260560 end:0x802605A8
 
 Game/zEntButton.cpp:
 	.text       start:0x8004A508 end:0x8004AAD4
