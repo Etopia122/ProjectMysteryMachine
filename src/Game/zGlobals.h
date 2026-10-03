@@ -144,7 +144,9 @@ public:
     _zEnt ent;                      // 0x0
     unsigned int Visible;           // 0xEC
     unsigned int Health;            // 0xF0
-    unsigned char unkF4[0x114 - 0xF4];
+    signed int Speed;               // 0xF4
+    signed int Sneak;               // 0xF8
+    unsigned char unkFC[0x114 - 0xFC];
     signed int JumpState;           // 0x114
     unsigned char unk118[0x128 - 0x118];
     unsigned int LastProjectile;    // 0x128
@@ -160,7 +162,11 @@ public:
     _xVec3 HangPivot;               // 0x2DC
     unsigned char unk2E8[0x308 - 0x2E8];
     iModelTag HangPawTag[4];        // 0x308
-    unsigned char unk388[0x3C0 - 0x388];
+    unsigned char unk388[0x3B0 - 0x388];
+    unsigned int Inv_Clue;          // 0x3B0
+    unsigned int Inv_Key;           // 0x3B4
+    unsigned int Inv_Chances;       // 0x3B8
+    unsigned int Inv_ScoobySnacks;  // 0x3BC
     unsigned int Inv_Specials;      // 0x3C0
     unsigned int Inv_Mtokens[1];    // 0x3C4
     signed int Inv_Ammo[2];         // 0x3C8
@@ -215,7 +221,9 @@ public:
     long long fog_t0;        // 0xBE8
     long long fog_t1;        // 0xBF0
     zGlobalGameStats stats;  // 0xBF8
-    unsigned char unkCC8[0x32F8 - 0xCC8]; // areaStats, levelStats, worldStats
+    zGlobalGameStats areaStats[30];  // 0xCC8
+    zGlobalGameStats levelStats[13]; // 0x2528
+    zGlobalGameStats worldStats[4];  // 0x2FB8
     signed int option_vibration; // 0x32F8
     float update_dt;         // 0x32FC
 };
