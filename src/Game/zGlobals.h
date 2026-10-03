@@ -150,7 +150,9 @@ public:
     signed int JumpState;           // 0x114
     unsigned char unk118[0x128 - 0x118];
     unsigned int LastProjectile;    // 0x128
-    unsigned char unk12C[0x1B0 - 0x12C];
+    unsigned char unk12C[0x170 - 0x12C];
+    unsigned int SpecialReceived;   // 0x170
+    unsigned char unk174[0x1B0 - 0x174];
     _zEnt* FireTarget;              // 0x1B0
     _zEnt* DamageSource;            // 0x1B4
     unsigned int ControlOn;         // 0x1B8
@@ -173,7 +175,9 @@ public:
     signed int Inv_AmmoMax[2];      // 0x3D0
     iModelTag BubbleTag;            // 0x3D8
     _xEntDrive drv;                 // 0x3F8
-    unsigned char unk448[0x510 - 0x448];
+    unsigned char unk448[0x4A0 - 0x448];
+    _xSphere head_sph;              // 0x4A0
+    unsigned char unk4B0[0x510 - 0x4B0];
     zPlayerStatic s;                // 0x510
     zCheckPoint cp;                 // 0x64C
 };

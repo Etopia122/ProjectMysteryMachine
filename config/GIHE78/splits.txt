@@ -443,6 +443,9 @@ Game/zEntPickup.cpp:
 	.text       start:0x8004C83C end:0x8004FD58
 	.rodata     start:0x801962E0 end:0x801965A0
 	.data       start:0x801B7E90 end:0x801B8140
+	.bss        start:0x80228A98 end:0x80229088
+	.sdata      start:0x8025E4B0 end:0x8025E4B8
+	.sbss       start:0x8025EC60 end:0x8025ECB8
 	.sdata2     start:0x802605F8 end:0x802606D0
 
 Game/zEntPlayer.cpp:
