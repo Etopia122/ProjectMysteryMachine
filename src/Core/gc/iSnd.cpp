@@ -325,12 +325,6 @@ static inline void iSndCalcVol(xSndVoiceInfo* vp, vinfo* info)
     }
 }
 
-static inline void iSndVoiceUpdate(xSndVoiceInfo* vp, vinfo* v)
-{
-    iSndUpdateVoicePos(vp);
-    iSndCalcVol(vp, v);
-}
-
 static inline void iSndStopStream(iSndStream* s)
 {
     DVDCancelAsync(&s->fileInfo.cb, NULL);
@@ -342,14 +336,6 @@ static inline void iSndStopStream(iSndStream* s)
 static inline unsigned char iSndDiskReady()
 {
     return lbl_8025EBD8.mode == 6;
-}
-
-static inline void iSndWaitFrames(signed int n)
-{
-    signed int t = fc + n;
-    while (fc < t)
-    {
-    }
 }
 
 // TODO: NonMatching. iSndWaitForDeadSounds keeps its 140-frame limit in a saved
@@ -485,20 +471,20 @@ static void fcb()
     fc++;
     for (i = 0; i < 6; i++)
     {
+        unsigned int flags = streams[i].vinf.flags;
         xSndVoiceInfo* vp = &gSnd.voice[i];
-        iSndStream* s = &streams[i];
-        unsigned int flags = s->vinf.flags;
-        if (s->vinf.voice == NULL)
+        if (streams[i].vinf.voice == NULL)
         {
             continue;
         }
 
-        unsigned short addrHi = s->vinf.voice->pb.addr.currentAddressHi;
-        unsigned short addrLo = s->vinf.voice->pb.addr.currentAddressLo;
-        if ((addrHi << 16) + addrLo >= zero_end - 0x5DC0 && (addrHi << 16) + addrLo < zero_end)
+        unsigned short addrHi = streams[i].vinf.voice->pb.addr.currentAddressHi;
+        unsigned short addrLo = streams[i].vinf.voice->pb.addr.currentAddressLo;
+        unsigned int cur = ((unsigned int)addrHi << 16) + addrLo;
+        if (cur >= zero_end - 0x5DC0 && cur < zero_end)
         {
-            iSndStopStream(s);
-            AXFreeVoice(s->vinf.voice);
+            iSndStopStream(&streams[i]);
+            AXFreeVoice(streams[i].vinf.voice);
             voices[i].voice = NULL;
             voices[i].flags = 0;
             voices[i].aid = 0;
@@ -511,168 +497,167 @@ static void fcb()
         }
 
         unsigned int addr = (addrHi << 16) + addrLo;
-        if (addr < s->dest_b * 2 && !(flags & 0x4000) && !(flags & 0x8))
+        if (addr < streams[i].dest_b * 2 && !(flags & 0x4000) && !(flags & 0x8))
         {
-            s->vinf.flags |= 0x4000;
-            s->vinf.flags &= ~0x8000;
-            s->vinf.flags &= ~0x2000;
-            if (s->read == s->x94)
+            streams[i].vinf.flags |= 0x4000;
+            streams[i].vinf.flags &= ~0x8000;
+            streams[i].vinf.flags &= ~0x2000;
+            if (streams[i].read == streams[i].x94)
             {
-                s->vinf.flags |= 0x20;
+                streams[i].vinf.flags |= 0x20;
             }
             else
             {
-                s->x94 = s->read;
+                streams[i].x94 = streams[i].read;
             }
-            flags = s->vinf.flags;
+            flags = streams[i].vinf.flags;
         }
-        else if (addr >= s->dest_b * 2 && !(flags & 0x8000))
+        else if (addr >= streams[i].dest_b * 2 && !(flags & 0x8000))
         {
-            s->vinf.flags |= 0x8000;
-            s->vinf.flags &= ~0x4000;
-            s->vinf.flags &= ~0x1000;
-            flags = s->vinf.flags;
+            streams[i].vinf.flags |= 0x8000;
+            streams[i].vinf.flags &= ~0x4000;
+            streams[i].vinf.flags &= ~0x1000;
+            flags = streams[i].vinf.flags;
         }
 
         if ((flags & 0x20) && (flags & 0x4000))
         {
-            s->vinf.flags &= ~0x20;
-            unsigned int end = s->dest_a * 2 + s->info.num_adpcm_nibbles % 48000;
-            AXSetVoiceLoopAddr(s->vinf.voice, zero_point);
-            AXSetVoiceEndAddr(s->vinf.voice, end - 1);
-            AXSetVoiceLoop(s->vinf.voice, 0);
-            AXSetVoiceType(s->vinf.voice, 0);
-            s->vinf.flags |= 0x40;
-            flags = s->vinf.flags;
+            streams[i].vinf.flags &= ~0x20;
+            unsigned int end = streams[i].dest_a * 2 + streams[i].info.num_adpcm_nibbles % 48000;
+            AXSetVoiceLoopAddr(streams[i].vinf.voice, zero_point);
+            AXSetVoiceEndAddr(streams[i].vinf.voice, end - 1);
+            AXSetVoiceLoop(streams[i].vinf.voice, 0);
+            AXSetVoiceType(streams[i].vinf.voice, 0);
+            streams[i].vinf.flags |= 0x40;
+            flags = streams[i].vinf.flags;
         }
 
         if (flags & 0x100000)
         {
-            AXFreeVoice(s->vinf.voice);
-            s->vinf.voice = NULL;
-            s->vinf.flags = 0;
-            s->vinf.aid = 0;
+            AXFreeVoice(streams[i].vinf.voice);
+            streams[i].vinf.voice = NULL;
+            streams[i].vinf.flags = 0;
+            streams[i].vinf.aid = 0;
             continue;
         }
 
         if (addr >= zero_point && addr < zero_end && (flags & 0x40))
         {
-            s->vinf.flags &= ~0x40;
-            iSndStopStream(s);
-            if (s->vinf.flags & 0x10000)
+            streams[i].vinf.flags &= ~0x40;
+            iSndStopStream(&streams[i]);
+            if (streams[i].vinf.flags & 0x10000)
             {
                 unsigned int priority = vp->priority;
                 if (priority > 0xFF)
                 {
                     priority = 0xFF;
                 }
-                AXFreeVoice(s->vinf.voice);
-                s->vinf.voice = AXAcquireVoice(priority >> 3, dv_callback, i);
-                if (s->vinf.voice == NULL)
+                AXFreeVoice(streams[i].vinf.voice);
+                streams[i].vinf.voice = AXAcquireVoice(priority >> 3, dv_callback, i);
+                if (streams[i].vinf.voice == NULL)
                 {
-                    s->vinf.voice = NULL;
-                    s->vinf.flags = 0;
-                    s->vinf.aid = 0;
+                    streams[i].vinf.voice = NULL;
+                    streams[i].vinf.flags = 0;
+                    streams[i].vinf.aid = 0;
                     continue;
                 }
-                MIXInitChannel(s->vinf.voice, 0xC, 0, -900, -900, 0x40, 0x7F, -900);
-                s->vinf.flags = 0x4;
+                MIXInitChannel(streams[i].vinf.voice, 0xC, 0, -900, -900, 0x40, 0x7F, -900);
+                streams[i].vinf.flags = 0x4;
                 iSndPlay(vp);
                 continue;
             }
-            s->vinf.flags = 0x40000;
+            streams[i].vinf.flags = 0x40000;
             continue;
         }
 
         if (flags & 0x8)
         {
-            if (!(s->vinf.flags & 0x2))
+            if (!(streams[i].vinf.flags & 0x2))
             {
-                AXSetVoiceState(s->vinf.voice, 1);
+                AXSetVoiceState(streams[i].vinf.voice, 1);
             }
-            MIXUnMute(s->vinf.voice);
+            MIXUnMute(streams[i].vinf.voice);
             need_update = 1;
-            s->vinf.flags |= 0x10;
-            s->vinf.flags |= 0x4000;
-            s->vinf.flags &= ~0x8;
-            flags = s->vinf.flags;
+            streams[i].vinf.flags |= 0x10;
+            streams[i].vinf.flags |= 0x4000;
+            streams[i].vinf.flags &= ~0x8;
+            flags = streams[i].vinf.flags;
         }
 
         if ((flags & 0x200000) && !(flags & 0x200) && !(flags & 0x400) && !(flags & 0x100) &&
             !(flags & 0x400000))
         {
-            s->vinf.flags &= ~0x200000;
-            s->vinf.flags |= 0x100;
-            s->vinf.flags |= 0x400000;
-            unsigned int size = s->size - s->read;
+            streams[i].vinf.flags &= ~0x200000;
+            streams[i].vinf.flags |= 0x100;
+            streams[i].vinf.flags |= 0x400000;
+            unsigned int size = streams[i].size - streams[i].read;
             if (size > 12000)
             {
-                DVDReadAsyncPrio(&s->fileInfo, (void*)s->source_a, 12000, s->offset, dvdcb, 2);
+                DVDReadAsyncPrio(&streams[i].fileInfo, (void*)streams[i].source_a, 12000, streams[i].offset, dvdcb, 2);
             }
             else
             {
-                DVDReadAsyncPrio(&s->fileInfo, (void*)s->source_a, size, s->offset, dvdcb, 2);
+                DVDReadAsyncPrio(&streams[i].fileInfo, (void*)streams[i].source_a, size, streams[i].offset, dvdcb, 2);
             }
         }
 
         if (flags & 0x800)
         {
             unsigned int length = 12000;
-            if (s->read % 12000)
+            if (streams[i].read % 12000)
             {
-                length = s->read % 12000;
+                length = streams[i].read % 12000;
             }
             unsigned int bit12 = flags & 0x1000;
             if (bit12 && (flags & 0x4000) && !(flags & 0x400) && !(flags & 0x2000))
             {
-                s->vinf.flags |= 0x400;
-                ARQPostRequest(&s->request, (unsigned long)s, 0, 1, s->source_a, s->dest_b, length,
+                streams[i].vinf.flags |= 0x400;
+                ARQPostRequest(&streams[i].request, (unsigned long)&streams[i], 0, 1, streams[i].source_a, streams[i].dest_b, length,
                                arqcb);
             }
             else if ((flags & 0x2000) && (flags & 0x8000) && !(flags & 0x200) && !bit12)
             {
-                s->vinf.flags |= 0x200;
-                ARQPostRequest(&s->request, (unsigned long)s, 0, 1, s->source_a, s->dest_a, length,
+                streams[i].vinf.flags |= 0x200;
+                ARQPostRequest(&streams[i].request, (unsigned long)&streams[i], 0, 1, streams[i].source_a, streams[i].dest_a, length,
                                arqcb);
             }
         }
 
-        if (s->vinf.x10 != s->vinf.x14 || s->vinf.x18 != s->vinf.x1c)
+        if (streams[i].vinf.x10 != streams[i].vinf.x14 || streams[i].vinf.x18 != streams[i].vinf.x1c)
         {
-            s->vinf.x14 = s->vinf.x10;
-            s->vinf.x1c = s->vinf.x18;
-            MIXAdjustInput(s->vinf.voice, s->vinf.x1c - MIXGetInput(s->vinf.voice));
-            MIXAdjustPan(s->vinf.voice, s->vinf.x1c - MIXGetPan(s->vinf.voice));
+            streams[i].vinf.x14 = streams[i].vinf.x10;
+            streams[i].vinf.x1c = streams[i].vinf.x18;
+            MIXAdjustInput(streams[i].vinf.voice, streams[i].vinf.x1c - MIXGetInput(streams[i].vinf.voice));
+            MIXAdjustPan(streams[i].vinf.voice, streams[i].vinf.x1c - MIXGetPan(streams[i].vinf.voice));
             need_update = 1;
         }
     }
 
     for (i = 0; i < 58; i++)
     {
-        vinfo* v = &voices[i];
-        if (v->voice == NULL || (v->flags & 0x1))
+        if (voices[i].voice == NULL || (voices[i].flags & 0x1))
         {
             continue;
         }
-        unsigned int addr = (v->voice->pb.addr.currentAddressHi << 16) +
-                            v->voice->pb.addr.currentAddressLo;
-        if ((v->flags & 0x4) && v->voice->pb.addr.loopFlag == 0 && addr >= zero_point &&
+        unsigned int addr = (voices[i].voice->pb.addr.currentAddressHi << 16) +
+                            voices[i].voice->pb.addr.currentAddressLo;
+        if ((voices[i].flags & 0x4) && voices[i].voice->pb.addr.loopFlag == 0 && addr >= zero_point &&
             addr < zero_end)
         {
-            v->flags &= ~0x4;
-            AXSetVoiceState(v->voice, 0);
-            MIXReleaseChannel(v->voice);
-            AXFreeVoice(v->voice);
-            v->voice = NULL;
-            v->flags = 0;
-            v->aid = 0;
+            voices[i].flags &= ~0x4;
+            AXSetVoiceState(voices[i].voice, 0);
+            MIXReleaseChannel(voices[i].voice);
+            AXFreeVoice(voices[i].voice);
+            voices[i].voice = NULL;
+            voices[i].flags = 0;
+            voices[i].aid = 0;
         }
-        else if (v->x10 != v->x14 || v->x18 != v->x1c)
+        else if (voices[i].x10 != voices[i].x14 || voices[i].x18 != voices[i].x1c)
         {
-            v->x14 = v->x10;
-            v->x1c = v->x18;
-            MIXAdjustInput(v->voice, v->x1c - MIXGetInput(v->voice));
-            MIXAdjustPan(v->voice, v->x1c - MIXGetPan(v->voice));
+            voices[i].x14 = voices[i].x10;
+            voices[i].x1c = voices[i].x18;
+            MIXAdjustInput(voices[i].voice, voices[i].x1c - MIXGetInput(voices[i].voice));
+            MIXAdjustPan(voices[i].voice, voices[i].x1c - MIXGetPan(voices[i].voice));
             need_update = 1;
         }
     }
@@ -685,14 +670,12 @@ static void fcb()
 
 void iSndInit()
 {
-    // PERM_BEGIN
     unsigned int offset;
     signed int i;
     unsigned int* buf;
     signed int enabled;
     unsigned int aram;
     ARQRequest request;
-    // PERM_END
 
     AIInit(NULL);
     ARInit(aram_array, 40);
@@ -825,12 +808,13 @@ void* iSndLookup(unsigned int id)
     {
         iSndBank* bank = &banks[b];
         iSndInfoAsset* info = bank->info;
+        sDSPADPCM* entries = info->entries;
         unsigned int i;
         for (i = 0; i < info->nsounds; i++)
         {
-            if (id == info->entries[i].aid)
+            if (id == entries[i].aid)
             {
-                memcpy(&lookup.info, &info->entries[i], sizeof(sDSPADPCM));
+                memcpy(&lookup.info, &entries[i], sizeof(sDSPADPCM));
                 memcpy(&lookup.file, &bank->file, sizeof(tag_xFile));
                 lookup.handle = sSceneHandle++;
                 if (sSceneHandle >= 0x7FFA)
@@ -840,11 +824,11 @@ void* iSndLookup(unsigned int id)
                 return &lookup;
             }
         }
-        for (; i < info->nsounds + info->nstreams; i++)
+        for (; i < info->nstreams + info->nsounds; i++)
         {
-            if (id == info->entries[i].aid)
+            if (id == entries[i].aid)
             {
-                memcpy(&lookup.info, &info->entries[i], sizeof(sDSPADPCM));
+                memcpy(&lookup.info, &entries[i], sizeof(sDSPADPCM));
                 memcpy(&lookup.file, &bank->file, sizeof(tag_xFile));
                 if (b > 1)
                 {
@@ -1065,12 +1049,10 @@ void iSndUpdateStreams(float dt)
 
 void iSndUpdate(float dt)
 {
-    // PERM_BEGIN
     signed int i;
     vinfo* v;
     signed int enabled;
     xSndVoiceInfo* vp;
-    // PERM_END
     enabled = OSDisableInterrupts();
     iSndUpdateStreams(dt);
     for (i = 0; i < 58; i++)
@@ -1117,95 +1099,98 @@ unsigned int iSndFindFreeVoice(unsigned int priority, unsigned int flags)
                 return -2;
             }
         }
-        return -2;
     }
-
-    for (signed int i = 0; i < 58; i++)
+    else
     {
-        if (voices[i].voice == NULL)
+        for (signed int i = 0; i < 58; i++)
         {
-            voices[i].flags = 0;
-            voices[i].flags |= 0x1;
-            return i + 6;
+            if (voices[i].voice == NULL)
+            {
+                voices[i].flags = 0;
+                voices[i].flags |= 0x1;
+                return i + 6;
+            }
         }
-    }
 
-    unsigned short lowest = 0xFFFF;
-    signed int found = 0;
-    for (signed int i = 6; i < 64; i++)
-    {
-        if (gSnd.voice[i].priority < lowest)
+        signed int i;
+        unsigned int lowest = 0xFFFFFFFF;
+        signed int found = 0;
+        for (i = 6; i < 64; i++)
         {
-            lowest = gSnd.voice[i].priority;
-            found = i;
+            if (gSnd.voice[i].priority < lowest)
+            {
+                lowest = gSnd.voice[i].priority;
+                found = i;
+            }
         }
-    }
 
-    if (lowest < (priority >> 3))
-    {
-        vinfo* v = &voices[found - 6];
-        signed int enabled = OSDisableInterrupts();
-        MIXReleaseChannel(v->voice);
-        AXSetVoiceState(v->voice, 0);
-        AXFreeVoice(v->voice);
-        v->voice = NULL;
-        v->flags = 0;
-        v->flags |= 0x1;
-        v->aid = 0;
-        OSRestoreInterrupts(enabled);
-        return found;
+        if (lowest < (priority >> 3))
+        {
+            signed int idx = found - 6;
+            signed int enabled = OSDisableInterrupts();
+            MIXReleaseChannel(voices[idx].voice);
+            AXSetVoiceState(voices[idx].voice, 0);
+            AXFreeVoice(voices[idx].voice);
+            voices[idx].voice = NULL;
+            voices[idx].flags = 0;
+            voices[idx].flags |= 0x1;
+            voices[idx].aid = 0;
+            OSRestoreInterrupts(enabled);
+            return found;
+        }
     }
     return -2;
 }
 
 unsigned int iSndPlayStream(xSndVoiceInfo* vp)
 {
-    iSndStream* s = &streams[vp - gSnd.voice];
-    if (s->vinf.voice == NULL || !(s->vinf.flags & 1))
+    signed int idx = vp - gSnd.voice;
+    iSndStream* s = &streams[idx];
+    if (s->vinf.voice != NULL && (s->vinf.flags & 1))
     {
-        return 0;
+        s->offset = s->info.sa;
+        s->read = 0;
+        DVDFileInfo* fi = &s->fileInfo;
+        signed int enabled = OSDisableInterrupts();
+        s->vinf.flags |= 0x400000;
+        unsigned int size = 12000;
+        if (s->size <= 12000)
+        {
+            size = s->size;
+        }
+        DVDReadAsyncPrio(fi, (void*)s->source_a, size, s->offset, dvdcb, 2);
+
+        AXPBADDR addr;
+        memcpy(&addr, &s->info.loop_flag, sizeof(AXPBADDR));
+        unsigned int start = s->dest_a * 2;
+        addr.loopFlag = 1;
+        addr.format = 0;
+        unsigned int end = start + 0xBB7F;
+        start += 2;
+        addr.loopAddressHi = start >> 16;
+        addr.loopAddressLo = start;
+        addr.currentAddressHi = start >> 16;
+        addr.currentAddressLo = start;
+        addr.endAddressHi = end >> 16;
+        addr.endAddressLo = end;
+        AXSetVoiceAddr(s->vinf.voice, &addr);
+        AXSetVoiceAdpcm(s->vinf.voice, s->info.coef);
+        AXSetVoiceSrcType(s->vinf.voice, 1);
+        AXSetVoiceType(s->vinf.voice, 1);
+
+        float ratio = (float)s->info.sample_rate / 32000.0f;
+        s->vinf.voice->pb.ratioHi = (signed int)ratio;
+        s->vinf.voice->pb.ratioLo = (signed int)(65536.0f * ratio);
+        s->vinf.voice->sync |= 0x80000000;
+        streams[idx].vinf.x14 = 0x7FFFFFFF;
+        streams[idx].vinf.x1c = 0x7FFFFFFF;
+        MIXUnMute(s->vinf.voice);
+        iSndUpdateVoicePos(vp);
+        iSndCalcVol(vp, &s->vinf);
+        OSRestoreInterrupts(enabled);
+        return vp->sndID;
     }
-
-    s->offset = s->info.sa;
-    s->read = 0;
-    signed int enabled = OSDisableInterrupts();
-    s->vinf.flags |= 0x400000;
-    unsigned int size = 12000;
-    if (s->size <= 12000)
-    {
-        size = s->size;
-    }
-    DVDReadAsyncPrio(&s->fileInfo, (void*)s->source_a, size, s->offset, dvdcb, 2);
-
-    AXPBADDR addr;
-    memcpy(&addr, &s->info.loop_flag, sizeof(AXPBADDR));
-    unsigned int start = s->dest_a * 2;
-    unsigned int end = start + 0xBB7F;
-    start += 2;
-    addr.format = 0;
-    addr.loopFlag = 1;
-    addr.loopAddressHi = start >> 16;
-    addr.loopAddressLo = start;
-    addr.currentAddressHi = start >> 16;
-    addr.currentAddressLo = start;
-    addr.endAddressHi = end >> 16;
-    addr.endAddressLo = end;
-    AXSetVoiceAddr(s->vinf.voice, &addr);
-    AXSetVoiceAdpcm(s->vinf.voice, s->info.coef);
-    AXSetVoiceSrcType(s->vinf.voice, 1);
-    AXSetVoiceType(s->vinf.voice, 1);
-
-    float ratio = (float)s->info.sample_rate / 32000.0f;
-    s->vinf.voice->pb.ratioHi = (unsigned short)ratio;
-    s->vinf.voice->pb.ratioLo = (unsigned short)(65536.0f * ratio);
-    s->vinf.voice->sync |= 0x80000000;
-    s->vinf.x14 = 0x7FFFFFFF;
-    s->vinf.x1c = 0x7FFFFFFF;
-    MIXUnMute(s->vinf.voice);
-    iSndUpdateVoicePos(vp);
-    iSndCalcVol(vp, &s->vinf);
-    OSRestoreInterrupts(enabled);
-    return vp->sndID;
+    return 0;
 }
 
 unsigned int iSndPlaySound(xSndVoiceInfo* vp)
@@ -1214,9 +1199,8 @@ unsigned int iSndPlaySound(xSndVoiceInfo* vp)
     {
         for (signed int i = 0; i < 64; i++)
         {
-            xSndVoiceInfo* other = &gSnd.voice[i];
-            if (other != vp && other->assetID == vp->assetID && other->parentID == vp->parentID &&
-                (other->flags & 1))
+            if (&gSnd.voice[i] != vp && gSnd.voice[i].assetID == vp->assetID &&
+                gSnd.voice[i].parentID == vp->parentID && (gSnd.voice[i].flags & 1))
             {
                 return 0;
             }
@@ -1245,55 +1229,54 @@ unsigned int iSndPlaySound(xSndVoiceInfo* vp)
         priority = 0xFF;
     }
 
-    vinfo* v = &voices[idx - 6];
-    if (v->voice != NULL)
+    signed int i = idx - 6;
+    if (voices[i].voice == NULL)
     {
-        return 0;
+        voices[i].aid = vp->assetID;
+        if (voices[i].aid == 0x84838AEC)
+        {
+            vp->flags |= 0x400;
+        }
+        voices[i].time = 1000.0f * lookup.info.num_samples;
+        voices[i].time = voices[i].time / lookup.info.sample_rate;
+
+        AXPBADDR addr;
+        memcpy(&addr, &lookup.info.loop_flag, sizeof(AXPBADDR));
+        if (lookup.info.loop_flag == 0)
+        {
+            addr.loopAddressLo = zero_point;
+            addr.loopAddressHi = zero_point >> 16;
+        }
+
+        voices[i].voice = AXAcquireVoice(priority >> 3, dv_callback, idx);
+        if (voices[i].voice == NULL)
+        {
+            return 0;
+        }
+
+        signed int enabled = OSDisableInterrupts();
+        AXSetVoiceAddr(voices[i].voice, &addr);
+        AXSetVoiceType(voices[i].voice, 0);
+        AXSetVoiceAdpcm(voices[i].voice, lookup.info.coef);
+        AXSetVoiceSrcType(voices[i].voice, 1);
+        MIXInitChannel(voices[i].voice, 4, 0, -904, -904, 0x40, 0x7F, -904);
+        MIXUnMute(voices[i].voice);
+        iSndUpdateVoicePos(vp);
+        iSndCalcVol(vp, &voices[i]);
+
+        float ratio = (float)lookup.info.sample_rate / 32000.0f;
+        voices[i].voice->pb.ratioHi = (signed int)ratio;
+        voices[i].voice->pb.ratioLo = (signed int)(65536.0 * ratio);
+        voices[i].voice->sync |= 0x80000000;
+        MIXUnMute(voices[i].voice);
+        MIXUpdateSettings();
+        AXSetVoiceState(voices[i].voice, 1);
+        OSRestoreInterrupts(enabled);
+        voices[i].flags &= ~1;
+        voices[i].flags |= 4;
+        return vp->sndID;
     }
-
-    v->aid = vp->assetID;
-    if (v->aid == 0x84837AEC)
-    {
-        vp->flags |= 0x400;
-    }
-    v->time = 1000.0f * lookup.info.num_samples;
-    v->time = v->time / lookup.info.sample_rate;
-
-    AXPBADDR addr;
-    memcpy(&addr, &lookup.info.loop_flag, sizeof(AXPBADDR));
-    if (lookup.info.loop_flag == 0)
-    {
-        addr.loopAddressLo = zero_point;
-        addr.loopAddressHi = zero_point >> 16;
-    }
-
-    v->voice = AXAcquireVoice(priority >> 3, dv_callback, idx);
-    if (v->voice == NULL)
-    {
-        return 0;
-    }
-
-    signed int enabled = OSDisableInterrupts();
-    AXSetVoiceAddr(v->voice, &addr);
-    AXSetVoiceType(v->voice, 0);
-    AXSetVoiceAdpcm(v->voice, lookup.info.coef);
-    AXSetVoiceSrcType(v->voice, 1);
-    MIXInitChannel(v->voice, 4, 0, -904, -904, 0x40, 0x7F, -904);
-    MIXUnMute(v->voice);
-    iSndUpdateVoicePos(vp);
-    iSndCalcVol(vp, v);
-
-    float ratio = (float)lookup.info.sample_rate / 32000.0f;
-    v->voice->pb.ratioHi = (unsigned short)ratio;
-    v->voice->pb.ratioLo = (unsigned short)(65536.0 * ratio);
-    v->voice->sync |= 0x80000000;
-    MIXUnMute(v->voice);
-    MIXUpdateSettings();
-    AXSetVoiceState(v->voice, 1);
-    OSRestoreInterrupts(enabled);
-    v->flags &= ~1;
-    v->flags |= 4;
-    return vp->sndID;
+    return 0;
 }
 
 #pragma auto_inline on
@@ -1376,18 +1359,21 @@ void iSndSuspendCD(unsigned int suspend)
 void iSndSceneExit()
 {
     unsigned long length;
-    signed int done = 0;
-    signed int enabled = OSDisableInterrupts();
+    signed int done;
+    signed int enabled;
+    signed int i;
+    done = 0;
+    enabled = OSDisableInterrupts();
     ARQFlushQueue();
     DVDCancelAll();
-    for (signed int i = 0; i < 64; i++)
+    for (i = 0; i < 64; i++)
     {
         if (gSnd.voice[i].sndID != 0)
         {
             iSndStop(gSnd.voice[i].sndID);
         }
     }
-    for (signed int i = 0; i < 64; i++)
+    for (i = 0; i < 64; i++)
     {
         if (gSnd.voice[i].sndID != 0)
         {
@@ -1405,14 +1391,14 @@ void iSndSceneExit()
         {
         }
         iSndUpdate(0.07f);
-        for (signed int i = 0; i < 6; i++)
+        for (i = 0; i < 6; i++)
         {
             if (streams[i].vinf.voice != NULL)
             {
                 done = 0;
             }
         }
-        for (signed int i = 0; i < 58; i++)
+        for (i = 0; i < 58; i++)
         {
             if (voices[i].voice != NULL)
             {
@@ -1433,12 +1419,18 @@ static void sndloadcb(signed int)
 
 void iSndLoadSounds(void* data)
 {
-    iSndInfoAsset* info = (iSndInfoAsset*)data;
-    unsigned int total = 0;
-    unsigned int lo = 0xFFFFFFFF;
-    unsigned int hi = 0;
-    st_xST_XASSETINFO ainfo;
+    iSndInfoAsset* info;
+    sDSPADPCM* entries;
+    unsigned int lo;
+    char* name;
     unsigned int i;
+    unsigned int hi;
+    tag_xFile* file;
+    unsigned int total;
+    info = (iSndInfoAsset*)data;
+    total = 0;
+    lo = 0xFFFFFFFF;
+    hi = 0;
 
     if (info->nsounds == 0 && info->nstreams == 0)
     {
@@ -1450,14 +1442,16 @@ void iSndLoadSounds(void* data)
         exit(-1);
     }
 
-    sDSPADPCM* entries = info->entries;
+    entries = info->entries;
     banks[nbanks].info = info;
-    iFileOpen(xST_xAssetID_HIPFullPath(info->entries[0].aid), 0, &banks[nbanks].file);
-    tag_xFile* file = &banks[nbanks].file;
+    name = xST_xAssetID_HIPFullPath(info->entries[0].aid);
+    file = &banks[nbanks].file;
+    iFileOpen(name, 0, file);
     iFileSeek(file, 0, 0);
 
     for (i = 0; i < info->nsounds; i++)
     {
+        st_xST_XASSETINFO ainfo;
         sDSPADPCM* e = &entries[i];
         xSTGetAssetInfo(e->aid, &ainfo);
         unsigned int start = ainfo.plus_offset + ((ainfo.sector - file->fileInfo.startAddr) << 5);
@@ -1478,6 +1472,7 @@ void iSndLoadSounds(void* data)
 
     for (i = 0; i < info->nstreams; i++)
     {
+        st_xST_XASSETINFO ainfo;
         xSTGetAssetInfo(entries[i + info->nsounds].aid, &ainfo);
         if (nbanks < 2)
         {
