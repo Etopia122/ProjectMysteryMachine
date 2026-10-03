@@ -97,6 +97,19 @@ Patterns that have mattered for matching:
 - RenderWare-style setters are macros, not inline functions: their arguments
   are evaluated in place (loads interleaved with stores), unlike an inline
   call whose arguments are evaluated first, right to left.
+- MWCC emits `.data` with 8-byte alignment. A jump table (or any `.data`) that
+  starts at a 4-aligned address cannot begin its own unit: the code shares a
+  unit with the data before it (the TRC code after iVSync is part of iSystem).
+- A store-then-reload of a global after a loop (`x = f(); ...; y = x;` where the
+  target reloads `x`) means the global is `volatile` (zMenu retrace counter).
+- A callee that truncates its result to a byte (`rlwinm ..., 24, 31`) while the
+  caller compares the full word (`cmplwi r3, 0`, no `clrlwi.`): the function
+  returns `unsigned int` with a byte cast inside, `return (unsigned char)(e);`.
+- Constant operands: `x * k` with a literal `k` is emitted constant-first; when
+  the target has the variable first, the factor came in as a variable, usually
+  through an inline helper's parameter (`xVec3SMul(&o, &v, -0.25f)`).
+- Uninitialized `char buf[5] = { 0 };` copies from a zero pool in `.sbss2`;
+  give the unit an `.sbss2` split for it.
 
 ## Open questions
 
