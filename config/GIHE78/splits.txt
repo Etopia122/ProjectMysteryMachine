@@ -225,7 +225,10 @@ Core/x/xScrFx.cpp:
 	.text       start:0x800394C4 end:0x80039C90
 
 Core/x/xserializer.cpp:
-	.text       start:0x80039C90 end:0x8003AB7C
+	.text       start:0x80039C90 end:0x8003AD40
+	.rodata     start:0x80193E90 end:0x80193EA8
+	.data       start:0x801B5B60 end:0x801B5C88
+	.sbss       start:0x8025EB88 end:0x8025EB90
 
 Core/x/xShadow.cpp:
 	.text       start:0x8003AD40 end:0x8003CD24
