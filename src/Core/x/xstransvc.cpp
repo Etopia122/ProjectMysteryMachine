@@ -331,7 +331,7 @@ void xSTUnLoadScene(unsigned int sid)
     }
 }
 
-float xSTLoadStep()
+float xSTLoadStep(unsigned int)
 {
     float pct = PKRLoadStep(0) ? 0.0f : 1.00001f;
     iTRCDisk::CheckDVDAndResetState();

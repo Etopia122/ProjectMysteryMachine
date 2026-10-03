@@ -431,7 +431,7 @@ config.libs = [
             Object(NonMatching, "Core/x/xEntMotion.cpp"),
             Object(Matching, "Core/x/xEnv.cpp"),
             Object(Matching, "Core/x/xFFX.cpp"),
-            Object(NonMatching, "Core/x/xFont.cpp"),
+            Object(Matching, "Core/x/xFont.cpp"),
             Object(NonMatching, "Core/x/xFX.cpp"),
             Object(Matching, "Core/x/xhipio.cpp"),
             Object(Matching, "Core/x/xIni.cpp"),

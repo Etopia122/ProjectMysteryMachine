@@ -22,7 +22,7 @@ void xEntUpdate(_xEnt* ent, _xScene* sc, float dt);
 extern "C" {
 // TODO: unidentified save-slot check
 unsigned int fn_800C9738(signed int slot);
-// TODO: unidentified xFont global (text scale while rendering)
+// iFont.cpp: wiggle amplitude while rendering
 extern float gFontWiggle;
 }
 

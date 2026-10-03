@@ -2,6 +2,7 @@
 #include "xstransvc.h"
 #include "xMath.h"
 #include "rwtypes.h"
+#include "xFont.h"
 
 extern "C" void* memset(void* dst, int c, unsigned int n);
 
@@ -80,81 +81,6 @@ public:
     RwCameraClip* curCamera; // 0x0
 };
 
-class iColor_tag
-{
-public:
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-    unsigned char a;
-};
-
-class iFontSpacing
-{
-public:
-    unsigned char offset;
-    unsigned char width;
-};
-
-class iFontInfo
-{
-public:
-    RwTexture* texture; // 0x0
-    RwRaster* raster;   // 0x4
-};
-
-class xFontInfo
-{
-public:
-    unsigned short id;          // 0x0
-    unsigned short flags;       // 0x2
-    unsigned short char_width;  // 0x4
-    unsigned short char_height; // 0x6
-    float oo_tex_width;         // 0x8
-    float oo_tex_height;        // 0xC
-    float u;                    // 0x10
-    float v;                    // 0x14
-    unsigned short layout;      // 0x18
-    unsigned short pad;         // 0x1A
-    unsigned char lookup[128];  // 0x1C
-    iFontSpacing pspc[128];     // 0x9C
-    char* characters;           // 0x19C
-    iFontInfo ps;               // 0x1A0
-};
-
-class xFontBox
-{
-public:
-    signed int flags;          // 0x0
-    float x;                   // 0x4
-    float y;                   // 0x8
-    float w;                   // 0xC
-    float h;                   // 0x10
-    unsigned int font;         // 0x14
-    iColor_tag color;          // 0x18
-    iColor_tag saved_color;    // 0x1C
-    float draw_width;          // 0x20
-    float draw_height;         // 0x24
-    float x_spacing;           // 0x28
-    float y_spacing;           // 0x2C
-    float depth;               // 0x30
-    float inset_left;          // 0x34
-    float inset_right;         // 0x38
-    float inset_top;           // 0x3C
-    float inset_bottom;        // 0x40
-    char* text;                // 0x44
-    iColor_tag backdrop_color; // 0x48
-};
-
-class xFontGlobals_t
-{
-public:
-    float dpx;          // 0x0
-    float dpy;          // 0x4
-    unsigned int draw;  // 0x8
-    float aspect_ratio; // 0xC
-};
-
 extern "C" {
 extern RwGlobals* RwEngineInstance;
 signed int RwRenderStateSet(signed int state, void* value);
@@ -168,9 +94,6 @@ signed int fn_8018B9A0(RxRenderStateVector* rsvp);
 signed int fn_800CD170();
 }
 
-extern unsigned int gDBfont;
-extern xFontInfo gFontList[4];
-extern xFontGlobals_t gFontGlobals;
 
 static float sButtonUV[4][2] = {
     { 0.5f, 0.0f },
@@ -199,7 +122,7 @@ void iFontSaveRenderState()
     nsz = RwIm2DGetNearScreenZ();
 }
 
-void iFontSetBackdropRenderState()
+void iFontSetBackdropRenderState(xFontBox*)
 {
     RwRenderStateSet(0xE, (void*)0);
     RwRenderStateSet(0xA, (void*)5);

@@ -172,6 +172,11 @@ Core/x/xFFX.cpp:
 
 Core/x/xFont.cpp:
 	.text       start:0x800294E8 end:0x8002A460
+	.data       start:0x801AE8A0 end:0x801AE8B0
+	.bss        start:0x801FF270 end:0x801FFA40
+	.sdata      start:0x8025E430 end:0x8025E438
+	.sbss       start:0x8025EA78 end:0x8025EA80
+	.sdata2     start:0x8025FF20 end:0x8025FF58
 
 Core/x/xFX.cpp:
 	.text       start:0x8002A460 end:0x8002B4D8

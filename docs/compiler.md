@@ -148,6 +148,19 @@ Patterns that have mattered for matching:
   a separate block of statements (xFX `xFXanimUVAtomicSetup`'s apply loop).
 - `.sdata2`/`.rodata` pools are padded to 8 bytes at the end; secdiff shows the
   trailing zero word as a size difference, which is harmless.
+- Copy-initialising a 4-byte struct (`iColor_tag c = box->color;`) copies one
+  word; assigning it (`c = box->color;`) copies member by member (bytes).
+- Constants are not folded through a one-iteration loop: xFont's single-digit
+  parse (`n = 0; for (i = 0; i < 1; i++) n = n * 10 + *s++ - '0';`) keeps its
+  `mulli` by zero, like the three-digit loops next to it.
+- `s = end = text;` keeps the copy chain (`mr end, text; mr s, end`), where two
+  statements get copy-propagated (`mr s, text`).
+- Splitting `dx = a * b;` into `dx = a; dx *= b;` builds the value in `dx`'s
+  register.
+- A `(float)` of `byte + 3` that converts as unsigned (magic `0x4330000000000000`,
+  no `xoris`) was cast: `(unsigned int)(w + 3)`.
+- A zero-initialised global that sits in `.data` needs an explicit `= { 0 }`
+  (xFont `gFontGlobals`); without it MWCC puts it in `.bss`.
 
 ## Open questions
 
