@@ -451,9 +451,15 @@ Game/zFX.cpp:
 
 Game/zGame.cpp:
 	.text       start:0x800AC0BC end:0x800ADC40
+	.rodata     start:0x801A4278 end:0x801A4450
+	.data       start:0x801C5BF8 end:0x801C5D58
+	.bss        start:0x8022EAD8 end:0x8022EB48
+	.sdata      start:0x8025E510 end:0x8025E520
+	.sbss       start:0x8025EED8 end:0x8025EF28
+	.sdata2     start:0x80261238 end:0x802612D0
 
 Game/zGameExtras.cpp:
-	.text       start:0x800ADC68 end:0x800AF8D8
+	.text       start:0x800ADC40 end:0x800AF8D8
 	.rodata     start:0x801A4450 end:0x801A4590
 	.data       start:0x801C5D58 end:0x801C5E08
 	.bss        start:0x8022EB48 end:0x8022ECB0

@@ -10,7 +10,9 @@ class _tagxCamFrame
 public:
     unsigned char pad0[0xC0];
     _xMat4x3 mat; // 0xC0 (xClimate reads at and pos)
-    unsigned char pad1[0x1F0 - 0x100]; // GameCube size unknown (0x220 on PS2)
+    unsigned char pad1[0x140 - 0x100];
+    class _tagxCam* cam; // 0x140 (current camera; its id is compared with "NICK CAM 2")
+    unsigned char pad2[0x1F0 - 0x144]; // GameCube size unknown (0x220 on PS2)
 };
 
 class xCamAsset : public p2BaseAsset

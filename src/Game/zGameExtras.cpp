@@ -718,3 +718,12 @@ signed int zGameExtraIsShirazBday()
     }
     return 0;
 }
+
+signed int zGameExtraIsAnnaBday()
+{
+    if (sDay == 9 && sMonth == 1)
+    {
+        return 1;
+    }
+    return 0;
+}

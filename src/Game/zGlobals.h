@@ -130,6 +130,14 @@ public:
     unsigned short AmmoSceneSoap; // 0x13A
 };
 
+class zCheckPoint
+{
+public:
+    _xVec3 pos;             // 0x0
+    float rot;              // 0xC
+    unsigned int initCamID; // 0x10
+};
+
 class zPlayerGlobals
 {
 public:
@@ -142,7 +150,9 @@ public:
     unsigned int LastProjectile;    // 0x128
     unsigned char unk12C[0x1B0 - 0x12C];
     _zEnt* FireTarget;              // 0x1B0
-    unsigned char unk1B4[0x1E0 - 0x1B4];
+    _zEnt* DamageSource;            // 0x1B4
+    unsigned int ControlOn;         // 0x1B8
+    unsigned char unk1BC[0x1E0 - 0x1BC];
     zShaggy1Globals Shaggy1;        // 0x1E0
     unsigned char unk2C8[0x2D4 - 0x2C8];
     _zEntHangable* HangEnt;         // 0x2D4
@@ -150,14 +160,34 @@ public:
     _xVec3 HangPivot;               // 0x2DC
     unsigned char unk2E8[0x308 - 0x2E8];
     iModelTag HangPawTag[4];        // 0x308
-    unsigned char unk388[0x3C8 - 0x388];
+    unsigned char unk388[0x3C0 - 0x388];
+    unsigned int Inv_Specials;      // 0x3C0
+    unsigned int Inv_Mtokens[1];    // 0x3C4
     signed int Inv_Ammo[2];         // 0x3C8
     signed int Inv_AmmoMax[2];      // 0x3D0
     iModelTag BubbleTag;            // 0x3D8
     _xEntDrive drv;                 // 0x3F8
     unsigned char unk448[0x510 - 0x448];
     zPlayerStatic s;                // 0x510
-    unsigned char unk64C[0x660 - 0x64C];
+    zCheckPoint cp;                 // 0x64C
+};
+
+class zGlobalGameStats
+{
+public:
+    float gameTime;        // 0x0
+    unsigned int visited;  // 0x4
+    unsigned int pad[40];  // 0x8 (level/area/room times, counters)
+    unsigned int tokens;     // 0xA8
+    unsigned int tokens_tot; // 0xAC
+    unsigned int snacks;     // 0xB0
+    unsigned int snacks_tot; // 0xB4
+    unsigned int chances;    // 0xB8
+    unsigned int chances_tot; // 0xBC
+    unsigned int keys;       // 0xC0
+    unsigned int keys_tot;   // 0xC4
+    unsigned int clues;      // 0xC8
+    unsigned int clues_tot;  // 0xCC
 };
 
 class zGlobals
@@ -184,7 +214,8 @@ public:
     iFogParams fogB;         // 0xBC8
     long long fog_t0;        // 0xBE8
     long long fog_t1;        // 0xBF0
-    unsigned char unkBF8[0x32F8 - 0xBF8]; // stats, areaStats, levelStats, worldStats
+    zGlobalGameStats stats;  // 0xBF8
+    unsigned char unkCC8[0x32F8 - 0xCC8]; // areaStats, levelStats, worldStats
     signed int option_vibration; // 0x32F8
     float update_dt;         // 0x32FC
 };
