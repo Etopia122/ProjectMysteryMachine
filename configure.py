@@ -386,7 +386,7 @@ config.libs = [
             Object(Matching, "Core/gc/iAnim.cpp"),
             Object(NonMatching, "Core/gc/iAnimSKB.cpp"),
             Object(NonMatching, "Core/gc/iCamera.cpp"),
-            Object(NonMatching, "Core/gc/iCollide.cpp"),
+            Object(NonMatching, "Core/gc/iCollide.cpp", extra_cflags=["-bool on"]),
             Object(Matching, "Core/gc/iCollideFast.cpp"),
             Object(Matching, "Core/gc/iCutscene.cpp"),
             Object(Matching, "Core/gc/iDraw.cpp"),

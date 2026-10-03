@@ -64,7 +64,7 @@ RwV3d* RwV3dTransformPoints(_xVec3* pointsOut, const _xVec3* pointsIn, signed in
                    const RwMatrixTag* matrix);
 }
 
-void iRayHitsEnv(_xRay3* r, _xEnv* env, _xCollis* coll);
+void iRayHitsEnv(const _xRay3* r, const _xEnv* env, _xCollis* coll);
 void xprintf(char* fmt, ...);
 
 static RwRaster* sShadowRaster;

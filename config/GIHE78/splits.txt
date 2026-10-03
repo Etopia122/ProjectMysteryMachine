@@ -22,7 +22,10 @@ Core/gc/iCamera.cpp:
 	.sdata2     start:0x8025F900 end:0x8025F938
 
 Core/gc/iCollide.cpp:
-	.text       start:0x800078B4 end:0x80009180
+	.text       start:0x800078B4 end:0x80009424
+	.bss        start:0x801DF508 end:0x801DF548
+	.sbss       start:0x8025E878 end:0x8025E888
+	.sdata2     start:0x8025F938 end:0x8025F960
 
 Core/gc/iCollideFast.cpp:
 	.text       start:0x80009424 end:0x80009A20

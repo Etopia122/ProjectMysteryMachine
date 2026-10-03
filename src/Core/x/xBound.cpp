@@ -3,8 +3,8 @@
 #include "xMath.h"
 
 void xMat3x3Normalize(_xMat3x3* o, _xMat3x3* m);
-signed int iSphereHitsModel3(_xSphere* b, xModelInstance* m, _xCollis* colls, unsigned char ncolls,
-                             float sth);
+signed int iSphereHitsModel3(const _xSphere* b, const xModelInstance* m, _xCollis* colls,
+                             unsigned char ncolls, float sth);
 
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 

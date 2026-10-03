@@ -16,7 +16,7 @@ void xCollideFastInit(_xScene* sc);
 void xEnvSetup(_xEnv* env);
 void xQuickCullForRay(xQCData* q, _xRay3* r);
 unsigned int xRayHitsBoundFast(const _xRay3* r, const _xBound* b);
-unsigned int iRayHitsEnv(_xRay3* r, _xEnv* env, _xCollis* coll);
+unsigned int iRayHitsEnv(const _xRay3* r, const _xEnv* env, _xCollis* coll);
 
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 

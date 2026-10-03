@@ -14,7 +14,7 @@ public:
     unsigned int pad30;
 };
 
-unsigned int iRayHitsEnv(_xRay3* r, _xEnv* env, _xCollis* coll);
+unsigned int iRayHitsEnv(const _xRay3* r, const _xEnv* env, _xCollis* coll);
 
 float xVec3Normalize(_xVec3* o, _xVec3* v);
 
