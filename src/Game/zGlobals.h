@@ -138,6 +138,9 @@ public:
     iFogParams fogB;         // 0xBC8
     long long fog_t0;        // 0xBE8
     long long fog_t1;        // 0xBF0
+    unsigned char unkBF8[0x32F8 - 0xBF8]; // stats, areaStats, levelStats, worldStats
+    signed int option_vibration; // 0x32F8
+    float update_dt;         // 0x32FC
 };
 
 extern zGlobals globals;
