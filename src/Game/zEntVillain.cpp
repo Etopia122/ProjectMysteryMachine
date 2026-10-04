@@ -3466,6 +3466,7 @@ static inline void VBON_setup_bonusTable();
 static inline signed int VSND_findProps(en_NPC_SOUND sndEvent, st_NPC_SOUND_PROPERTIES** sprop_caller);
 static inline signed int VSND_addQueueEntry(st_zEntVillain* vil, en_NPC_SOUND sndEvent, signed int flg_vsnd, float radius, float delay, float repeatDelay, signed int repeatCount, unsigned int useThisSound);
 static void VSND_play(st_zEntVillain* vil, en_NPC_SOUND sndEvent);
+static inline void VSND_cue(st_zEntVillain* vil, en_NPC_SOUND sndEvent);
 static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent);
 static inline en_NPC_SOUND VSND_typeFromHash(st_zEntVillain* vil, unsigned int aid_snd);
 static unsigned int VSND_goPlay(st_zEntVillain* vil, en_NPC_SOUND sndEvent, unsigned int sndExplicit, signed int flg_vsnd, float dist);
@@ -4355,12 +4356,12 @@ en_ZVILLAIN_BUBBLE_RESPONSE zEntVillain_Bubble(st_zEntVillain* vil, _zEntBubble*
         if (stimctxt.res_bubble == 2)
         {
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)3, globals.update_dt);
-            VSND_play(vil, (en_NPC_SOUND)0x1A);
+            VSND_cue(vil, (en_NPC_SOUND)0x1A);
         }
         else if (stimctxt.res_bubble != 0)
         {
             zLaughNotify(0xB);
-            VSND_play(vil, (en_NPC_SOUND)0x19);
+            VSND_cue(vil, (en_NPC_SOUND)0x19);
         }
         break;
     case 0:
@@ -4370,12 +4371,12 @@ en_ZVILLAIN_BUBBLE_RESPONSE zEntVillain_Bubble(st_zEntVillain* vil, _zEntBubble*
         if (stimctxt.res_bubble == 2)
         {
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)5, globals.update_dt);
-            VSND_play(vil, (en_NPC_SOUND)0x1D);
+            VSND_cue(vil, (en_NPC_SOUND)0x1D);
         }
         else if (stimctxt.res_bubble != 0)
         {
             zLaughNotify(0xA);
-            VSND_play(vil, (en_NPC_SOUND)0x1C);
+            VSND_cue(vil, (en_NPC_SOUND)0x1C);
         }
         break;
     }
@@ -9836,7 +9837,7 @@ static signed int VILN_gang_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
                         snd = 0x35;
                     }
                 }
-                VSND_play(vil, (en_NPC_SOUND)snd);
+                VSND_cue(vil, (en_NPC_SOUND)snd);
                 vil->sfx_curTalk = stimctxt->talkSFX;
             }
             else if (sfx)
@@ -10457,7 +10458,7 @@ static inline void VILN_holoDeath(st_zEntVillain* vil, float dt, st_STIMULUS_CON
         if ((vil->ability & 8) && vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f)
         {
             zHologramAdd(vil);
-            VSND_play(vil, VSND_TYP_HOLOFADE);
+            VSND_cue(vil, VSND_TYP_HOLOFADE);
             vil->tmr_list[ZVIL_TDUR_DECAY] = vil->vilcfg.tymref_list[ZVIL_TDUR_DECAY];
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 3.2e7f;
         }
@@ -14209,7 +14210,7 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
                 {
                     vil->anim_loopmult = 0.97f;
                     vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x1E, (en_ZVIL_GOAL_SPOT)9);
-                    VSND_play(vil, (en_NPC_SOUND)0x3E);
+                    VSND_cue(vil, (en_NPC_SOUND)0x3E);
                     vil->tmr_list[28] = 3.2e7f;
                     vil->pflags |= 4;
                 }
@@ -14341,7 +14342,7 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         case ZVIL_STIM_SOAPED:
         case ZVIL_STIM_GUMMED:
             stimctxt->res_gods = 2;
-            VSND_play(vil, (en_NPC_SOUND)0x17);
+            VSND_cue(vil, (en_NPC_SOUND)0x17);
             break;
         case ZVIL_STIM_HEADBUTT:
             stimctxt->res_gods = 4;
@@ -14483,7 +14484,7 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         rc = VILN_std_trangoal(vil, stimctxt, dt);
         if (goal == 0x20 && stim == ZVIL_STIM_ENTERGOAL)
         {
-            VSND_play(vil, (en_NPC_SOUND)0x41);
+            VSND_cue(vil, (en_NPC_SOUND)0x41);
         }
     }
 
@@ -14545,18 +14546,18 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             {
                 VEFX_mm_zapper(vil, 0);
                 VIRM_initVilDflt(vil);
-                VSND_play(vil, (en_NPC_SOUND)0x39);
+                VSND_cue(vil, (en_NPC_SOUND)0x39);
             }
             else if (vil->allow & 0x10)
             {
-                VSND_play(vil, (en_NPC_SOUND)0x3A);
+                VSND_cue(vil, (en_NPC_SOUND)0x3A);
             }
             if (vil->allow & 0x10)
             {
                 _zParEmitterCustomSettings pecust;
 
                 vil->tmr_list[ZVIL_TYMR_GENERIC] = 0.75f * (0.25f * (iurand() - 0.5f)) + 0.75f;
-                VSND_play(vil, (en_NPC_SOUND)0x3F);
+                VSND_cue(vil, (en_NPC_SOUND)0x3F);
                 VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)0xD, dt);
                 pecust.custom_flags = 0x20;
                 pecust.pos = g_mm_telepos;
@@ -14579,7 +14580,7 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             zParEmitterEmitCustom(sEmitMMTeleportShow, dt, &pecust);
             VEFX_mm_zapper(vil, 1);
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)0xD, dt);
-            VSND_play(vil, (en_NPC_SOUND)0x40);
+            VSND_cue(vil, (en_NPC_SOUND)0x40);
             vil->flags |= 1;
             vil->chkby |= 0x10;
             vil->penby |= 0x10;
@@ -14600,7 +14601,7 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         if (stim == ZVIL_STIM_ENTERGOAL)
         {
             VILN_BMM_enterGoal(vil, goal, 0);
-            VSND_play(vil, (en_NPC_SOUND)0x38);
+            VSND_cue(vil, (en_NPC_SOUND)0x38);
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 3.0f * (0.25f * (iurand() - 0.5f)) + 3.0f;
         }
         break;
@@ -14652,7 +14653,7 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             VILN_BMM_tymrRand(vil, 21);
             VWEP_lobActivatePRJ(vil->prj_reserved, vil, xBoundCenter(&globals.player.ent.bound), NULL,
                                 &vil->vec_lobSpin, vil->fac_lobarc, vil->fac_lobheavy);
-            VSND_play(vil, (en_NPC_SOUND)0x3D);
+            VSND_cue(vil, (en_NPC_SOUND)0x3D);
             vil->cnt_lobSalvo = 1;
             vil->goodattack = 0;
         }
@@ -14673,7 +14674,7 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         {
             VILN_BMM_enterGoal(vil, goal, 0);
             vil->tmr_list[11] = vil->vilcfg.tymref_list[11];
-            VSND_play(vil, (en_NPC_SOUND)0x42);
+            VSND_cue(vil, (en_NPC_SOUND)0x42);
         }
         break;
     case ZVIL_GOAL_HURT:
@@ -14684,7 +14685,7 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             if (vil->hitpts > 1)
             {
                 VILN_BMM_enterGoal(vil, goal, 0xF);
-                VSND_play(vil, (en_NPC_SOUND)0x3B);
+                VSND_cue(vil, (en_NPC_SOUND)0x3B);
             }
             else
             {
@@ -15048,8 +15049,41 @@ static signed int VILN_BMM_calcmove(st_zEntVillain* vil, _xScene* scn, float dt,
 
 static signed int VILN_BMM_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp)
 {
-    // The original sums the collision normals here (an inlined VSUP_accum_collide)
-    // but never uses the result.
+    // Sums the depenetration of everything the Mastermind touched; the total
+    // is never used.
+    _xVec3 sum = { 0.0f, 0.0f, 0.0f };
+    signed int i;
+
+    for (i = vil->collis->npc_sidx; i < vil->collis->npc_eidx; i++)
+    {
+        _xCollis* colrec = &vil->collis->colls[i];
+        if (colrec->optr)
+        {
+            sum.x += colrec->depen.x;
+            sum.y += colrec->depen.y;
+            sum.z += colrec->depen.z;
+        }
+    }
+    for (i = vil->collis->env_sidx; i < vil->collis->env_eidx; i++)
+    {
+        _xCollis* colrec = &vil->collis->colls[i];
+        if (colrec->optr)
+        {
+            sum.x += colrec->depen.x;
+            sum.y += colrec->depen.y;
+            sum.z += colrec->depen.z;
+        }
+    }
+    for (i = vil->collis->stat_sidx; i < vil->collis->stat_eidx; i++)
+    {
+        _xCollis* colrec = &vil->collis->colls[i];
+        if (colrec->optr)
+        {
+            sum.x += colrec->depen.x;
+            sum.y += colrec->depen.y;
+            sum.z += colrec->depen.z;
+        }
+    }
     return 1;
 }
 
@@ -21440,6 +21474,29 @@ static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent
     }
 
     return da_aid_of_sound;
+}
+
+// Inline twin of VSND_play: every caller except VILN_std_aware gets the sound
+// queued inline in the original, std_aware calls the out-of-line VSND_play.
+static inline void VSND_cue(st_zEntVillain* vil, en_NPC_SOUND sndEvent)
+{
+    st_NPC_SOUND_PROPERTIES* sprop = NULL;
+    signed int flg_vsnd;
+    float delay;
+    float radius;
+
+    VSND_findProps(sndEvent, &sprop);
+    flg_vsnd = sprop->flg_vsnd;
+    if (sndEvent != VSND_TYP_HOLOFADE)
+    {
+        flg_vsnd &= 0x0FFFFFFF;
+    }
+    delay = sprop->tym_delayStart;
+    radius = g_npcTable[vil->asset->subtype].dst_noisy;
+    if (sndEvent != VSND_TYP_BOGUS)
+    {
+        VSND_addQueueEntry(vil, sndEvent, flg_vsnd, radius, delay, -1.0f, 0, 0);
+    }
 }
 
 static void VSND_play(st_zEntVillain* vil, en_NPC_SOUND sndEvent)

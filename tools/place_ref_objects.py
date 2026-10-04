@@ -89,12 +89,16 @@ def parse_ref_configure(path: Path) -> Dict[str, dict]:
             if em:
                 extra = ast.literal_eval(em.group(1))
             objs.append((om.group(1), om.group(2), extra))
-        libs[name] = {"mw_version": mw.group(1) if mw else None, "cflags": cf.group(1).strip() if cf else None, "objects": objs}
+        sd = re.search(r'"src_dir":\s*"([^"]+)"', head)
+        libs[name] = {"mw_version": mw.group(1) if mw else None, "cflags": cf.group(1).strip() if cf else None, "objects": objs,
+                      "src_dir": sd.group(1) if sd else "src", "lib_extra": []}
     # helper functions, e.g. def DolphinLib(lib_name, objects): return {...}
     for hm in re.finditer(r"^def (\w+)\(lib_name[^)]*\)[^:]*:\s*return \{(.*?)\}", text, re.S | re.M):
         helper, body = hm.group(1), hm.group(2)
         mw = re.search(r'"mw_version":\s*"([^"]+)"', body)
         cf = re.search(r'"cflags":\s*(\w+)', body)
+        sd = re.search(r'"src_dir":\s*"([^"]+)"', body)
+        takes_extra = "extra_cflags" in hm.group(0).split(")")[0]
         # the object list ends on its own line ("],"), so extra_cflags=[...] inside is fine
         for cm in re.finditer(rf'\b{helper}\(\s*"([^"]+)",\s*\[(.*?)\n\s*\],?\s*(?:\w+=\w+,?\s*)*\)', text, re.S):
             objs = []
@@ -104,7 +108,13 @@ def parse_ref_configure(path: Path) -> Dict[str, dict]:
                 if em:
                     extra = ast.literal_eval(em.group(1))
                 objs.append((om.group(1), om.group(2), extra))
-            libs[cm.group(1)] = {"mw_version": mw.group(1) if mw else None, "cflags": cf.group(1) if cf else None, "objects": objs}
+            lib_extra = []
+            if takes_extra:
+                lm = re.match(r'\s*(\[[^\]]*\])', cm.group(2))
+                if lm:
+                    lib_extra = ast.literal_eval(lm.group(1))
+            libs[cm.group(1)] = {"mw_version": mw.group(1) if mw else None, "cflags": cf.group(1) if cf else None, "objects": objs,
+                                 "src_dir": sd.group(1) if sd else "src", "lib_extra": lib_extra}
     return libs
 
 
@@ -349,10 +359,11 @@ def main() -> None:
             if not src.endswith((".c", ".cp", ".cpp")):
                 print(f"   skip (asm)  {src}")
                 continue
-            srcpath = ref / "src" / src
+            srcpath = ref / cfg.get("src_dir", "src") / src
             out = args.out / lib / (src + ".o")
             out.parent.mkdir(parents=True, exist_ok=True)
-            cmd = [str(exe), *flags, *[x for e in extra for x in shlex.split(e)], "-c", "-o", str(out), str(srcpath)]
+            lib_extra = [] if args.flags else [x for e in cfg.get("lib_extra", []) for x in shlex.split(e)]
+            cmd = [str(exe), *flags, *lib_extra, *[x for e in extra for x in shlex.split(e)], "-c", "-o", str(out), str(srcpath)]
             if sys.platform != "win32":
                 cmd.insert(0, "wibo")
             proc = subprocess.run(cmd, capture_output=True, text=True, cwd=ref)
