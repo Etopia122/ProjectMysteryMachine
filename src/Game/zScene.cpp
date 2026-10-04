@@ -1,8 +1,8 @@
 // TODO: 99.8% (NonMatching). zSceneSwitch differs in the byte-swap loop and
 // register use around the camera calls, zSceneLoad in one register swap in the
-// stats reset, zSceneRender in register allocation. .sdata2 pools a 0.0f after
-// "MNU3" instead of before it, and .rodata places " VISITED" after the area
-// name strings instead of before them.
+// stats reset, zSceneRender in the sort-override loop's register allocation.
+// zSceneVisitedDeadStripped and zSceneZeroDeadStripped must be stripped by the
+// linker once this unit is Matching.
 #define xCameraInit xCameraInit_header
 #include "zScene.h"
 #include "zGlobals.h"
@@ -1010,12 +1010,17 @@ void xFontRender();
 
 void DrawScreenSizeRectangle();
 
-static inline void zSceneRenderShadowReceivers(zScene* s)
+static inline void zSceneRenderShadowReceivers()
 {
     signed int i;
+    _xEnt* ent2;
+    _xEnt* ent;
+    signed int j;
+    zScene* s;
+    s = globals.sceneCur;
     for (i = 0; i < s->num_stats; i++)
     {
-        _xEnt* ent = s->stats[i];
+        ent = s->stats[i];
         if ((ent->baseType == 6 || ent->baseType == 24 || ent->baseType == 27 ||
              ent->baseType == 11) &&
             xShadowReceiveShadowSetup(ent))
@@ -1023,14 +1028,14 @@ static inline void zSceneRenderShadowReceivers(zScene* s)
             xShadowReceiveShadow(ent);
         }
     }
-    for (i = 0; i < s->num_dyns; i++)
+    for (j = 0; j < s->num_dyns; j++)
     {
-        _xEnt* ent = s->dyns[i];
-        if ((ent->baseType == 6 || ent->baseType == 24 || ent->baseType == 27 ||
-             ent->baseType == 11) &&
-            xShadowReceiveShadowSetup(ent))
+        ent2 = s->dyns[j];
+        if ((ent2->baseType == 6 || ent2->baseType == 24 || ent2->baseType == 27 ||
+             ent2->baseType == 11) &&
+            xShadowReceiveShadowSetup(ent2))
         {
-            xShadowReceiveShadow(ent);
+            xShadowReceiveShadow(ent2);
         }
     }
 }
@@ -2409,6 +2414,17 @@ void zSceneUpdate(float dt)
     }
 }
 
+static inline iColor_tag zSceneColor(unsigned char r, unsigned char g, unsigned char b,
+                                     unsigned char a)
+{
+    iColor_tag c;
+    c.r = r;
+    c.g = g;
+    c.b = b;
+    c.a = a;
+    return c;
+}
+
 void zSceneRender()
 {
     zScene* s = globals.sceneCur;
@@ -2440,9 +2456,11 @@ void zSceneRender()
 
     zRenderState(SDRS_OpaqueModels);
 
+    unsigned int renderPlayer;
+    _tagxCamFrame* cam = &globals.camera;
     _xEnt** entptr = &s->act_ents[s->num_act_ents - 1];
     _xEnt** entlast = &s->act_ents[s->baseCount[1] + s->baseCount[4]];
-    unsigned int renderPlayer = 0;
+    renderPlayer = 0;
     _xEnt* tide = NULL;
     unsigned int tideID = xStrHash("TIDE");
 
@@ -2465,8 +2483,8 @@ void zSceneRender()
                 else
                 {
                     _xVec3 center = *xBoundCenter(&ent->bound);
-                    float dx = globals.camera.hi_cam.mat.pos.x - center.x;
-                    float dz = globals.camera.hi_cam.mat.pos.z - center.z;
+                    float dx = cam->hi_cam.mat.pos.x - center.x;
+                    float dz = cam->hi_cam.mat.pos.z - center.z;
                     ents[numEnts] = ent;
                     dists[numEnts] = dx * dx + dz * dz;
                     numEnts++;
@@ -2484,32 +2502,37 @@ void zSceneRender()
         entptr--;
     }
 
+    zScene* sc = globals.sceneCur;
     for (unsigned int j = 0; j < numEnts; j++)
     {
+        _xEnt* ent = ents[j];
         for (signed int k = 0; k < 66; k++)
         {
             zSceneSortEntry* e = &sSortTable[k];
-            if (globals.sceneCur->sceneID == e->sceneID && ents[j]->id == e->id)
+            if (sc->sceneID == e->sceneID && ent->id == e->id)
             {
                 switch (e->type)
                 {
                 case 0:
                 {
-                    float dx = globals.camera.hi_cam.mat.pos.x - e->a;
-                    float dz = globals.camera.hi_cam.mat.pos.z - e->b;
+                    float dx = cam->hi_cam.mat.pos.x - e->a;
+                    float dz = cam->hi_cam.mat.pos.z - e->b;
                     dists[j] = dx * dx + dz * dz;
                     break;
                 }
                 case 2:
+                {
+                    unsigned int* relID = (unsigned int*)&e->a;
                     for (unsigned int m = 0; m < numEnts; m++)
                     {
-                        if (*(unsigned int*)&e->a == ents[m]->id)
+                        if (*relID == ents[m]->id)
                         {
                             dists[j] = dists[m] + e->b;
                             break;
                         }
                     }
                     break;
+                }
                 case 1:
                 default:
                     dists[j] = e->a;
@@ -2525,7 +2548,7 @@ void zSceneRender()
     if (renderPlayer == 1 && globals.player.unk1AC <= 0)
     {
         globals.player.ent.render(&globals.player.ent);
-        zSceneRenderShadowReceivers(globals.sceneCur);
+        zSceneRenderShadowReceivers();
     }
 
     zRenderState(SDRS_OpaqueModels);
@@ -2585,9 +2608,11 @@ void zSceneRender()
     zRenderState(SDRS_Particles);
     {
         zParSys* ps = (zParSys*)s->baseList[39];
-        for (i = s->baseCount[39] - 1; i >= 0; i--)
+        signed int n = s->baseCount[39] - 1;
+        while (n >= 0)
         {
             zParSysRender(ps);
+            n--;
             ps++;
         }
     }
@@ -2601,7 +2626,7 @@ void zSceneRender()
         ent->render(ent);
         if (ent->baseType == 3)
         {
-            zSceneRenderShadowReceivers(globals.sceneCur);
+            zSceneRenderShadowReceivers();
         }
     }
 
@@ -2625,18 +2650,10 @@ void zSceneRender()
 
     if (zGameModeGet() == 1 && (zGameStateGet() == 0 || zGameStateGet() == 1))
     {
-        iColor_tag yellow;
-        yellow.r = 255;
-        yellow.g = 230;
-        yellow.b = 0;
-        yellow.a = 255;
+        iColor_tag yellow = zSceneColor(255, 230, 0, 255);
         xFontBox* box = xFontBoxCreate(0.0f, 0.0f, 640.0f, 480.0f, 1, yellow);
 
-        iColor_tag yellow2;
-        yellow2.r = 255;
-        yellow2.g = 230;
-        yellow2.b = 0;
-        yellow2.a = 255;
+        iColor_tag yellow2 = zSceneColor(255, 230, 0, 255);
         xFontBox* prompt = xFontBoxCreate(0.0f, 340.0f, 640.0f, 100.0f, 0, yellow2);
 
         signed int avail = sRenderVar1;
@@ -2663,11 +2680,7 @@ void zSceneRender()
             xFontBoxSetText(box, msg);
             xFontBoxSetDrawSize(box, 18.0f, 24.0f);
             xFontBoxSetDrawSpacing(box, 17.0f, 24.0f);
-            iColor_tag black;
-            black.r = 0;
-            black.g = 0;
-            black.b = 0;
-            black.a = 255;
+            iColor_tag black = zSceneColor(0, 0, 0, 255);
             xFontBoxSetBackdrop(box, black);
             xFontBoxSetInset(box, 100.0f, 100.0f, 100.0f, 0.0f);
             xFontBoxSetJustification(box, 0x40);
@@ -2676,11 +2689,7 @@ void zSceneRender()
             xFontBoxSetText(prompt, promptMsg);
             xFontBoxSetDrawSize(prompt, 21.0f, 28.0f);
             xFontBoxSetDrawSpacing(prompt, 20.0f, 28.0f);
-            iColor_tag black2;
-            black2.r = 0;
-            black2.g = 0;
-            black2.b = 0;
-            black2.a = 255;
+            iColor_tag black2 = zSceneColor(0, 0, 0, 255);
             xFontBoxSetBackdrop(prompt, black2);
             xFontBoxSetInset(prompt, 40.0f, 10.0f, 0.0f, 0.0f);
             xFontBoxSetJustification(prompt, 0x40);
@@ -2688,11 +2697,7 @@ void zSceneRender()
         else
         {
             xFontBoxSetText(box, NULL);
-            iColor_tag black;
-            black.r = 0;
-            black.g = 0;
-            black.b = 0;
-            black.a = 255;
+            iColor_tag black = zSceneColor(0, 0, 0, 255);
             xFontBoxSetBackdrop(box, black);
         }
 
@@ -2709,6 +2714,13 @@ void zSceneRender()
     {
         DrawScreenSizeRectangle();
     }
+}
+
+// Stand-in for a function the linker strips; it keeps a 0.0f ahead of
+// zSceneRender's constants in .sdata2.
+float zSceneZeroDeadStripped()
+{
+    return 0.0f;
 }
 
 #pragma auto_inline on
@@ -2831,6 +2843,13 @@ char* zSceneGetAreaname(unsigned int sceneID)
         return "Monster Gallery";
     }
     return sAreaTable[zSceneGetArea(sceneID)].desc;
+}
+
+// Stand-in for a function the linker strips; it keeps " VISITED" ahead of the
+// area name strings in .rodata.
+char* zSceneVisitedDeadStripped()
+{
+    return " VISITED";
 }
 
 unsigned int zSceneGetAreaConstTotalSnacks(unsigned int sceneID)
