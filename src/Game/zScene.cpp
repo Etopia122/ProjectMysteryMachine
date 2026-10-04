@@ -529,12 +529,11 @@ void fn_80005B58();
 void fn_80005C34(xBase* b, xSerial* s);
 void fn_80005C54(xBase* b, xSerial* s);
 void fn_800162D8();
-void fn_8006D624();
 void fn_800A8F88(xBase* b, zScene* s);
 st_zEntVillain* fn_800A9640(unsigned int idx);
 void* fn_800A9650(unsigned int cnt);
-void fn_800B0D30();
 }
+void zEntShaggy_SceneReset();
 
 extern signed int lbl_8025E868;
 
@@ -858,6 +857,7 @@ static inline void zSceneSet(xBase* b, unsigned int idx)
 {
     globals.sceneCur->base[idx] = b;
 }
+void zHud_sceneReset();
 
 static inline void zSceneObjHashtableAdd(unsigned int id, xBase* base)
 {
@@ -1478,7 +1478,7 @@ void zSceneInit(unsigned int theSceneID)
         globals.levelStats[i].clues_tot = sLevelTable[i].totalClues;
     }
 
-    fn_800B0D30();
+    zHud_sceneReset();
     iTRCDisk::CheckDVDAndResetState();
     zGameScreenTransitionBegin();
     zGameScreenTransitionUpdate(pdone, "...preparing to preload\n");
@@ -2089,7 +2089,7 @@ void zSceneReset()
         }
     }
 
-    fn_8006D624();
+    zEntShaggy_SceneReset();
     zEntPlayer_LoadCheckPoint();
     zSceneLoad(globals.sceneCur, NULL);
     zSceneEnableVisited(s);
@@ -2473,7 +2473,7 @@ void zSceneRender()
             {
                 tide = ent;
             }
-            else if ((ent->collType == 0x10 && globals.player.unk1AC > 0) || (ent->flags & 4) ||
+            else if ((ent->collType == 0x10 && globals.player.Transparent > 0) || (ent->flags & 4) ||
                      ent->material_alpha < 255.0f || (ent->moreFlags & 1))
             {
                 if (globals.cmgr != NULL && ent->collType != 0x10)
@@ -2545,7 +2545,7 @@ void zSceneRender()
 
     zEntPickup_RenderList((_zEntPickup*)s->baseList[4], s->baseCount[4]);
 
-    if (renderPlayer == 1 && globals.player.unk1AC <= 0)
+    if (renderPlayer == 1 && globals.player.Transparent <= 0)
     {
         globals.player.ent.render(&globals.player.ent);
         zSceneRenderShadowReceivers();

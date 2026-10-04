@@ -72,9 +72,8 @@ void fn_800056F8(_xVec3* pos);
 void fn_80014A34(signed int mode);
 void fn_80021B20();
 void fn_8005D858(_xEnt* ent, p2EntAsset* asset);
-void fn_8006DAF0(zScene* sc);
-void fn_800B74D8();
 }
+void zEntShaggy_SceneStart(zScene* sc);
 void zScene_UpdateFlyToInterface(float dt);
 void xTRCRender();
 
@@ -289,6 +288,7 @@ static _xMat4x3* xEntGetFrameMat(_xEnt* ent)
 {
     return (_xMat4x3*)ent->model->Mat;
 }
+void zHudShowSaveSuccess();
 
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 
@@ -334,7 +334,7 @@ void zGameSetup()
     xModel_SceneEnter(world);
     zFX_SceneEnter(world);
     setupPlayer();
-    fn_8006DAF0(globals.sceneCur);
+    zEntShaggy_SceneStart(globals.sceneCur);
     zEnvStartingCamera(gCurEnv);
     xCameraUpdate(&globals.camera, -1.0f);
     zSceneLoad(globals.sceneCur, 0);
@@ -363,7 +363,7 @@ static signed int zGameLoopContinue()
         t1 = iTimeGet();
         if (res)
         {
-            fn_800B74D8();
+            zHudShowSaveSuccess();
         }
     }
     return 1;

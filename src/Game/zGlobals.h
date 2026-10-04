@@ -57,14 +57,46 @@ public:
 };
 
 class _zEntHangable;
+class _zPlatform;
+
+class xBase;
 
 class zShaggy1Globals
 {
 public:
-    unsigned char unk0[0x14];
-    _xVec3 ReleaseTrans; // 0x14
-    _xVec3 HangTrans;    // 0x20
-    unsigned char unk2C[0xE8 - 0x2C];
+    _zEnt* GrabTry;              // 0x0
+    _zEnt* Grab;                 // 0x4
+    float GrabRot;               // 0x8
+    float GrabOffset;            // 0xC
+    float GrabTimer;             // 0x10
+    _xVec3 ReleaseTrans;         // 0x14
+    _xVec3 HangTrans;            // 0x20
+    _xVec3 LastDelta;            // 0x2C
+    unsigned int ThrowEnded;     // 0x38
+    float ExtraTransY;           // 0x3C
+    _xVec3 ThrowPos;             // 0x40
+    _xVec3 ThrowVel;             // 0x4C
+    unsigned int CatchMe;        // 0x58
+    unsigned int CatchYou;       // 0x5C
+    _zEnt* HangTarget;           // 0x60
+    float ThrowTimer;            // 0x64
+    _xVec3 HangStart;            // 0x68
+    _xVec3 HangRelative;         // 0x74
+    unsigned int SetDown;        // 0x80
+    unsigned int GrabOn;         // 0x84
+    unsigned int ThrowState;     // 0x88
+    float ThrowRot;              // 0x8C
+    float CatchHeight;           // 0x90
+    float CatchVel;              // 0x94
+    xBase* ThrowTgt;             // 0x98
+    float ThrowTgtAngle;         // 0x9C
+    float ThrowTgtPeak;          // 0xA0
+    float ThrowTgtOffset;        // 0xA4
+    unsigned int ThrowTgtAdjust; // 0xA8
+    _xVec3 ThrowTgtVec;          // 0xAC
+    float ThrowTgtSpeed;         // 0xB8
+    float ThrowAccel;            // 0xBC
+    _zEnt* Hangable[10];         // 0xC0
 };
 
 // Only the fields used so far; offsets from the PS2 DWARF (same on GameCube).
@@ -146,26 +178,83 @@ public:
     unsigned int Health;            // 0xF0
     signed int Speed;               // 0xF4
     signed int Sneak;               // 0xF8
-    unsigned char unkFC[0x114 - 0xFC];
+    signed int Teeter;              // 0xFC
+    signed int CanSlip;             // 0x100
+    float SlipFadeTimer;            // 0x104
+    signed int Slide;               // 0x108
+    float SlideTimer;               // 0x10C
+    signed int Stepping;            // 0x110
     signed int JumpState;           // 0x114
-    unsigned char unk118[0x128 - 0x118];
+    signed int LastJumpState;       // 0x118
+    float JumpTimer;                // 0x11C
+    float LookAroundTimer;          // 0x120
+    unsigned int LookAroundRand;    // 0x124
     unsigned int LastProjectile;    // 0x128
-    unsigned char unk12C[0x170 - 0x12C];
+    float DecelRun;                 // 0x12C
+    float DecelRunSpeed;            // 0x130
+    float HotsauceTimer;            // 0x134
+    float LeanLerp;                 // 0x138
+    unsigned int HeadbuttHit;       // 0x13C
+    float ScareTimer;               // 0x140
+    xBase* ScareSource;             // 0x144
+    unsigned int ScareShaggy;       // 0x148
+    float CowerTimer;               // 0x14C
+    float DamageTimer;              // 0x150
+    float ControlOffTimer;          // 0x154
+    float HelmetTimer;              // 0x158
+    unsigned int WorldDisguise;     // 0x15C
+    unsigned int Bounced;           // 0x160
+    float FallDeathTimer;           // 0x164
+    float HeadbuttVel;              // 0x168
+    float HeadbuttTimer;            // 0x16C
     unsigned int SpecialReceived;   // 0x170
-    unsigned char unk174[0x1AC - 0x174];
-    signed int unk1AC;              // 0x1AC
+    _xEnt* MountChimney;            // 0x174
+    float MountChimOldY;            // 0x178
+    float ShockRadius;              // 0x17C
+    float ShockRadiusOld;           // 0x180
+    float Face_ScareTimer;          // 0x184
+    unsigned int Face_ScareRandom;  // 0x188
+    unsigned int Face_Event;        // 0x18C
+    float Face_EventTimer;          // 0x190
+    float Face_PantTimer;           // 0x194
+    unsigned int Face_AnimSpecific; // 0x198
+    unsigned int IdleRand;          // 0x19C
+    float IdleMinorTimer;           // 0x1A0
+    float IdleMajorTimer;           // 0x1A4
+    float IdleSitTimer;             // 0x1A8
+    signed int Transparent;         // 0x1AC
     _zEnt* FireTarget;              // 0x1B0
     _zEnt* DamageSource;            // 0x1B4
     unsigned int ControlOn;         // 0x1B8
-    unsigned char unk1BC[0x1E0 - 0x1BC];
+    unsigned int ControlOnEvent;    // 0x1BC
+    unsigned int AutoMoveSpeed;     // 0x1C0
+    float AutoMoveDist;             // 0x1C4
+    _xVec3 AutoMoveTarget;          // 0x1C8
+    xBase* AutoMoveObject;          // 0x1D4
+    _zEnt* Diggable;                // 0x1D8
+    float DigTimer;                 // 0x1DC
     zShaggy1Globals Shaggy1;        // 0x1E0
-    unsigned char unk2C8[0x2D4 - 0x2C8];
+    _zEnt* Shaggy8Call;             // 0x2C8
+    float Shaggy8CallTimer;         // 0x2CC
+    _zEntHangable* HangFound;       // 0x2D0
     _zEntHangable* HangEnt;         // 0x2D4
     _zEntHangable* HangEntLast;     // 0x2D8
     _xVec3 HangPivot;               // 0x2DC
-    unsigned char unk2E8[0x308 - 0x2E8];
+    _xVec3 HangVel;                 // 0x2E8
+    float HangLength;               // 0x2F4
+    _xVec3 HangStartPos;            // 0x2F8
+    float HangStartLerp;            // 0x304
     iModelTag HangPawTag[4];        // 0x308
-    unsigned char unk388[0x3B0 - 0x388];
+    float HangPawOffset;            // 0x388
+    float HangElapsed;              // 0x38C
+    float Jump_CurrGravity;         // 0x390
+    float Jump_HoldTimer;           // 0x394
+    float Jump_ChangeTimer;         // 0x398
+    signed int Jump_CanDouble;      // 0x39C
+    signed int Jump_CanFloat;       // 0x3A0
+    signed int Jump_SpringboardStart; // 0x3A4
+    _zPlatform* Jump_Springboard;   // 0x3A8
+    signed int cheat_mode;          // 0x3AC
     unsigned int Inv_Clue;          // 0x3B0
     unsigned int Inv_Key;           // 0x3B4
     unsigned int Inv_Chances;       // 0x3B8

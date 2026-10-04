@@ -477,7 +477,14 @@ Game/zEntProjectile.cpp:
 	.sbss2      start:0x80262C98 end:0x80262CA0
 
 Game/zEntShaggy.cpp:
-	.text       start:0x8006D624 end:0x8007A88C
+	.text       start:0x8006D624 end:0x8007A8D0
+	.ctors      start:0x8018E5C4 end:0x8018E5C8
+	.rodata     start:0x8019AAC0 end:0x8019BCB0
+	.data       start:0x801B8DA0 end:0x801B8E88
+	.bss        start:0x80229668 end:0x8022A528
+	.sdata      start:0x8025E500 end:0x8025E510
+	.sbss       start:0x8025EDE0 end:0x8025EE18
+	.sdata2     start:0x80260A38 end:0x80260C48
 
 Game/zEntSimpleObj.cpp:
 	.text       start:0x8007A8D0 end:0x8007ACB8
