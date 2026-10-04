@@ -60,6 +60,7 @@ class _zEntHangable;
 class _zPlatform;
 
 class xBase;
+class xSurface;
 
 class zShaggy1Globals
 {
@@ -265,9 +266,16 @@ public:
     signed int Inv_AmmoMax[2];      // 0x3D0
     iModelTag BubbleTag;            // 0x3D8
     _xEntDrive drv;                 // 0x3F8
-    unsigned char unk448[0x4A0 - 0x448];
+    xSurface* floor_surf;           // 0x448
+    _xVec3 floor_norm;              // 0x44C
+    signed int slope;               // 0x458
+    _xCollis earc_coll;             // 0x45C
     _xSphere head_sph;              // 0x4A0
-    unsigned char unk4B0[0x510 - 0x4B0];
+    iModelTag center_tag;           // 0x4B0
+    iModelTag head_tag;             // 0x4D0
+    unsigned int TongueFlags[2];    // 0x4F0
+    _xVec3 RootUp;                  // 0x4F8
+    _xVec3 RootUpTarget;            // 0x504
     zPlayerStatic s;                // 0x510
     zCheckPoint cp;                 // 0x64C
 };

@@ -27,7 +27,16 @@ public:
 class xFFXRotMatchState
 {
 public:
-    unsigned char data[0x40];
+    signed int lgrounded; // 0x0
+    _xVec3 lfup;          // 0x4
+    _xVec3 lfat;          // 0x10
+    _xVec3 plfat;         // 0x1C
+    float tmr;            // 0x28
+    float mrate;          // 0x2C
+    float tmatch;         // 0x30
+    float rrate;          // 0x34
+    float trelax;         // 0x38
+    float max_decl;       // 0x3C
     xFFXRotMatchState* next;
 };
 
