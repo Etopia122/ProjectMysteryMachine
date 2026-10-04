@@ -3597,8 +3597,10 @@ static inline void VANM_playRand3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_N
 static inline void VANM_play5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e);
 static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
 static inline float VSUP_yaw(_xVec3 dir);
-static inline float VSUP_dir_toPos(_zEnt* ent, _xVec3* dir);
-static inline float VSUP_ds2_toPos(_zEnt* ent);
+static inline float VSUP_dir_toPos(_zEnt* ent, _xVec3 pos, _xVec3* dir);
+static inline float VSUP_ds2_toPos(_zEnt* ent, _xVec3 pos);
+static inline _xVec3 VUTIL_posOf(_xEnt* ent);
+static inline _xVec3 VUTIL_ctrOf(_xEnt* ent);
 static inline void VOUT_steer(st_zEntVillain* vil);
 static inline float VOUT_ds2_arrive(st_zEntVillain* vil, _xMat4x3** mat);
 static inline signed int VOUT_follow_move(st_zEntVillain* vil);
@@ -8136,8 +8138,8 @@ static signed int VILN_std_calcmove(st_zEntVillain* vil, _xScene* scn, float dt,
             float dist;
 
             vil->pos_moveto = *zMovePointGetPos(vil->nav_next);
-            dist = VSUP_ds2_toPos(vil);
-            vil->ang_moveto = VSUP_dir_toPos(vil, &vil->dir_moveto);
+            dist = VSUP_ds2_toPos(vil, vil->pos_moveto);
+            vil->ang_moveto = VSUP_dir_toPos(vil, vil->pos_moveto, &vil->dir_moveto);
             if (vil->abl_move & 0x400)
             {
                 float dy;
@@ -8196,7 +8198,7 @@ static inline signed int VOUT_chkdo_minipatrolArrived(st_zEntVillain* vil)
         dy = vil->pos_moveto.y - entpos.y;
         dy = dy * dy;
     }
-    dist = VSUP_ds2_toPos(vil);
+    dist = VSUP_ds2_toPos(vil, vil->pos_moveto);
     if (!(dist > dy))
     {
         dist = dy;
@@ -13571,7 +13573,7 @@ static inline signed int VOUT_follow_move(st_zEntVillain* vil)
 static inline float VOUT_ds2_arrive(st_zEntVillain* vil, _xMat4x3** mat)
 {
     _xVec3 entpos = {};
-    float dist = VSUP_ds2_toPos(vil);
+    float dist = VSUP_ds2_toPos(vil, vil->pos_moveto);
 
     *mat = (_xMat4x3*)vil->model->Mat;
     entpos = (*mat)->pos;
@@ -13589,7 +13591,7 @@ static inline float VOUT_ds2_arrive(st_zEntVillain* vil, _xMat4x3** mat)
 
 static inline void VOUT_steer(st_zEntVillain* vil)
 {
-    vil->ang_moveto = VSUP_dir_toPos(vil, &vil->dir_moveto);
+    vil->ang_moveto = VSUP_dir_toPos(vil, vil->pos_moveto, &vil->dir_moveto);
     if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
     {
         vil->domove |= 4;
@@ -13600,19 +13602,33 @@ static inline void VOUT_steer(st_zEntVillain* vil)
     vil->domove |= 0x80000000;
 }
 
-static inline float VSUP_ds2_toPos(_zEnt* ent)
+static inline _xVec3 VUTIL_ctrOf(_xEnt* ent)
 {
-    st_zEntVillain* vil = (st_zEntVillain*)ent;
-    _xVec3 pos = vil->pos_moveto;
+    _xVec3 ctr = {};
+
+    ctr = *xBoundCenter(&ent->bound);
+    return ctr;
+}
+
+// Entity position / bound centre by value.
+static inline _xVec3 VUTIL_posOf(_xEnt* ent)
+{
+    _xVec3 pos = {};
+
+    pos = ((_xMat4x3*)ent->model->Mat)->pos;
+    return pos;
+}
+
+static inline float VSUP_ds2_toPos(_zEnt* ent, _xVec3 pos)
+{
     _xVec3 delta = {};
 
-    xVec3Sub(&delta, &pos, &((_xMat4x3*)vil->model->Mat)->pos);
+    xVec3Sub(&delta, &pos, &((_xMat4x3*)ent->model->Mat)->pos);
     return delta.x * delta.x + delta.z * delta.z;
 }
 
-static inline float VSUP_dir_toPos(_zEnt* ent, _xVec3* dir)
+static inline float VSUP_dir_toPos(_zEnt* ent, _xVec3 pos, _xVec3* dir)
 {
-    _xVec3 pos = ((st_zEntVillain*)ent)->pos_moveto;
     _xVec3 delta = {};
     float ang;
 
@@ -14650,15 +14666,15 @@ static inline void VTMR_tick(st_zEntVillain* vil, signed int idx, float dt)
 
 static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
 {
+    _xVec3 pos_vil = {};
+    _xVec3 ctr_vil = {};
+    _xVec3 pos_plyr = {};
+    _xVec3 ctr_plyr = {};
+    _xVec3 vec = {};
     st_ZVIL_PRECALC* pc;
     signed int doflags = flags;
     signed int old_pit;
     signed int old_los;
-    _xVec3 pos_vil;
-    _xVec3 ctr_vil;
-    _xVec3 pos_plyr;
-    _xVec3 ctr_plyr;
-    _xVec3 vec = {};
 
     if (flags & 2)
     {
@@ -14666,36 +14682,30 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
     }
 
     pc = &vil->precalc;
-    old_los = (pc->flg_plyr >> 3) & 1;
     old_pit = pc->flg_xtra & 1;
+    old_los = (pc->flg_plyr >> 3) & 1;
     memset(pc, 0, sizeof(st_ZVIL_PRECALC));
 
-    pos_vil = *VUTIL_mdlpos(vil);
+    pos_vil = ((_xMat4x3*)vil->model->Mat)->pos;
     ctr_vil = *xBoundCenter(&vil->bound);
     pos_plyr = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
     ctr_plyr = *xBoundCenter(&globals.player.ent.bound);
 
     if (doflags & 1)
     {
-        _xVec3 dir = {};
         float ds2;
 
-        vec.x = pos_plyr.x - pos_vil.x;
-        vec.y = pos_plyr.y - pos_vil.y;
-        vec.z = pos_plyr.z - pos_vil.z;
-        pc->ds2_VtoP = vec.x * vec.x + vec.z * vec.z;
+        pc->ds2_VtoP = VSUP_ds2_toPos(vil, VUTIL_posOf(&globals.player.ent));
         ds2 = pc->ds2_VtoP;
         if (ds2 > 0.0f)
         {
             ds2 = VUTIL_sqrt(ds2);
         }
         pc->dst_VtoP = ds2;
-
-        xVec3Sub(&dir, xBoundCenter(&globals.player.ent.bound), VUTIL_mdlpos(vil));
-        xVec3Normalize(&dir, &dir);
-        pc->ang_VtoP = xAngleClamp(atan2(dir.x, dir.z));
-        xVec3Normalize(&pc->dir_VtoP, &dir);
-        xVec3Sub(&pc->vec_VtoP, &pos_plyr, &pos_vil);
+        pc->ang_VtoP = VSUP_dir_toPos(vil, VUTIL_ctrOf(&globals.player.ent), &pc->dir_VtoP);
+        pc->vec_VtoP.x = pos_plyr.x - pos_vil.x;
+        pc->vec_VtoP.y = pos_plyr.y - pos_vil.y;
+        pc->vec_VtoP.z = pos_plyr.z - pos_vil.z;
 
         pc->plyr_mvinf = zEntPlayer_MoveInfo();
         if (g_scene_is_a_boss_battle)
@@ -14730,16 +14740,10 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
 
     if (doflags & 8)
     {
-        float dx;
-        float dz;
         float yaw;
 
-        dx = vil->pos_pursue_home.x - VUTIL_mdlpos(vil)->x;
-        dz = vil->pos_pursue_home.z - VUTIL_mdlpos(vil)->z;
-        pc->ds2_anchor = dx * dx + dz * dz;
-        dx = vil->pos_guard_home.x - VUTIL_mdlpos(vil)->x;
-        dz = vil->pos_guard_home.z - VUTIL_mdlpos(vil)->z;
-        pc->ds2_grdpos = dx * dx + dz * dz;
+        pc->ds2_anchor = VSUP_ds2_toPos(vil, vil->pos_pursue_home);
+        pc->ds2_grdpos = VSUP_ds2_toPos(vil, vil->pos_guard_home);
         yaw = vil->frame->rot.angle;
         pc->cos_faceang = cos(yaw);
         pc->sin_faceang = sin(yaw);
@@ -14903,24 +14907,18 @@ static inline signed int VUTIL_heroInSight(st_zEntVillain* vil, signed int lastk
 
 static inline signed int VUTIL_heroInFov(st_zEntVillain* vil)
 {
-    _xVec3 pos_plyr = *xBoundCenter(&globals.player.ent.bound);
-    _xVec3 dir = {};
-    float ang;
-    float da;
+    signed int infov = 0;
+    float ang = VSUP_dir_toPos(vil, VUTIL_ctrOf(&globals.player.ent), NULL);
 
-    xVec3Sub(&dir, &pos_plyr, VUTIL_mdlpos(vil));
-    xVec3Normalize(&dir, &dir);
-    ang = xAngleClamp(atan2(dir.x, dir.z));
     if (vil->fov_detect <= 0.0f)
     {
-        return 0;
+        infov = 0;
     }
-    da = vil->frame->rot.angle - ang;
-    if (da < 0.0f)
+    else if ((float)__fabs(vil->frame->rot.angle - ang) < 0.5f * vil->fov_detect)
     {
-        da = -da;
+        infov = 1;
     }
-    return da < 0.5f * vil->fov_detect;
+    return infov;
 }
 
 static inline float VUTIL_sqrt(float x)
