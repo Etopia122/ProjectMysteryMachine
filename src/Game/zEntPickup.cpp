@@ -217,7 +217,7 @@ void zEntPlayer_SNDBitePickup(_xEnt* ent);
 extern unsigned char* giAnimScratch;
 extern _zParEmitter* sEmitDust;
 // TODO: unidentified zEntPlayer flag (blocks the snack gate prompt)
-extern unsigned int lbl_8025ECFC;
+extern _zEntPickup* sDecrementSnackGateEnt;
 
 void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt);
 signed int zEntPickupEventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
@@ -337,6 +337,8 @@ static inline void zEntPickup_MakeDroppableInline(_zEntPickup* ent, _xVec3* pos,
 }
 
 // Functions are in reverse DOL order (-inline deferred emits last to first).
+
+void zEntPickupInit(_zEntPickup* ent, p2EntAsset* asset);
 
 void zEntPickupInit(void* ent, void* asset)
 {
@@ -832,7 +834,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
             }
             else if (p->pickupType == 1 && p->pickupIndex == 9)
             {
-                if (lbl_8025ECFC == 0)
+                if (sDecrementSnackGateEnt == 0)
                 {
                     float r = 2.5f * globals.player.ent.bound.sph.r;
                     if ((d1 <= r * r || d2 <= r * r))

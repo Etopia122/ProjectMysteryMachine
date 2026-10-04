@@ -787,6 +787,14 @@ def generate_build_ninja(
     )
     n.newline()
 
+    n.comment("Pad a source-built unit back to the original unit's section sizes")
+    n.rule(
+        name="pad_obj",
+        command=f"{sys.executable} tools/pad_obj.py $in $out",
+        description="PAD $out",
+    )
+    n.newline()
+
     n.comment("Build precompiled header")
     n.rule(
         name="mwcc_pch",
@@ -1164,7 +1172,24 @@ def generate_build_ninja(
 
             if link_built_obj and built_obj_path is not None:
                 # Use the source-built object
-                link_step.add(built_obj_path)
+                if (
+                    config.non_matching
+                    and obj_path is not None
+                    and file_is_c_cpp(obj.src_path)
+                ):
+                    # Pad the object back to the original unit's section sizes
+                    # so the following original units keep their addresses
+                    # (DMA buffers and DSP code need their alignment)
+                    pad_path = build_path / "pad" / f"{obj_name}.o"
+                    n.build(
+                        outputs=pad_path,
+                        rule="pad_obj",
+                        inputs=[built_obj_path, Path(obj_path)],
+                        implicit=[Path("tools/pad_obj.py")],
+                    )
+                    link_step.add(pad_path)
+                else:
+                    link_step.add(built_obj_path)
             elif obj_path is not None:
                 # Use the original (extracted) object
                 link_step.add(Path(obj_path))
