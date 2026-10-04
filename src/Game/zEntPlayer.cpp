@@ -200,10 +200,29 @@ public:
     unsigned int state; // 0xEC
 };
 
+class _zGust;
+
 class zGustData
 {
 public:
-    unsigned char data[0x24];
+    unsigned int gust_on; // 0x0
+    _zGust* g[4];         // 0x4
+    float lerp[4];        // 0x14
+};
+
+class _tagLightning;
+
+class zEGenerator : public _zEnt
+{
+public:
+    unsigned short flags;    // 0xEC
+    unsigned short num_dsts; // 0xEE
+    float tmr;               // 0xF0
+    xAnimFile* afile;        // 0xF4
+    _xVec3 src_pos;          // 0xF8
+    _xVec3 dst_pos;          // 0x104
+    xBase* dst;              // 0x110
+    _tagLightning* lfx[2];   // 0x114
 };
 
 class p2PlatformSpringboardData
@@ -396,6 +415,18 @@ void zEntPickup_Drop(_zEntPickup* ent);
 void zEntHangable_FollowUpdate(_zEntHangable* ent);
 void zEntHangable_SetMatrix(_zEntHangable* ent, float dt);
 float iurand();
+void xLine3VecDist2(_xVec3* p1, _xVec3* p2, _xVec3* v, _xIsect* isx);
+unsigned int zSurfaceGetSlide(xSurface* surf);
+float zSurfaceGetSlideStartAngle(xSurface* surf);
+float zSurfaceGetSlideStopAngle(xSurface* surf);
+unsigned int zSurfaceGetSticky(xSurface* surf);
+float zSurfaceGetFriction(xSurface* surf);
+signed int zSurfaceGetSlickness(xSurface* surf);
+float zSurfaceGetDamping(xSurface* surf, float min_vel);
+void xRayHitsScene(_xScene* sc, _xRay3* r, _xCollis* coll);
+void iRayHitsModel(const _xRay3* r, const xModelInstance* m, _xCollis* coll);
+void iRayHitsEnv(const _xRay3* r, const _xEnv* env, _xCollis* coll);
+void xMat3x3RotC(_xMat3x3* m, float _x, float _y, float _z, float t);
 signed int Shaggy2_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam, xBase* toParamWidget);
 signed int Shaggy2Plat_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
                                xBase* toParamWidget);
@@ -3080,7 +3111,7 @@ void zEntPlayerSurfDamageUpdate(_xEnt* p)
             case 1:
             {
                 _xEnt* cent = (_xEnt*)coll->optr;
-                if (cent != NULL && cent->baseType == 0x29 && !(((_zEntPickup*)cent)->state & 1))
+                if (cent != NULL && cent->baseType == 0x29 && !(((zEGenerator*)cent)->flags & 1))
                 {
                     break;
                 }
@@ -3179,4 +3210,687 @@ static unsigned int PlayerDepenQuery(_xEnt*, _xEnt*, _xScene*, float, _xCollis* 
         }
     }
     return 1;
+}
+
+void zEntPlayerFloorUpdate(_xEnt* p, float dt)
+{
+    static _xVec3 lorigins[4] = {
+        { -0.3f, 0.0f, 0.3f },
+        { 0.3f, 0.0f, 0.3f },
+        { 0.3f, 0.0f, -0.3f },
+        { -0.3f, 0.0f, -0.3f },
+    };
+    _xCollis* fcoll = &p->collis->colls[0];
+    xSurface* fsurf = zSurfaceGetSurface(fcoll);
+    globals.player.floor_surf = fsurf;
+
+    surfSlickTimer -= dt;
+    if (surfSlickTimer < 0.0f)
+    {
+        surfSlickTimer = 0.0f;
+    }
+    surfSticky = 0;
+    surfSlickRatio = 0.0f;
+
+    if (globals.player.CanSlip)
+    {
+        if ((globals.player.JumpState == 0 || globals.player.JumpState == 1) && fsurf != NULL && fsurf->state == 0)
+        {
+            surfSticky = zSurfaceGetSticky(fsurf);
+        }
+        if (fsurf != NULL && fsurf->state == 0)
+        {
+            surfFriction = zSurfaceGetFriction(fsurf);
+            surfSlickness = zSurfaceGetSlickness(fsurf);
+            surfDamping = zSurfaceGetDamping(fsurf, minVelmag);
+            surfSlipTimer = 0.00001f;
+        }
+        else
+        {
+            surfFriction = 1.0f;
+            surfDamping = minVelmag;
+            if (globals.player.JumpState != 0)
+            {
+                surfSlipTimer = 0.0f;
+            }
+            if (surfSlipTimer != 0.0f)
+            {
+                surfSlipTimer += dt;
+                if (surfSlipTimer >= 0.75f)
+                {
+                    surfSlipTimer = 0.0f;
+                }
+            }
+            if (surfSlipTimer == 0.0f)
+            {
+                surfSlickness = 1;
+            }
+        }
+
+        if (surfSlickness != 1)
+        {
+            surfSlickRatio = (surfSlickness > 1) ? 150.0f / surfSlickness : 1.0f;
+            surfSlickTimer = 0.1f;
+        }
+        else
+        {
+            surfSlickRatio = 0.0f;
+        }
+
+        _xVec3* vel = &p->frame->vel;
+        if (lastSlickness != surfSlickness)
+        {
+            if (surfSlickness == 1)
+            {
+                if (lastFloorEnt != NULL)
+                {
+                    globals.player.SlipFadeTimer = 0.8f;
+                }
+                else
+                {
+                    vel->x = 0.0f;
+                    vel->z = 0.0f;
+                }
+            }
+            else
+            {
+                float s = 1.0f / dt;
+                vel->x = lastDeltaPos.x * s;
+                vel->z = lastDeltaPos.z * s;
+            }
+        }
+
+        if (surfSlickRatio != 0.0f)
+        {
+            float velmag = vel->x * vel->x + vel->z * vel->z;
+            if (surfMaxSpeed != 0.0f)
+            {
+                if (velmag > surfMaxSpeed * surfMaxSpeed)
+                {
+                    float s = surfMaxSpeed / xsqrt(velmag);
+                    vel->x *= s;
+                    vel->z *= s;
+                }
+            }
+            else
+            {
+                float decelmag;
+                if (xStricmp(p->model->Anim->Single->State->Name, "Skid") != 0)
+                {
+                    decelmag = surfDecelIdle * dt;
+                }
+                else
+                {
+                    decelmag = surfDecelSkid * dt;
+                }
+                float slickLerp = 1.3333334f * surfSlipTimer;
+                decelmag = (1.0f - slickLerp) * decelmag + 20.0f * slickLerp * decelmag;
+                velmag = xsqrt(velmag);
+                if (velmag <= decelmag)
+                {
+                    vel->x = 0.0f;
+                    vel->z = 0.0f;
+                }
+                else
+                {
+                    float s = (velmag - decelmag) / velmag;
+                    vel->x *= s;
+                    vel->z *= s;
+                }
+            }
+        }
+        else if (globals.player.SlipFadeTimer > 0.0f)
+        {
+            globals.player.SlipFadeTimer -= dt;
+            if (globals.player.SlipFadeTimer < 0.0f)
+            {
+                globals.player.SlipFadeTimer = 0.0f;
+            }
+        }
+        lastSlickness = surfSlickness;
+    }
+
+    _xRay3 ray;
+    _xCollis rcoll;
+    if (p->collis->colls[0].flags & 1)
+    {
+        globals.player.floor_norm = fcoll->norm;
+    }
+    else
+    {
+        globals.player.floor_norm = g_Y3;
+        ray.origin = *xBoundCenter(&p->bound);
+        ray.dir.x = 0.0f;
+        ray.dir.y = -1.0f;
+        ray.dir.z = 0.0f;
+        ray.max_t = 10.0f;
+        ray.flags = 0x800;
+        rcoll.flags = 0;
+        rcoll.optr = NULL;
+        rcoll.dist = 1e19f;
+        xRayHitsScene(globals.sceneCur, &ray, &rcoll);
+        fcoll->dist = rcoll.dist;
+    }
+
+    float dave = 0.0f;
+    ray.dir.x = 0.0f;
+    ray.dir.y = -1.0f;
+    ray.dir.z = 0.0f;
+    ray.min_t = -0.7f;
+    ray.max_t = 1.0f;
+    ray.flags = 0xC00;
+    _xEnt* fent = (_xEnt*)fcoll->optr;
+    signed int i;
+    for (i = 0; i < 4; i++)
+    {
+        xMat3x3RMulVec(&ray.origin, (_xMat3x3*)p->frame, &lorigins[i]);
+        ray.origin.x += p->frame->mat.pos.x;
+        ray.origin.y += p->frame->mat.pos.y;
+        ray.origin.z += p->frame->mat.pos.z;
+        rcoll.flags = 0;
+        rcoll.optr = NULL;
+        rcoll.dist = 1e19f;
+        if (fent != NULL)
+        {
+            if (fent->collLev == 5)
+            {
+                iRayHitsModel(&ray, fent->model, &rcoll);
+            }
+            else
+            {
+                xRayHitsBound(&ray, &fent->bound, &rcoll);
+            }
+        }
+        else
+        {
+            iRayHitsEnv(&ray, globals.sceneCur->env, &rcoll);
+        }
+        floor_supp[i] = ray.origin;
+        floor_dist[i] = rcoll.dist;
+        if (rcoll.flags & 1)
+        {
+            dave += rcoll.dist;
+        }
+    }
+    dave *= 0.25f;
+    float dmin = dave - 0.17320508f;
+    float dmax = dave + 0.17320508f;
+    for (i = 0; i < 4; i++)
+    {
+        float d = floor_dist[i];
+        d = (dmin > ((d < dmax) ? d : dmax)) ? dmin : ((d < dmax) ? d : dmax);
+        floor_supp[i].y -= d;
+    }
+
+    float ax = floor_supp[1].x - floor_supp[0].x;
+    float bx = floor_supp[2].x - floor_supp[0].x;
+    float cx = floor_supp[3].x - floor_supp[0].x;
+    float ay = floor_supp[1].y - floor_supp[0].y;
+    float by = floor_supp[2].y - floor_supp[0].y;
+    float cy = floor_supp[3].y - floor_supp[0].y;
+    float az = floor_supp[1].z - floor_supp[0].z;
+    float bz = floor_supp[2].z - floor_supp[0].z;
+    float cz = floor_supp[3].z - floor_supp[0].z;
+    globals.player.floor_norm.x = (ay * bz - by * az) + (by * cz - cy * bz);
+    globals.player.floor_norm.y = (az * bx - bz * ax) + (bz * cx - cz * bx);
+    globals.player.floor_norm.z = (ax * by - bx * ay) + (bx * cy - cx * by);
+    xVec3Normalize(&globals.player.floor_norm, &globals.player.floor_norm);
+
+    if (globals.player.Slide == 1 || globals.player.Slide == 2)
+    {
+        if (((p->collis->colls[0].flags & 1) &&
+             (fcoll->norm.y > (float)cos(surfSlideStop) ||
+              (fsurf != NULL && (fsurf->state != 0 || !zSurfaceGetSlide(fsurf))))) ||
+            p->frame->vel.y > 0.0f || surfSlickRatio != 0.0f)
+        {
+            if (!(globals.player.Inv_Specials & 8))
+            {
+                p->pflags &= 0x7F;
+                globals.player.SlideTimer = 2.15f;
+            }
+            if (surfSlickRatio != 0.0f)
+            {
+                globals.player.SlideTimer = 0.0f;
+            }
+            globals.player.Slide = 0;
+        }
+    }
+    else if ((p->collis->colls[0].flags & 1) && fcoll->norm.y < (float)cos(zSurfaceGetSlideStartAngle(fsurf)) &&
+             fsurf != NULL && fsurf->state == 0 && zSurfaceGetSlide(fsurf))
+    {
+        if ((globals.player.Inv_Specials & 8) &&
+            (fcoll->optr == NULL || ((xBase*)fcoll->optr)->baseType != 6 || ((_xEnt*)fcoll->optr)->subType != 0xB))
+        {
+            globals.player.Slide = 2;
+        }
+        else
+        {
+            _xVec3 X;
+            _xVec3 D;
+            _xMat3x3 N_to_Up;
+            _xVec3 D_flat;
+            X.x = -fcoll->norm.z;
+            X.y = 0.0f;
+            X.z = fcoll->norm.x;
+            xVec3Normalize(&X, &X);
+            xVec3Cross(&D, &fcoll->norm, &X);
+            xVec3Normalize(&D, &D);
+            xMat3x3RotC(&N_to_Up, X.x, X.y, X.z, acos(fcoll->norm.y));
+            xMat3x3RMulVec(&D_flat, &N_to_Up, &D);
+            float ddotm = D_flat.x * req_motion.x + D_flat.z * req_motion.z;
+            if (ddotm < 0.0f && (globals.player.LastJumpState == 0 || globals.player.LastJumpState == 1))
+            {
+                globals.player.Slide = 3;
+                float s = ddotm / xsqrt(D_flat.x * D_flat.x + D_flat.z * D_flat.z);
+                p->frame->mat.pos.x -= D_flat.x * s;
+                p->frame->mat.pos.z -= D_flat.z * s;
+                if (update_motion.y > 0.0f)
+                {
+                    p->frame->mat.pos.y = p->frame->oldpos.y;
+                }
+            }
+            else
+            {
+                globals.player.Slide = 1;
+                surfSlideStart = zSurfaceGetSlideStartAngle(fsurf);
+                surfSlideStop = zSurfaceGetSlideStopAngle(fsurf);
+                p->pflags |= 0x80;
+                float s = 0.5f / update_dt;
+                p->frame->vel.x += req_motion.x * s;
+                p->frame->vel.z += req_motion.z * s;
+                p->frame->vel.y = -4.0f;
+            }
+            globals.player.SlideTimer = 0.0f;
+        }
+    }
+    else
+    {
+        globals.player.Slide = 0;
+    }
+
+    switch (globals.player.Slide)
+    {
+    case 1:
+        globals.player.SlideTimer += dt;
+        break;
+    case 0:
+        if (globals.player.SlideTimer > 0.0f)
+        {
+            globals.player.SlideTimer -= dt;
+            if (globals.player.SlideTimer < 0.0f)
+            {
+                globals.player.SlideTimer = 0.0f;
+            }
+        }
+        break;
+    }
+}
+
+void zEntPlayerVelUpdate(_xEnt* ent, float dt)
+{
+    if (!(ent->model->Anim->Single->State->UserFlags & 0x100))
+    {
+        _xVec3* v = &ent->frame->vel;
+        if (!(globals.player.SlideTimer > 0.0f) && surfSlickRatio == 0.0f && !(globals.player.SlipFadeTimer > 0.0f))
+        {
+            if (globals.player.JumpState == 0)
+            {
+                v->x = 0.0f;
+                v->y = 0.0f;
+                v->z = 0.0f;
+            }
+            return;
+        }
+
+        if (globals.player.Slide == 0 && globals.player.SlideTimer > 0.0f)
+        {
+            float sft = 2.15f - globals.player.SlideTimer;
+            if (globals.player.JumpState == 0 || globals.player.JumpState == 1)
+            {
+                if (globals.player.JumpState == 0)
+                {
+                    v->y = 0.0f;
+                }
+                if (sft < 0.4f)
+                {
+                    float gft = 0.4f - sft;
+                    float s = gft / (gft + dt);
+                    v->x *= s;
+                    v->z *= s;
+                }
+                else
+                {
+                    v->x = 0.0f;
+                    v->z = 0.0f;
+                }
+            }
+            else if (sft < 2.15f)
+            {
+                float aft = 2.15f - sft;
+                float s = aft / (aft + dt);
+                v->x *= s;
+                v->z *= s;
+            }
+            else
+            {
+                v->x = 0.0f;
+                v->z = 0.0f;
+            }
+        }
+
+        float velen2 = v->x * v->x + v->y * v->y + v->z * v->z;
+        if ((float)__fabs(velen2) < 0.0001f)
+        {
+            v->x = 0.0f;
+            v->y = 0.0f;
+            v->z = 0.0f;
+        }
+
+        signed int i = 0;
+        _xCollis* coll = &ent->collis->colls[0];
+        if (surfSlickRatio != 0.0f)
+        {
+            if (coll->optr != NULL)
+            {
+                if (ent->frame->mat.pos.y - ent->frame->oldpos.y > 0.0f)
+                {
+                    v->x *= 0.97f;
+                    v->z *= 0.97f;
+                }
+            }
+            else
+            {
+                v->y = 0.0f;
+            }
+            coll += 2;
+            i = 2;
+        }
+        else if (!(globals.player.SlideTimer > 0.0f))
+        {
+            if (globals.player.SlipFadeTimer > 0.0f)
+            {
+                float rft = globals.player.SlipFadeTimer;
+                float s = rft / (rft + dt);
+                v->x *= s;
+                v->z *= s;
+            }
+            else
+            {
+                v->x = 0.0f;
+                v->z = 0.0f;
+            }
+        }
+
+        for (; i < 6; i++, coll++)
+        {
+            if ((coll->flags & 1) && coll->dist < 0.7f &&
+                (coll->optr == NULL || ((xBase*)coll->optr)->baseType != 2))
+            {
+                if (!(v->x * coll->hdng.x + v->y * coll->hdng.y + v->z * coll->hdng.z < 0.0f))
+                {
+                    float d = v->x * coll->norm.x + v->y * coll->norm.y + v->z * coll->norm.z;
+                    if (!(d > 0.0f))
+                    {
+                        d = -d;
+                        if (d >= 0.965926f * velen2)
+                        {
+                            v->x = 0.0f;
+                            v->y = 0.0f;
+                            v->z = 0.0f;
+                        }
+                        else
+                        {
+                            float s = 0.5f * d;
+                            v->x += coll->norm.x * s;
+                            v->y += coll->norm.y * s;
+                            v->z += coll->norm.z * s;
+                            velen2 = v->x * v->x + v->y * v->y + v->z * v->z;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+static void PlayerEGenCheck(_xEnt* ent, zScene* sc, float dt)
+{
+    signed int i;
+    globals.player.earc_coll.flags &= ~1;
+    for (i = 0; i < (signed int)sc->baseCount[0x29]; i++)
+    {
+        zEGenerator* egen = (zEGenerator*)sc->baseList[0x29] + i;
+        if (egen->flags & 1)
+        {
+            _xIsect isect;
+            xLine3VecDist2(&egen->src_pos, &egen->dst_pos, &ent->bound.sph.center, &isect);
+            float r = ent->bound.sph.r;
+            if (isect.dist < r * r + 0.1f * (2.0f * r) + 0.1f * 0.1f)
+            {
+                globals.player.earc_coll.flags |= 1;
+                if (zEntPlayer_Damage(egen, 1) != 0)
+                {
+                    globals.player.DamageTimer = 5.0f;
+                }
+            }
+        }
+    }
+}
+
+void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
+{
+    globals.player.LastJumpState = globals.player.JumpState;
+    if (globals.player.JumpState == 4)
+    {
+        return;
+    }
+    if (globals.player.JumpState == 5)
+    {
+        ent->frame->vel.y = -globals.player.s.ButtsmashSpeed;
+    }
+
+    if (globals.player.Jump_HoldTimer != 0.0f)
+    {
+        globals.player.Jump_HoldTimer -= dt;
+        if (globals.player.Jump_HoldTimer <= 0.0f)
+        {
+            globals.player.Jump_HoldTimer = 0.0f;
+        }
+        else if (!globals.player.ControlOn || !(globals.pad0->on & 0x10000))
+        {
+            globals.player.Jump_HoldTimer = 0.0f;
+            globals.player.Jump_ChangeTimer = 0.0f;
+            globals.player.Jump_CurrGravity = globals.player.s.Gravity;
+        }
+    }
+
+    if (globals.player.Jump_ChangeTimer != 0.0f)
+    {
+        globals.player.Jump_ChangeTimer -= dt;
+        if (globals.player.Jump_ChangeTimer == 0.0f)
+        {
+            globals.player.Jump_ChangeTimer = 1e-7f;
+        }
+        if (globals.player.Jump_ChangeTimer <= -globals.player.s.GravSmooth)
+        {
+            globals.player.Jump_HoldTimer = 0.0f;
+            globals.player.Jump_ChangeTimer = 0.0f;
+            globals.player.Jump_CurrGravity = globals.player.s.Gravity;
+        }
+        else if (globals.player.Jump_ChangeTimer < 0.0f)
+        {
+            float lerp = -globals.player.Jump_ChangeTimer / globals.player.s.GravSmooth;
+            globals.player.Jump_CurrGravity =
+                (1.0f - lerp) * globals.player.s.JumpGravity + lerp * globals.player.s.Gravity;
+        }
+    }
+
+    _xCollis* cfloor = &ent->collis->colls[0];
+    if ((cfloor->flags & 1) && (cfloor->optr == NULL || ((xBase*)cfloor->optr)->baseType != 2) &&
+        ent->frame->vel.y <= 0.0f)
+    {
+        if (globals.player.JumpState != 0)
+        {
+            if (globals.player.JumpState == 5)
+            {
+                if (sEmitterBounceMiss != NULL)
+                {
+                    _zParEmitterCustomSettings info;
+                    info.custom_flags = 0x20;
+                    _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
+                    info.pos.x = cfloor->dist * cfloor->tohit.x + mat->pos.x;
+                    info.pos.y = cfloor->dist * cfloor->tohit.y + mat->pos.y;
+                    info.pos.z = cfloor->dist * cfloor->tohit.z + mat->pos.z;
+                    for (signed int i = 0; i < 25; i++)
+                    {
+                        zParEmitterEmitCustom(sEmitterBounceMiss, 1.0f, &info);
+                    }
+                }
+                zRumbleStart(0, (_tagSDRumbleType)3);
+                float pitch;
+                sPlayerSndfx.butt_pitch = fn_800C751C(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
+                xSndPlay(sPlayerSndfx.buttmiss_id, 0.5f, 0.5f, 0.0f, 0x80, 2, 0);
+            }
+            globals.player.JumpState = 0;
+            globals.player.Jump_CanDouble = 1;
+            globals.player.Jump_CanFloat = 1;
+            globals.player.Jump_Springboard = NULL;
+            globals.player.Jump_SpringboardStart = 0;
+        }
+    }
+    else
+    {
+        switch (globals.player.JumpState)
+        {
+        case 0:
+            globals.player.JumpState = 1;
+            globals.player.JumpTimer = 0.0f;
+            break;
+        case 1:
+            globals.player.JumpTimer += dt;
+            if (globals.player.JumpTimer >= 0.25f)
+            {
+                globals.player.JumpState = 2;
+            }
+            break;
+        case 2:
+            if (ent->frame->vel.y < 16.0f && globals.player.Jump_SpringboardStart)
+            {
+                if (sEmitterSpringBoard != NULL)
+                {
+                    _zParEmitterCustomSettings info;
+                    info.custom_flags = 0x20;
+                    info.pos = *xBoundCenter(&globals.player.Jump_Springboard->bound);
+                    for (signed int i = 0; i < 25; i++)
+                    {
+                        zParEmitterEmitCustom(sEmitterSpringBoard, 1.0f / 30.0f, &info);
+                    }
+                }
+                globals.player.Jump_SpringboardStart = 0;
+                p2PlatformAsset* passet = globals.player.Jump_Springboard->passet;
+                if (passet->sb.jmpdir.x == 0.0f && passet->sb.jmpdir.z == 0.0f)
+                {
+                    globals.player.Jump_CanDouble = 1;
+                }
+            }
+            break;
+        }
+        if (globals.player.JumpState == 3)
+        {
+            ent->frame->vel.x *= 0.96f;
+            ent->frame->vel.z *= 0.96f;
+        }
+    }
+
+    if (globals.player.Jump_CurrGravity != 0.0f)
+    {
+        if (globals.player.JumpState == 2 || globals.player.JumpState == 1)
+        {
+            ent->frame->vel.y -= globals.player.Jump_CurrGravity * dt;
+        }
+        if (globals.player.JumpState == 2 || globals.player.JumpState == 3)
+        {
+            if ((globals.player.Inv_Specials & 0x1000) && globals.player.ControlOn &&
+                (globals.pad0->on & 0x10000) && globals.player.Jump_CanFloat && !globals.player.Jump_CanDouble &&
+                (ent->frame->vel.y <= -globals.player.s.FloatSpeed || gust_data.gust_on))
+            {
+                zLaughNotify(4);
+                globals.player.JumpState = 3;
+            }
+            if (globals.player.JumpState == 3)
+            {
+                ent->frame->vel.y = -globals.player.s.FloatSpeed;
+                if (!globals.player.ControlOn || !(globals.pad0->on & 0x10000))
+                {
+                    globals.player.JumpState = 2;
+                }
+            }
+        }
+    }
+}
+
+void zEntPlayerJumpStart(_xEnt* ent, zJumpParam* jump)
+{
+    globals.player.Jump_CurrGravity = globals.player.s.JumpGravity;
+    globals.player.Jump_HoldTimer = jump->TimeHold;
+    globals.player.Jump_ChangeTimer = jump->TimeGravChange;
+    if (ent->frame->vel.y > 0.0f && globals.player.JumpState == 2)
+    {
+        ent->frame->vel.y = jump->ImpulseVel;
+    }
+    else
+    {
+        ent->frame->vel.y = jump->ImpulseVel;
+    }
+    globals.player.JumpState = 2;
+    unsigned int flags = ent->model->Anim->Single->State->UserFlags;
+    if ((flags & 0x1E) == 0xE || (flags & 0x100))
+    {
+        globals.player.Bounced = 1;
+    }
+}
+
+void CalcJumpImpulse(zJumpParam* param)
+{
+    param->ImpulseVel = CalcJumpImpulse_Smooth(globals.player.s.Gravity, globals.player.s.JumpGravity,
+                                               param->PeakHeight, param->TimeGravChange, globals.player.s.GravSmooth);
+}
+
+static float CalcJumpImpulse_Smooth(float g, float j, float h, float Tgc, float Tgs)
+{
+    float Tm[3];
+    float A = (j - g) / (6.0f * Tgs);
+    float Tf = Tgc + Tgs;
+    float B = ((g * Tgc - j * Tgc) - j * Tgs) / (2.0f * Tgs);
+    float AS = -j * 0.5f;
+    float Kc = -(2.0f * B * Tgc + (3.0f * A * (Tgc * Tgc) + j * Tgc));
+    float AF = -g * 0.5f;
+    float D = -(Kc * Tgc + (B * (Tgc * Tgc) - (AS * (Tgc * Tgc) - A * (Tgc * (Tgc * Tgc)))));
+    float Kbf = g * Tf + (2.0f * B * Tf + 3.0f * A * (Tf * Tf));
+    float Ts = xsqrt((0.0f - h) / AS);
+    float TF = xsqrt((-(Kbf * Tf + (AF * (Tf * Tf) - (D + (A * (Tf * (Tf * Tf)) + B * (Tf * Tf))))) - h) / AF);
+    unsigned int solcnt = xMathSolveCubic(-2.0f * A, -B, 0.0f, D - h, &Tm[0], &Tm[1], &Tm[2]);
+
+    if (Ts <= Tgc && Ts >= 0.0f)
+    {
+        return -(2.0f * AS * Ts + 0.0f);
+    }
+    if (TF >= Tf)
+    {
+        return -(2.0f * AF * TF + (Kbf + Kc));
+    }
+
+    float Tmfound = -1.0f;
+    for (unsigned int i = 0; i < solcnt; i++)
+    {
+        if (Tm[i] >= Tgc && Tm[i] <= Tf && (Tmfound < 0.0f || Tm[i] < Tmfound))
+        {
+            Tmfound = Tm[i];
+        }
+    }
+    if (Tmfound != -1.0f)
+    {
+        return -(3.0f * A * (Tmfound * Tmfound) + (2.0f * B * Tmfound + Kc));
+    }
+    return 1.0f;
 }
