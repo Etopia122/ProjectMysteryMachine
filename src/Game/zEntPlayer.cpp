@@ -449,13 +449,13 @@ enum _tagSDRumbleType
 
 xSurface* zSurfaceGetSurface(_xCollis* coll);
 void zRumbleStart(signed int idx, _tagSDRumbleType type);
-signed short fn_800C751C(signed short old, float* pitch, signed int range, float scale);
+extern "C" signed short fn_800C751C(signed short old, float* pitch, signed int range, float scale);
 void zLaughNotify(signed int laugh);
 void zFeetAddSkidMark(_xEnt* ent, _tagFeetSkidMark* mark, float dt);
 void zFeetUpdateSkidMark(_tagFeetSkidMark* mark, float dt);
 unsigned int iSndIsPlayingByID(unsigned int id);
-void RpClumpRemoveAtomic(RpClump* clump, RpAtomic* atomic);
-void RpClumpAddAtomic(RpClump* clump, RpAtomic* atomic);
+extern "C" void RpClumpRemoveAtomic(RpClump* clump, RpAtomic* atomic);
+extern "C" void RpClumpAddAtomic(RpClump* clump, RpAtomic* atomic);
 unsigned int zSurfaceGetMatchOrient(xSurface* surf);
 void xMat4x3Rot(_xMat4x3* m, _xVec3* a, float t, _xVec3* p);
 void xMat3x3RMulVec(_xVec3* o, _xMat3x3* m, _xVec3* v);
@@ -634,12 +634,12 @@ signed int fn_800394B4();
 void* memset(void* dst, int c, unsigned int n);
 long labs(long x);
 void fn_8000A080(signed int);
-void zEntVillain_HeroWasHurt();
 int strcmp(const char* a, const char* b);
 void* memcpy(void* dst, const void* src, unsigned int n);
 double acos(double);
 signed int sprintf(char* s, const char* format, ...);
 }
+void zEntVillain_HeroWasHurt();
 
 signed int sPlayerSurfaceType;
 static float sPlayerWaterOffset;

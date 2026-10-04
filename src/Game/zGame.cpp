@@ -164,7 +164,9 @@ float iTimeDiffSec(long long t0, long long t1);
 void iTimeGameAdvance(float elapsed);
 void iVSync();
 void iPadStopRumble(_tagxPad* pad);
-void iEnvEndRenderFX(void* env);
+class iEnv;
+class xSerial;
+void iEnvEndRenderFX(iEnv* env);
 _tagxPad* xPadUpdate(signed int idx, float time_passed);
 void xPadDestroyRumbleChain(signed int idx);
 void* xSTFindAsset(unsigned int aid, unsigned int* size);
@@ -198,7 +200,7 @@ void zSceneInit(unsigned int theSceneID);
 void zSceneSetup();
 void zSceneExit();
 void zSceneReset();
-void zSceneLoad(zScene* ent, void* s);
+void zSceneLoad(zScene* ent, xSerial* s);
 void zSceneUpdate(float dt);
 void zSceneRender();
 xBase* zSceneGetObject(signed int type, signed int idx);
@@ -221,8 +223,8 @@ void zGameExtras(float dt);
 void zGameExtrasInit();
 void zGameExtrasReset();
 void zHud_Init();
-void zHud_Setup(zScene* sc);
-void zHud_Update(zScene* sc, float dt);
+void zHud_Setup(_xScene* sc);
+void zHud_Update(_xScene* sc, float dt);
 void zHud_DrawText(float x, float y, float w, float h, char* text, signed int justify, float size,
                    unsigned char alpha, eHudDropShadowMode shadow);
 void zLaughInit();
@@ -308,7 +310,7 @@ void zGameInit(unsigned int theSceneID)
     globals.stats.snacks = 0;
     globals.stats.snacks_tot = 0;
     zHud_Init();
-    zHud_Setup(globals.sceneCur);
+    zHud_Setup((_xScene*)globals.sceneCur);
 }
 
 void zGameExit()
@@ -418,7 +420,7 @@ void zGameLoop()
                      &globals.camera.hi_cam.mat.pos, 25.0f);
         xSndSetFrameFar(&xEntGetFrameMat(&globals.player.ent)->pos);
         xSndUpdate(sTimeElapsed);
-        zHud_Update(globals.sceneCur, sTimeElapsed);
+        zHud_Update((_xScene*)globals.sceneCur, sTimeElapsed);
         xCameraUpdate(&globals.camera, sTimeElapsed);
         zScene_UpdateFlyToInterface(sTimeElapsed);
         xCameraBegin(&globals.camera, 1);

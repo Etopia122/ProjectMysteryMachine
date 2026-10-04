@@ -9,18 +9,18 @@ void* memset(void* dst, int c, unsigned int n);
 
 void fn_800CD254();
 void fn_800CD268(signed int enable);
-void fn_800D77B4();
-void fn_800D77D4();
-void fn_800D77E0();
-void fn_800D77EC();
-void fn_800D77F8();
-void fn_800D7804();
-signed int fn_800D7810();
-signed int fn_800D7A08();
-signed int fn_800D7A54();
-signed int fn_800D7AA0();
-signed int fn_800D7AEC();
 }
+void zVarDefeatMasterMind();
+void zVarUnlockF001();
+void zVarUnlockE001();
+void zVarUnlockS001();
+void zVarUnlockR001();
+void zVarGiveMap();
+signed int zVarEntryCB_VibrationOn();
+signed int zVarEntryCB_SndFXVol();
+signed int zVarEntryCB_SndMusicVol();
+signed int zVarEntryCB_SndMasterVol();
+signed int zVarEntryCB_SndMode();
 
 class xSerial;
 
@@ -276,7 +276,7 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         }
         break;
     case ZDSP_CMD_CTRL_VIBEGET:
-        *result = fn_800D7810();
+        *result = zVarEntryCB_VibrationOn();
         break;
     case ZDSP_CMD_CTRL_VIBESET:
         globals.option_vibration = *indata;
@@ -284,7 +284,7 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         zRumbleStart(0, (_tagSDRumbleType)0xE);
         break;
     case ZDSP_CMD_SNDMOD_GET:
-        *result = fn_800D7AEC();
+        *result = zVarEntryCB_SndMode();
         break;
     case ZDSP_CMD_SNDMOD_SET:
         if (*indata == 0)
@@ -297,11 +297,11 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         }
         if (result)
         {
-            *result = fn_800D7AEC();
+            *result = zVarEntryCB_SndMode();
         }
         break;
     case ZDSP_CMD_SNDVOL_GET:
-        *result = fn_800D7AA0();
+        *result = zVarEntryCB_SndMasterVol();
         break;
     case ZDSP_CMD_SNDVOL_SET:
         vol = 0.1f * *indata;
@@ -309,11 +309,11 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         xSndSetMasterVol(vol, vol);
         if (result)
         {
-            *result = fn_800D7AA0();
+            *result = zVarEntryCB_SndMasterVol();
         }
         break;
     case ZDSP_CMD_SNDVOL_INCR:
-        iv = fn_800D7AA0();
+        iv = zVarEntryCB_SndMasterVol();
         if (indata)
         {
             iv += *indata;
@@ -327,11 +327,11 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         xSndSetMasterVol(vol, vol);
         if (result)
         {
-            *result = fn_800D7AA0();
+            *result = zVarEntryCB_SndMasterVol();
         }
         break;
     case ZDSP_CMD_SNDVOL_DECR:
-        iv = fn_800D7AA0();
+        iv = zVarEntryCB_SndMasterVol();
         if (indata)
         {
             iv -= *indata;
@@ -345,11 +345,11 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         xSndSetMasterVol(vol, vol);
         if (result)
         {
-            *result = fn_800D7AA0();
+            *result = zVarEntryCB_SndMasterVol();
         }
         break;
     case ZDSP_CMD_MUSVOL_GET:
-        *result = fn_800D7A54();
+        *result = zVarEntryCB_SndMusicVol();
         break;
     case ZDSP_CMD_MUSVOL_SET:
         vol = 0.1f * *indata;
@@ -357,11 +357,11 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         xSndSetStreamVol(vol, vol);
         if (result)
         {
-            *result = fn_800D7A54();
+            *result = zVarEntryCB_SndMusicVol();
         }
         break;
     case ZDSP_CMD_MUSVOL_INCR:
-        iv = fn_800D7A54();
+        iv = zVarEntryCB_SndMusicVol();
         if (indata)
         {
             iv += *indata;
@@ -375,11 +375,11 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         xSndSetStreamVol(vol, vol);
         if (result)
         {
-            *result = fn_800D7A54();
+            *result = zVarEntryCB_SndMusicVol();
         }
         break;
     case ZDSP_CMD_MUSVOL_DECR:
-        iv = fn_800D7A54();
+        iv = zVarEntryCB_SndMusicVol();
         if (indata)
         {
             iv -= *indata;
@@ -393,11 +393,11 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         xSndSetStreamVol(vol, vol);
         if (result)
         {
-            *result = fn_800D7A54();
+            *result = zVarEntryCB_SndMusicVol();
         }
         break;
     case ZDSP_CMD_SFXVOL_GET:
-        *result = fn_800D7A08();
+        *result = zVarEntryCB_SndFXVol();
         break;
     case ZDSP_CMD_SFXVOL_SET:
         vol = 0.1f * *indata;
@@ -405,11 +405,11 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         xSndSetFXVol(vol, vol);
         if (result)
         {
-            *result = fn_800D7A08();
+            *result = zVarEntryCB_SndFXVol();
         }
         break;
     case ZDSP_CMD_SFXVOL_INCR:
-        iv = fn_800D7A08();
+        iv = zVarEntryCB_SndFXVol();
         if (indata)
         {
             iv += *indata;
@@ -423,11 +423,11 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         xSndSetFXVol(vol, vol);
         if (result)
         {
-            *result = fn_800D7A08();
+            *result = zVarEntryCB_SndFXVol();
         }
         break;
     case ZDSP_CMD_SFXVOL_DECR:
-        iv = fn_800D7A08();
+        iv = zVarEntryCB_SndFXVol();
         if (indata)
         {
             iv -= *indata;
@@ -441,7 +441,7 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
         xSndSetFXVol(vol, vol);
         if (result)
         {
-            *result = fn_800D7A08();
+            *result = zVarEntryCB_SndFXVol();
         }
         break;
     case ZDSP_CMD_GSTATE_GET:
@@ -709,19 +709,19 @@ static signed int ZDSP_elcb_event(xBase* from, xBase* xb, unsigned int toEvent, 
         zEntPlayer_StoreCheckPoint(toParam);
         break;
     case 0x101:
-        fn_800D7804();
+        zVarGiveMap();
         break;
     case 0x102:
-        fn_800D77F8();
+        zVarUnlockR001();
         break;
     case 0x103:
-        fn_800D77EC();
+        zVarUnlockS001();
         break;
     case 0x104:
-        fn_800D77E0();
+        zVarUnlockE001();
         break;
     case 0x105:
-        fn_800D77D4();
+        zVarUnlockF001();
         break;
     case 0x106:
     case 0x107:
@@ -778,7 +778,7 @@ static signed int ZDSP_elcb_event(xBase* from, xBase* xb, unsigned int toEvent, 
         }
         break;
     case 0x127:
-        fn_800D77B4();
+        zVarDefeatMasterMind();
         break;
     case 0x130:
         fn_800CD268(1);

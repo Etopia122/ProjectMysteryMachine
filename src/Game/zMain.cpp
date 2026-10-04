@@ -29,10 +29,10 @@ void fn_800162D0(char* elf, signed int profile);
 void fn_800162D4();
 void fn_80043E78();
 void fn_800443AC();
-signed int zEntVillain_Shutdown();
-signed int zEntVillain_Startup();
 }
 void xTRCInit();
+signed int zEntVillain_Shutdown();
+signed int zEntVillain_Startup();
 void zEntProjectile_Startup();
 void zEntProjectile_Shutdown();
 void zSceneStats_Clear();
@@ -105,6 +105,7 @@ void zSceneMemLvlChkCB();
 void CalcJumpImpulse(zJumpParam* param);
 
 extern _tagxPad* gDebugPad;
+zGlobals globals;
 static signed int sShowMenuOnBoot = 1;
 static st_SERIAL_PERCID_SIZE g_xser_sizeinfo[2] = { { 'PLYR', 0x148 }, { 0, 0 } };
 

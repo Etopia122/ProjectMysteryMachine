@@ -26,10 +26,10 @@ void* memset(void* dst, int c, unsigned long n);
 int sprintf(char* s, const char* format, ...);
 }
 
-RwCamera* RwCameraClear(RwCamera* camera, RwRGBA* colour, signed int clearMode);
-RwCamera* RwCameraBeginUpdate(RwCamera* camera);
-RwCamera* RwCameraEndUpdate(RwCamera* camera);
-RwCamera* RwCameraShowRaster(RwCamera* camera, void* dev, unsigned int flags);
+extern "C" RwCamera* RwCameraClear(RwCamera* camera, RwRGBA* colour, signed int clearMode);
+extern "C" RwCamera* RwCameraBeginUpdate(RwCamera* camera);
+extern "C" RwCamera* RwCameraEndUpdate(RwCamera* camera);
+extern "C" RwCamera* RwCameraShowRaster(RwCamera* camera, void* dev, unsigned int flags);
 RwCamera* iCameraCreate(signed int width, signed int height);
 void iCameraDestroy(RwCamera* camera);
 void iVSync();
@@ -124,7 +124,7 @@ public:
 
 _tagTRCPadInfo gTrcPad[4];
 _tagTRCState gTrcDisk[2];
-static signed int sCardCheckActive;
+signed int sCardCheckActive;
 static xFontBox* sTrcFontBox;
 static unsigned int sOwnCamera;
 

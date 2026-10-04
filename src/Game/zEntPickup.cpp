@@ -15,7 +15,7 @@
 #define NULL 0
 #endif
 
-class xSerial;
+#include "xserializer.h"
 class xPar;
 class xParGroup;
 class RpAtomic;
@@ -153,7 +153,7 @@ float fn_800294A0(float t);
 
 void zHud_showSnack();
 
-unsigned int xStrHash(const char* str);
+unsigned int xStrHash(char* str);
 unsigned int xSndPlay(unsigned int id, float volL, float volR, float pitch, unsigned int priority,
                       unsigned int flags, unsigned int parentID);
 unsigned int xSndPlay3D(unsigned int id, float vol, float pitch, unsigned int priority,
@@ -211,8 +211,8 @@ void zEntPlayer_SNDInfoPickup(_xEnt* ent);
 void zEntPlayer_SNDKeyPickup(_xEnt* ent);
 void zEntPlayer_SNDErrorPickup(_xEnt* ent);
 void zEntPlayer_SNDBitePickup(_xEnt* ent);
-void Write_b7(xSerial* s, unsigned int bits);
-void Read_b7(xSerial* s, unsigned int* bits);
+
+
 
 extern unsigned char* giAnimScratch;
 extern _zParEmitter* sEmitDust;
@@ -1256,7 +1256,7 @@ void zEntPickup_Reset(_zEntPickup* ent)
 void zEntPickup_Save(_zEntPickup* ent, xSerial* s)
 {
     zEntSave(ent, s);
-    Write_b7(s, ent->state);
+    s->Write_b7(ent->state);
 }
 
 void zEntPickup_Load(_zEntPickup* ent, xSerial* s)
@@ -1267,7 +1267,7 @@ void zEntPickup_Load(_zEntPickup* ent, xSerial* s)
     {
         wasDroppable = 1;
     }
-    Read_b7(s, &ent->state);
+    s->Read_b7(&ent->state);
     if (wasDroppable && (ent->state & 0x23))
     {
         _zEntPickup* parent = (_zEntPickup*)ent->dropParent;

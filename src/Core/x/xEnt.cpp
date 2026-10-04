@@ -1162,7 +1162,7 @@ void xEntCollideFloor(_xEnt* p, _xScene* sc, float dt)
 
     if (ml != coll)
     {
-        float flr_dist = ml->dist * (float)fabs(ml->hdng.y);
+        float flr_dist = ml->dist * (float)__fabs(ml->hdng.y);
         *coll = *ml;
         if (flr_dist < sbr)
         {
@@ -1210,7 +1210,7 @@ static void xEntCollideCeiling(_xEnt* p, _xScene* sc, float dt)
 
     if (hit != cl)
     {
-        float depen = hit->dist * (float)fabs(hit->hdng.y);
+        float depen = hit->dist * (float)__fabs(hit->hdng.y);
         *cl = *hit;
         hit->flags |= 0xA;
         if (depen < sph_r)

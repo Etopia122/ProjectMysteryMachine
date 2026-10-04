@@ -62,8 +62,8 @@ signed int RwIm2DRenderIndexedPrimitive(signed int primType, RwIm2DVertex* verti
                                         signed int numIndices);
 float RwIm2DGetNearScreenZ();
 // TODO: unidentified zVar setter (the current level's scene id)
-void fn_800D77CC(unsigned int id);
 }
+void zVarSetArea(unsigned int id);
 
 void zEntInit(_zEnt* ent, p2EntAsset* asset, unsigned int type);
 void xEntUpdate(_xEnt* ent, _xScene* sc, float dt);
@@ -551,7 +551,7 @@ signed int zUIEventCB(xBase* from, xBase* to, unsigned int toEvent, float* toPar
                     char scene[5] = { 0 };
                     strncpy(scene, uiName, 4);
                     scene[1] = '0';
-                    fn_800D77CC((scene[0] << 24) | (scene[1] << 16) | (scene[2] << 8) | scene[3]);
+                    zVarSetArea((scene[0] << 24) | (scene[1] << 16) | (scene[2] << 8) | scene[3]);
                 }
             }
         }

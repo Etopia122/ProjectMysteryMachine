@@ -86,7 +86,7 @@ extern unsigned int gScreenDump;
 
 xBase* zSceneFindObject(unsigned int id);
 void zEntEvent(xBase* to, unsigned int toEvent);
-unsigned int xStrHash(const char* str);
+unsigned int xStrHash(char* str);
 void zGameModeSwitch(eGameMode mode);
 void zGameStateSwitch(signed int state);
 void zEntPlayer_SNDSavePickup(_xEnt* ent);

@@ -78,8 +78,8 @@ RpAtomic* RpAtomicForAllIntersections(RpAtomic* atomic, RpIntersection* intersec
 RwFrame* RwFrameTransform(RwFrame* frame, const RwMatrixTag* m, signed int combine);
 }
 
-unsigned char xCollideGetCollsIdx(const _xVec3* tohit, const _xMat3x3* mat);
-void xMat3x3Normalize(_xMat3x3* o, const _xMat3x3* m);
+unsigned char xCollideGetCollsIdx(_xVec3* tohit, _xMat3x3* mat);
+void xMat3x3Normalize(_xMat3x3* o, _xMat3x3* m);
 
 static float cbath;
 static _xRay3 cbray;
@@ -518,7 +518,7 @@ static RpCollisionTriangle* sphereHitsEnv4CB(RpIntersection* isx, RpWorldSector*
         return tri;
     }
 
-    c = &colls[xCollideGetCollsIdx(&tohit, cbmat)];
+    c = &colls[xCollideGetCollsIdx(&tohit, (_xMat3x3*)cbmat)];
     ddist = dist - c->dist;
 
     if (!(ddist < 0.0f || (ddist < 0.001f && c->norm.y > tri->normal.y)))

@@ -78,7 +78,7 @@ void iShadowAdd(iShadowCache* cache, unsigned char alpha);
 void zEntPlayer_Damage(xBase* src, unsigned int damage);
 signed int xUtil_yesno(float wt_yes);
 void* xSTFindAsset(unsigned int aid, unsigned int* size);
-unsigned int xStrHash(const char* str);
+unsigned int xStrHash(char* str);
 void NewList(st_ELIST* list);
 st_ENODE* RemHead(st_ELIST* list);
 void AddHead(st_ELIST* list, st_ENODE* node);

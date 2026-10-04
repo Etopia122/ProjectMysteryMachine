@@ -121,7 +121,7 @@ union zSceneSortID
 
 extern unsigned int gActiveHeap;
 extern signed int gGameState;
-extern unsigned int lbl_8025EBE0;
+extern signed int sCardCheckActive;
 
 signed int zMenuRunning();
 signed int zGameIsPaused();
@@ -503,7 +503,7 @@ class _zVolume;
 
 class zEntTrigger;
 
-class zCutsceneMgr;
+class _zCutsceneMgr;
 
 class st_ZDISPATCH_DATA;
 
@@ -530,9 +530,9 @@ void fn_80005C34(xBase* b, xSerial* s);
 void fn_80005C54(xBase* b, xSerial* s);
 void fn_800162D8();
 void fn_800A8F88(xBase* b, zScene* s);
+}
 st_zEntVillain* zEntVillain_NPCInst(unsigned int npcidx);
 st_zEntVillain* zEntVillain_MemPool(unsigned int npccnt);
-}
 void zEntShaggy_SceneReset();
 
 extern signed int lbl_8025E868;
@@ -617,9 +617,9 @@ void zCameraLoad(_tagxCam* ent, xSerial* s);
 
 void zCameraSave(_tagxCam* ent, xSerial* s);
 
-void zCutsceneMgrLoad(zCutsceneMgr* mgr, xSerial* s);
+void zCutsceneMgrLoad(_zCutsceneMgr* mgr, xSerial* s);
 
-void zCutsceneMgrSave(zCutsceneMgr* mgr, xSerial* s);
+void zCutsceneMgrSave(_zCutsceneMgr* mgr, xSerial* s);
 
 void zDispatcher_Init(st_ZDISPATCH_DATA* dspdata, p2BaseAsset* bass);
 
@@ -914,15 +914,15 @@ public:
     char pad[0x24];
 };
 
-extern _tagFeetSkidMark lbl_802291E8[5];
+extern _tagFeetSkidMark sPlayerSkidMark[5];
 
 extern "C" {
 void fn_800167F0();
 void fn_80009CCC(_xVec3* pts, signed int count, unsigned int texture, float w0, float w1);
 void fn_8000A138(iEnv* env);
-void zEntVillain_BonusRender();
 void fn_80032D28();
 }
+void zEntVillain_BonusRender();
 
 enum _SDRenderState
 {
@@ -2561,7 +2561,7 @@ void zSceneRender()
     zRenderState(SDRS_SkidMark);
     for (i = 0; i < 5; i++)
     {
-        zFeetRenderSkidMark(&lbl_802291E8[i]);
+        zFeetRenderSkidMark(&sPlayerSkidMark[i]);
     }
     zRenderState(SDRS_Bubble);
     zEntBubble_Render();
@@ -3050,7 +3050,7 @@ extern "C" signed int fn_800CD170()
     {
         return 1;
     }
-    if (lbl_8025EBE0 != 0)
+    if (sCardCheckActive != 0)
     {
         return 1;
     }

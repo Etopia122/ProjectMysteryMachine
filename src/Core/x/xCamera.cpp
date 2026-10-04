@@ -52,17 +52,17 @@ void xScrFxUpdate(RwCamera* cam, float dt);
 signed int zGameIsPaused();
 
 // Interpolation curves (GameCube-only code after xFFX).
-float fn_80029458(float t);
-float fn_8002947C(float t);
-float fn_800294A0(float t);
-float fn_800294C4(float t);
+extern "C" float fn_80029458(float t);
+extern "C" float fn_8002947C(float t);
+extern "C" float fn_800294A0(float t);
+extern "C" float fn_800294C4(float t);
 
 extern _xScene* g_xSceneCur;
 extern unsigned int gTransitionSceneID;
-extern signed int lbl_8025ECC0;
-extern signed int lbl_8025ECC4;
-extern _xVec3 lbl_80229088;
-extern _xVec3 lbl_80229094;
+extern signed int gPlayerHitWater;
+extern signed int gDeadScooby;
+extern _xVec3 gPlayerWaterPos;
+extern _xVec3 gDeadScoobyPos;
 
 #define SCENE_ID(s) ((((s)[0] & ~0x20) << 24) | ((s)[1] << 16) | ((s)[2] << 8) | (s)[3])
 
@@ -213,13 +213,13 @@ static inline void xCameraAdjustTargetPos(_tagxCamFrame* cam)
         sTargetPos = *cam->target_pos;
     }
 
-    if (lbl_8025ECC4)
+    if (gDeadScooby)
     {
-        sTargetPos = lbl_80229094;
+        sTargetPos = gDeadScoobyPos;
     }
-    if (lbl_8025ECC0)
+    if (gPlayerHitWater)
     {
-        sTargetPos = lbl_80229088;
+        sTargetPos = gPlayerWaterPos;
     }
 }
 

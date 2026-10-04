@@ -78,7 +78,7 @@ void xModelRenderSingle(xModelInstance* modelInst);
 
 #define PLAYER_MODEL ((xModelInstanceView*)globals.player.ent.model)
 
-static _xFadeData mFade;
+_xFadeData mFade;
 static float mLetterboxO;
 static float mLetterboxTO;
 

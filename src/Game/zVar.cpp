@@ -55,7 +55,7 @@ signed int iGetCurrFormattedTime(char* buffer);
 signed int iGetCurrFormattedDate(char* buffer);
 // Declared with an int return here; zVar's call sites compare the full register.
 signed int xSGGameIsEmpty(st_XSAVEGAME_DATA* xsgdata, signed int gidx);
-unsigned int xStrHash(const char* str);
+unsigned int xStrHash(char* str);
 signed int xStricmp(char* a, char* b);
 void zSaveLoad_BuildName(char* buffer, signed int slot);
 

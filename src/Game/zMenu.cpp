@@ -98,8 +98,8 @@ void fn_80021B20();
 // TODO: unidentified (xTRC: true while a TRC message is up)
 unsigned int fn_800443F8();
 // TODO: unidentified retrace counters (iSystem?)
-extern volatile unsigned int lbl_8025E968;
-extern unsigned int lbl_8025EF10;
+extern volatile unsigned int gVsyncCount;
+extern unsigned int gLastVsyncFlip;
 }
 void xTRCRender();
 
@@ -289,11 +289,11 @@ unsigned int zMenuLoop()
             iDebugScreenDump();
         }
         xCameraEnd(&globals.camera, time_elapsed, 1);
-        while ((lbl_8025E968 = VIGetRetraceCount()) - lbl_8025EF10 < 2)
+        while ((gVsyncCount = VIGetRetraceCount()) - gLastVsyncFlip < 2)
         {
             iVSync();
         }
-        lbl_8025EF10 = lbl_8025E968;
+        gLastVsyncFlip = gVsyncCount;
         xCameraShowRaster(&globals.camera);
 
         s = 0;

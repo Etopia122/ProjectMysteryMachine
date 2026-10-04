@@ -15,6 +15,13 @@ public:
     signed char err;            // 0xA
 };
 
+enum _tagTRCState
+{
+    TRC_Unknown,
+    TRC_PadMissing,
+    TRC_PadInserted
+};
+
 class _tagTRCPadInfo
 {
 public:
@@ -33,7 +40,7 @@ void PADControlMotor(signed int chan, unsigned int command);
 
 extern _tagTRCPadInfo gTrcPad[4];
 
-void xTRCPad(signed int pad_id, signed int state);
+void xTRCPad(signed int pad_id, _tagTRCState state);
 // TODO: unidentified xTRC function (true while a TRC message blocks input)
 extern "C" unsigned int fn_800443F8();
 
@@ -105,7 +112,7 @@ signed int iPadUpdate(_tagxPad* pad, unsigned int* on)
     switch (sPadData[pad->port].err)
     {
     case -1:
-        xTRCPad(pad->port, 1);
+        xTRCPad(pad->port, (_tagTRCState)1);
         PADReset(0x80000000 >> pad->port);
         goto defaultError;
     case -2:
@@ -161,7 +168,7 @@ signed int iPadUpdate(_tagxPad* pad, unsigned int* on)
         pad->analog2.y = -iPadConvStick(sPadData[pad->port].substickY);
         if (gTrcPad[pad->port].state != 2)
         {
-            xTRCPad(pad->port, 2);
+            xTRCPad(pad->port, (_tagTRCState)2);
         }
         return 1;
     }

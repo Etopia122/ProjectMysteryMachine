@@ -195,7 +195,7 @@ xModelInstance* xModelInstanceAlloc(RpAtomic* data, void* object, unsigned short
 void xModelInstanceFree(xModelInstance* model);
 void xModelInstanceAttach(xModelInstance* inst, xModelInstance* parent);
 void xAnimPlaySetState(xAnimSingle* single, xAnimState* state, float startTime);
-signed short fn_800C751C(signed short old, float* pitch, signed int range, float scale);
+extern "C" signed short fn_800C751C(signed short old, float* pitch, signed int range, float scale);
 void xModelRender(xModelInstance* model);
 void zEntHangable_SetShaggy(_zEntHangable* hang, _zEnt* shaggy);
 unsigned int xMathSolveQuadratic(float a, float b, float c, float* x1, float* x2);

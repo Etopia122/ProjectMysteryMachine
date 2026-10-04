@@ -133,7 +133,7 @@ void xAnimTableRemoveEffectByCB(xAnimTable* table, xAnimEffectCallback callback)
 xAnimEffect* xAnimStateNewEffect(xAnimState* state, unsigned int flags, float startTime,
                                  float endTime, xAnimEffectCallback callback,
                                  unsigned int userDataSize);
-float xVec3Normalize(_xVec3* o, const _xVec3* v);
+float xVec3Normalize(_xVec3* o, _xVec3* v);
 unsigned int xRayHitsEnvFast(_xRay3* r, _xEnv* env);
 signed int zMenuRunning();
 xSurface* zSurfaceGetSurface(_xCollis* coll);
