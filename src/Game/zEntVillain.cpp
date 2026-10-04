@@ -9598,6 +9598,8 @@ static signed int VILN_gang_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
     g_pgol = goal;
     switch (goal)
     {
+    case ZVIL_GOAL_NONE:
+        break;
     case 4:
         g_pstm = stim;
         switch (stim)
@@ -10166,39 +10168,65 @@ static signed int VILN_sham_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
     g_pgol = goal;
     switch (goal)
     {
+    case ZVIL_GOAL_NONE:
+        break;
     case 4:
         g_pstm = stim;
-        if (stim == 4)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_enterGoal(vil, (en_BEHAVIOUR_GOAL)4);
             vil->tgt_stat = 0;
+            break;
         }
         break;
     case 8:
         g_pstm = stim;
-        if (stim == 4)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_enterGoal(vil, (en_BEHAVIOUR_GOAL)8);
+            break;
         }
         break;
     case 6:
         g_pstm = stim;
-        if (stim == 4)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_enterGoal(vil, (en_BEHAVIOUR_GOAL)6);
             vil->tgt_stat = 0;
             if (!vil->nav_next)
             {
                 vil->need_navpt = 1;
             }
+            break;
         }
         break;
     case 23:
         g_pstm = stim;
-        if (stim == 4)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_enterGoal(vil, (en_BEHAVIOUR_GOAL)23);
             vil->tmr_list[11] = vil->vilcfg.tymref_list[11];
+            break;
         }
         break;
     }
@@ -10692,6 +10720,8 @@ static signed int VILN_BBK_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     g_pgol = goal;
     switch (goal)
     {
+    case ZVIL_GOAL_NONE:
+        break;
     case 8:
         g_pstm = stim;
         switch (stim)
@@ -12902,6 +12932,8 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     g_pgol = goal;
     switch (goal)
     {
+    case ZVIL_GOAL_NONE:
+        break;
     case ZVIL_GOAL_IDLE:
         g_pstm = stim;
         switch (stim)
