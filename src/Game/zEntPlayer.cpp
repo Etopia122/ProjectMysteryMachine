@@ -528,7 +528,7 @@ void Shaggy1_PlayerUpdate(_zEnt* ent, _xScene* sc, float dt);
 void Shaggy8_CallToPlayer();
 signed int Shaggy8_BBCallback(_xEnt* ent, _xCollis* coll);
 unsigned int zEntShaggy_GetSwap(_zEnt* ent);
-signed int fn_800A7E50(xBase* vil, _xCollis* coll);
+signed int zEntVillain_Bumped(st_zEntVillain* ent, _xCollis* colrec);
 static void zEntPlayer_SnackDecrement(float dt);
 static void PlayerFaceUpdate(float dt);
 static void HeadcollUpdate(float dt);
@@ -634,7 +634,7 @@ signed int fn_800394B4();
 void* memset(void* dst, int c, unsigned int n);
 long labs(long x);
 void fn_8000A080(signed int);
-void fn_800A7E4C();
+void zEntVillain_HeroWasHurt();
 int strcmp(const char* a, const char* b);
 void* memcpy(void* dst, const void* src, unsigned int n);
 double acos(double);
@@ -4544,7 +4544,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
             signed int took_damage = 0;
             for (; coll < endcoll; coll++)
             {
-                switch (fn_800A7E50((xBase*)coll->optr, coll))
+                switch (zEntVillain_Bumped((st_zEntVillain*)coll->optr, coll))
                 {
                 case 2:
                     if (coll->hdng.y < -0.5f)
@@ -5171,7 +5171,7 @@ signed int zEntPlayer_Damage(xBase* src, unsigned int damage)
     {
         globals.player.Health -= damage;
     }
-    fn_800A7E4C();
+    zEntVillain_HeroWasHurt();
     globals.player.ScareTimer = 0.35f;
     if (globals.player.Health)
     {

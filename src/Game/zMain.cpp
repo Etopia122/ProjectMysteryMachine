@@ -29,8 +29,8 @@ void fn_800162D0(char* elf, signed int profile);
 void fn_800162D4();
 void fn_80043E78();
 void fn_800443AC();
-void fn_800A9CE4();
-void fn_800A9CF4();
+signed int zEntVillain_Shutdown();
+signed int zEntVillain_Startup();
 }
 void xTRCInit();
 void zEntProjectile_Startup();
@@ -421,12 +421,12 @@ void main()
     xSGStartup();
     zEntProjectile_Startup();
     zLobMaster_Startup();
-    fn_800A9CF4();
+    zEntVillain_Startup();
     fn_80043E78();
     zMainFirstScreen(1);
     fn_80015EAC("----ENTERING MAIN LOOP\n");
     zMainLoop();
-    fn_800A9CE4();
+    zEntVillain_Shutdown();
     zLobMaster_Shutdown();
     zEntProjectile_Shutdown();
     zAssetShutdown();

@@ -530,8 +530,8 @@ void fn_80005C34(xBase* b, xSerial* s);
 void fn_80005C54(xBase* b, xSerial* s);
 void fn_800162D8();
 void fn_800A8F88(xBase* b, zScene* s);
-st_zEntVillain* fn_800A9640(unsigned int idx);
-void* fn_800A9650(unsigned int cnt);
+st_zEntVillain* zEntVillain_NPCInst(unsigned int npcidx);
+st_zEntVillain* zEntVillain_MemPool(unsigned int npccnt);
 }
 void zEntShaggy_SceneReset();
 
@@ -920,7 +920,7 @@ extern "C" {
 void fn_800167F0();
 void fn_80009CCC(_xVec3* pts, signed int count, unsigned int texture, float w0, float w1);
 void fn_8000A138(iEnv* env);
-void fn_800A8ACC();
+void zEntVillain_BonusRender();
 void fn_80032D28();
 }
 
@@ -1281,10 +1281,10 @@ static unsigned int zSceneInitFunc_Villain(zScene* s, zSceneObjectInstanceDesc* 
     signed int count = s->baseCount[desc->baseType];
     if (count)
     {
-        s->baseList[desc->baseType] = (xBase*)fn_800A9650(count);
+        s->baseList[desc->baseType] = (xBase*)zEntVillain_MemPool(count);
         for (unsigned int idx = 0; idx < count; idx++)
         {
-            st_zEntVillain* b = fn_800A9640(idx);
+            st_zEntVillain* b = zEntVillain_NPCInst(idx);
             p2EntAsset* asset = (p2EntAsset*)xSTFindAssetByType('NPC ', idx, NULL);
             zSceneSet((xBase*)b, base_idx);
             zEntVillain_Init(b, asset);
@@ -2554,7 +2554,7 @@ void zSceneRender()
     zRenderState(SDRS_OpaqueModels);
     zEntProjectile_poolRender(ZPRJ_CAT_UNKNOWN);
     zRenderState(SDRS_OpaqueModels);
-    fn_800A8ACC();
+    zEntVillain_BonusRender();
     zRenderState(SDRS_Lightning);
     zLightningRender();
     zActionLineRender();
