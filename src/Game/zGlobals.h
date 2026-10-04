@@ -152,7 +152,8 @@ public:
     unsigned int LastProjectile;    // 0x128
     unsigned char unk12C[0x170 - 0x12C];
     unsigned int SpecialReceived;   // 0x170
-    unsigned char unk174[0x1B0 - 0x174];
+    unsigned char unk174[0x1AC - 0x174];
+    signed int unk1AC;              // 0x1AC
     _zEnt* FireTarget;              // 0x1B0
     _zEnt* DamageSource;            // 0x1B4
     unsigned int ControlOn;         // 0x1B8
@@ -185,9 +186,48 @@ public:
 class zGlobalGameStats
 {
 public:
-    float gameTime;        // 0x0
-    unsigned int visited;  // 0x4
-    unsigned int pad[40];  // 0x8 (level/area/room times, counters)
+    float gameTime;               // 0x0
+    unsigned int visited;         // 0x4
+    float levelTime;              // 0x8
+    float levelTime_sum;          // 0xC
+    float areaTime;               // 0x10
+    float areaTime_sum;           // 0x14
+    float roomTime;               // 0x18
+    float roomTime_sum;           // 0x1C
+    float timeRunning;            // 0x20
+    float timeRunning_sum;        // 0x24
+    float timeWalking;            // 0x28
+    float timeWalking_sum;        // 0x2C
+    unsigned int scares;          // 0x30
+    unsigned int scares_sum;      // 0x34
+    unsigned int deaths;          // 0x38
+    unsigned int deaths_sum;      // 0x3C
+    unsigned int singleJumps;     // 0x40
+    unsigned int singleJumps_sum; // 0x44
+    unsigned int doubleJumps;     // 0x48
+    unsigned int doubleJumps_sum; // 0x4C
+    unsigned int gumShot;         // 0x50
+    unsigned int gumShot_sum;     // 0x54
+    unsigned int gumHit;          // 0x58
+    unsigned int gumHit_sum;      // 0x5C
+    unsigned int gumEmpty;        // 0x60
+    unsigned int gumEmpty_sum;    // 0x64
+    unsigned int soapShot;        // 0x68
+    unsigned int soapShot_sum;    // 0x6C
+    unsigned int soapHit;         // 0x70
+    unsigned int soapHit_sum;     // 0x74
+    unsigned int soapEmpty;       // 0x78
+    unsigned int soapEmpty_sum;   // 0x7C
+    unsigned int food;            // 0x80
+    unsigned int food_sum;        // 0x84
+    unsigned int snackBoxes;      // 0x88
+    unsigned int snackBoxes_sum;  // 0x8C
+    unsigned int enemyKills;      // 0x90
+    unsigned int enemyKills_sum;  // 0x94
+    unsigned int enemyCount;      // 0x98
+    unsigned int enemyCount_sum;  // 0x9C
+    unsigned int specials;        // 0xA0
+    unsigned int specials_tot;    // 0xA4
     unsigned int tokens;     // 0xA8
     unsigned int tokens_tot; // 0xAC
     unsigned int snacks;     // 0xB0

@@ -350,7 +350,7 @@ static signed int ZLOB_elcb_event(xBase* from, xBase* xb, unsigned int toEvent, 
 static signed int LCFG_getParam(st_LOBMASTER_CONFIG* cfg, en_LOBMASTER_PARAMID pid, void* vv);
 static signed int ZLOB_legacy_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event, void* data);
 void zLobMaster_Init(st_LOBMASTER_DATA* lob, p2BaseAsset* basset);
-void zLobMaster_InitDep(st_LOBMASTER_DATA* lob);
+void zLobMaster_InitDep(st_LOBMASTER_DATA* lob, zScene* scene);
 static signed int LPRJ_debris_prjmove(zEntProjectile* prj, float dt, zScene* scn, _xEntFrame* frame);
 static signed int LPRJ_debris_logix(zEntProjectile* prj, float dt, zScene* scn, _xEntFrame* frame);
 static signed int LPRJ_debris_attach(zEntProjectile* prj);
@@ -485,7 +485,7 @@ void zLobMaster_Init(st_LOBMASTER_DATA* lob, p2BaseAsset* basset)
     xSceneID2Name(globals.sceneCur, lob->id);
 }
 
-void zLobMaster_InitDep(st_LOBMASTER_DATA* lob)
+void zLobMaster_InitDep(st_LOBMASTER_DATA* lob, zScene*)
 {
     LCFG_getParam(&lob->cfg, ZLOB_PARM_LOBFLAGS, &lob->flg_lmopts);
     LCFG_getParam(&lob->cfg, ZLOB_PARM_DEBRISANGLE, &lob->ang_debrisCone);
@@ -498,7 +498,7 @@ void zLobMaster_InitDep(st_LOBMASTER_DATA* lob)
     xSceneID2Name(globals.sceneCur, lob->id);
 }
 
-void zLobMaster_timestep(float dt)
+void zLobMaster_timestep(zScene*, float dt)
 {
     st_LOBMASTER_DATA* lobber;
 
@@ -712,7 +712,7 @@ static signed int ZLOB_elcb_event(xBase* from, xBase* xb, unsigned int toEvent, 
         xBaseReset(lob, basset);
         memset(&lob->flg_lmopts, 0, sizeof(st_LOBMASTER_DATA) - sizeof(xBase));
         zLobMaster_Init(lob, basset);
-        zLobMaster_InitDep(lob);
+        zLobMaster_InitDep(lob, globals.sceneCur);
         break;
     }
     case 0x5C:

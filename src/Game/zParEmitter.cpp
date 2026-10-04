@@ -774,7 +774,7 @@ xPar* zParEmitterEmit(_zParEmitter* pe, float dt)
     return last_p;
 }
 
-void zParEmitterUpdate(xBase* to, float dt)
+void zParEmitterUpdate(xBase* to, _xScene*, float dt)
 {
     _zParEmitter* pe = (_zParEmitter*)to;
 

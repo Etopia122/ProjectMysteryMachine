@@ -52,7 +52,7 @@ void zUI_Init(_zUI* ent, p2EntAsset* asset);
 void zUI_Save(_zUI* ent, xSerial* s);
 void zUI_Load(_zUI* ent, xSerial* s);
 void zUI_Reset(_zUI* ent);
-void zUI_PreUpdate(_zUI* ent);
+void zUI_PreUpdate(_zUI* ent, _xScene*, float);
 void zUI_Update(_zUI* ent, _xScene* sc, float dt);
 xBase* zUIRenderIteratorInsert(xBase* b, zScene* sc, void* data);
 signed int iRenderQSort_Face(void* a, void* b);

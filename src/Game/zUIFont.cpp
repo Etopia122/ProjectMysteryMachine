@@ -93,7 +93,7 @@ void zUIFont_Load(_zUIFont* ent, xSerial* s)
     zUI_Load(ent, s);
 }
 
-void zUIFont_PreUpdate(_zUIFont* ent)
+void zUIFont_PreUpdate(_zUIFont* ent, _xScene*, float)
 {
     ent->uiButton = 0;
     if (globals.pad0 && globals.pad0->pressed && (ent->uiFlags & 8) &&

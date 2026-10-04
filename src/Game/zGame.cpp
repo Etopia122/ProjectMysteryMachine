@@ -74,8 +74,8 @@ void fn_80021B20();
 void fn_8005D858(_xEnt* ent, p2EntAsset* asset);
 void fn_8006DAF0(zScene* sc);
 void fn_800B74D8();
-void fn_800CD2A4(float dt);
 }
+void zScene_UpdateFlyToInterface(float dt);
 void xTRCRender();
 
 void zEntPickupCheat_allWarps();
@@ -420,7 +420,7 @@ void zGameLoop()
         xSndUpdate(sTimeElapsed);
         zHud_Update(globals.sceneCur, sTimeElapsed);
         xCameraUpdate(&globals.camera, sTimeElapsed);
-        fn_800CD2A4(sTimeElapsed);
+        zScene_UpdateFlyToInterface(sTimeElapsed);
         xCameraBegin(&globals.camera, 1);
         fn_800056F8(&globals.camera.hi_cam.mat.pos);
         zSceneRender();

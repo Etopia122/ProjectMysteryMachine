@@ -25,6 +25,7 @@ void zTimerSave(_zTimer* ent, xSerial* s);
 void zTimerLoad(_zTimer* ent, xSerial* s);
 signed int zTimerEventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
                          xBase* toParamWidget);
-void zTimerUpdate(xBase* to, float dt);
+class _xScene;
+void zTimerUpdate(xBase* to, _xScene*, float dt);
 
 #endif

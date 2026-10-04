@@ -66,7 +66,7 @@ signed int zTimerEventCB(xBase* from, xBase* to, unsigned int toEvent, float* to
     return 1;
 }
 
-void zTimerUpdate(xBase* to, float dt)
+void zTimerUpdate(xBase* to, _xScene*, float dt)
 {
     _zTimer* t = (_zTimer*)to;
 

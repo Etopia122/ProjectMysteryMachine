@@ -265,7 +265,7 @@ static void zParGroupUpdateR(zParSys* s, _zParGroup* g, float dt);
 
 
 
-void zParSysUpdate(xBase* to, float dt)
+void zParSysUpdate(xBase* to, _xScene*, float dt)
 {
     zParSys* s = (zParSys*)to;
     zParSys* parent = s->parent;

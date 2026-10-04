@@ -135,7 +135,7 @@ static inline void zScriptExecuteEvents(_zScript* t, float start, float end)
     }
 }
 
-void zScriptUpdate(xBase* to, float dt)
+void zScriptUpdate(xBase* to, _xScene*, float dt)
 {
     _zScript* t = (_zScript*)to;
 

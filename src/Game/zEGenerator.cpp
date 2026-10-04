@@ -100,7 +100,7 @@ xAnimPlay* xAnimPoolAlloc(xMemPool* pool, void* object, xAnimTable* table,
 void zEGenerator_Update(zEGenerator* egen, _xScene* sc, float dt);
 void zEGenerator_Render(zEGenerator* egen);
 void zEGenerator_TurnOn(zEGenerator* egen);
-void zEGenerator_Reset(zEGenerator* egen);
+void zEGenerator_Reset(zEGenerator* egen, _xScene* sc);
 signed int zEGeneratorEventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
                               xBase* toParamWidget);
 
@@ -169,7 +169,7 @@ void zEGenerator_Init(zEGenerator* egen, p2EntAsset* asset)
     }
 }
 
-void zEGenerator_Setup(zEGenerator* egen)
+void zEGenerator_Setup(zEGenerator* egen, _xScene*)
 {
     zEntSetup(egen);
     egen->num_dsts = 0;
@@ -202,7 +202,7 @@ void zEGenerator_Load(zEGenerator* ent, xSerial* s)
 }
 
 #pragma auto_inline on
-void zEGenerator_Reset(zEGenerator* egen)
+void zEGenerator_Reset(zEGenerator* egen, _xScene*)
 {
     zEntReset(egen);
     zEGenAsset* zasset = (zEGenAsset*)egen->asset;
@@ -379,7 +379,7 @@ signed int zEGeneratorEventCB(xBase* from, xBase* to, unsigned int toEvent, floa
         zEGenerator_ToggleOn(egen);
         break;
     case 0xA:
-        zEGenerator_Reset(egen);
+        zEGenerator_Reset(egen, globals.sceneCur);
         break;
     case 3:
         egen->_xEnt::flags |= 1;

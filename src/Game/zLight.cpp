@@ -378,7 +378,7 @@ signed int zLightEventCB(xBase* from, xBase* to, unsigned int toEvent, float* to
     return 1;
 }
 
-void zLightUpdate(xBase* to, float dt)
+void zLightUpdate(xBase* to, _xScene*, float dt)
 {
     _zLight* t = (_zLight*)to;
 

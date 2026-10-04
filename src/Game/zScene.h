@@ -14,7 +14,7 @@ public:
     union
     {
         unsigned int num_ents;
-        unsigned int num_base;
+        signed int num_base;
     };                        // 0x74
     union
     {

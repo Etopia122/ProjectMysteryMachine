@@ -667,8 +667,15 @@ Game/zSaveLoad.cpp:
 	.sdata2     start:0x80261C10 end:0x80261C50
 
 Game/zScene.cpp:
-	.text       start:0x800CD2D8 end:0x800D1B20
+	.text       start:0x800CD170 end:0x800D1B20
 	.ctors      start:0x8018E5CC end:0x8018E5D0
+	.rodata     start:0x801A63F0 end:0x801A6DD8
+	.data       start:0x801C7A68 end:0x801C8B18
+	.bss        start:0x80238178 end:0x802381C8
+	.sdata      start:0x8025E5A8 end:0x8025E5B8
+	.sbss       start:0x8025F0A0 end:0x8025F0E8
+	.sdata2     start:0x80261C50 end:0x80261EA8
+	.sbss2      start:0x80262CD8 end:0x80262CE8
 
 Game/zScript.cpp:
 	.text       start:0x800D1B20 end:0x800D1E50

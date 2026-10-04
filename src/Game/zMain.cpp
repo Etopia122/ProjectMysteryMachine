@@ -31,11 +31,11 @@ void fn_80043E78();
 void fn_800443AC();
 void fn_800A9CE4();
 void fn_800A9CF4();
-void fn_800CD270();
 }
 void xTRCInit();
 void zEntProjectile_Startup();
 void zEntProjectile_Shutdown();
+void zSceneStats_Clear();
 
 void zEntPickupResetWarps();
 
@@ -241,7 +241,7 @@ static void zMainLoop()
     while (1)
     {
         xSerialWipeMainBuffer();
-        fn_800CD270();
+        zSceneStats_Clear();
         zCutSceneNamesTable_clearAll();
         zEntPickupResetWarps();
 

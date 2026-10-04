@@ -326,7 +326,7 @@ void zEntReset(_zEnt* ent)
 void zEntEventAll(xBase* from, unsigned int fromEvent, unsigned int toEvent, float* toParam)
 {
     zScene* sc = globals.sceneCur;
-    for (unsigned short i = 0; i < sc->num_base; i++)
+    for (unsigned short i = 0; i < sc->num_ents; i++)
     {
         zEntEvent(from, fromEvent, sc->base[i], toEvent, toParam, 0, 0);
     }
@@ -338,7 +338,7 @@ void zEntEventAllOfType(xBase* from, unsigned int fromEvent, unsigned int toEven
     zScene* sc = globals.sceneCur;
     if (sc)
     {
-        for (unsigned short i = 0; i < sc->num_base; i++)
+        for (unsigned short i = 0; i < sc->num_ents; i++)
         {
             xBase* base = sc->base[i];
             if (type == base->baseType)

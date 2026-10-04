@@ -325,7 +325,7 @@ void zSurfaceSetup(xSurface* s)
     }
 }
 
-void zSurfaceUpdate(xBase* to, float dt)
+void zSurfaceUpdate(xBase* to, _xScene*, float dt)
 {
     signed int j;
     xSurface* t = (xSurface*)to;

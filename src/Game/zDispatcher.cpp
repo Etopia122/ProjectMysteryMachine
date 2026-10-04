@@ -143,7 +143,7 @@ static signed int ZDSP_doCommand(st_ZDISPATCH_DATA* dspdata, st_ZDISPATCH_CONTEX
 static void ZDSP_injectCmd(st_ZDISPATCH_DATA* dspdata, en_DISPATCH_COMMAND cmd, void* indata,
                            void* inxtra, void* result);
 static void ZDSP_instInit(st_ZDISPATCH_DATA* dspdata, p2BaseAsset* bass);
-void zDispatcher_InitDep(st_ZDISPATCH_DATA* dspdata);
+void zDispatcher_InitDep(st_ZDISPATCH_DATA* dspdata, zScene* scene);
 
 #pragma auto_inline on
 
@@ -206,7 +206,7 @@ void zDispatcher_Init(st_ZDISPATCH_DATA* dspdata, p2BaseAsset* bass)
     ZDSP_instInit(dspdata, bass);
 }
 
-void zDispatcher_InitDep(st_ZDISPATCH_DATA* dspdata)
+void zDispatcher_InitDep(st_ZDISPATCH_DATA* dspdata, zScene*)
 {
     xSceneID2Name(globals.sceneCur, dspdata->id);
 }
@@ -495,7 +495,7 @@ static signed int ZDSP_elcb_event(xBase* from, xBase* xb, unsigned int toEvent, 
         xBaseReset(dspdata, bass);
         memset(&dspdata->rawass, 0, sizeof(st_ZDISPATCH_DATA) - sizeof(xBase));
         zDispatcher_Init(dspdata, bass);
-        zDispatcher_InitDep(dspdata);
+        zDispatcher_InitDep(dspdata, globals.sceneCur);
         break;
     }
     case 0xB:
