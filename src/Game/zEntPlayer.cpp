@@ -453,6 +453,13 @@ void zEntPickup_Drop(_zEntPickup* ent);
 void zEntHangable_FollowUpdate(_zEntHangable* ent);
 void zEntHangable_SetMatrix(_zEntHangable* ent, float dt);
 float iurand();
+void Shaggy0_PlayerStates(xAnimTable* table);
+unsigned int Shaggy0_FlipCB(xAnimTransition* tran, xAnimSingle* single, _zEnt* ent);
+void Shaggy0_PlayerTransitions(xAnimTable* table);
+void Shaggy1_PlayerStates(xAnimTable* table);
+void Shaggy1_PlayerTransitions(xAnimTable* table);
+void zEntBubble_Launch(float speed);
+void zEntShaggy_SetSpin(_zEnt* ent, float spin);
 void xAnimTableAddTransition(xAnimTable* table, xAnimTransition* tran, char* source);
 static unsigned int FaceIdle(xAnimTransition*, xAnimSingle*, void*);
 static unsigned int FaceSwing(xAnimTransition*, xAnimSingle*, void*);
@@ -3972,6 +3979,7 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
     }
 }
 
+#pragma auto_inline on
 void zEntPlayerJumpStart(_xEnt* ent, zJumpParam* jump)
 {
     globals.player.Jump_CurrGravity = globals.player.s.JumpGravity;
@@ -3992,6 +4000,7 @@ void zEntPlayerJumpStart(_xEnt* ent, zJumpParam* jump)
         globals.player.Bounced = 1;
     }
 }
+#pragma auto_inline reset
 
 void CalcJumpImpulse(zJumpParam* param)
 {
@@ -5841,4 +5850,1460 @@ static unsigned int FaceMad(xAnimTransition*, xAnimSingle*, void*)
 static unsigned int FaceBlow(xAnimTransition*, xAnimSingle*, void*)
 {
     return globals.player.Face_AnimSpecific == 6;
+}
+
+#pragma auto_inline on
+static unsigned int HealthCheck(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    unsigned int health = 3;
+    if (globals.player.Health < 3)
+    {
+        health = globals.player.Health;
+    }
+    return tran->UserFlags & (1 << health);
+}
+#pragma auto_inline reset
+
+static inline unsigned int PlayerSurfaceAnimCheck(xAnimTransition* tran)
+{
+    unsigned int bit;
+    if (globals.player.Slide == 2)
+    {
+        bit = tran->UserFlags & 0x20;
+    }
+    else if (surfSlickTimer != 0.0f)
+    {
+        bit = tran->UserFlags & 0x10;
+    }
+    else if (surfSticky)
+    {
+        if (globals.player.Inv_Specials & 4)
+        {
+            bit = tran->UserFlags & 0x80;
+        }
+        else
+        {
+            bit = tran->UserFlags & 0x40;
+        }
+    }
+    else
+    {
+        bit = HealthCheck(tran, NULL, NULL);
+    }
+    return bit != 0;
+}
+
+static unsigned int SD0_TossCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    zEntPlayerJumpStart(&globals.player.ent, &globals.player.s.Toss);
+    globals.player.ent.frame->vel.x = 0.3f * globals.player.ent.frame->mat.at.x + globals.player.ent.frame->vel.x;
+    globals.player.ent.frame->vel.z = 0.3f * globals.player.ent.frame->mat.at.z + globals.player.ent.frame->vel.z;
+    return 0;
+}
+
+static unsigned int ClearHelmetCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.HelmetTimer = 0.0f;
+    return 0;
+}
+
+static inline void PlayerScareReset()
+{
+    globals.player.ScareTimer = 0.0f;
+    globals.player.CowerTimer = 0.0f;
+    if (globals.player.JumpState != 0)
+    {
+        globals.player.JumpState = 2;
+        globals.player.Jump_CanFloat = 0;
+        globals.player.Jump_CanDouble = 0;
+    }
+    zEntPlayer_FXLostChance(&globals.player.ent);
+    zRumbleStart(0, (_tagSDRumbleType)7);
+}
+
+static unsigned int FallToDeathDropCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    PlayerScareReset();
+    globals.player.DamageTimer = 1.0f;
+    globals.player.ent.frame->vel.y = -4.0f;
+    return 0;
+}
+
+static unsigned int FallToDeathDrop(xAnimTransition*, xAnimSingle*, void*)
+{
+    return (globals.player.FallDeathTimer != 0.0f) == 0;
+}
+
+static unsigned int FallToDeathStart(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.FallDeathTimer != 0.0f;
+}
+
+static unsigned int DeathCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned int snd;
+    if ((irand() >> 16) & 1)
+    {
+        snd = xStrHash("Scooby_Help");
+    }
+    else
+    {
+        snd = xStrHash("Scooby_Oh_No");
+    }
+    xSndPlay(snd, 0.5f, 0.5f, 0.0f, 0xFF, 0, 0);
+    PlayerScareReset();
+    globals.player.DamageTimer = 3.0f;
+    return 0;
+}
+
+static unsigned int HangNoSwingCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (labs(globals.pad0->analog1.x) <= globals.player.s.AnalogMin &&
+        labs(globals.pad0->analog1.y) <= globals.player.s.AnalogMin)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int HangSwingCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (labs(globals.pad0->analog1.x) > globals.player.s.AnalogMin ||
+        labs(globals.pad0->analog1.y) > globals.player.s.AnalogMin)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int HangCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    _xVec3 unitHang;
+
+    globals.player.HangEnt = globals.player.HangFound;
+    globals.player.HangPivot = globals.player.HangFound->pivot;
+    globals.player.HangVel.x = 0.0f;
+    globals.player.HangVel.y = 0.0f;
+    globals.player.HangVel.z = 0.0f;
+    globals.player.HangLength = globals.player.HangFound->hangInfo->leverArm;
+    globals.player.HangStartPos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+    globals.player.HangStartLerp = 1.0f;
+    unitHang.x = globals.player.ent.bound.sph.center.x - globals.player.HangPivot.x;
+    unitHang.y = globals.player.ent.bound.sph.center.y - globals.player.HangPivot.y;
+    unitHang.z = globals.player.ent.bound.sph.center.z - globals.player.HangPivot.z;
+    xVec3Normalize(&unitHang, &unitHang);
+    unitHang.x *= globals.player.HangFound->hangInfo->leverArm;
+    unitHang.y *= globals.player.HangFound->hangInfo->leverArm;
+    unitHang.z *= globals.player.HangFound->hangInfo->leverArm;
+    unitHang.x += globals.player.HangFound->pivot.x;
+    unitHang.y += globals.player.HangFound->pivot.y;
+    unitHang.z += globals.player.HangFound->pivot.z;
+    vHangBefore = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+    ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x = unitHang.x;
+    ((_xMat4x3*)globals.player.ent.model->Mat)->pos.y = unitHang.y - globals.player.ent.bound.sph.r;
+    ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z = unitHang.z;
+    vHangFirst = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+    if (globals.player.HangEnt->shaggy != NULL)
+    {
+        _xMat4x3* hmat = (_xMat4x3*)globals.player.HangEnt->model->Mat;
+        float hang_angle = xAngleClamp(xatan2(hmat->at.x, hmat->at.z));
+        _xMat4x3* pmat = (_xMat4x3*)globals.player.ent.model->Mat;
+        float spin = xAngleClamp(xatan2(pmat->at.x, pmat->at.z)) - hang_angle;
+        if (spin < 0.0f)
+        {
+            spin += 6.2831855f;
+        }
+        if (spin > 6.2831855f)
+        {
+            spin -= 6.2831855f;
+        }
+        zEntShaggy_SetSpin(globals.player.HangEnt->shaggy, spin);
+    }
+    return 0;
+}
+
+static unsigned int PowerupCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.SpecialReceived = 0;
+    return 0;
+}
+
+static unsigned int PowerupCheck(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    return globals.player.SpecialReceived == tran->UserFlags;
+}
+
+static unsigned int NoHangCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.HangEnt == NULL;
+}
+
+static unsigned int HangCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.HangFound != NULL;
+}
+
+static unsigned int NotFloatCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.JumpState != 3;
+}
+
+static unsigned int FloatCheck(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.JumpState == 3 &&
+        ((tran->UserFlags & 4) ||
+         ((tran->UserFlags & 1) && globals.player.ent.frame->mat.pos.y - globals.player.ent.frame->oldpos.y <= 0.0f) ||
+         ((tran->UserFlags & 2) && globals.player.ent.frame->mat.pos.y - globals.player.ent.frame->oldpos.y > 0.0f)))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int SlideCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Slide == 1 && globals.player.SlideTimer > 0.3f &&
+        (globals.player.JumpState == 0 || globals.player.JumpState == 1))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int ButtSmashStateCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.JumpState = 5;
+    return 0;
+}
+
+static unsigned int ButtSmashCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.JumpState = 4;
+    globals.player.Jump_CurrGravity = globals.player.s.Gravity;
+    globals.player.Jump_HoldTimer = 0.0f;
+    globals.player.Jump_ChangeTimer = 0.0f;
+    globals.player.ent.frame->vel.y = 0.0f;
+    globals.player.ent.frame->dpos.y = 0.0f;
+    globals.player.Bounced = 0;
+    return 0;
+}
+
+static unsigned int ButtSmashCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if ((globals.player.JumpState == 2 || globals.player.JumpState == 3) && (globals.player.Inv_Specials & 0x400) &&
+        globals.player.ControlOn && (globals.pad0->pressed & 0x80000))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int HeadHitCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.HeadbuttHit = 0;
+    return 0;
+}
+
+static unsigned int HeadHitCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.HeadbuttHit;
+}
+
+static unsigned int AttackFinishedHotsauce(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.HeadbuttTimer == 0.0f && globals.player.Speed == 3)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int AttackFinishedRun(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    unsigned char run = 0;
+    if (globals.player.HeadbuttTimer == 0.0f && globals.player.Speed == 2)
+    {
+        run = 1;
+    }
+    if (run && HealthCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int AttackFinished(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    if (globals.player.HeadbuttTimer == 0.0f && HealthCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int AttackCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.HeadbuttTimer = 1e-8f;
+    globals.player.HeadbuttVel = globals.player.s.HeadbuttSpeedMin;
+    return 0;
+}
+
+static unsigned int AttackCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    if (globals.player.ControlOn && (globals.pad0->pressed & 0x80000) && globals.player.JumpState == 0 &&
+        (!surfSticky || (globals.player.Inv_Specials & 4)) && globals.player.Slide != 1 && globals.player.Slide != 3)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+static unsigned int ProjectileCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    zEntBubble_Launch(globals.player.s.FireDelay);
+    return 0;
+}
+
+#pragma auto_inline on
+static unsigned int ProjectileCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    if (globals.player.JumpState == 0)
+    {
+        if (globals.player.ControlOn && (globals.pad0->pressed & 0x200) && (globals.player.Inv_Specials & 2) &&
+            globals.player.Inv_Ammo[1])
+        {
+            globals.player.LastProjectile = 1;
+            return 1;
+        }
+        if (globals.player.ControlOn && (globals.pad0->pressed & 0x100) && (globals.player.Inv_Specials & 1) &&
+            globals.player.Inv_Ammo[0])
+        {
+            globals.player.LastProjectile = 0;
+            return 1;
+        }
+    }
+    return 0;
+}
+#pragma auto_inline reset
+
+static unsigned int ProjectileRepeat(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    if (anim->Time >= globals.player.s.FireRepeat)
+    {
+        if (ProjectileCheck(tran, anim, data))
+        {
+            return 1;
+        }
+        return 0;
+    }
+    return 0;
+}
+
+static unsigned int ProjectileRepeatSync(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    if (anim->Time >= globals.player.s.FirePress && anim->Time < globals.player.s.FireRepeat)
+    {
+        if (ProjectileCheck(tran, anim, data))
+        {
+            return 1;
+        }
+        return 0;
+    }
+    return 0;
+}
+
+static unsigned int StopDigCheck(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    unsigned char digging = globals.player.DigTimer != 0.0f;
+    if (!digging && HealthCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int DigCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.DigTimer = 0.00001f;
+    zEntEvent(globals.player.Diggable, 0xC1);
+    return 0;
+}
+
+static unsigned int DigCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Diggable != NULL && globals.player.JumpState == 0 && globals.player.ControlOn &&
+        (globals.pad0->pressed & 0x20000) && (globals.player.Inv_Specials & 0x2000))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int NospringCheck(xAnimTransition*, xAnimSingle*, _zEnt* ent)
+{
+    return ent->frame->vel.y < 10.0f;
+}
+
+static unsigned int SpringCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.Bounced == 2;
+}
+
+static unsigned int ButtSmashLandCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    if (globals.player.Inv_Specials & 0x4000)
+    {
+        if (sEmitterStars != NULL)
+        {
+            g_info.custom_flags = 0x205E1;
+            _xMat4x3* mat = (_xMat4x3*)globals.player.ent.model->Mat;
+            _xCollis* coll = &globals.player.ent.collis->colls[0];
+            g_info.pos.x = coll->dist * coll->tohit.x + mat->pos.x;
+            g_info.pos.y = 0.5f + (coll->dist * coll->tohit.y + mat->pos.y);
+            g_info.size_birth = 0.0f;
+            g_info.size_death = 0.5f;
+            g_info.pos.z = coll->dist * coll->tohit.z + mat->pos.z;
+            g_info.color_death[0] = 0x40;
+            g_info.color_death[1] = 0x40;
+            g_info.color_death[2] = 0x40;
+            g_info.color_death[3] = 0;
+            g_info.life = 0.25f;
+            g_info.vel.x = 0.0f;
+            g_info.vel.y = 0.02f;
+            g_info.vel.z = 0.0f;
+            g_info.vel_angle_variation = 0.2f;
+            for (signed int i = 0; i < 2; i++)
+            {
+                if (i == 0)
+                {
+                    g_info.color_birth[0] = 0x80;
+                    g_info.color_birth[1] = 0x80;
+                    g_info.color_birth[2] = 0x80;
+                    g_info.color_birth[3] = 0x40;
+                }
+                else
+                {
+                    g_info.color_birth[0] = 0x80;
+                    g_info.color_birth[1] = 0x80;
+                    g_info.color_birth[2] = 0x40;
+                    g_info.color_birth[3] = 0x60;
+                }
+                zParEmitterEmitCustom(sEmitterStars, 1.0f, &g_info);
+            }
+        }
+        globals.player.ShockRadius = 0.6f;
+        globals.player.ShockRadiusOld = 0.0f;
+        zLaughNotify(3);
+    }
+    else
+    {
+        zLaughNotify(2);
+    }
+    return 0;
+}
+
+static unsigned int BounceCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.Bounced = 0;
+    globals.player.Jump_CanDouble = 1;
+    globals.player.Jump_CanFloat = 1;
+    return 0;
+}
+
+static unsigned int BounceCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.Bounced == 1;
+}
+
+static unsigned int DblJumpCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    zEntPlayerJumpStart(&globals.player.ent, &globals.player.s.Double);
+    globals.player.Jump_CanDouble = 0;
+    startDouble = globals.player.ent.frame->mat.pos.y;
+    return 0;
+}
+
+static unsigned int DblJumpCheckTime(xAnimTransition*, xAnimSingle* anim, void*)
+{
+    unsigned char ret = 0;
+    if (anim->Time > 0.1f && globals.player.ControlOn && (globals.pad0->pressed & 0x10000) &&
+        (globals.player.Inv_Specials & 0x200) && globals.player.Jump_CanDouble)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int DblJumpCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.ControlOn && (globals.pad0->pressed & 0x10000) && (globals.player.Inv_Specials & 0x200) &&
+        globals.player.Jump_CanDouble)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int JumpHangCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    if (globals.player.HangEnt != NULL)
+    {
+        globals.player.HangEnt->grabTimer = globals.player.HangEnt->hangInfo->grabDelay;
+        globals.player.HangEnt = NULL;
+        globals.player.RootUpTarget.x = 0.0f;
+        globals.player.RootUpTarget.y = 1.0f;
+        globals.player.RootUpTarget.z = 0.0f;
+        globals.player.HangElapsed = 0.0f;
+        zEntPlayer_Notify(9);
+    }
+    globals.player.Jump_CanDouble = 1;
+    globals.player.Jump_CanFloat = 1;
+    zEntPlayerJumpStart(&globals.player.ent, &globals.player.s.Jump);
+    startJump = startDouble = globals.player.ent.frame->mat.pos.y;
+    return 0;
+}
+
+static unsigned int JumpCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    zEntPlayerJumpStart(&globals.player.ent, &globals.player.s.Jump);
+    startJump = startDouble = globals.player.ent.frame->mat.pos.y;
+    return 0;
+}
+
+static unsigned int JumpCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    _xEnt* fent;
+    if ((globals.player.Slide != 1 || !(globals.player.SlideTimer < 0.5f) ||
+         ((fent = (_xEnt*)globals.player.ent.collis->colls[0].optr) != NULL && fent->baseType == 6 &&
+          fent->subType == 0xB)) &&
+        globals.player.Slide != 3 && (!surfSticky || (globals.player.Inv_Specials & 4)) && globals.player.ControlOn &&
+        (globals.pad0->pressed & 0x10000))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int ActiveCheck(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    if (globals.player.IdleMinorTimer == 0.0f && HealthCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int IdleGetupCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.IdleMinorTimer = 0.0001f;
+    globals.player.IdleMajorTimer = 0.0f;
+    globals.player.IdleSitTimer = -15.0f;
+    return 0;
+}
+
+static unsigned int IdleSitCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.IdleMinorTimer = 0.0001f;
+    globals.player.IdleMajorTimer = 0.0f;
+    globals.player.IdleSitTimer = -20.0f;
+    return 0;
+}
+
+static unsigned int IdleMajorCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.IdleMinorTimer = 0.0001f;
+    globals.player.IdleMajorTimer = 0.0f;
+    globals.player.IdleRand = irand() >> 16;
+    return 0;
+}
+
+static unsigned int IdleMinorCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.IdleMinorTimer = -1.5f;
+    globals.player.IdleRand = irand() >> 16;
+    return 0;
+}
+
+static unsigned int IdleGetupCheck(xAnimTransition*, xAnimSingle* anim, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.IdleSitTimer > 11.0f && anim->Blend->State == NULL)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int IdleSitCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.IdleSitTimer > 11.0f;
+}
+
+static unsigned int IdleMajorCheck(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.IdleMajorTimer > 9.0f &&
+        (unsigned short)tran->UserFlags == globals.player.IdleRand % (tran->UserFlags >> 16))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int IdleMinorCheck(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.IdleMinorTimer > 3.0f &&
+        (unsigned short)tran->UserFlags == globals.player.IdleRand % (tran->UserFlags >> 16))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int FallingCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.JumpState == 2;
+}
+
+static unsigned int LandHealthCheck(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    if (globals.player.JumpState == 0 && HealthCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int LandFastCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.JumpState == 0 && globals.player.Speed >= 2)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int LandWalkCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.JumpState == 0 && globals.player.Speed == 1)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int LandSlowCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.JumpState == 0 && globals.player.Speed <= 0)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int ScareLandCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.JumpState == 0 || globals.player.DamageTimer < 0.5f)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int LandCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.JumpState == 0;
+}
+
+static unsigned int ScareKnockbackCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    _xVec3 knock;
+    _xMat4x3* mat = (_xMat4x3*)globals.player.ent.model->Mat;
+    knock.x = mat->at.x;
+    knock.y = 0.0f;
+    knock.z = mat->at.z;
+    xVec3Normalize(&knock, &knock);
+    knock.x *= -4.0f;
+    knock.z *= -4.0f;
+    knock.y = 15.0f;
+    globals.player.ent.frame->vel = knock;
+    PlayerScareReset();
+    return 0;
+}
+
+static unsigned int ScareCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    PlayerScareReset();
+    return 0;
+}
+
+static unsigned int ScareCheckCritter(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.ScareTimer != 0.0f && globals.player.ScareSource != NULL &&
+        globals.player.ScareSource->baseType == 2 &&
+        (((_xEnt*)globals.player.ScareSource)->subType == 0x15 || ((_xEnt*)globals.player.ScareSource)->subType == 0x16 ||
+         ((_xEnt*)globals.player.ScareSource)->subType == 0x18))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int ScareCheckNoHealth(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.ScareTimer != 0.0f;
+}
+
+static unsigned int UncowerCheck(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    if (globals.player.CowerTimer == 0.0f && HealthCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int CowerCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.CowerTimer != 0.0f;
+}
+
+static unsigned int ScareCheck(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    if (globals.player.ScareTimer != 0.0f && HealthCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+#pragma auto_inline on
+static unsigned int PlungerCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Speed == 0 && globals.player.Slide == 2)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int SlipperyCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Speed == 0 && globals.player.Slide == 0 && surfSlickTimer != 0.0f)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int TeeterCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Speed == 0 && globals.player.Teeter && globals.player.Slide != 2 &&
+        !(globals.player.SlideTimer > 0.0f) && surfSlickTimer == 0.0f)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+#pragma auto_inline reset
+
+static unsigned int NosneakPlunger(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    if (globals.player.Sneak == 0 && PlungerCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int NosneakSlippery(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    if (globals.player.Sneak == 0 && SlipperyCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int NosneakTeeter(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    if (globals.player.Sneak == 0 && TeeterCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int NosneakCheck(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    if (globals.player.Sneak == 0 && HealthCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int SneakIdleCheck(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (((1 << globals.player.Sneak) & tran->UserFlags) && globals.player.Speed == 0)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int SneakMoveCheck(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (((1 << globals.player.Sneak) & tran->UserFlags) && (globals.player.Speed == 1 || globals.player.Speed == 2))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int SkidStopCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.ent.frame->vel.x * globals.player.ent.frame->vel.x +
+               globals.player.ent.frame->vel.z * globals.player.ent.frame->vel.z <
+           0.5f;
+}
+
+static unsigned int IdleCheck(xAnimTransition* tran, xAnimSingle* anim, void* data)
+{
+    unsigned char ret = 0;
+    unsigned char idle = 0;
+    if (globals.player.Speed == 0 && globals.player.Slide == 0 && surfSlickTimer == 0.0f && !globals.player.Teeter)
+    {
+        idle = 1;
+    }
+    if (idle && HealthCheck(tran, anim, data))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int WalkPlungeCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Slide == 2 && (globals.player.Speed == 1 || globals.player.Speed == 2))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int StickNoBootsWalk(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if ((globals.player.Speed == 1 && surfSticky && !(globals.player.Inv_Specials & 4)) || globals.player.Slide == 1 ||
+        globals.player.Slide == 3)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int StickNoBootsIdle(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if ((globals.player.Speed == 0 && surfSticky && !(globals.player.Inv_Specials & 4)) || globals.player.Slide == 1 ||
+        globals.player.Slide == 3)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int StickySurfWalk(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Speed == 1 && surfSticky)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int StickySurfIdle(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Speed == 0 && surfSticky)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int WalkCheck(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    unsigned char ret = globals.player.Speed == 1;
+    if (ret)
+    {
+        ret = PlayerSurfaceAnimCheck(tran);
+    }
+    if (ret)
+    {
+        ret = globals.player.Slide == 0;
+        if (!ret)
+        {
+            ret = globals.player.Slide == 3;
+        }
+    }
+    return ret;
+}
+
+static unsigned int NotRunCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.Face_PantTimer = 2.0f;
+    return 0;
+}
+
+static unsigned int NotRunCheck(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    unsigned char ret = globals.player.Speed < 2;
+    if (!ret)
+    {
+        ret = globals.player.Sneak != 0;
+    }
+    if (ret)
+    {
+        ret = PlayerSurfaceAnimCheck(tran);
+    }
+    return ret;
+}
+
+static unsigned int RunCheck(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    unsigned char ret = globals.player.Speed == 2;
+    if (ret)
+    {
+        ret = globals.player.Sneak == 0;
+    }
+    if (ret)
+    {
+        ret = PlayerSurfaceAnimCheck(tran);
+    }
+    if (ret)
+    {
+        ret = globals.player.Slide == 0;
+    }
+    return ret;
+}
+
+static unsigned int HotsauceCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.Speed == 3;
+}
+
+static void PlayerAddToAllStates(xAnimTable* table, xAnimTransition* tran)
+{
+    xAnimTableAddTransition(table, tran, "Idle_normal Idle_scared Idle_brave Walk_normal Walk_scared Walk_brave");
+    xAnimTableAddTransition(table, tran, "Walk_slippery Walk_plunger Run_normal Run_scared Run_brave Run_slippery");
+    xAnimTableAddTransition(table, tran, "RunToIdle_normal RunToIdle_scared RunToIdle_brave RunToSkid");
+    xAnimTableAddTransition(table, tran,
+                            "Idle_sneak Idle_lampshade Idle_blackknight Idle_teeter Idle_slippery Idle_plunger Slide");
+    xAnimTableAddTransition(table, tran,
+                            "Skid SkidToIdle Walk_sneak Walk_blackknight Walk_sticky Walk_boots Run_boots Run_hotsauce");
+    xAnimTableAddTransition(table, tran,
+                            "IdleToSneak IdleToLampshade IdleToBlackknight LampshadeToSneak SneakToLampshade");
+    xAnimTableAddTransition(table, tran,
+                            "Land_normal Land_walkidle Land_running Land_walk Buttsmash_land Buttsmash_hit");
+    xAnimTableAddTransition(table, tran,
+                            "Action_attack Action_attackrun Action_attack Action_attackrun Action_attackhit");
+    xAnimTableAddTransition(table, tran,
+                            "Action_projectile Action_dig PowerUpReward Inactive_1 Inactive_2 Inactive_3 Inactive_4");
+    xAnimTableAddTransition(
+        table, tran, "Inactive_SitStart Inactive_SitLoop Inactive_SitEnd Inactive_SitEndSlow Idle_LookLeft Idle_LookRight");
+    xAnimTableAddTransition(table, tran,
+                            "Inactive_SitFlea Inactive_SitSniff Inactive_SitHungry Inactive_SitLookLeft "
+                            "Inactive_SniffAir Inactive_SniffGround");
+    xAnimTableAddTransition(table, tran, "Inactive_Magnify Inactive_Dizzy Inactive_BlowFeet Inactive_LookAround");
+}
+
+xAnimTable* zEntPlayer_AnimTable()
+{
+    xAnimTable* table;
+    xAnimTransition* temp_r29;
+    xAnimTransition* temp_r3;
+    xAnimTransition* temp_r3_10;
+    xAnimTransition* temp_r3_11;
+    xAnimTransition* temp_r3_12;
+    xAnimTransition* temp_r3_13;
+    xAnimTransition* temp_r3_14;
+    xAnimTransition* temp_r3_15;
+    xAnimTransition* temp_r3_16;
+    xAnimTransition* temp_r3_17;
+    xAnimTransition* temp_r3_2;
+    xAnimTransition* temp_r3_3;
+    xAnimTransition* temp_r3_4;
+    xAnimTransition* temp_r3_5;
+    xAnimTransition* temp_r3_6;
+    xAnimTransition* temp_r3_7;
+    xAnimTransition* temp_r3_8;
+    xAnimTransition* temp_r3_9;
+
+    table = xAnimTableNew("Player", NULL);
+    xAnimTableNewState(table, "Idle_normal", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_scared", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_brave", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Walk_normal", 0x10, 0x444, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Walk_scared", 0x10, 0x444, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Walk_brave", 0x10, 0x444, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Walk_slippery", 0x10, 0x44, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Walk_plunger", 0x10, 0x44, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Walk_sticky", 0x10, 4, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Walk_boots", 0x10, 4, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Run_normal", 0x10, 0x46, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Run_scared", 0x10, 0x46, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Run_brave", 0x10, 0x46, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Run_slippery", 0x10, 0x46, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Run_boots", 0x10, 0x46, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RunToIdle_normal", 0x20, 0x26, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RunToIdle_scared", 0x20, 0x26, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RunToIdle_brave", 0x20, 0x26, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RunToSkid", 0x20, 0x26, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_sneak", 0x10, 3, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_lampshade", 0x10, 3, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_blackknight", 0x10, 3, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_teeter", 0x10, 0x40000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_slippery", 0x10, 0x40000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_plunger", 0x10, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Skid", 0x10, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "SkidToIdle", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Walk_sneak", 0x10, 2, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Walk_blackknight", 0x10, 2, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Run_hotsauce", 0x10, 8, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "IdleToSneak", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "IdleToLampshade", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "IdleToBlackknight", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "LampshadeToSneak", 0x20, 2, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "SneakToLampshade", 0x20, 2, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_normal", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_losechance", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_loseloop", 0x10, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_brave", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_airhit", 0x20, 0x100, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_airfall", 0x10, 0x80A, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_airland", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_airlose", 0x20, 0x180, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_losefall", 0x10, 0x180, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_loseland", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_norm_cower", 0x10, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_norm_hit", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_critter", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Scare_thorns", 0x20, 0x80A, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Jump_normal", 0x20, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Jump_run", 0x20, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Jump_walk", 0x20, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Jump_double", 0x20, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Jump_buttbounce", 0x20, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Jump_hang", 0x20, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Jump_springboard", 0x20, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_normal", 0, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_run", 0, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_walk", 0, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_floatup", 0x10, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_floatdown", 0x10, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_floatopen", 0x20, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_spring", 0x10, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_fromspring", 0x20, 0xA, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_losechance", 0x10, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_losedrop", 0x10, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Land_normal", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Land_running", 0x20, 6, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Land_walk", 0x20, 4, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Land_walkidle", 0x20, 4, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "HangGrab", 0x20, 0x20000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Hang", 0x10, 0x20000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "HangToSwing", 0, 0x20000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "SwingToHang", 0x20, 0x20000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Buttsmash_start", 0x20, 0x1080E, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Buttsmash_fall", 0x10, 0x1080E, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Buttsmash_land", 0x20, 0x10080, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Buttsmash_hit", 0x20, 0x1080A, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Slide", 0x10, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Action_attack", 0x10, 0x1000C, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Action_attackrun", 0x10, 0x1000C, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Action_attackhit", 0x20, 0x100A6, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Action_projectile", 0x20, 0x80000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Action_dig", 0x10, 0x12000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "PowerUpReward", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_1", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_2", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_3", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_4", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_SitStart", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_SitLoop", 0x10, 0x81, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_SitEnd", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_SitEndSlow", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_LookLeft", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_LookRight", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_LookAround", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_SitFlea", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_SitSniff", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_SitHungry", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_SitLookLeft", 0x20, 0x81, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_SniffAir", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_SniffGround", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_Magnify", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_Dizzy", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Inactive_BlowFeet", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Powerup_helmet", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Powerup_plunger", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Powerup_soap", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Powerup_lamp", 0x20, 0x80, 1.0f, NULL, NULL, 0.0f, NULL);
+    Shaggy1_PlayerStates(table);
+    Shaggy1_PlayerTransitions(table);
+    Shaggy0_PlayerStates(table);
+    Shaggy0_PlayerTransitions(table);
+    xAnimTableNewTransition(table, "SD0_Throw", "Fall_normal", NULL, SD0_TossCB, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "SD1_HangReact SD1_LandReact", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD1_HangReact SD1_LandReact", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD1_HangReact SD1_LandReact", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD0_SetDown", "Idle_scared", HealthCheck, (xAnimTransitionCallback)Shaggy0_FlipCB, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD0_SetDown", "Idle_normal", HealthCheck, (xAnimTransitionCallback)Shaggy0_FlipCB, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD0_SetDown", "Idle_brave", HealthCheck, (xAnimTransitionCallback)Shaggy0_FlipCB, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD1_SetDown", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD1_SetDown", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD1_SetDown", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD1_Hold SD1_HoldWalk SD1_CatchJump SD1_CatchThrow SD1_Throw SD1_ThrowIdle SD1_ThrowWalk SD1_HangReact SD1_LandReact", "Scare_norm_hit", ScareCheckNoHealth, ScareCB, 0, 0, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD1_Hold SD1_HoldWalk SD1_CatchJump SD1_CatchThrow SD1_Throw SD1_ThrowIdle SD1_ThrowWalk SD1_HangReact SD1_LandReact", "Scare_critter", ScareCheckCritter, ScareCB, 0, 0, 0.0f, 0.0f, 6, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD1_Hold SD1_HoldWalk SD1_CatchJump SD1_CatchThrow SD1_Throw SD1_ThrowIdle SD1_ThrowWalk SD1_HangReact SD1_LandReact", "Scare_loseloop", ScareCheck, DeathCB, 0, 1, 0.0f, 0.0f, 0xA, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SD0_Hold SD0_HoldWalk SD0_CatchJump SD0_CatchThrow SD0_Throw", "Scare_airhit", ScareCheckNoHealth, ScareKnockbackCB, 0, 0, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attack Action_projectile Action_dig PowerUpReward", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attack Action_projectile Action_dig PowerUpReward", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attack Action_projectile Action_dig PowerUpReward", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attack Action_projectile Action_dig PowerUpReward", "Idle_teeter", TeeterCheck, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attack Action_projectile Action_dig PowerUpReward", "Idle_slippery", SlipperyCheck, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attack Action_projectile Action_dig PowerUpReward", "Idle_plunger", PlungerCheck, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun", "Run_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun", "Run_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun", "Run_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun", "Run_hotsauce", HotsauceCheck, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Scare_airhit", "Scare_airfall", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Scare_airhit", "Idle_scared", LandHealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Scare_airhit", "Idle_normal", LandHealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Scare_airhit", "Idle_brave", LandHealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Scare_brave", "Idle_normal", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Scare_normal", "Idle_scared", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Scare_norm_hit Scare_critter", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Scare_norm_hit Scare_critter", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Scare_norm_hit Scare_critter", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Inactive_1 Inactive_2 Inactive_3 Inactive_4 Inactive_SitEnd Inactive_SitEndSlow", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Inactive_1 Inactive_2 Inactive_3 Inactive_4 Inactive_SitEnd Inactive_SitEndSlow", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Inactive_1 Inactive_2 Inactive_3 Inactive_4 Inactive_SitEnd Inactive_SitEndSlow", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Jump_normal Jump_run Jump_double Jump_buttbounce Jump_hang", "Fall_normal", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Jump_walk", "Fall_walk", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Jump_run", "Fall_run", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Jump_springboard", "Fall_spring", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Fall_fromspring", "Fall_normal", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Walk_scared", WalkCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Walk_normal", WalkCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Walk_brave", WalkCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_running", "Run_scared", RunCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_running", "Run_normal", RunCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_running", "Run_brave", RunCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_running", "Run_slippery", RunCheck, NULL, 0x10, 0x10, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Walk_slippery", WalkCheck, NULL, 0x10, 0x10, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Walk_sticky", WalkCheck, NULL, 0x10, 0x40, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Walk_boots", WalkCheck, NULL, 0x10, 0x80, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Walk_plunger", WalkPlungeCheck, NULL, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Idle_plunger", PlungerCheck, NULL, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Land_normal Land_walk Land_walkidle Land_running", "Slide", SlideCheck, NULL, 0x10, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "RunToSkid", "Skid", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "SkidToIdle", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SkidToIdle", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SkidToIdle", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SkidToIdle", "Idle_teeter", TeeterCheck, NULL, 0x10, 0, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SkidToIdle", "Idle_slippery", SlipperyCheck, NULL, 0x10, 0, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SkidToIdle", "Idle_plunger", PlungerCheck, NULL, 0x10, 0, 0.0f, 0.0f, 3, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "SkidToIdle", "Slide", SlideCheck, NULL, 0x10, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "HangGrab", "Hang", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "SwingToHang", "Hang", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "IdleToSneak", "Walk_sneak", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "IdleToLampshade", "Idle_lampshade", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "IdleToBlackknight", "Idle_blackknight", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "LampshadeToSneak", "Walk_sneak", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "SneakToLampshade", "Idle_lampshade", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Idle_normal Idle_brave  Idle_slippery Idle_plunger Run_boots Slide Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Idle_scared", IdleCheck, NULL, 0, 2, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_scared Idle_brave  Idle_slippery Idle_plunger Run_boots Slide Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Idle_normal", IdleCheck, NULL, 0, 4, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_scared Idle_normal Idle_slippery Idle_plunger Run_boots Slide Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Idle_brave", IdleCheck, NULL, 0, 8, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_scared Idle_normal Idle_brave Idle_LookLeft Idle_LookRight Inactive_LookAround Idle_plunger Idle_slippery Run_boots Slide Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Idle_teeter", TeeterCheck, NULL, 0, 0, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_scared Idle_normal Idle_brave Idle_LookLeft Idle_LookRight Inactive_LookAround Idle_plunger Idle_teeter Run_boots Slide Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Idle_slippery", SlipperyCheck, NULL, 0, 0, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_scared Idle_normal Idle_brave Idle_LookLeft Idle_LookRight Inactive_LookAround Idle_teeter Idle_slippery Run_boots Slide Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Idle_plunger", PlungerCheck, NULL, 0, 0, 0.0f, 0.0f, 3, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_scared Idle_normal Idle_brave Idle_LookLeft Idle_LookRight Inactive_LookAround Idle_plunger Idle_teeter Idle_slippery Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Slide", SlideCheck, NULL, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Skid", "SkidToIdle", SkidStopCheck, NULL, 0, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Slide Walk_normal Walk_brave Run_boots Walk_slippery Walk_plunger Walk_sticky Walk_boots Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Walk_scared", WalkCheck, NULL, 0, 2, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Slide Walk_scared Walk_brave Run_boots Walk_slippery Walk_plunger Walk_sticky Walk_boots Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Walk_normal", WalkCheck, NULL, 0, 4, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Slide Walk_scared Walk_normal Run_boots Walk_slippery Walk_plunger Walk_sticky Walk_boots Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Walk_brave", WalkCheck, NULL, 0, 8, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Slide Walk_plunger  Walk_sticky  Walk_boots Run_boots Walk_scared Walk_normal Walk_brave Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Walk_slippery", WalkCheck, NULL, 0, 0x10, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Slide Walk_slippery Walk_sticky  Walk_boots Run_boots Walk_scared Walk_normal Walk_brave Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Walk_plunger", WalkCheck, NULL, 0, 0x20, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Slide Walk_slippery Walk_plunger Walk_boots Run_boots Walk_scared Walk_normal Walk_brave Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Walk_sticky", WalkCheck, NULL, 0, 0x40, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Slide Walk_slippery Walk_plunger Walk_sticky Run_boots Walk_scared Walk_normal Walk_brave Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Walk_boots", WalkCheck, NULL, 0, 0x80, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    temp_r3_2 = xAnimTableNewTransition(table, "Run_normal Run_scared Run_brave Run_slippery Run_boots", "Walk_plunger", WalkPlungeCheck, NULL, 0, 0, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_2, "Walk_normal Walk_scared Walk_brave Walk_slippery Walk_sticky Walk_boots");
+    xAnimTableAddTransition(table, temp_r3_2, "RunToIdle_normal RunToIdle_scared RunToIdle_brave RunToSkid");
+    xAnimTableAddTransition(table, temp_r3_2, "Idle_sneak Idle_lampshade Idle_blackknight Idle_teeter Idle_slippery Idle_plunger");
+    xAnimTableAddTransition(table, temp_r3_2, "Skid SkidToIdle Walk_sneak Walk_blackknight");
+    xAnimTableAddTransition(table, temp_r3_2, "IdleToSneak IdleToLampshade IdleToBlackknight LampshadeToSneak SneakToLampshade");
+    xAnimTableAddTransition(table, temp_r3_2, "Inactive_1 Inactive_2 Inactive_3 Inactive_4 Inactive_SitFlea");
+    xAnimTableAddTransition(table, temp_r3_2, "Inactive_SitStart Inactive_SitLoop Inactive_SitEnd Inactive_SitEndSlow Idle_LookLeft Idle_LookRight");
+    xAnimTableAddTransition(table, temp_r3_2, "Inactive_SitSniff Inactive_SitHungry Inactive_SitLookLeft Inactive_SniffAir Inactive_SniffGround");
+    xAnimTableAddTransition(table, temp_r3_2, "Inactive_Magnify Inactive_Dizzy Inactive_BlowFeet Inactive_LookAround");
+    temp_r3_3 = xAnimTableNewTransition(table, "Run_normal Run_scared Run_brave Run_slippery", "Slide", SlideCheck, NULL, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_3, "Walk_normal Walk_scared Walk_brave Walk_slippery Walk_sticky Walk_boots");
+    xAnimTableAddTransition(table, temp_r3_3, "RunToIdle_normal RunToIdle_scared RunToIdle_brave RunToSkid");
+    xAnimTableAddTransition(table, temp_r3_3, "Idle_sneak Idle_lampshade Idle_blackknight Idle_teeter Idle_slippery Idle_plunger");
+    xAnimTableAddTransition(table, temp_r3_3, "Skid SkidToIdle Walk_sneak Walk_blackknight Run_slippery");
+    xAnimTableAddTransition(table, temp_r3_3, "IdleToSneak IdleToLampshade IdleToBlackknight LampshadeToSneak SneakToLampshade");
+    xAnimTableAddTransition(table, temp_r3_3, "Inactive_1 Inactive_2 Inactive_3 Inactive_4 Inactive_SitFlea");
+    xAnimTableAddTransition(table, temp_r3_3, "Inactive_SitStart Inactive_SitLoop Inactive_SitEnd Inactive_SitEndSlow Idle_LookLeft Idle_LookRight");
+    xAnimTableAddTransition(table, temp_r3_3, "Inactive_SitSniff Inactive_SitHungry Inactive_SitLookLeft Inactive_SniffAir Inactive_SniffGround");
+    xAnimTableAddTransition(table, temp_r3_3, "Inactive_Magnify Inactive_Dizzy Inactive_BlowFeet Inactive_LookAround");
+    xAnimTableNewTransition(table, "Slide Run_normal Run_brave  Run_hotsauce Run_slippery Run_boots Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Run_scared", RunCheck, NULL, 0, 2, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Slide Run_scared Run_brave  Run_hotsauce Run_slippery Run_boots Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Run_normal", RunCheck, NULL, 0, 4, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Slide Run_scared Run_normal Run_hotsauce Run_slippery Run_boots Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Run_brave", RunCheck, NULL, 0, 8, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Slide Run_scared Run_normal Run_hotsauce Run_brave    Run_boots Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Run_slippery", RunCheck, NULL, 0, 0x10, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Slide Run_scared Run_normal Run_hotsauce Run_brave Run_slippery Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Run_boots", RunCheck, NULL, 0, 0x80, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Run_scared Run_normal Run_brave Run_hotsauce Run_slippery Run_boots", "Walk_sticky", StickySurfWalk, ClearHelmetCB, 0, 0, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Run_scared Run_normal Run_brave Run_hotsauce Run_slippery Run_boots", "Idle_normal", StickySurfIdle, ClearHelmetCB, 0, 0, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun Action_attack", "Walk_sticky", StickNoBootsWalk, ClearHelmetCB, 0, 0, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun Action_attack", "Idle_normal", StickNoBootsIdle, ClearHelmetCB, 0, 0, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Run_scared", "RunToIdle_scared", NotRunCheck, NotRunCB, 0, 0x1F, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Run_normal", "RunToIdle_normal", NotRunCheck, NotRunCB, 0, 0x1F, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Run_brave", "RunToIdle_brave", NotRunCheck, NotRunCB, 0, 0x1F, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Run_slippery", "RunToSkid", NotRunCheck, NULL, 0, 0x1F, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Run_hotsauce", "RunToIdle_scared", NotRunCheck, NotRunCB, 0, 2, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Run_hotsauce", "RunToIdle_normal", NotRunCheck, NotRunCB, 0, 2, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Run_hotsauce", "RunToIdle_brave", NotRunCheck, NotRunCB, 0, 2, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Run_hotsauce", "RunToSkid", NotRunCheck, NULL, 0, 0x10, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "RunToIdle_scared", "Idle_scared", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "RunToIdle_normal", "Idle_normal", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "RunToIdle_brave", "Idle_brave", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    temp_r3_4 = xAnimTableNewTransition(table, "Walk_scared Walk_normal Walk_brave Run_scared Run_normal Run_brave", "Walk_sneak", SneakMoveCheck, NULL, 0, 6, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_4, "Idle_sneak Idle_blackknight Walk_blackknight");
+    xAnimTableAddTransition(table, temp_r3_4, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify");
+    temp_r3_5 = xAnimTableNewTransition(table, "Walk_scared Walk_normal Walk_brave Run_scared Run_normal Run_brave", "Walk_blackknight", SneakMoveCheck, NULL, 0, 8, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_5, "Idle_sneak Idle_blackknight Walk_sneak");
+    xAnimTableAddTransition(table, temp_r3_5, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify");
+    xAnimTableNewTransition(table, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "IdleToLampshade", SneakIdleCheck, NULL, 0, 4, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Walk_sneak", "SneakToLampshade", SneakIdleCheck, NULL, 0, 4, 0.0f, 0.0f, 1, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Idle_lampshade", "LampshadeToSneak", SneakMoveCheck, NULL, 0, 4, 0.0f, 0.0f, 1, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "SneakToLampshade", "LampshadeToSneak", SneakMoveCheck, NULL, 0x20, 4, 0.0f, 0.0f, 2, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "LampshadeToSneak", "SneakToLampshade", SneakIdleCheck, NULL, 0x20, 4, 0.0f, 0.0f, 2, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Walk_sneak Walk_blackknight Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Idle_sneak", SneakIdleCheck, NULL, 0, 2, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Walk_sneak Walk_blackknight Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Idle_blackknight", SneakIdleCheck, NULL, 0, 8, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_sneak Idle_lampshade Idle_blackknight", "Idle_scared", NosneakCheck, NULL, 0, 2, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_sneak Idle_lampshade Idle_blackknight", "Idle_normal", NosneakCheck, NULL, 0, 4, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_sneak Idle_lampshade Idle_blackknight", "Idle_brave", NosneakCheck, NULL, 0, 8, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_sneak Idle_lampshade Idle_blackknight", "Idle_teeter", NosneakTeeter, NULL, 0, 0, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_sneak Idle_lampshade Idle_blackknight", "Idle_slippery", NosneakSlippery, NULL, 0, 0, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Idle_sneak Idle_lampshade Idle_blackknight", "Idle_plunger", NosneakPlunger, NULL, 0, 0, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Walk_sneak Walk_blackknight", "Walk_scared", NosneakCheck, NULL, 0, 2, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Walk_sneak Walk_blackknight", "Walk_normal", NosneakCheck, NULL, 0, 4, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Walk_sneak Walk_blackknight", "Walk_brave", NosneakCheck, NULL, 0, 8, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    temp_r3_6 = xAnimTableNewTransition(table, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Run_hotsauce", HotsauceCheck, NULL, 0, 0, 0.0f, 0.0f, 3, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_6, "Walk_scared Walk_normal Walk_brave Walk_sneak Walk_blackknight");
+    xAnimTableAddTransition(table, temp_r3_6, "Idle_sneak Idle_lampshade Idle_blackknight Idle_teeter Idle_slippery Idle_plunger");
+    xAnimTableAddTransition(table, temp_r3_6, "Run_scared Run_normal Run_brave");
+    xAnimTableAddTransition(table, temp_r3_6, "Inactive_1 Inactive_2 Inactive_3 Inactive_4");
+    xAnimTableAddTransition(table, temp_r3_6, "Inactive_SitStart Inactive_SitLoop Inactive_SitEnd Inactive_SitEndSlow");
+    xAnimTableAddTransition(table, temp_r3_6, "Idle_LookLeft Idle_LookRight Inactive_SitFlea");
+    xAnimTableAddTransition(table, temp_r3_6, "Inactive_SitSniff Inactive_SitHungry Inactive_SitLookLeft Inactive_SniffAir Inactive_SniffGround");
+    xAnimTableAddTransition(table, temp_r3_6, "Inactive_Magnify Inactive_Dizzy Inactive_BlowFeet Inactive_LookAround");
+    PlayerAddToAllStates(table, xAnimTableNewTransition(table, "", "Scare_norm_cower", CowerCheck, NULL, 0, 0, 0.0f, 0.0f, 5, 0, 0.15f, NULL));
+    xAnimTableNewTransition(table, "Scare_norm_cower", "Idle_scared", UncowerCheck, NULL, 0, 2, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Scare_norm_cower", "Idle_normal", UncowerCheck, NULL, 0, 4, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Scare_norm_cower", "Idle_brave", UncowerCheck, NULL, 0, 8, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    PlayerAddToAllStates(table, xAnimTableNewTransition(table, "", "Scare_norm_hit", ScareCheckNoHealth, ScareCB, 0, 0, 0.0f, 0.0f, 5, 0, 0.15f, NULL));
+    PlayerAddToAllStates(table, xAnimTableNewTransition(table, "", "Scare_critter", ScareCheckCritter, ScareCB, 0, 0, 0.0f, 0.0f, 6, 0, 0.15f, NULL));
+    temp_r3_7 = xAnimTableNewTransition(table, "", "Scare_loseloop", ScareCheck, DeathCB, 0, 1, 0.0f, 0.0f, 0xA, 0, 0.15f, NULL);
+    PlayerAddToAllStates(table, temp_r3_7);
+    xAnimTableAddTransition(table, temp_r3_7, "Powerup_helmet Powerup_lamp Powerup_plunger Powerup_soap Scare_brave");
+    xAnimTableAddTransition(table, temp_r3_7, "Scare_critter Scare_norm_cower Scare_norm_hit Scare_normal Scare_thorns");
+    xAnimTableNewTransition(table, "Scare_airlose", "Scare_losefall", NULL, DeathCB, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Scare_losefall", "Scare_loseland", LandCheck, NULL, 0, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    temp_r29 = xAnimTableNewTransition(table, "", "Fall_losechance", FallToDeathStart, ButtSmashCB, 0, 0, 0.0f, 0.0f, 0x14, 0, 0.15f, NULL);
+    for (xAnimState* state = table->StateList; state != NULL; state = state->Next)
+    {
+        if (xStricmp(state->Name, "Fall_losechance") != 0 && xStricmp(state->Name, "Fall_losedrop") != 0)
+        {
+            xAnimTableAddTransition(table, temp_r29, state->Name);
+        }
+    }
+    xAnimTableNewTransition(table, "Fall_losechance", "Fall_losedrop", FallToDeathDrop, FallToDeathDropCB, 0, 0, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    temp_r3_8 = xAnimTableNewTransition(table, "Jump_normal Jump_run Jump_walk Jump_double Jump_buttbounce Jump_hang Jump_springboard", "Scare_airhit", ScareCheck, ScareCB, 0, 0xF, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_8, "Fall_normal Fall_run Fall_walk Fall_high Fall_floatup");
+    xAnimTableAddTransition(table, temp_r3_8, "Fall_floatdown Fall_floatopen HangGrab Hang HangToSwing SwingToHang");
+    xAnimTableAddTransition(table, temp_r3_8, "Buttsmash_start Buttsmash_fall Fall_spring Fall_fromspring");
+    temp_r3_9 = xAnimTableNewTransition(table, "Jump_normal Jump_run Jump_walk Jump_double Jump_buttbounce Jump_hang Jump_springboard", "Scare_airlose", ScareCheck, ScareKnockbackCB, 0, 1, 0.0f, 0.0f, 7, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_9, "Fall_normal Fall_run Fall_walk Fall_high Fall_floatup");
+    xAnimTableAddTransition(table, temp_r3_9, "Fall_floatdown Fall_floatopen HangGrab Hang HangToSwing SwingToHang");
+    xAnimTableAddTransition(table, temp_r3_9, "Buttsmash_start Buttsmash_fall Fall_spring Fall_fromspring");
+    xAnimTableAddTransition(table, temp_r3_9, "Scare_airhit Scare_airfall Scare_airland");
+    temp_r3_10 = xAnimTableNewTransition(table, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Jump_normal", JumpCheck, JumpCB, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_10, "Idle_sneak Idle_lampshade Idle_blackknight Walk_sneak Walk_blackknight");
+    xAnimTableAddTransition(table, temp_r3_10, "Idle_teeter Idle_slippery Idle_plunger Slide Inactive_1 Inactive_2 Inactive_3 Inactive_4");
+    xAnimTableAddTransition(table, temp_r3_10, "Inactive_SitStart Inactive_SitLoop Inactive_SitEnd Inactive_SitEndSlow");
+    xAnimTableAddTransition(table, temp_r3_10, "Idle_LookLeft Idle_LookRight Inactive_SitFlea");
+    xAnimTableAddTransition(table, temp_r3_10, "Land_normal Land_walkidle");
+    xAnimTableAddTransition(table, temp_r3_10, "RunToIdle_scared RunToIdle_normal RunToIdle_brave");
+    xAnimTableAddTransition(table, temp_r3_10, "RunToSkid Skid SkidToIdle Walk_slippery Walk_plunger Walk_boots Idle_plunger");
+    xAnimTableAddTransition(table, temp_r3_10, "Inactive_SitSniff Inactive_SitHungry Inactive_SitLookLeft Inactive_SniffAir Inactive_SniffGround");
+    xAnimTableAddTransition(table, temp_r3_10, "Inactive_Magnify Inactive_Dizzy Inactive_BlowFeet Inactive_LookAround");
+    xAnimTableNewTransition(table, "Fall_spring", "Fall_fromspring", (xAnimTransitionConditionalCallback)NospringCheck, NULL, 0, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Walk_normal Walk_scared Walk_brave Land_walk", "Jump_walk", JumpCheck, JumpCB, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Run_normal Run_scared Run_brave Run_hotsauce Land_running Run_slippery Run_boots", "Jump_run", JumpCheck, JumpCB, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Fall_normal Fall_run Fall_walk Fall_floatup Fall_floatdown Fall_floatopen Fall_high Fall_spring Fall_fromspring Jump_hang", "Jump_double", DblJumpCheck, DblJumpCB, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Jump_normal Jump_run Jump_walk Jump_springboard", "Jump_double", DblJumpCheckTime, DblJumpCB, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    temp_r3_11 = xAnimTableNewTransition(table, "Buttsmash_start Scare_airhit Scare_airfall", "Jump_buttbounce", BounceCheck, BounceCB, 0, 0, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_11, "Fall_normal Fall_run Fall_walk Fall_floatup Fall_floatdown Fall_floatopen Fall_high");
+    xAnimTableAddTransition(table, temp_r3_11, "Jump_normal Jump_run Jump_walk");
+    xAnimTableAddTransition(table, temp_r3_11, "Jump_double Jump_buttbounce Jump_hang Jump_springboard");
+    xAnimTableAddTransition(table, temp_r3_11, "Fall_spring Fall_fromspring");
+    temp_r3_12 = xAnimTableNewTransition(table, "Buttsmash_start Scare_airhit Scare_airfall", "Jump_springboard", SpringCheck, BounceCB, 0, 0, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_12, "Fall_normal Fall_run Fall_walk Fall_floatup Fall_floatdown Fall_floatopen Fall_high");
+    xAnimTableAddTransition(table, temp_r3_12, "Jump_normal Jump_run Jump_walk");
+    xAnimTableAddTransition(table, temp_r3_12, "Jump_double Jump_buttbounce Jump_hang Jump_springboard");
+    xAnimTableAddTransition(table, temp_r3_12, "Fall_spring Fall_fromspring");
+    temp_r3_13 = xAnimTableNewTransition(table, "Fall_normal Fall_run Fall_walk Fall_floatup Fall_floatdown Fall_floatopen Fall_high", "Hang", HangCheck, HangCB, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+    xAnimTableAddTransition(table, temp_r3_13, "Jump_normal Jump_walk Jump_run Jump_double");
+    xAnimTableAddTransition(table, temp_r3_13, "Fall_spring Fall_fromspring Jump_springboard");
+    xAnimTableNewTransition(table, "Hang HangGrab SwingToHang HangToSwing", "Jump_hang", JumpCheck, JumpHangCB, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Hang HangGrab SwingToHang HangToSwing", "Fall_normal", NoHangCheck, NULL, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Hang", "HangToSwing", HangSwingCheck, NULL, 0, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "HangToSwing", "SwingToHang", HangNoSwingCheck, NULL, 0, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    temp_r3_14 = xAnimTableNewTransition(table, "Walk_scared Walk_normal Walk_brave Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Fall_normal", FallingCheck, NULL, 0, 0, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_14, "Idle_sneak Idle_lampshade Idle_blackknight Idle_plunger Idle_slippery Idle_teeter Slide");
+    xAnimTableAddTransition(table, temp_r3_14, "Walk_sneak Walk_blackknight Land_normal Land_walk Land_walkidle Land_running");
+    xAnimTableAddTransition(table, temp_r3_14, "Inactive_1 Inactive_2 Inactive_3 Inactive_4");
+    xAnimTableAddTransition(table, temp_r3_14, "Inactive_SitStart Inactive_SitLoop Inactive_SitEnd Inactive_SitEndSlow");
+    xAnimTableAddTransition(table, temp_r3_14, "Idle_LookLeft Idle_LookRight Inactive_SitFlea");
+    xAnimTableAddTransition(table, temp_r3_14, "Walk_slippery Walk_plunger Walk_sticky Walk_boots");
+    xAnimTableAddTransition(table, temp_r3_14, "Inactive_SitSniff Inactive_SitHungry Inactive_SitLookLeft Inactive_SniffAir Inactive_SniffGround");
+    xAnimTableAddTransition(table, temp_r3_14, "Inactive_Magnify Inactive_Dizzy Inactive_BlowFeet Inactive_LookAround");
+    xAnimTableNewTransition(table, "Run_normal Run_scared Run_brave Run_hotsauce", "Fall_run", FallingCheck, NULL, 0, 0, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Fall_normal Fall_run Fall_walk Fall_high Fall_spring Fall_fromspring", "Fall_floatopen", FloatCheck, NULL, 0, 4, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Fall_floatopen", "Fall_floatdown", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Fall_floatopen", "Fall_floatup", FloatCheck, NULL, 0x10, 2, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Fall_floatdown", "Fall_floatup", FloatCheck, NULL, 0, 2, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Fall_floatup", "Fall_floatdown", FloatCheck, NULL, 0, 1, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Fall_floatdown Fall_floatup", "Fall_normal", NotFloatCheck, NULL, 0, 0, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Fall_normal Fall_run Fall_walk Fall_floatup Fall_floatdown Fall_floatopen Fall_high Jump_double Jump_walk Jump_run Jump_normal Jump_hang Fall_spring Fall_fromspring", "Buttsmash_start", ButtSmashCheck, ButtSmashCB, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Buttsmash_start", "Buttsmash_fall", NULL, ButtSmashStateCB, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Buttsmash_fall", "Buttsmash_land", LandCheck, ButtSmashLandCB, 0, 0, 0.0f, 0.0f, 5, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Buttsmash_fall", "Jump_buttbounce", BounceCheck, BounceCB, 0, 0, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Buttsmash_fall", "Jump_springboard", SpringCheck, BounceCB, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Buttsmash_land", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Buttsmash_land", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Buttsmash_land", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Buttsmash_hit", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Buttsmash_hit", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Buttsmash_hit", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Fall_normal Fall_run Fall_floatup Fall_floatdown Fall_floatopen Fall_high", "Land_normal", LandSlowCheck, NULL, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Fall_walk", "Land_walkidle", LandSlowCheck, NULL, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Fall_normal Fall_run Fall_walk Fall_floatup Fall_floatdown Fall_floatopen Fall_high", "Land_walk", LandWalkCheck, NULL, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Fall_normal Fall_run Fall_walk Fall_floatup Fall_floatdown Fall_floatopen Fall_high", "Land_running", LandFastCheck, NULL, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Fall_spring Fall_fromspring", "Land_normal", LandCheck, NULL, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Scare_airfall", "Scare_airland", ScareLandCheck, NULL, 0, 0, 0.0f, 0.0f, 5, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Scare_airland", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Scare_airland", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Scare_airland", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Idle_scared Idle_normal Idle_brave", "Inactive_SitStart", IdleSitCheck, NULL, 0, 0, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitStart", "Inactive_SitLoop", NULL, IdleSitCB, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitLoop Inactive_SitFlea Inactive_SitSniff Inactive_SitHungry Inactive_SitLookLeft", "Inactive_SitEnd", ActiveCheck, NULL, 0, 0xE, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitEndSlow", "Inactive_SitEnd", ActiveCheck, NULL, 0x20, 0, 0.0f, 0.0f, 2, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitLoop", "Inactive_SitEndSlow", IdleGetupCheck, IdleGetupCB, 0, 0, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitEnd Inactive_SitEndSlow", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitEnd Inactive_SitEndSlow", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitEnd Inactive_SitEndSlow", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitLoop", "Inactive_SitSniff", IdleMinorCheck, IdleMinorCB, 0, 0x20000, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitLoop", "Inactive_SitLookLeft", IdleMinorCheck, IdleMinorCB, 0, 0x20001, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitLoop", "Inactive_SitFlea", IdleMajorCheck, IdleMajorCB, 0, 0x30000, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitLoop", "Inactive_SitHungry", IdleMajorCheck, IdleMajorCB, 0, 0x30001, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitLoop", "Inactive_Magnify", IdleMajorCheck, IdleMajorCB, 0, 0x30002, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Inactive_SitFlea Inactive_SitSniff Inactive_SitHungry Inactive_Magnify Inactive_SitLookLeft", "Inactive_SitLoop", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Idle_normal Idle_brave", "Idle_LookLeft", IdleMinorCheck, IdleMinorCB, 0, 0x40000, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "Idle_normal Idle_brave", "Idle_LookRight", IdleMinorCheck, IdleMinorCB, 0, 0x40001, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "Idle_normal Idle_brave", "Inactive_SniffAir", IdleMinorCheck, IdleMinorCB, 0, 0x40002, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "Idle_normal Idle_brave", "Inactive_SniffGround", IdleMinorCheck, IdleMinorCB, 0, 0x40003, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "Idle_normal Idle_brave", "Inactive_LookAround", IdleMajorCheck, IdleMajorCB, 0, 0x10000, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Idle_LookLeft Idle_LookRight Inactive_SniffAir Inactive_SniffGround Inactive_LookAround", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "Idle_LookLeft Idle_LookRight Inactive_SniffAir Inactive_SniffGround Inactive_LookAround", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "Idle_LookLeft Idle_LookRight Inactive_SniffAir Inactive_SniffGround Inactive_LookAround", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Powerup_helmet", PowerupCheck, PowerupCB, 0, 0xB, 0.0f, 0.0f, 3, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Powerup_plunger", PowerupCheck, PowerupCB, 0, 3, 0.0f, 0.0f, 3, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Powerup_soap", PowerupCheck, PowerupCB, 0, 1, 0.0f, 0.0f, 3, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify Walk_normal Walk_scared Walk_brave Walk_slippery Walk_plunger Walk_sticky Walk_boots", "Powerup_lamp", PowerupCheck, PowerupCB, 0, 5, 0.0f, 0.0f, 3, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Powerup_helmet Powerup_plunger Powerup_soap Powerup_lamp", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "Powerup_helmet Powerup_plunger Powerup_soap Powerup_lamp", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "Powerup_helmet Powerup_plunger Powerup_soap Powerup_lamp", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    temp_r3_15 = xAnimTableNewTransition(table, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Action_projectile", ProjectileCheck, ProjectileCB, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_15, "Walk_normal Walk_scared Walk_brave");
+    xAnimTableAddTransition(table, temp_r3_15, "Idle_sneak Idle_lampshade Idle_blackknight Walk_sneak Walk_blackknight");
+    xAnimTableAddTransition(table, temp_r3_15, "Idle_teeter Idle_slippery Idle_plunger Inactive_1 Inactive_2 Inactive_3 Inactive_4");
+    xAnimTableAddTransition(table, temp_r3_15, "Run_normal Run_scared Run_brave");
+    xAnimTableNewTransition(table, "Action_projectile", "Action_projectile", ProjectileRepeatSync, ProjectileCB, 0, 0, globals.player.s.FireRepeat, 0.0f, 4, 5, 10.0f, NULL);
+    xAnimTableNewTransition(table, "Action_projectile", "Action_projectile", ProjectileRepeat, ProjectileCB, 0, 0, 0.0f, 0.0f, 4, 0, 10.0f, NULL);
+    temp_r3_16 = xAnimTableNewTransition(table, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Action_attackrun", AttackCheck, AttackCB, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_16, "Walk_normal Walk_scared Walk_brave");
+    xAnimTableAddTransition(table, temp_r3_16, "Idle_sneak Idle_lampshade Idle_blackknight Walk_sneak Walk_blackknight");
+    xAnimTableAddTransition(table, temp_r3_16, "Idle_teeter Idle_slippery Idle_plunger Inactive_1 Inactive_2 Inactive_3 Inactive_4");
+    xAnimTableAddTransition(table, temp_r3_16, "Run_normal Run_scared Run_brave Run_hotsauce");
+    xAnimTableAddTransition(table, temp_r3_16, "Land_normal Land_walk Land_walkidle Land_running");
+    xAnimTableAddTransition(table, temp_r3_16, "Walk_boots Run_boots");
+    xAnimTableNewTransition(table, "Action_Attack Action_AttackRun", "Action_attackhit", HeadHitCheck, HeadHitCB, 0, 0, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Action_attackhit", "Idle_scared", HealthCheck, NULL, 0x10, 2, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Action_attackhit", "Idle_normal", HealthCheck, NULL, 0x10, 4, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Action_attackhit", "Idle_brave", HealthCheck, NULL, 0x10, 8, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun", "RunToIdle_scared", AttackFinished, NotRunCB, 0, 2, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun", "RunToIdle_normal", AttackFinished, NotRunCB, 0, 4, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun", "RunToIdle_brave", AttackFinished, NotRunCB, 0, 8, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun", "Run_scared", AttackFinishedRun, NULL, 0, 2, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun", "Run_normal", AttackFinishedRun, NULL, 0, 4, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun", "Run_brave", AttackFinishedRun, NULL, 0, 8, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_attackrun", "Run_hotsauce", AttackFinishedHotsauce, NULL, 0, 1, 0.0f, 0.0f, 3, 0, 0.15f, NULL);
+    temp_r3_17 = xAnimTableNewTransition(table, " Idle_scared Idle_normal Idle_brave Idle_teeter Idle_slippery Idle_plunger Idle_LookLeft Idle_LookRight Inactive_LookAround Inactive_SniffAir Inactive_SniffGround Inactive_Magnify", "Action_dig", DigCheck, DigCB, 0, 0, 0.0f, 0.0f, 4, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, temp_r3_17, "Walk_normal Walk_scared Walk_brave");
+    xAnimTableAddTransition(table, temp_r3_17, "Idle_sneak Idle_lampshade Idle_blackknight Walk_sneak Walk_blackknight");
+    xAnimTableAddTransition(table, temp_r3_17, "Inactive_1 Inactive_2 Inactive_3 Inactive_4");
+    xAnimTableNewTransition(table, "Action_dig", "Idle_scared", StopDigCheck, NULL, 0, 2, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_dig", "Idle_normal", StopDigCheck, NULL, 0, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    xAnimTableNewTransition(table, "Action_dig", "Idle_brave", StopDigCheck, NULL, 0, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
+    return table;
 }
