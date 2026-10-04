@@ -1,5 +1,7 @@
-// TODO: 99.8% (NonMatching). Work in progress; see check_unit for the
-// remaining functions.
+// TODO: 99.9% (NonMatching). Remaining: register allocation in xAnimFileNew
+// (inlined NewBilinear), xAnimPlayEval, xAnimFileEval's root loop and
+// AddTransition; xAnimFileSetPoses has one extra branch; SingleUpdate keeps a
+// dead block for MWCC's inline budget (see the comment there).
 #include "xAnim.h"
 #include "xMath.h"
 #include "xMath3.h"
@@ -361,7 +363,7 @@ void xAnimPlaySetup(xAnimPlay* play, void* object, xAnimTable* table, xModelInst
 void xAnimPoolCB(xMemPool* pool, void* data);
 
 static void SingleUpdate(xAnimSingle* single, float timeDelta, _xVec3* tran, _xQuat* quat,
-                         float* yaw);
+                         float* yaw, unsigned int);
 
 static inline void EffectSingleDuration(xAnimSingle* single)
 {
@@ -747,45 +749,46 @@ void xAnimFileSetTime(xAnimFile* data, float duration, float timeOffset)
 void xAnimFileSetPoses(xAnimFile* data, void* startPose, float startTime, void* endPose,
                        float endTime)
 {
-    if (data->Physics != NULL)
-    {
-        return;
-    }
-    if (data->FileFlags & 0x8000)
-    {
-        return;
-    }
-
-    void* raw = *data->RawData;
-    _xQuat quat;
     float k0[4];
     float k1[4];
     float p0[4];
     float p1[4];
     float d0[4];
     float d1[4];
+    _xQuat quat;
 
-    iAnimEval(raw, data->TimeOffset, 1, (_xVec3*)k0, &quat);
-    k0[3] = xAnimQuatYaw(&quat);
-    iAnimEval(raw, data->TimeOffset + data->Duration, 1, (_xVec3*)k1, &quat);
-    k1[3] = xAnimQuatYaw(&quat);
-    iAnimEval(startPose, startTime, 1, (_xVec3*)p0, &quat);
-    p0[3] = xAnimQuatYaw(&quat);
-    iAnimEval(endPose, endTime, 1, (_xVec3*)p1, &quat);
-    p1[3] = xAnimQuatYaw(&quat);
-
-    for (signed int i = 0; i < 4; i++)
+    if (data->Physics == NULL)
     {
-        d0[i] = k0[i] - p0[i];
-        d1[i] = k1[i] - p1[i];
-        if (data->FileFlags & (1 << i))
+        if (data->FileFlags & 0x8000)
         {
-            d0[i] += p0[i];
-            d1[i] += p0[i];
+            return;
+        }
+        {
+            void* raw = *data->RawData;
+
+            iAnimEval(raw, data->TimeOffset, 1, (_xVec3*)k0, &quat);
+            k0[3] = xAnimQuatYaw(&quat);
+            iAnimEval(raw, data->TimeOffset + data->Duration, 1, (_xVec3*)k1, &quat);
+            k1[3] = xAnimQuatYaw(&quat);
+            iAnimEval(startPose, startTime, 1, (_xVec3*)p0, &quat);
+            p0[3] = xAnimQuatYaw(&quat);
+            iAnimEval(endPose, endTime, 1, (_xVec3*)p1, &quat);
+            p1[3] = xAnimQuatYaw(&quat);
+
+            for (signed int i = 0; i < 4; i++)
+            {
+                d0[i] = k0[i] - p0[i];
+                d1[i] = k1[i] - p1[i];
+                if (data->FileFlags & (1 << i))
+                {
+                    d0[i] += p0[i];
+                    d1[i] += p0[i];
+                }
+            }
+
+            CalcPhysFromKeys(data, k0, k1, d0, d1);
         }
     }
-
-    CalcPhysFromKeys(data, k0, k1, d0, d1);
 }
 
 
@@ -991,6 +994,8 @@ xAnimEffect* xAnimStateNewEffect(xAnimState* state, unsigned int flags, float st
                                                           xAnimSingle*, void*),
                                  unsigned int userDataSize)
 {
+    xAnimEffect* curr;
+    xAnimEffect** prev;
     xAnimEffect* effect;
 
     effect = gxAnimUseGrowAlloc ? (xAnimEffect*)xMemGrowAlloc(gActiveHeap, userDataSize + sizeof(xAnimEffect)) :
@@ -1001,8 +1006,8 @@ xAnimEffect* xAnimStateNewEffect(xAnimState* state, unsigned int flags, float st
     effect->EndTime = endTime;
     effect->Callback = callback;
 
-    xAnimEffect** prev = &state->Effects;
-    xAnimEffect* curr = state->Effects;
+    prev = &state->Effects;
+    curr = state->Effects;
     while (curr != NULL && startTime > curr->StartTime)
     {
         prev = &curr->Next;
@@ -1534,7 +1539,7 @@ void xAnimPlaySetState(xAnimSingle* single, xAnimState* state, float startTime)
 }
 
 static void SingleUpdate(xAnimSingle* single, float timeDelta, _xVec3* tran, _xQuat* quat,
-                         float* yaw)
+                         float* yaw, unsigned int)
 {
     unsigned int foundBlendstop = 0;
     unsigned int firstStep = 1;
@@ -2052,13 +2057,13 @@ void xAnimPlayStartTransition(xAnimPlay* play, xAnimTransition* transition)
 
 void xAnimPlayUpdate(xAnimPlay* play, float timeDelta)
 {
-    float yaw[2];
-    _xQuat quat[2];
     _xVec3 tran[2];
+    _xQuat quat[2];
+    float yaw[2];
 
     for (unsigned int i = 0; i < play->NumSingle; i++)
     {
-        SingleUpdate(&play->Single[i], timeDelta, tran, quat, yaw);
+        SingleUpdate(&play->Single[i], timeDelta, tran, quat, yaw, 1);
         if (i == 0)
         {
             play->Translate[0] = tran[0];
@@ -2082,7 +2087,7 @@ void xAnimPlayEval(xAnimPlay* play)
         _xQuat* quatblend = (_xQuat*)((unsigned char*)quatresult + 0x720);
         _xVec3* tranblend = (_xVec3*)((unsigned char*)quatblend + 0x410);
 
-        SingleEval(play->Single, tranresult, quatresult);
+        SingleEval(play->Single, tranresult, (_xQuat*)giAnimScratch);
 
         for (i = 1; i < play->NumSingle; i++)
         {
