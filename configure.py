@@ -399,7 +399,16 @@ config.libs = [
             Object(Matching, "Core/gc/iMemMgr.cpp"),
             Object(Equivalent, "Core/gc/iModel.cpp"),
             Object(Equivalent, "Core/gc/iMorph.cpp"),
-            Object(Equivalent, "Core/gc/iPad.cpp"),
+            Object(
+                Equivalent,
+                "Core/gc/iPad.cpp",
+                # Test builds can script controller input (tools/make_test_iso.py --autoplay)
+                extra_cflags=(
+                    ["-DSCOOB_AUTOPLAY", "-i build/test"]
+                    if config.non_matching and __import__("os").environ.get("SCOOB_AUTOPLAY")
+                    else []
+                ),
+            ),
             Object(Equivalent, "Core/gc/iParMgr.cpp"),
             Object(Equivalent, "Core/gc/isavegame.cpp"),
             Object(Matching, "Core/gc/iScrFX.cpp"),

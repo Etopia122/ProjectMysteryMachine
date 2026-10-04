@@ -1405,6 +1405,8 @@ xAnimState* xAnimTableGetStateID(xAnimTable* table, unsigned int ID);
 void xAnimPlayStartTransition(xAnimPlay* play, xAnimTransition* tran);
 xAnimTransition* xAnimTempTransitionAlloc();
 char* xSceneID2Name(_xScene* sc, unsigned int id);
+void xAnimTableAddTransition(xAnimTable* table, xAnimTransition* tran, char* source);
+void Shaggy5_WitchTransitions(xAnimTable* table);
 
 static en_ZVILLAIN_HEADBUTT_RESPONSE VOUT_spikey_header(st_zEntVillain* vil);
 static en_NPC_ANIMSTATES VANM_set(st_zEntVillain* ent, en_NPC_ANIMSTATES* best, signed int cnt, signed int sync);
@@ -3346,6 +3348,1211 @@ static unsigned int VANM_diddflt(xAnimTransition* tran, xAnimSingle* single, st_
 static unsigned int VANM_dodflt(xAnimTransition* tran, xAnimSingle* single, st_zEntVillain* ent);
 static unsigned int VANM_didtran(xAnimTransition* tran, xAnimSingle* single, st_zEntVillain* ent);
 static unsigned int VANM_dotran(xAnimTransition* tran, xAnimSingle* single, st_zEntVillain* ent);
+static xAnimTable* VANM_mktable_STD();
+static xAnimTable* VANM_mktable_GANG();
+static xAnimTable* VANM_mktable_SHARK();
+static xAnimTable* VANM_mktable_MM();
+static xAnimTable* VANM_mktable_RB();
+static xAnimTable* VANM_mktable_GG();
+static xAnimTable* VANM_mktable_BK();
+
+static xAnimTable* VANM_mktable_BK()
+{
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+    char* names[32] = {};
+
+    table = xAnimTableNew("Villain_BlackKnight", NULL);
+    xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_ScaryIdle", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_Walk", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_Turn", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_Patrol", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_PatrolFlip", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_Attack", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_Shock", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_ShockSkel", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_Gloat", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_Gloat_1", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_Gloat_2", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "BK_Death", 0, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    for (i = 59; i < 71; i++)
+    {
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, "Idle", g_animname[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    names[0] = "BK_ScaryIdle";
+    names[1] = "BK_Patrol";
+    names[2] = "BK_PatrolFlip";
+    names[3] = "BK_Shock";
+    names[4] = "BK_ShockSkel";
+    names[5] = "BK_Gloat";
+    names[6] = "BK_Gloat_1";
+    names[7] = "BK_Gloat_2";
+    for (i = 0; i < 8; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "BK_Turn", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, names[i], "BK_Walk", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableNewTransition(table, "BK_Patrol", "BK_PatrolFlip", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "BK_PatrolFlip", "BK_Patrol", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    names[0] = "BK_ScaryIdle";
+    names[1] = "BK_Walk";
+    names[2] = "BK_Turn";
+    names[3] = "BK_Shock";
+    names[4] = "BK_ShockSkel";
+    names[5] = "BK_Gloat";
+    names[6] = "BK_Gloat_1";
+    names[7] = "BK_Gloat_2";
+    for (i = 0; i < 8; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "BK_Patrol", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, names[i], "BK_PatrolFlip", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    names[0] = "BK_ScaryIdle";
+    names[1] = "BK_Walk";
+    names[2] = "BK_Turn";
+    names[3] = "BK_Patrol";
+    names[4] = "BK_PatrolFlip";
+    names[5] = "BK_Shock";
+    names[6] = "BK_ShockSkel";
+    names[7] = "BK_Gloat";
+    names[8] = "BK_Gloat_1";
+    names[9] = "BK_Gloat_2";
+    for (i = 0; i < 10; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "BK_Attack", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    tran = xAnimTableNewTransition(table, "BK_Shock", "BK_ShockSkel", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "BK_ShockSkel", "BK_Shock", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    tran->Flags |= 0x20;
+    names[0] = "BK_ScaryIdle";
+    names[1] = "BK_Walk";
+    names[2] = "BK_Turn";
+    names[3] = "BK_Patrol";
+    names[4] = "BK_PatrolFlip";
+    names[5] = "BK_Gloat";
+    names[6] = "BK_Gloat_1";
+    names[7] = "BK_Gloat_2";
+    for (i = 0; i < 8; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "BK_ShockSkel", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, names[i], "BK_Shock", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    names[0] = "BK_ScaryIdle";
+    names[1] = "BK_Walk";
+    names[2] = "BK_Turn";
+    names[3] = "BK_Patrol";
+    names[4] = "BK_PatrolFlip";
+    names[5] = "BK_Shock";
+    names[6] = "BK_ShockSkel";
+    names[7] = "BK_Attack";
+    for (i = 0; i < 8; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "BK_Gloat", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, names[i], "BK_Gloat_1", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, names[i], "BK_Gloat_2", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    names[0] = "BK_ScaryIdle";
+    names[1] = "BK_Walk";
+    names[2] = "BK_Turn";
+    names[3] = "BK_Patrol";
+    names[4] = "BK_PatrolFlip";
+    names[5] = "BK_Shock";
+    names[6] = "BK_ShockSkel";
+    names[7] = "BK_Gloat";
+    names[8] = "BK_Gloat_1";
+    names[9] = "BK_Gloat_2";
+    for (i = 0; i < 10; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "BK_Death", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    return table;
+}
+
+static xAnimTable* VANM_mktable_GG()
+{
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+    char* names[32] = {};
+
+    table = xAnimTableNew("Villain_GreenGhost", NULL);
+    xAnimTableNewState(table, "Idle", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GG_Chase", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GG_ChaseLeft", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GG_ChaseRight", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GG_AttackBuildBegin", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GG_AttackBuildLoop", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GG_Attack", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GG_Gloat", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GG_Gloat_1", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GG_Hit", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GG_Hit_1", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GG_Hit_2", 0, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    for (i = 71; i < 82; i++)
+    {
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, "Idle", g_animname[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    }
+    xAnimTableNewTransition(table, "GG_Chase", "GG_ChaseLeft", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "GG_Chase", "GG_ChaseRight", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "GG_ChaseLeft", "GG_Chase", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "GG_ChaseLeft", "GG_ChaseRight", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "GG_ChaseRight", "GG_Chase", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "GG_ChaseRight", "GG_ChaseLeft", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    names[0] = "GG_Chase";
+    names[1] = "GG_ChaseLeft";
+    names[2] = "GG_ChaseRight";
+    names[3] = "GG_Gloat";
+    names[4] = "GG_Gloat_1";
+    names[5] = "GG_Hit";
+    names[6] = "GG_Hit_1";
+    names[7] = "GG_Hit_2";
+    for (i = 0; i < 8; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "GG_AttackBuildBegin", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    }
+    names[0] = "GG_Chase";
+    names[1] = "GG_ChaseLeft";
+    names[2] = "GG_ChaseRight";
+    names[3] = "GG_AttackBuildBegin";
+    names[4] = "GG_AttackBuildLoop";
+    names[5] = "GG_Attack";
+    names[6] = "GG_Hit";
+    names[7] = "GG_Hit_1";
+    names[8] = "GG_Hit_2";
+    for (i = 0; i < 9; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "GG_Gloat", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, names[i], "GG_Gloat_1", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    }
+    xAnimTableNewTransition(table, "GG_AttackBuildBegin", "GG_AttackBuildLoop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 5, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "GG_AttackBuildLoop", "GG_Attack", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    names[0] = "GG_Chase";
+    names[1] = "GG_ChaseLeft";
+    names[2] = "GG_ChaseRight";
+    names[3] = "GG_AttackBuildBegin";
+    names[4] = "GG_AttackBuildLoop";
+    names[5] = "GG_Attack";
+    names[6] = "GG_Gloat";
+    names[7] = "GG_Gloat_1";
+    for (i = 0; i < 8; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "GG_Hit", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, names[i], "GG_Hit_1", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, names[i], "GG_Hit_2", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    }
+    return table;
+}
+
+static xAnimTable* VANM_mktable_RB()
+{
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+    char* names[32] = {};
+
+    table = xAnimTableNew("Villain_RedBeard", NULL);
+    xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_IdleWind", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_Walk", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_Turn", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_Chase", 0x10, 0x02000006, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_TauntFeel", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_TauntThroat", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_TauntLaugh", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_AttackPunch", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_AttackThrow", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_AttackThrowWait", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_AttackCatch", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_React", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_LookBegin", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_LookLoop", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_LookEnd", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "RB_DeathLoop", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    for (i = 82; i < 98; i++)
+    {
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, "Idle", g_animname[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        if (i != 0x61)
+        {
+            xAnimTableNewTransition(table, g_animname[i], "RB_DeathLoop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        }
+    }
+    xAnimTableNewTransition(table, "RB_IdleWind", "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "RB_IdleWind", "RB_Turn", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "RB_Turn", "RB_IdleWind", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "RB_Chase", "RB_Walk", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "RB_Walk", "RB_Chase", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    names[1] = "RB_Turn";
+    names[0] = "RB_IdleWind";
+    names[2] = "RB_React";
+    names[3] = "RB_TauntFeel";
+    names[4] = "RB_TauntThroat";
+    names[5] = "RB_TauntLaugh";
+    names[6] = "RB_AttackPunch";
+    names[7] = "RB_AttackThrowWait";
+    names[8] = "RB_AttackThrow";
+    names[9] = "RB_AttackPunch";
+    names[10] = "RB_LookBegin";
+    names[11] = "RB_LookLoop";
+    names[12] = "RB_LookEnd";
+    for (i = 0; i < 13; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "RB_Chase", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, names[i], "RB_Walk", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    }
+    names[0] = "RB_IdleWind";
+    names[1] = "RB_React";
+    names[2] = "RB_AttackThrow";
+    names[3] = "RB_AttackCatch";
+    names[4] = "RB_AttackCatch";
+    names[5] = "RB_AttackPunch";
+    names[6] = "RB_LookBegin";
+    names[7] = "RB_LookLoop";
+    names[8] = "RB_LookEnd";
+    names[9] = "RB_Chase";
+    names[10] = "RB_Walk";
+    names[11] = "RB_Turn";
+    for (i = 0; i < 12; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "RB_TauntFeel", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, names[i], "RB_TauntThroat", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, names[i], "RB_TauntLaugh", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    }
+    xAnimTableNewTransition(table, "RB_AttackThrow", "RB_AttackThrowWait", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 5, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "RB_AttackThrowWait", "RB_AttackCatch", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    names[0] = "RB_IdleWind";
+    names[1] = "RB_React";
+    names[2] = "RB_TauntFeel";
+    names[3] = "RB_TauntThroat";
+    names[4] = "RB_TauntLaugh";
+    names[5] = "RB_AttackPunch";
+    names[6] = "RB_LookBegin";
+    names[7] = "RB_LookLoop";
+    names[8] = "RB_LookEnd";
+    names[9] = "RB_Chase";
+    names[10] = "RB_Walk";
+    names[11] = "RB_Turn";
+    for (i = 0; i < 12; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "RB_AttackThrow", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, names[i], "RB_AttackCatch", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, names[i], "RB_AttackThrowWait", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    }
+    xAnimTableNewTransition(table, "RB_LookBegin", "RB_LookLoop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    xAnimTableNewTransition(table, "RB_LookLoop", "RB_LookEnd", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.2f, NULL);
+    names[0] = "RB_IdleWind";
+    names[1] = "RB_React";
+    names[2] = "RB_TauntFeel";
+    names[3] = "RB_TauntThroat";
+    names[4] = "RB_TauntLaugh";
+    names[5] = "RB_AttackPunch";
+    names[6] = "RB_AttackThrowWait";
+    names[7] = "RB_AttackThrow";
+    names[8] = "RB_AttackCatch";
+    names[9] = "RB_Chase";
+    names[10] = "RB_Turn";
+    names[11] = "RB_Walk";
+    for (i = 0; i < 12; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "RB_LookBegin", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, names[i], "RB_LookLoop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+        xAnimTableNewTransition(table, names[i], "RB_LookEnd", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
+    }
+    return table;
+}
+
+static xAnimTable* VANM_mktable_MM()
+{
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+    char* names[32] = {};
+
+    table = xAnimTableNew("Villain_MasterMind", NULL);
+    xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Foreplay_Move", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Foreplay_Action", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Foreplay_Taunt", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Foreplay_JumpDown", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Idle", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Move", 0x10, 0x02000006, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Backstep", 0x10, 0x02000006, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Turn", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Attack_start", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Attack_ready_loop", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Attack", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Shield_start", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Shield_loop", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Shield_end", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Stunned_start", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Stunned_loop", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Stunned_end", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Knocked_begin", 0x20, 6, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Knocked_loop", 0x10, 6, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Knocked_recover", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Battle_Taunt", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_AngerReact", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Death_start", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "MM_Death", 0, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    for (i = 98; i < 122; i++)
+    {
+        if (i < 0x66)
+        {
+            xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+            xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+            xAnimTableNewTransition(table, "Idle", g_animname[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+        }
+        else if (i != 0x66)
+        {
+            xAnimTableNewTransition(table, g_animname[i], "MM_Battle_Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+            xAnimTableNewTransition(table, g_animname[i], "MM_Battle_Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+            xAnimTableNewTransition(table, "MM_Battle_Idle", g_animname[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+        }
+    }
+    names[0] = "MM_Foreplay_Move";
+    names[1] = "MM_Foreplay_Action";
+    for (i = 0; i < 2; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Foreplay_Taunt", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    names[0] = "MM_Foreplay_Move";
+    names[1] = "MM_Foreplay_Taunt";
+    for (i = 0; i < 2; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Foreplay_Action", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    names[0] = "MM_Foreplay_Action";
+    names[1] = "MM_Foreplay_Taunt";
+    for (i = 0; i < 2; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Foreplay_Move", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableNewTransition(table, "MM_Foreplay_JumpDown", "MM_Battle_Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    names[0] = "MM_Foreplay_Action";
+    names[1] = "MM_Foreplay_Taunt";
+    names[2] = "MM_Foreplay_Move";
+    for (i = 0; i < 3; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Foreplay_JumpDown", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    names[0] = "Idle";
+    names[1] = "MM_Foreplay_Move";
+    names[2] = "MM_Foreplay_Taunt";
+    names[3] = "MM_Foreplay_JumpDown";
+    for (i = 0; i < 4; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Battle_Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, names[i], "MM_Battle_Move", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableNewTransition(table, "MM_Battle_Idle", "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    names[0] = "MM_Battle_Turn";
+    names[1] = "MM_Battle_Backstep";
+    names[2] = "MM_Battle_Knocked_begin";
+    names[3] = "MM_Battle_Knocked_loop";
+    names[4] = "MM_Battle_Knocked_recover";
+    names[5] = "MM_Battle_Shield_start";
+    names[6] = "MM_Battle_Shield_loop";
+    names[7] = "MM_Battle_Shield_end";
+    names[8] = "MM_Battle_Stunned_start";
+    names[9] = "MM_Battle_Stunned_loop";
+    names[10] = "MM_Battle_Stunned_end";
+    names[11] = "MM_Battle_Attack_start";
+    names[12] = "MM_Battle_Attack_ready_loop";
+    names[13] = "MM_Battle_Attack";
+    for (i = 0; i < 14; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Battle_Move", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableNewTransition(table, "MM_Battle_Move", "MM_Battle_Backstep", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "MM_Battle_Shield_start", "MM_Battle_Shield_loop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    names[0] = "MM_Battle_Move";
+    names[1] = "MM_Battle_Turn";
+    names[2] = "MM_Battle_Backstep";
+    names[3] = "MM_Foreplay_Taunt";
+    names[4] = "MM_AngerReact";
+    names[5] = "MM_Battle_Taunt";
+    names[6] = "MM_Battle_Stunned_start";
+    names[7] = "MM_Battle_Stunned_loop";
+    names[8] = "MM_Battle_Stunned_end";
+    names[9] = "MM_Battle_Attack_start";
+    names[0] = "MM_Battle_Attack_ready_loop";
+    names[11] = "MM_Battle_Attack";
+    for (i = 0; i < 12; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Battle_Shield_start", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    names[0] = "MM_Battle_Move";
+    names[1] = "MM_Battle_Turn";
+    names[2] = "MM_Battle_Backstep";
+    names[3] = "MM_Battle_Knocked_begin";
+    names[4] = "MM_Battle_Knocked_loop";
+    names[5] = "MM_Battle_Knocked_recover";
+    names[6] = "MM_Battle_Shield_start";
+    names[7] = "MM_Battle_Shield_loop";
+    names[8] = "MM_Battle_Shield_end";
+    names[9] = "MM_Battle_Stunned_start";
+    names[10] = "MM_Battle_Stunned_loop";
+    names[11] = "MM_Battle_Stunned_end";
+    names[12] = "MM_Battle_Attack_start";
+    names[13] = "MM_Battle_Attack_ready_loop";
+    names[14] = "MM_Battle_Attack";
+    for (i = 0; i < 15; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Battle_Taunt", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, names[i], "MM_Foreplay_Taunt", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 9, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, names[i], "MM_AngerReact", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 9, 0, 0.1f, NULL);
+    }
+    xAnimTableNewTransition(table, "MM_Battle_Attack_start", "MM_Battle_Attack_ready_loop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "MM_Battle_Attack", "MM_Battle_Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "MM_Battle_Attack_ready_loop", "MM_Battle_Attack", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 9, 0, 0.1f, NULL);
+    names[0] = "MM_Battle_Move";
+    names[1] = "MM_Battle_Turn";
+    names[2] = "MM_Battle_Backstep";
+    names[3] = "MM_Foreplay_Taunt";
+    names[4] = "MM_AngerReact";
+    names[5] = "MM_Battle_Taunt";
+    names[6] = "MM_Battle_Shield_start";
+    names[7] = "MM_Battle_Shield_loop";
+    names[8] = "MM_Battle_Shield_end";
+    names[9] = "MM_Battle_Stunned_start";
+    names[10] = "MM_Battle_Stunned_loop";
+    names[11] = "MM_Battle_Stunned_end";
+    for (i = 0; i < 12; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Battle_Attack_start", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableNewTransition(table, "MM_Battle_Stunned_start", "MM_Battle_Stunned_loop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    names[0] = "MM_Battle_Shield_start";
+    names[1] = "MM_Battle_Shield_loop";
+    names[2] = "MM_Battle_Shield_end";
+    names[3] = "MM_Battle_Attack_start";
+    names[4] = "MM_Battle_Attack_ready_loop";
+    names[5] = "MM_Battle_Attack";
+    for (i = 0; i < 6; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Battle_Stunned_start", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableNewTransition(table, "MM_Battle_Knocked_begin", "MM_Battle_Knocked_loop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    names[0] = "MM_Battle_Stunned_start";
+    names[1] = "MM_Battle_Stunned_loop";
+    names[2] = "MM_Battle_Stunned_end";
+    for (i = 0; i < 3; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Battle_Knocked_begin", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, names[i], "MM_Battle_Knocked_loop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableNewTransition(table, "MM_Battle_Knocked_loop", "MM_Battle_Knocked_recover", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    names[0] = "MM_Battle_Knocked_begin";
+    names[1] = "MM_Battle_Knocked_loop";
+    names[2] = "MM_Battle_Knocked_recover";
+    for (i = 0; i < 3; i++)
+    {
+        xAnimTableNewTransition(table, names[i], "MM_Death_start", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableNewTransition(table, "MM_Death_start", "MM_Death", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    return table;
+}
+
+static xAnimTable* VANM_mktable_SHARK()
+{
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+
+    table = xAnimTableNew("Villain_Shark", NULL);
+    xAnimTableNewState(table, "Idle", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Bored", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_Fidget_1", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_Fidget_2", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Bored_Fidget_1", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Bored_Fidget_2", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    for (i = 1; i < 7; i++)
+    {
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.0f, NULL);
+        xAnimTableNewTransition(table, "Idle", g_animname[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.0f, NULL);
+    }
+    tran = xAnimTableNewTransition(table, "Idle_Fidget_1 Idle_Fidget_2", "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 2, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "Idle_Fidget_1 Idle_Fidget_2", "Bored", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "Bored_Fidget_1 Bored_Fidget_2", "Bored", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 2, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "Bored_Fidget_1 Bored_Fidget_2", "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "Idle", "Idle_Fidget_1", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 8, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "Idle", "Idle_Fidget_2", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 8, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "Idle", "Bored_Fidget_1", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 7, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "Idle", "Bored_Fidget_2", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 7, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "Bored", "Bored_Fidget_1", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 8, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "Bored", "Bored_Fidget_2", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 8, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "Bored", "Idle_Fidget_1", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 7, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    tran = xAnimTableNewTransition(table, "Bored", "Idle_Fidget_2", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 7, 0, 0.0f, NULL);
+    tran->Flags |= 0x20;
+    return table;
+}
+
+static xAnimTable* VANM_mktable_GANG()
+{
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+    char* names[32] = {};
+    xAnimTransition* tr90[147] = {};
+    xAnimTransition* tr2DC[147] = {};
+
+    table = xAnimTableNew("Villain_Gang", NULL);
+    xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_Idle_1", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_Idle_2", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_Idle_3", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_IdleFidget", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_IdleFidget_1", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_IdleFidget_2", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_IdleFidget_3", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_Turn", 0x10, 0x02000000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_Walk", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_Run", 0x10, 0x02000006, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_RunChased", 0x10, 0x02000006, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_Action", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_BossAction", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_Talk", 0x10, 0x02000000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_Talk_1", 0x10, 0x02000000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_Talk_2", 0x10, 0x02000000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_Talk_3", 0x10, 0x02000000, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "GANG_TalkAndTurn", 0x10, 0x02000000, 1.0f, NULL, NULL, 0.0f, NULL);
+    for (i = 122; i < 140; i++)
+    {
+        if (tr90[1] == NULL)
+        {
+            tr90[1] = xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.5f, NULL);
+        }
+        else
+        {
+            xAnimTableAddTransition(table, tr90[1], g_animname[i]);
+        }
+        if (tr2DC[1] == NULL)
+        {
+            tr2DC[1] = xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.5f, NULL);
+        }
+        else
+        {
+            xAnimTableAddTransition(table, tr2DC[1], g_animname[i]);
+        }
+        tr2DC[i] = xAnimTableNewTransition(table, "Idle", g_animname[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.5f, NULL);
+    }
+    xAnimTableNewTransition(table, "GANG_IdleFidget_1", "GANG_Idle_1", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 5, 0, 0.5f, NULL);
+    xAnimTableNewTransition(table, "GANG_IdleFidget_2", "GANG_Idle_2", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 5, 0, 0.5f, NULL);
+    xAnimTableNewTransition(table, "GANG_IdleFidget_3", "GANG_Idle_3", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 5, 0, 0.5f, NULL);
+    xAnimTableAddTransition(table, tr2DC[122], "GANG_Idle_2 GANG_Idle_3");
+    xAnimTableAddTransition(table, tr2DC[123], "GANG_Idle_1 GANG_Idle_3");
+    xAnimTableAddTransition(table, tr2DC[124], "GANG_Idle_1 GANG_Idle_2");
+    names[0] = "GANG_Idle_1";
+    names[1] = "GANG_Idle_2";
+    names[2] = "GANG_Idle_3";
+    for (i = 0; i < 3; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[125], names[i]);
+        xAnimTableAddTransition(table, tr2DC[126], names[i]);
+        xAnimTableAddTransition(table, tr2DC[127], names[i]);
+        xAnimTableAddTransition(table, tr2DC[128], names[i]);
+    }
+    names[0] = "GANG_IdleFidget";
+    names[1] = "GANG_IdleFidget_1";
+    names[2] = "GANG_IdleFidget_2";
+    names[3] = "GANG_IdleFidget_3";
+    names[4] = "GANG_Turn";
+    names[5] = "GANG_Walk";
+    names[6] = "GANG_Run";
+    names[7] = "GANG_RunChased";
+    names[8] = "GANG_Talk";
+    names[9] = "GANG_Talk_1";
+    names[10] = "GANG_Talk_2";
+    names[11] = "GANG_Talk_3";
+    names[12] = "GANG_TalkAndTurn";
+    for (i = 0; i < 13; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[122], names[i]);
+        xAnimTableAddTransition(table, tr2DC[123], names[i]);
+        xAnimTableAddTransition(table, tr2DC[124], names[i]);
+    }
+    names[0] = "GANG_Idle_1";
+    names[1] = "GANG_Idle_2";
+    names[2] = "GANG_Idle_3";
+    names[3] = "GANG_IdleFidget";
+    names[4] = "GANG_IdleFidget_1";
+    names[5] = "GANG_IdleFidget_2";
+    names[6] = "GANG_IdleFidget_3";
+    names[7] = "GANG_Turn";
+    names[8] = "GANG_Walk";
+    names[9] = "GANG_Run";
+    names[10] = "GANG_RunChased";
+    names[11] = "GANG_Talk";
+    names[12] = "GANG_Talk_1";
+    names[13] = "GANG_Talk_2";
+    names[14] = "GANG_Talk_3";
+    names[15] = "GANG_TalkAndTurn";
+    for (i = 0; i < 16; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[133], names[i]);
+        xAnimTableAddTransition(table, tr2DC[134], names[i]);
+    }
+    xAnimTableAddTransition(table, tr2DC[130], "GANG_Run GANG_RunChased");
+    xAnimTableAddTransition(table, tr2DC[131], "GANG_Walk GANG_RunChased");
+    xAnimTableAddTransition(table, tr2DC[132], "GANG_Walk GANG_Run");
+    names[0] = "GANG_Idle_1";
+    names[1] = "GANG_Idle_2";
+    names[2] = "GANG_Idle_3";
+    names[3] = "GANG_IdleFidget";
+    names[4] = "GANG_IdleFidget_1";
+    names[5] = "GANG_IdleFidget_2";
+    names[6] = "GANG_IdleFidget_3";
+    names[7] = "GANG_Action";
+    names[8] = "GANG_BossAction";
+    names[9] = "GANG_Talk";
+    names[10] = "GANG_Talk_1";
+    names[11] = "GANG_Talk_2";
+    names[12] = "GANG_Talk_3";
+    names[13] = "GANG_TalkAndTurn";
+    for (i = 0; i < 14; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[129], names[i]);
+        xAnimTableAddTransition(table, tr2DC[130], names[i]);
+        xAnimTableAddTransition(table, tr2DC[131], names[i]);
+        xAnimTableAddTransition(table, tr2DC[132], names[i]);
+    }
+    names[0] = "GANG_Talk";
+    names[1] = "GANG_Talk_1";
+    names[2] = "GANG_Talk_2";
+    names[3] = "GANG_Talk_3";
+    names[4] = "GANG_TalkAndTurn";
+    for (i = 0; i < 5; i++)
+    {
+        for (signed int j = 0; j < 5; j++)
+        {
+            if (i != j)
+            {
+                xAnimTableNewTransition(table, names[i], names[j], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.5f, NULL);
+            }
+        }
+    }
+    names[2] = "GANG_IdleFidget_1";
+    names[1] = "GANG_IdleFidget";
+    names[2] = "GANG_IdleFidget_2";
+    names[3] = "GANG_IdleFidget_3";
+    names[4] = "GANG_Turn";
+    names[5] = "GANG_Walk";
+    names[6] = "GANG_Run";
+    names[7] = "GANG_RunChased";
+    names[8] = "GANG_Idle_1";
+    names[9] = "GANG_Idle_2";
+    names[10] = "GANG_Idle_3";
+    for (i = 0; i < 11; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[135], names[i]);
+        xAnimTableAddTransition(table, tr2DC[136], names[i]);
+        xAnimTableAddTransition(table, tr2DC[137], names[i]);
+        xAnimTableAddTransition(table, tr2DC[138], names[i]);
+        xAnimTableAddTransition(table, tr2DC[139], names[i]);
+    }
+    return table;
+}
+
+static xAnimTable* VANM_mktable_STD()
+{
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+    char* names[32] = {};
+    xAnimTransition* tr90[147] = {};
+    xAnimTransition* tr2DC[147] = {};
+
+    table = xAnimTableNew("Villain_Standard", NULL);
+    xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Bored", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_Fidget_1", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Idle_Fidget_2", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Bored_Fidget_1", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Bored_Fidget_2", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fashion_Pose", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Move", 0x110, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Turn", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Chase", 0x110, 0x02000006, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Action_OnceNoMove", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Action_LoopAndMove", 0x110, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Surprize", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Taunt", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Taunt_1", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Taunt_2", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Hear_Start", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Hear_Loop", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Look_Start", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Look_Loop", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Investigate_Start", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Investigate", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "AttackIdle", 0x10, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Attack", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Attack_1", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Attack_2", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Combo", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Combo_1", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Combo_2", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Lob_Attack", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Lob_Combo", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Extend_Attack_Start", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Extend_Attack_Loop", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Extend_Combo", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Hit_By_Gum", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Gummed", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Gummed_Resist", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Gummed_BreakFree", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Hit_When_Gummed", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Bounced_When_Gummed", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Hit_By_Soap", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Soaped", 0x10, 0x04000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Soaped_Resist", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Soaped_BreakFree", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Hit_When_Soaped", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Bounced_When_Soaped", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Dazed_Begin", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Dazed", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Dazed_Recovery", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Death", 0, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Death_From_Above", 0, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Death_From_Dazed", 0, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Death_Idle", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Jump_Begin", 0x20, 0x0200000A, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Jump_Loop", 0x10, 0x0200000A, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Jump_Land", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_Loop", 0x20, 0x0200000A, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Fall_Splat", 0x20, 0x02000001, 1.0f, NULL, NULL, 0.0f, NULL);
+    for (i = 2; i < 59; i++)
+    {
+        if (tr90[1] == NULL)
+        {
+            tr90[1] = xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+        }
+        else
+        {
+            xAnimTableAddTransition(table, tr90[1], g_animname[i]);
+        }
+        if (tr2DC[1] == NULL)
+        {
+            tr2DC[1] = xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+        }
+        else
+        {
+            xAnimTableAddTransition(table, tr2DC[1], g_animname[i]);
+        }
+        tr2DC[i] = xAnimTableNewTransition(table, "Idle", g_animname[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableAddTransition(table, tr90[1], "Idle_Fidget_1 Idle_Fidget_2");
+    tr90[4] = xAnimTableNewTransition(table, "Bored_Fidget_1 Bored_Fidget_2", "Bored", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0xF, 0, 0.1f, NULL);
+    names[0] = "Idle";
+    names[1] = "Bored";
+    for (i = 0; i < 2; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[2], names[i]);
+        xAnimTableAddTransition(table, tr2DC[3], names[i]);
+        xAnimTableAddTransition(table, tr2DC[5], names[i]);
+        xAnimTableAddTransition(table, tr2DC[6], names[i]);
+    }
+    names[0] = "Turn";
+    names[1] = "Surprize";
+    names[2] = "Investigate_Start";
+    names[3] = "Investigate";
+    names[4] = "Hear_Start";
+    names[5] = "Hear_Loop";
+    names[6] = "Look_Start";
+    names[7] = "Look_Loop";
+    names[8] = "Gummed";
+    names[9] = "Soaped";
+    names[10] = "Dazed";
+    names[11] = "Dazed_Recovery";
+    names[12] = "Attack";
+    names[13] = "Attack_1";
+    names[14] = "Attack_2";
+    names[15] = "Lob_Attack";
+    names[16] = "Extend_Attack_Loop";
+    names[17] = "Combo";
+    names[18] = "Combo_1";
+    names[19] = "Combo_2";
+    names[20] = "Taunt";
+    names[21] = "Taunt_1";
+    names[22] = "Taunt_2";
+    names[23] = "Bored";
+    for (i = 0; i < 24; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[7], names[i]);
+        xAnimTableAddTransition(table, tr2DC[10], names[i]);
+    }
+    names[24] = "Move";
+    names[25] = "Chase";
+    for (i = 0; i < 26; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[11], names[i]);
+        xAnimTableNewTransition(table, "Action_OnceNoMove", names[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+        xAnimTableAddTransition(table, tr2DC[12], names[i]);
+        xAnimTableNewTransition(table, "Action_LoopAndMove", names[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableAddTransition(table, tr2DC[10], "Move");
+    xAnimTableAddTransition(table, tr2DC[7], "Chase");
+    names[0] = "Move";
+    names[1] = "Surprize";
+    names[2] = "Investigate_Start";
+    names[3] = "Investigate";
+    names[4] = "Hear_Start";
+    names[5] = "Hear_Loop";
+    names[6] = "Look_Start";
+    names[7] = "Look_Loop";
+    names[8] = "Gummed";
+    names[9] = "Soaped";
+    names[10] = "Dazed";
+    names[11] = "Dazed_Recovery";
+    names[12] = "Attack";
+    names[13] = "Attack_1";
+    names[14] = "Attack_2";
+    names[15] = "Lob_Attack";
+    names[16] = "Extend_Attack_Loop";
+    names[17] = "Combo";
+    names[18] = "Combo_1";
+    names[19] = "Combo_2";
+    names[20] = "Taunt";
+    names[21] = "Taunt_1";
+    names[22] = "Taunt_2";
+    names[23] = "Bored";
+    names[24] = "Move";
+    names[25] = "Chase";
+    for (i = 0; i < 26; i++)
+    {
+        if (tr90[9] == NULL)
+        {
+            tr90[9] = xAnimTableNewTransition(table, names[i], "Turn", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+        }
+        else
+        {
+            xAnimTableAddTransition(table, tr90[9], names[i]);
+        }
+        xAnimTableAddTransition(table, tr2DC[9], names[i]);
+    }
+    names[0] = "Attack";
+    names[1] = "Attack_1";
+    names[2] = "Attack_2";
+    names[3] = "Combo";
+    names[4] = "Combo_1";
+    names[5] = "Combo_2";
+    names[6] = "Lob_Attack";
+    names[7] = "Extend_Attack_Loop";
+    for (i = 0; i < 8; i++)
+    {
+        if (tr90[23] == NULL)
+        {
+            tr90[23] = xAnimTableNewTransition(table, names[i], "AttackIdle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+        }
+        else
+        {
+            xAnimTableAddTransition(table, tr90[23], names[i]);
+        }
+    }
+    tr90[33] = xAnimTableNewTransition(table, "Extend_Attack_Start", "Extend_Attack_Loop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    names[0] = "Move";
+    names[1] = "Turn";
+    names[2] = "Chase";
+    names[3] = "Surprize";
+    names[4] = "AttackIdle";
+    names[5] = "Taunt";
+    names[6] = "Taunt_1";
+    names[7] = "Taunt_2";
+    for (i = 0; i < 8; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[24], names[i]);
+        xAnimTableAddTransition(table, tr2DC[25], names[i]);
+        xAnimTableAddTransition(table, tr2DC[26], names[i]);
+        xAnimTableAddTransition(table, tr2DC[30], names[i]);
+        xAnimTableAddTransition(table, tr2DC[32], names[i]);
+        xAnimTableAddTransition(table, tr2DC[33], names[i]);
+    }
+    names[1] = "Attack_1";
+    names[0] = "Attack";
+    names[2] = "Attack_2";
+    for (i = 0; i < 3; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[27], names[i]);
+        xAnimTableAddTransition(table, tr2DC[28], names[i]);
+        xAnimTableAddTransition(table, tr2DC[29], names[i]);
+    }
+    xAnimTableAddTransition(table, tr2DC[31], "Lob_Attack");
+    xAnimTableAddTransition(table, tr2DC[34], "Extend_Attack_Loop");
+    names[0] = "Move";
+    names[1] = "Chase";
+    names[2] = "Surprize";
+    names[3] = "Soaped";
+    names[4] = "Gummed";
+    names[5] = "Hear_Start";
+    names[6] = "Hear_Loop";
+    names[7] = "Look_Start";
+    names[8] = "Look_Loop";
+    names[9] = "Investigate_Start";
+    names[10] = "Investigate";
+    names[11] = "Attack";
+    names[12] = "Attack_1";
+    names[13] = "Attack_2";
+    names[14] = "Lob_Attack";
+    names[15] = "Extend_Attack_Start";
+    names[16] = "Extend_Attack_Loop";
+    names[17] = "Combo";
+    names[18] = "Combo_1";
+    names[19] = "Combo_2";
+    names[20] = "Lob_Combo";
+    names[21] = "Extend_Combo";
+    names[22] = "AttackIdle";
+    names[23] = "Turn";
+    names[24] = "Bored";
+    for (i = 0; i < 25; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[14], names[i]);
+        xAnimTableAddTransition(table, tr2DC[15], names[i]);
+        xAnimTableAddTransition(table, tr2DC[16], names[i]);
+        if (i != 0x16)
+        {
+            xAnimTableAddTransition(table, tr2DC[23], names[i]);
+        }
+    }
+    tr90[18] = xAnimTableNewTransition(table, "Hear_Start", "Hear_Loop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    names[0] = "Move";
+    names[1] = "Bored";
+    names[2] = "Turn";
+    names[3] = "Chase";
+    names[4] = "Gummed";
+    names[5] = "Soaped";
+    names[6] = "Dazed";
+    names[7] = "Dazed_Recovery";
+    names[8] = "Investigate_Start";
+    names[9] = "Investigate";
+    names[10] = "Look_Start";
+    names[11] = "Look_Loop";
+    names[12] = "Surprize";
+    for (i = 0; i < 13; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[17], names[i]);
+        xAnimTableAddTransition(table, tr2DC[18], names[i]);
+    }
+    tr90[20] = xAnimTableNewTransition(table, "Look_Start", "Look_Loop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    names[0] = "Move";
+    names[1] = "Bored";
+    names[2] = "Turn";
+    names[3] = "Chase";
+    names[4] = "Gummed";
+    names[5] = "Soaped";
+    names[6] = "Dazed";
+    names[7] = "Dazed_Recovery";
+    names[8] = "Investigate_Start";
+    names[9] = "Investigate";
+    names[10] = "Hear_Start";
+    names[11] = "Hear_Loop";
+    names[12] = "Surprize";
+    for (i = 0; i < 13; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[19], names[i]);
+        xAnimTableAddTransition(table, tr2DC[20], names[i]);
+    }
+    names[0] = "Move";
+    names[1] = "Bored";
+    names[2] = "Turn";
+    names[3] = "Chase";
+    names[4] = "Gummed";
+    names[5] = "Soaped";
+    names[6] = "Dazed";
+    names[7] = "Dazed_Recovery";
+    names[8] = "Investigate_Start";
+    names[9] = "Investigate";
+    names[10] = "Hear_Start";
+    names[11] = "Hear_Loop";
+    names[12] = "Look_Start";
+    names[13] = "Look_Loop";
+    for (i = 0; i < 14; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[13], names[i]);
+    }
+    tr90[22] = xAnimTableNewTransition(table, "Investigate_Start", "Investigate", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    names[0] = "Move";
+    names[1] = "Bored";
+    names[2] = "Turn";
+    names[3] = "Chase";
+    names[4] = "Gummed";
+    names[5] = "Soaped";
+    names[6] = "Dazed";
+    names[8] = "Dazed_Recovery";
+    names[9] = "Hear_Start";
+    names[10] = "Hear_Loop";
+    names[11] = "Look_Start";
+    names[12] = "Look_Loop";
+    names[13] = "Surprize";
+    for (i = 0; i < 14; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[22], names[i]);
+        xAnimTableAddTransition(table, tr2DC[21], names[i]);
+    }
+    names[0] = "Hit_By_Soap";
+    names[1] = "Soaped_Resist";
+    names[2] = "Hit_When_Soaped";
+    names[3] = "Bounced_When_Soaped";
+    for (i = 0; i < 4; i++)
+    {
+        if (tr90[42] == NULL)
+        {
+            tr90[42] = xAnimTableNewTransition(table, names[i], "Soaped", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+        }
+        else
+        {
+            xAnimTableAddTransition(table, tr90[42], names[i]);
+        }
+    }
+    xAnimTableAddTransition(table, tr2DC[43], "Soaped");
+    xAnimTableAddTransition(table, tr2DC[44], "Soaped");
+    xAnimTableAddTransition(table, tr2DC[45], "Soaped");
+    xAnimTableAddTransition(table, tr2DC[46], "Soaped");
+    names[0] = "Hit_By_Gum";
+    names[1] = "Gummed_Resist";
+    names[2] = "Hit_When_Gummed";
+    names[3] = "Bounced_When_Gummed";
+    for (i = 0; i < 4; i++)
+    {
+        if (tr90[36] == NULL)
+        {
+            tr90[36] = xAnimTableNewTransition(table, names[i], "Gummed", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+        }
+        else
+        {
+            xAnimTableAddTransition(table, tr90[36], names[i]);
+        }
+    }
+    xAnimTableAddTransition(table, tr2DC[37], "Gummed");
+    xAnimTableAddTransition(table, tr2DC[38], "Gummed");
+    xAnimTableAddTransition(table, tr2DC[39], "Gummed");
+    xAnimTableAddTransition(table, tr2DC[40], "Gummed");
+    names[22] = "Combo_1";
+    names[26] = "Dazed_Recovery";
+    names[0] = "Move";
+    names[1] = "Chase";
+    names[2] = "Hear_Start";
+    names[3] = "Hear_Loop";
+    names[4] = "Look_Start";
+    names[5] = "Look_Loop";
+    names[6] = "Investigate_Start";
+    names[7] = "Investigate";
+    names[8] = "Surprize";
+    names[9] = "Taunt";
+    names[10] = "Taunt_1";
+    names[11] = "Taunt_2";
+    names[12] = "AttackIdle";
+    names[13] = "Attack";
+    names[14] = "Attack_1";
+    names[15] = "Attack_2";
+    names[16] = "Lob_Attack";
+    names[17] = "Lob_Combo";
+    names[18] = "Extend_Attack_Start";
+    names[19] = "Extend_Attack_Loop";
+    names[20] = "Extend_Combo";
+    names[21] = "Combo";
+    names[23] = "Combo_2";
+    names[24] = "Dazed";
+    names[25] = "Dazed_Begin";
+    names[27] = "Bored";
+    for (i = 0; i < 28; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[41], names[i]);
+        xAnimTableAddTransition(table, tr2DC[46], names[i]);
+        xAnimTableAddTransition(table, tr2DC[42], names[i]);
+        xAnimTableAddTransition(table, tr2DC[35], names[i]);
+        xAnimTableAddTransition(table, tr2DC[40], names[i]);
+        xAnimTableAddTransition(table, tr2DC[36], names[i]);
+    }
+    tr90[48] = xAnimTableNewTransition(table, "Dazed_Begin", "Dazed", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    names[0] = "Move";
+    names[1] = "Turn";
+    names[2] = "Chase";
+    names[3] = "Hear_Start";
+    names[4] = "Hear_Loop";
+    names[5] = "Look_Start";
+    names[6] = "Look_Loop";
+    names[7] = "Investigate_Start";
+    names[8] = "Investigate";
+    names[9] = "Taunt";
+    names[10] = "Taunt_1";
+    names[11] = "Taunt_2";
+    names[12] = "Surprize";
+    names[13] = "Bored";
+    names[14] = "Lob_Attack";
+    names[15] = "Lob_Combo";
+    names[16] = "Extend_Attack_Start";
+    names[17] = "Extend_Attack_Loop";
+    names[18] = "AttackIdle";
+    names[19] = "Attack";
+    names[20] = "Attack_1";
+    names[21] = "Attack_2";
+    for (i = 0; i < 22; i++)
+    {
+        xAnimTableAddTransition(table, tr2DC[48], names[i]);
+        xAnimTableAddTransition(table, tr2DC[47], names[i]);
+    }
+    xAnimTableAddTransition(table, tr2DC[49], "Dazed");
+    xAnimTableAddTransition(table, tr2DC[52], "Dazed");
+    xAnimTableAddTransition(table, tr2DC[50], "Dazed");
+    xAnimTableAddTransition(table, tr2DC[51], "Dazed");
+    for (i = 2; i < 59; i++)
+    {
+        if (i != 0x32)
+        {
+            xAnimTableNewTransition(table, g_animname[i], "Death", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
+        }
+        if (i != 0x34)
+        {
+            xAnimTableNewTransition(table, g_animname[i], "Death_From_Dazed", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
+        }
+        if (i != 0x33)
+        {
+            xAnimTableNewTransition(table, g_animname[i], "Death_From_Above", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
+        }
+    }
+    names[1] = "Death_From_Dazed";
+    names[0] = "Death";
+    names[2] = "Death_From_Above";
+    for (i = 0; i < 3; i++)
+    {
+        if (tr90[53] == NULL)
+        {
+            xAnimTableNewTransition(table, names[i], "Death_Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+        }
+        else
+        {
+            xAnimTableAddTransition(table, tr90[53], names[i]);
+        }
+        xAnimTableAddTransition(table, tr2DC[53], names[i]);
+    }
+    xAnimTableAddTransition(table, tr2DC[54], "Fashion_Pose");
+    xAnimTableAddTransition(table, tr2DC[55], "Fashion_Pose");
+    xAnimTableNewTransition(table, "Jump_Begin", "Jump_Loop", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Jump_Loop", "Jump_Land", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.1f, NULL);
+    xAnimTableAddTransition(table, tr2DC[56], "Jump_Loop");
+    xAnimTableAddTransition(table, tr2DC[58], "Fall_Loop");
+    return table;
+}
 
 static unsigned int VANM_dotran(xAnimTransition* tran, xAnimSingle* single, st_zEntVillain* ent)
 {
