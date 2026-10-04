@@ -1,4 +1,4 @@
-// TODO: 98.8% (NonMatching). Work in progress; see check_unit for the
+// TODO: 99.8% (NonMatching). Work in progress; see check_unit for the
 // remaining functions.
 #include "xAnim.h"
 #include "xMath.h"
@@ -181,12 +181,17 @@ static void EffectSingleStart(xAnimSingle* single);
 void xAnimPlayStartTransition(xAnimPlay* play, xAnimTransition* transition);
 
 // Yaw of a root rotation: rotate +Z and take the angle in the XZ plane.
+static inline float xAnimAbsf(float x)
+{
+    return __fabs(x);
+}
+
 static inline float xAnimQuatYaw(_xQuat* q)
 {
     _xQuat z = { 0.0f, 0.0f, 1.0f, 0.0f };
     _xQuat r;
     xQuatMul(&r, q, &z);
-    if ((float)__fabs(r.v.x) + (float)__fabs(r.v.z) < 0.0001f)
+    if (xAnimAbsf(r.v.x) + xAnimAbsf(r.v.z) < 0.0001f)
     {
         return 0.0f;
     }
@@ -440,9 +445,9 @@ static inline float CalcRecipBlendMax(unsigned short* offset)
         }
         else
         {
-            t = 1.0f / (offset[1] * (1.0f / 1024.0f));
+            t = 1.0f / (offset[1] / 1024.0f);
         }
-        t = offset[0] * (1.0f / 1024.0f) + t;
+        t = offset[0] / 1024.0f + t;
         if (t > max)
         {
             max = t;
@@ -784,27 +789,34 @@ void xAnimFileSetPoses(xAnimFile* data, void* startPose, float startTime, void* 
 }
 
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define CLAMP(x, a, b) (MAX((a), MIN((x), (b))))
+
+static inline float xAnimFileEvalTime(xAnimFile* data, float time)
+{
+    if ((data->FileFlags & 0x1000) || ((data->FileFlags & 0x2000) && time > 0.5f * data->Duration))
+    {
+        return data->TimeOffset + data->Duration - time;
+    }
+    return data->TimeOffset + time;
+}
+
 void xAnimFileEval(xAnimFile* data, float time, float* bilinear, unsigned int flags, _xVec3* tran,
                    _xQuat* quat, float* yaw)
 {
     signed int i;
+    unsigned int numBones;
+    float bilerp[2];
+    unsigned int biindex[2];
+    unsigned int biplus[2];
+    _xQuat* q0;
+    _xVec3* t0;
+    _xQuat* q1;
+    _xVec3* t1;
     unsigned int fileFlags = data->FileFlags;
-    float duration = data->Duration;
-    float t;
-    float evalTime;
-
-#define MIN_(a, b) ((a) < (b) ? (a) : (b))
-    t = 0.0f > MIN_(time, duration) ? 0.0f : MIN_(time, duration);
-#undef MIN_
-
-    if ((fileFlags & 0x1000) || ((fileFlags & 0x2000) && t > 0.5f * duration))
-    {
-        evalTime = data->TimeOffset + duration - t;
-    }
-    else
-    {
-        evalTime = data->TimeOffset + t;
-    }
+    float t = CLAMP(time, 0.0f, data->Duration);
+    float evalTime = xAnimFileEvalTime(data, t);
 
     if (fileFlags & 0x8000)
     {
@@ -830,7 +842,6 @@ void xAnimFileEval(xAnimFile* data, float time, float* bilinear, unsigned int fl
         return;
     }
 
-    unsigned short numBones;
     if (flags & 1)
     {
         numBones = 1;
@@ -848,8 +859,7 @@ void xAnimFileEval(xAnimFile* data, float time, float* bilinear, unsigned int fl
         return;
     }
 
-    unsigned int physics = flags & 4;
-    if (physics)
+    if (flags & 4)
     {
         tran++;
         quat++;
@@ -857,31 +867,21 @@ void xAnimFileEval(xAnimFile* data, float time, float* bilinear, unsigned int fl
 
     if (bilinear != NULL && (fileFlags & 0x4000))
     {
-        float bilerp[2];
-        unsigned int biindex[2];
-        unsigned int biplus[2];
         for (i = 0; i < 2; i++)
         {
-            float f = bilinear[i];
-            signed int maxIndex = data->NumAnims[i] - 1;
-            f = 0.0f > (f < maxIndex ? f : maxIndex) ? 0.0f : (f < maxIndex ? f : maxIndex);
+            float f = CLAMP(bilinear[i], 0.0f, data->NumAnims[i] - 1);
             float fl = floor(f);
             bilerp[i] = f - fl;
             biindex[i] = fl;
-            unsigned int next = biindex[i];
-            if (biindex[i] + 1 < data->NumAnims[i])
-            {
-                next = biindex[i] + 1;
-            }
-            biplus[i] = next;
+            biplus[i] = biindex[i] + 1 < data->NumAnims[i] ? biindex[i] + 1 : biindex[i];
         }
 
-        _xQuat* q0 = (_xQuat*)(giAnimScratch + 0x1560);
-        _xVec3* t0 = (_xVec3*)((unsigned char*)q0 + 0x410);
-        if (bilerp[0] != 0.0f && bilerp[1] != 0.0f)
+        q0 = (_xQuat*)(giAnimScratch + 0x1560);
+        t0 = (_xVec3*)((unsigned char*)q0 + 0x410);
+        if (bilerp[0] && bilerp[1])
         {
-            _xQuat* q1 = (_xQuat*)(giAnimScratch + 0x1C80);
-            _xVec3* t1 = (_xVec3*)((unsigned char*)q1 + 0x410);
+            q1 = (_xQuat*)(giAnimScratch + 0x1C80);
+            t1 = (_xVec3*)((unsigned char*)q1 + 0x410);
             iAnimEval(data->RawData[biindex[0] + biindex[1] * data->NumAnims[0]], evalTime, flags,
                       tran, quat);
             iAnimEval(data->RawData[biplus[0] + biindex[1] * data->NumAnims[0]], evalTime, flags,
@@ -894,7 +894,7 @@ void xAnimFileEval(xAnimFile* data, float time, float* bilinear, unsigned int fl
             iAnimBlend(bilerp[0], 1.0f, NULL, NULL, numBones, t0, q0, t1, q1, t0, q0);
             iAnimBlend(bilerp[1], 1.0f, NULL, NULL, numBones, tran, quat, t0, q0, tran, quat);
         }
-        else if (bilerp[0] != 0.0f)
+        else if (bilerp[0])
         {
             iAnimEval(data->RawData[biindex[0] + biindex[1] * data->NumAnims[0]], evalTime, flags,
                       tran, quat);
@@ -902,13 +902,13 @@ void xAnimFileEval(xAnimFile* data, float time, float* bilinear, unsigned int fl
                       t0, q0);
             iAnimBlend(bilerp[0], 1.0f, NULL, NULL, numBones, tran, quat, t0, q0, tran, quat);
         }
-        else if (bilerp[1] != 0.0f)
+        else if (bilerp[1])
         {
             iAnimEval(data->RawData[biindex[0] + biindex[1] * data->NumAnims[0]], evalTime, flags,
                       tran, quat);
             iAnimEval(data->RawData[biindex[0] + biplus[1] * data->NumAnims[0]], evalTime, flags,
                       t0, q0);
-            iAnimBlend(bilerp[1], 1.0f, NULL, NULL, numBones, tran, quat, t0, q0, tran, quat);
+            iAnimBlend(bilerp[0], 1.0f, NULL, NULL, numBones, tran, quat, t0, q0, tran, quat);
         }
         else
         {
@@ -921,7 +921,7 @@ void xAnimFileEval(xAnimFile* data, float time, float* bilinear, unsigned int fl
         iAnimEval(*data->RawData, evalTime, flags, tran, quat);
     }
 
-    if (physics)
+    if (flags & 4)
     {
         float rootYaw;
         if (data->Physics != NULL)
@@ -944,7 +944,7 @@ void xAnimFileEval(xAnimFile* data, float time, float* bilinear, unsigned int fl
                 }
                 else
                 {
-                    root[i] = t * data->PhysDelta[i] + data->PhysBase[i] + ((float*)tran)[i];
+                    root[i] = t * data->PhysDelta[i] + data->PhysBase[i] + root[i + 3];
                 }
             }
 
@@ -958,7 +958,7 @@ void xAnimFileEval(xAnimFile* data, float time, float* bilinear, unsigned int fl
             }
             else
             {
-                rootYaw = t * data->PhysDelta[3] + data->PhysBase[3] + xAnimQuatYaw(quat);
+                rootYaw = t * data->PhysBase[3] + data->PhysBase[3] + xAnimQuatYaw(quat);
             }
 
             (quat - 1)->v.x = 0.0f;
@@ -1074,13 +1074,13 @@ xAnimState* xAnimTableNewState(xAnimTable* table, char* name, unsigned int flags
 
 void xAnimTableAddTransition(xAnimTable* table, xAnimTransition* tran, char* source)
 {
-    unsigned int stateCount = 0;
-    unsigned int allocCount = 0;
-    xAnimTransitionList* tlist;
+    unsigned int flags = tran->Flags;
+    unsigned int i;
     unsigned char* buffer = giAnimScratch;
     xAnimState** stateList = (xAnimState**)(giAnimScratch + 0x400);
-    unsigned int isDefault = tran->Flags & 0x10;
-    unsigned int i;
+    unsigned int allocCount = 0;
+    unsigned int stateCount = 0;
+    xAnimTransitionList* tlist;
 
     char* stateName = xStrTokBuffer(source, " ,\t\n\r", buffer);
     while (stateName != NULL)
@@ -1088,7 +1088,7 @@ void xAnimTableAddTransition(xAnimTable* table, xAnimTransition* tran, char* sou
         xAnimState* state = xAnimTableGetState(table, stateName);
         if (state != NULL)
         {
-            if (isDefault)
+            if (flags & 0x10)
             {
                 if (!DefaultHasTransition(state, tran, &stateCount))
                 {
@@ -1108,19 +1108,14 @@ void xAnimTableAddTransition(xAnimTable* table, xAnimTransition* tran, char* sou
 
     if (stateCount)
     {
-        if (gxAnimUseGrowAlloc)
-        {
-            tlist = (xAnimTransitionList*)xMemGrowAlloc(gActiveHeap,
-                                                        stateCount * sizeof(xAnimTransitionList));
-        }
-        else
-        {
-            tlist = (xAnimTransitionList*)xMemAlloc(gActiveHeap,
+        tlist = gxAnimUseGrowAlloc ?
+                    (xAnimTransitionList*)xMemGrowAlloc(gActiveHeap,
+                                                        stateCount * sizeof(xAnimTransitionList)) :
+                    (xAnimTransitionList*)xMemAlloc(gActiveHeap,
                                                     stateCount * sizeof(xAnimTransitionList));
-        }
     }
 
-    if (isDefault)
+    if (flags & 0x10)
     {
         for (i = 0; i < allocCount; i++)
         {
@@ -1246,10 +1241,14 @@ void xAnimTableRemoveEffectByCB(xAnimTable* table,
                                 unsigned int (*callback)(unsigned int, xAnimActiveEffect*,
                                                          xAnimSingle*, void*))
 {
-    for (xAnimState* state = table->StateList; state != NULL; state = state->Next)
+    xAnimEffect* prev;
+    xAnimEffect* curr;
+    xAnimState* state;
+
+    for (state = table->StateList; state != NULL; state = state->Next)
     {
-        xAnimEffect* prev = NULL;
-        xAnimEffect* curr = state->Effects;
+        prev = NULL;
+        curr = state->Effects;
         while (curr != NULL)
         {
             if (curr->Callback == callback)
@@ -1260,6 +1259,7 @@ void xAnimTableRemoveEffectByCB(xAnimTable* table,
                 }
                 else
                 {
+                    prev = NULL;
                     state->Effects = curr->Next;
                 }
                 curr = curr->Next;
@@ -1274,10 +1274,12 @@ void xAnimTableRemoveEffectByCB(xAnimTable* table,
 }
 
 
+#pragma auto_inline on
 xAnimState* xAnimTableGetState(xAnimTable* table, char* name)
 {
     return xAnimTableGetStateID(table, xStrHash(name));
 }
+#pragma auto_inline reset
 
 #pragma auto_inline on
 static void EffectSingleStart(xAnimSingle* single)
@@ -1541,14 +1543,12 @@ static void SingleUpdate(xAnimSingle* single, float timeDelta, _xVec3* tran, _xQ
     float tranDelta = 0.0f;
     float blendDelta = 0.0f;
     float singleTime;
-    // PERM_BEGIN
     _xVec3 btran[2];
     _xVec3 ltran[2];
     _xQuat bquat[2];
     _xQuat lquat[2];
     float byaw[2];
     float lyaw[2];
-    // PERM_END
 
     if (single->State == NULL)
     {
