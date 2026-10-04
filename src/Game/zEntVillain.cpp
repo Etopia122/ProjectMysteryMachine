@@ -11720,7 +11720,7 @@ static signed int VILN_BRB_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         {
             float da = vil->frame->rot.angle - vil->precalc.ang_VtoP;
             vil->anim_loopmult = 0.97f;
-            if (((da < 0.0f) ? -da : da) <= 0.2f)
+            if ((float)__fabs(da) <= 0.2f)
             {
                 vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)0);
             }
@@ -11832,8 +11832,8 @@ static signed int VILN_BRB_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
 
 static inline void VWEP_rbs_fly(st_REDBEARD_SWORD* rbs, float dt)
 {
-    _xMat3x3 mat_rot;
-    _xVec3 ang;
+    _xMat3x3 mat_rot = {};
+    _xVec3 ang = { 25.132741f, 0.0f, 0.0f };
     _xVec3 dpos = {};
     _xMat4x3* mat;
     unsigned int snd;
@@ -11848,9 +11848,9 @@ static inline void VWEP_rbs_fly(st_REDBEARD_SWORD* rbs, float dt)
         rbs->flg_stat &= ~8;
     }
 
-    ang.x = 25.132741f * dt;
-    ang.y = 0.0f;
-    ang.z = 0.0f;
+    ang.x *= dt;
+    ang.y *= dt;
+    ang.z *= dt;
     xMat3x3Euler(&mat_rot, &ang);
     if (rbs->tym_age < 2.5f)
     {
