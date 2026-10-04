@@ -127,6 +127,10 @@ Core/gc/iTime.cpp:
 
 Core/x/xAnim.cpp:
 	.text       start:0x80016A30 end:0x8001C088
+	.rodata     start:0x80192CE0 end:0x80192D20
+	.bss        start:0x801FE3E8 end:0x801FE408
+	.sbss       start:0x8025E9A8 end:0x8025E9B0
+	.sdata2     start:0x8025FB90 end:0x8025FBE0
 
 Core/x/xBase.cpp:
 	.text       start:0x8001C088 end:0x8001C184

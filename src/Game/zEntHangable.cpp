@@ -39,6 +39,7 @@ public:
 };
 
 class xAnimState;
+class xAnimSingle;
 
 class xAnimPlay
 {
@@ -46,7 +47,7 @@ public:
     xAnimPlay* Next;          // 0x0
     unsigned short NumSingle; // 0x4
     unsigned short BoneCount; // 0x6
-    void* Single;             // 0x8
+    xAnimSingle* Single;      // 0x8
     void* Object;             // 0xC
     xAnimTable* Table;        // 0x10
 };
@@ -57,7 +58,7 @@ void xMat3x3RMulVec(_xVec3* o, _xMat3x3* m, _xVec3* v);
 void xMat3x3GetEuler(_xMat3x3* m, _xVec3* a);
 void xEntReset(_xEnt* ent);
 xAnimState* xAnimTableGetState(xAnimTable* table, char* name);
-void xAnimPlaySetState(void* single, xAnimState* state, float startTime);
+void xAnimPlaySetState(xAnimSingle* single, xAnimState* state, float startTime);
 float zEntShaggy_GetSpin(_zEnt* ent);
 void Shaggy1_SetHangable(_zEnt* shaggy, _zEntHangable* ent);
 float iurand();

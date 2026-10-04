@@ -113,9 +113,9 @@ signed int RwEngineGetCurrentVideoMode();
 RwVideoMode* RwEngineGetVideoModeInfo(RwVideoMode* modeinfo, signed int modeIndex);
 RpWorld* RpWorldAddCamera(RpWorld* world, RwCamera* camera);
 RpWorld* RpWorldRemoveCamera(RpWorld* world, RwCamera* camera);
-// TODO: unidentified (xAnim: returns an anim player to its pool)
-void fn_80016A30(xAnimPlay* play);
 }
+
+void xAnimPoolFree(xAnimPlay* play);
 
 void iModelInit();
 unsigned int iModelNumBones(RpAtomic* model);
@@ -384,7 +384,7 @@ void xModelInstanceFree(xModelInstance* model)
 
     if (model->Anim)
     {
-        fn_80016A30(model->Anim);
+        xAnimPoolFree(model->Anim);
         model->Anim = 0;
     }
 
