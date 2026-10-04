@@ -3608,6 +3608,7 @@ static inline signed int VOUT_chkdo_followArrived(st_zEntVillain* vil);
 static inline signed int VOUT_patrol_move(st_zEntVillain* vil);
 static inline signed int VOUT_chkdo_patrolArrived(st_zEntVillain* vil);
 static inline void VSUP_ang_toXZDir(float angle, _xVec3* dir);
+static inline float VSUP_ent_AOI(st_zEntVillain* vil, _zEnt* ent, signed int* qdrant);
 static signed int VILN_BMM_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot);
 static signed int VILN_BMM_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
 static signed int VILN_BMM_calcmove(st_zEntVillain* vil, _xScene* scn, float dt, _xEntFrame* frame);
@@ -7172,32 +7173,9 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
 
 static inline signed int VUTIL_hitSide(st_zEntVillain* vil)
 {
-    _xVec3 dir = {};
     signed int side = 0;
-    float dang;
-    float ang;
 
-    xVec3Sub(&dir, xBoundCenter(&globals.player.ent.bound), VUTIL_mdlpos(vil));
-    xVec3Normalize(&dir, &dir);
-    dang = xAngleClamp(atan2(dir.x, dir.z)) - vil->frame->rot.angle;
-    ang = xAngleClamp(dang + 0.7853982f);
-    if (ang > 0.0f && ang <= 1.5707964f)
-    {
-        side = 1;
-    }
-    else if (ang > 1.5707964f && ang <= 3.1415927f)
-    {
-        side = 4;
-    }
-    else if (ang > 3.1415927f && ang < 4.712389f)
-    {
-        side = 2;
-    }
-    else if (ang > 0.0f && ang < 1.5707964f)
-    {
-        side = 3;
-    }
-    xAngleClamp(dang);
+    VSUP_ent_AOI(vil, &globals.player.ent, &side);
     return side;
 }
 
@@ -13479,6 +13457,33 @@ static signed int VILN_BMM_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal,
     return 1;
 }
 
+// Angle of interest: where ent is relative to the villain's facing, and in
+// which quadrant (1 front, 4 right, 2 back, 3 left).
+static inline float VSUP_ent_AOI(st_zEntVillain* vil, _zEnt* ent, signed int* qdrant)
+{
+    float dang = VSUP_dir_toPos(vil, VUTIL_ctrOf(ent), NULL) - vil->frame->rot.angle;
+    float ang = xAngleClamp(dang + 0.7853982f);
+
+    *qdrant = 0;
+    if (ang > 0.0f && ang <= 1.5707964f)
+    {
+        *qdrant = 1;
+    }
+    else if (ang > 1.5707964f && ang <= 3.1415927f)
+    {
+        *qdrant = 4;
+    }
+    else if (ang > 3.1415927f && ang < 4.712389f)
+    {
+        *qdrant = 2;
+    }
+    else if (ang > 0.0f && ang < 1.5707964f)
+    {
+        *qdrant = 3;
+    }
+    return xAngleClamp(dang);
+}
+
 static inline void VSUP_ang_toXZDir(float angle, _xVec3* dir)
 {
     dir->x = sin(angle);
@@ -14108,38 +14113,13 @@ static en_ZVILLAIN_HEADBUTT_RESPONSE VOUT_spikey_header(st_zEntVillain* vil)
 {
     signed int resp = 0;
     signed int side = 0;
-    _xVec3 pos_plyr = {};
-    _xVec3 dir = {};
-    float dang;
-    float ang;
 
     if (!(vil->abl_spyk & 1))
     {
         return (en_ZVILLAIN_HEADBUTT_RESPONSE)0;
     }
 
-    pos_plyr = *xBoundCenter(&globals.player.ent.bound);
-    xVec3Sub(&dir, &pos_plyr, VUTIL_mdlpos(vil));
-    xVec3Normalize(&dir, &dir);
-    dang = xAngleClamp(atan2(dir.x, dir.z)) - vil->frame->rot.angle;
-    ang = xAngleClamp(dang + 0.7853982f);
-    if (ang > 0.0f && ang <= 1.5707964f)
-    {
-        side = 1;
-    }
-    else if (ang > 1.5707964f && ang <= 3.1415927f)
-    {
-        side = 4;
-    }
-    else if (ang > 3.1415927f && ang < 4.712389f)
-    {
-        side = 2;
-    }
-    else if (ang > 0.0f && ang < 1.5707964f)
-    {
-        side = 3;
-    }
-    xAngleClamp(dang);
+    VSUP_ent_AOI(vil, &globals.player.ent, &side);
 
     // The original has no breaks here, so each side also checks the later ones.
     switch (side)
@@ -15295,18 +15275,12 @@ static void VIRM_initVilDflt(st_zEntVillain* vil)
     _xVec3 vec_push = {};
     _xVec3 dir_VtoP = {};
     _xVec3 dir_face = {};
-    _xVec3 pos_plyr = {};
-    _xVec3 vec_delt = {};
     float yaw;
     float dot;
     signed int dmg;
     st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
 
-    pos_plyr = *xBoundCenter(&globals.player.ent.bound);
-    xVec3Sub(&vec_delt, &pos_plyr, &((_xMat4x3*)vil->model->Mat)->pos);
-    xVec3Normalize(&vec_delt, &vec_delt);
-    xAngleClamp(atan2(vec_delt.x, vec_delt.z));
-    xVec3Normalize(&dir_VtoP, &vec_delt);
+    VSUP_dir_toPos(vil, VUTIL_ctrOf(&globals.player.ent), &dir_VtoP);
 
     yaw = vil->frame->rot.angle;
     dir_face.x = isin(yaw);
