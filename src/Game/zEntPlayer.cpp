@@ -139,6 +139,8 @@ public:
     unsigned short* BlendOffset;  // 0x28
 };
 
+class xAnimPlay;
+
 class xAnimSingle
 {
 public:
@@ -146,7 +148,9 @@ public:
     xAnimState* State;        // 0x4
     float Time;               // 0x8
     float CurrentSpeed;       // 0xC
-    unsigned char pad10[0x54 - 0x10];
+    unsigned char pad10[0x24 - 0x10];
+    xAnimPlay* Play;          // 0x24
+    unsigned char pad28[0x54 - 0x28];
     xAnimTransition* Tran;    // 0x54
     xAnimSingle* Blend;       // 0x58
     float BlendFactor;        // 0x5C
@@ -171,6 +175,11 @@ public:
     void* Object;             // 0xC
     xAnimTable* Table;        // 0x10
     _xVec3 Translate[2];      // 0x14
+    unsigned int pad1;        // 0x2C
+    unsigned char Quat[0x20]; // 0x30
+    float Yaw;                // 0x50
+    void* Pool;               // 0x54
+    xModelInstance* ModelInst; // 0x58
 };
 
 class p2EntHangableAsset
@@ -444,6 +453,34 @@ void zEntPickup_Drop(_zEntPickup* ent);
 void zEntHangable_FollowUpdate(_zEntHangable* ent);
 void zEntHangable_SetMatrix(_zEntHangable* ent, float dt);
 float iurand();
+void xAnimTableAddTransition(xAnimTable* table, xAnimTransition* tran, char* source);
+static unsigned int FaceIdle(xAnimTransition*, xAnimSingle*, void*);
+static unsigned int FaceSwing(xAnimTransition*, xAnimSingle*, void*);
+static unsigned int FaceSneak(xAnimTransition*, xAnimSingle*, void*);
+static unsigned int FaceTeeter(xAnimTransition*, xAnimSingle*, void*);
+static unsigned int FacePant(xAnimTransition*, xAnimSingle*, void*);
+static unsigned int FaceRun(xAnimTransition*, xAnimSingle*, void*);
+static unsigned int FaceEvent(xAnimTransition*, xAnimSingle*, void*);
+static unsigned int FaceScare(xAnimTransition*, xAnimSingle*, void*);
+static unsigned int FaceClearScareCB(xAnimTransition*, xAnimSingle*, void*);
+static unsigned int FaceMad(xAnimTransition*, xAnimSingle*, void*);
+static unsigned int FaceBlow(xAnimTransition*, xAnimSingle*, void*);
+void zHud_showSnack();
+void zHud_showSnackSpecial();
+void zEntPickup_hideSnackGateInfo(_zEntPickup* ent);
+void zEntPickup_UnlockSnackGate(_xEnt* ent);
+void zSurfaceGetName(signed int type, char* buffer);
+void zFeetInit(signed int, _xEnt* ent, tagzFeet* feet, signed int idx, xAnimTable* table);
+void zFeetInitSkidMark(_tagFeetSkidMark* mark, signed int num);
+void xAnimStateNewEffect(xAnimState* state, unsigned int flags, float startTime, float endTime,
+                         unsigned int (*callback)(unsigned int, xAnimActiveEffect*, xAnimSingle*, void*),
+                         unsigned int userDataSize);
+signed int zEntPlayerEventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
+                             xBase* toParamWidget);
+void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt);
+void zEntPlayer_Move(_xEnt* ent, _xScene* sc, float dt, _xEntFrame* frame);
+void zEntPlayer_Render(_zEnt* ent);
+void zEntPlayerReset(_xEnt* ent);
 void zEntVillain_Stun(st_zEntVillain* vil, float tym);
 unsigned int zEntVillain_Bounce(st_zEntVillain* vil);
 void zEntVillain_Headbutt(st_zEntVillain* vil, _xVec3* dir);
@@ -563,6 +600,8 @@ static inline void xVec3Cross(_xVec3* o, _xVec3* a, _xVec3* b)
 
 extern "C" {
 signed int fn_800ED288();
+char* strcpy(char* dst, const char* src);
+char* strcat(char* dst, const char* src);
 signed int fn_800394B4();
 void* memset(void* dst, int c, unsigned int n);
 long labs(long x);
@@ -765,6 +804,20 @@ static unsigned int zEntPlayer_FXScratchCB(unsigned int, xAnimActiveEffect*, xAn
     gPlayerfx.timer_scratch = 1.65f;
     zRumbleStart(0, (_tagSDRumbleType)5);
     return 0;
+}
+
+static inline void zEntPlayer_FXSetup(xAnimTable* table)
+{
+    xAnimStateNewEffect(xAnimTableGetState(table, "Inactive_SitFlea"), 1, 0.05f, 0.0f, zEntPlayer_FXScratchCB, 0);
+    gPlayerfx.timer_scratch = 0.0f;
+    xAnimStateNewEffect(xAnimTableGetState(table, "Fall_floatopen"), 1, 0.05f, 0.0f, zEntPlayer_FXOpenBrollyCB, 0);
+    xAnimStateNewEffect(xAnimTableGetState(table, "Action_dig"), 1, 0.05f, 0.0f, zEntPlayer_FXDigupCB, 0);
+    gPlayerfx.timer_digup = 0.0f;
+    xAnimStateNewEffect(xAnimTableGetState(table, "Jump_double"), 1, 0.0f, 0.0f, zEntPlayer_FXSpringCB, 0);
+    xAnimStateNewEffect(xAnimTableGetState(table, "RunToIdle_normal"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
+    xAnimStateNewEffect(xAnimTableGetState(table, "RunToIdle_scared"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
+    xAnimStateNewEffect(xAnimTableGetState(table, "RunToIdle_brave"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
+    xAnimStateNewEffect(xAnimTableGetState(table, "RunToSkid"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
 }
 
 static void zEntPlayer_FXUpdate(_xEnt* ent, float seconds)
@@ -5365,4 +5418,427 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         globals.player.ControlOn = 1;
         globals.player.ControlOnEvent = 0;
     }
+}
+
+static void zEntPlayer_SnackDecrement(float dt)
+{
+    if (sSnackDecrement)
+    {
+        zEntEvent(&globals.player.ent, 8);
+        zHud_showSnack();
+        sDecrementDelay -= dt;
+        if (sDecrementDelay <= 0.0f)
+        {
+            sDecrementDelay = 0.0f;
+            zEntPickup_hideSnackGateInfo(sDecrementSnackGateEnt);
+            xSndPlay(sPlayerSndfx.snackcounter_id, 0.5f, 0.5f, 0.0f, 0x80, 2, 0);
+            sDecrementAmount += 2.5f * dt;
+            unsigned int amount = sDecrementAmount;
+            if (amount > sSnackDecrement)
+            {
+                amount = sSnackDecrement;
+            }
+            if ((signed int)(globals.player.Inv_ScoobySnacks - amount) < 0)
+            {
+                globals.player.Inv_ScoobySnacks = 0;
+                sSnackDecrement = 0;
+            }
+            else
+            {
+                globals.player.Inv_ScoobySnacks -= amount;
+                sSnackDecrement -= amount;
+            }
+            if (sSnackDecrement == 0)
+            {
+                zEntEvent(&globals.player.ent, 9);
+                zEntPickup_UnlockSnackGate(sDecrementSnackGateEnt);
+                zHud_showSnackSpecial();
+                sDecrementSnackGateEnt = NULL;
+            }
+        }
+    }
+}
+
+void zEntPlayer_Load(_xEnt*, xSerial*)
+{
+}
+
+static inline _zParEmitter* zEntPlayerFindSurfEmitter(char* kind, signed int surftype)
+{
+    char emitname[128];
+    char surfname[128];
+    strcpy(emitname, "PAREMIT_SD_");
+    strcat(emitname, kind);
+    zSurfaceGetName(surftype, surfname);
+    strcat(emitname, surfname);
+    _zParEmitter* emitter = zParEmitterFind(xStrHash(emitname));
+    if (emitter != NULL && (emitter->emit_flags & 1))
+    {
+        emitter->emit_flags ^= 1;
+    }
+    return emitter;
+}
+
+static inline void zEntPlayerFindEmitters()
+{
+    signed int i;
+    for (i = 0; i < 23; i++)
+    {
+        gPlayerfx.emit_land[i] = zEntPlayerFindSurfEmitter("LAND_", i);
+        gPlayerfx.emit_stop[i] = zEntPlayerFindSurfEmitter("STOP_", i);
+    }
+    gPlayerfx.emit_scratch = zParEmitterFind("PAREMIT_SD_FLEASCRATCH");
+    gPlayerfx.emit_digup[0] = zParEmitterFind("PAREMIT_SD_DIGUPDUST");
+    gPlayerfx.emit_digup[1] = zParEmitterFind("PAREMIT_SD_DIGUPDIRT");
+    sEmitterSprings = zParEmitterFind("PAREMIT_SPRING_THING");
+    sEmitterShockLeft = zParEmitterFind("PAREMIT_SD_SHOCKLEFT");
+    sEmitterShockRight = zParEmitterFind("PAREMIT_SD_SHOCKRIGHT");
+    sEmitterWaterSplash = zParEmitterFind("PAREMIT_SD_WATERSPLASH");
+    sEmitterBounceMiss = zParEmitterFind("PAREMIT_SD_BOUNCEMISS");
+    sEmitterSpringBoard = zParEmitterFind("PAREMIT_PLAT_SPRINGBOARD");
+    sEmitterBounceOnVillain = zParEmitterFind("PAREMIT_SD_BOUNCEONVILLAIN");
+    sEmitterHeadButt = zParEmitterFind("PAREMIT_SD_HEADBUTT");
+    sEmitterHeadButt2 = zParEmitterFind("PAREMIT_SD_HEADBUTT2");
+    sEmitterStars = zParEmitterFind("PAREMIT_STARS");
+    sSoundWaterSplash = xStrHash("scooby_splash");
+}
+
+void zEntPlayer_Init(_xEnt* ent, p2EntAsset* asset)
+{
+    zEntInit((_zEnt*)ent, asset, 'PLYR');
+    ent->baseFlags |= 1;
+    ent->flags |= 1;
+    globals.player.Visible = 1;
+    globals.player.AutoMoveSpeed = 0;
+    ent->pflags &= 0xFB;
+    ent->collis->chk &= ~1;
+    ent->update = zEntPlayer_Update;
+    ent->move = zEntPlayer_Move;
+    ent->render = (void (*)(_xEnt*))zEntPlayer_Render;
+    ent->eventFunc = zEntPlayerEventCB;
+    if (ent->linkCount)
+    {
+        ent->link = (p2LinkAsset*)(asset + 1);
+    }
+    else
+    {
+        ent->link = NULL;
+    }
+    if (globals.sceneCur->baseCount[28])
+    {
+        xFFXAddEffect(ent, zGustUpdateEnt, &gust_data);
+    }
+    xFFXRotMatchState* rms = xFFXRotMatchAlloc();
+    if (rms != NULL)
+    {
+        rms->max_decl = globals.player.s.RotMatchMaxAngle;
+        rms->tmatch = globals.player.s.RotMatchMatchTime;
+        rms->trelax = globals.player.s.RotMatchRelaxTime;
+        rms->tmr = 0.0f;
+        xFFXAddEffect(ent, PlayerRotMatchUpdateEnt, rms);
+    }
+    memset(&gPlayerfx, 0, sizeof(_tagPlayerFX));
+    zEntPlayerFindEmitters();
+    for (signed int i = 0; i < 10; i++)
+    {
+        zFeetInit(-1, ent, &sPlayerFeet[i], i, ent->model->Anim->Table);
+    }
+    zEntPlayer_FXSetup(ent->model->Anim->Table);
+    for (signed int i = 0; i < 5; i++)
+    {
+        zFeetInitSkidMark(&sPlayerSkidMark[i], 4);
+    }
+    sSnackDecrement = 0;
+    sDecrementSnackGateEnt = NULL;
+    sDecrementDelay = 0.0f;
+    sDecrementAmount = 2.0f;
+    sVONextSituation = NULL;
+    sVOTimer = 0.0f;
+    for (signed int i = 0; i < 15; i++)
+    {
+        sPlayerInfo[i].elapsedTime = sPlayerInfo[i].delay;
+        sPlayerInfo[i].count = 0;
+    }
+    zEntPlayerReset(ent);
+}
+
+static unsigned int LampFixbugCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return strcmp(globals.player.ent.model->Anim->Single->State->Name, "Idle_lampshade") == 0;
+}
+
+static unsigned int LampbackCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return strcmp(globals.player.ent.model->Anim->Single->State->Name, "SneakToLampshade") == 0;
+}
+
+static unsigned int LampoffCheck(xAnimTransition*, xAnimSingle*, void*)
+{
+    return strcmp(globals.player.ent.model->Anim->Single->State->Name, "LampshadeToSneak") == 0;
+}
+
+static unsigned int LamponCheck(xAnimTransition*, xAnimSingle* anim, void*)
+{
+    if (anim->Play->ModelInst->Flags & 1)
+    {
+        return 0;
+    }
+    return strcmp(globals.player.ent.model->Anim->Single->State->Name, "IdleToLampshade") == 0;
+}
+
+static unsigned int LampDrawCheck(xAnimTransition*, xAnimSingle* anim, void*)
+{
+    return (anim->Play->ModelInst->Flags & 1) == 0;
+}
+
+xAnimTable* zEntPlayer_LampshadeAnimTable()
+{
+    xAnimTable* table = xAnimTableNew("PlayerLampshade", NULL);
+    xAnimTableNewState(table, "Idle", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "TurnOff", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "TurnBackOn", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Idle TurnOff", "Idle", LamponCheck, NULL, 0, 0, 0.0f, 0.0f, 2, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "Idle", "TurnOff", LampoffCheck, NULL, 0, 0, 0.0f, 0.0f, 2, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "TurnOff Idle", "TurnBackOn", LampbackCheck, NULL, 0, 0, 0.0f, 0.0f, 2, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "TurnBackOn", "TurnOff", LampoffCheck, NULL, 0x20, 0, 0.0f, 0.0f, 2, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "TurnOff", "TurnBackOn", LampbackCheck, NULL, 0x20, 0, 0.0f, 0.0f, 2, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "TurnOff", "TurnBackOn", LampFixbugCheck, NULL, 0x20, 0, 0.0f, 0.0f, 2, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "TurnOff", "Idle", LampDrawCheck, NULL, 0, 0, 0.0f, 10.0f, 1, 0, 0.0f, NULL);
+    xAnimTableNewTransition(table, "TurnBackOn", "Idle", NULL, NULL, 0x10, 0, 0.0f, 10.0f, 1, 0, 0.0f, NULL);
+    return table;
+}
+
+xAnimTable* zEntPlayer_UmbrellaAnimTable()
+{
+    xAnimTable* table = xAnimTableNew("PlayerUmbrella", NULL);
+    xAnimTableNewState(table, "Idle", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    return table;
+}
+
+xAnimTable* zEntPlayer_TongueAnimTable()
+{
+    xAnimTable* table = xAnimTableNew("PlayerHead", NULL);
+    xAnimTableNewState(table, "Idle", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    return table;
+}
+
+static inline void PlayerHeadAddTransition(xAnimTable* table, char* dest, xAnimTransitionConditionalCallback cond,
+                                           xAnimTransitionCallback cb, unsigned int flags, unsigned int userFlags,
+                                           unsigned short priority)
+{
+    xAnimState* state = table->StateList;
+    xAnimTransition* tran =
+        xAnimTableNewTransition(table, "", dest, cond, cb, flags, userFlags, 0.0f, 0.0f, priority, 0, 0.0f, NULL);
+    while (state != NULL)
+    {
+        if (xStricmp(state->Name, tran->Dest->Name) != 0)
+        {
+            xAnimTableAddTransition(table, tran, state->Name);
+        }
+        state = state->Next;
+    }
+}
+
+xAnimTable* zEntPlayer_HeadAnimTable()
+{
+    xAnimTable* table = xAnimTableNew("PlayerHead", NULL);
+    xAnimTableNewState(table, "Idle", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "IdleA", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "IdleB", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "IdleC", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "ScareA", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "ScareB", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "ScareC", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "ScareD", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "ScareE", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "ScareF", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Blink", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Blow", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Dizzy", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Grin", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Happy", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Mad", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Sneak", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Swing", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Teeter", 0, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Run", 0x10, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "Pant", 0x10, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "LickFace", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "WinkGrin", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewTransition(table, "LickFace WinkGrin", "Idle", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
+    PlayerHeadAddTransition(table, "ScareA", FaceScare, NULL, 0, 0, 6);
+    PlayerHeadAddTransition(table, "ScareB", FaceScare, NULL, 0, 1, 6);
+    PlayerHeadAddTransition(table, "ScareC", FaceScare, NULL, 0, 2, 6);
+    PlayerHeadAddTransition(table, "ScareD", FaceScare, NULL, 0, 3, 6);
+    PlayerHeadAddTransition(table, "ScareE", FaceScare, NULL, 0, 4, 6);
+    PlayerHeadAddTransition(table, "ScareF", FaceScare, NULL, 0, 5, 6);
+    PlayerHeadAddTransition(table, "Mad", FaceMad, FaceClearScareCB, 0, 0, 5);
+    PlayerHeadAddTransition(table, "Blow", FaceBlow, FaceClearScareCB, 0, 0, 5);
+    PlayerHeadAddTransition(table, "Happy", FaceEvent, NULL, 0, 0, 4);
+    PlayerHeadAddTransition(table, "Grin", FaceEvent, NULL, 0, 1, 4);
+    PlayerHeadAddTransition(table, "Dizzy", FaceEvent, NULL, 0, 2, 4);
+    PlayerHeadAddTransition(table, "Run", FaceRun, NULL, 0, 0, 3);
+    PlayerHeadAddTransition(table, "Pant", FacePant, NULL, 0, 0, 3);
+    PlayerHeadAddTransition(table, "Teeter", FaceTeeter, NULL, 0, 0, 3);
+    PlayerHeadAddTransition(table, "Sneak", FaceSneak, NULL, 0, 0, 3);
+    PlayerHeadAddTransition(table, "Swing", FaceSwing, NULL, 0, 0, 3);
+    PlayerHeadAddTransition(table, "Idle", FaceIdle, NULL, 0, 0, 1);
+    return table;
+}
+
+static void PlayerFaceUpdate(float dt)
+{
+    if (globals.player.Face_ScareTimer > 0.0f)
+    {
+        globals.player.Face_ScareTimer -= dt;
+        if (globals.player.Face_ScareTimer < 0.0f)
+        {
+            globals.player.Face_ScareTimer = 0.0f;
+        }
+    }
+    if (globals.player.Face_EventTimer > 0.0f)
+    {
+        globals.player.Face_EventTimer -= dt;
+        if (globals.player.Face_EventTimer < 0.0f)
+        {
+            globals.player.Face_EventTimer = 0.0f;
+        }
+    }
+    if (globals.player.Face_PantTimer > 0.0f)
+    {
+        globals.player.Face_PantTimer -= dt;
+        if (globals.player.Face_PantTimer < 0.0f)
+        {
+            globals.player.Face_PantTimer = 0.0f;
+        }
+    }
+    globals.player.Face_AnimSpecific = 0;
+    xAnimState* state = globals.player.ent.model->Anim->Single->State;
+    if (state->UserFlags & 0x40000)
+    {
+        globals.player.Face_AnimSpecific = 1;
+    }
+    if ((state->UserFlags & 0x1E) == 2)
+    {
+        globals.player.Face_AnimSpecific = 2;
+    }
+    if ((state->UserFlags & 0x1E) == 6 && !(state->UserFlags & 0x20))
+    {
+        globals.player.Face_AnimSpecific = 4;
+    }
+    if (state->UserFlags & 0x20000)
+    {
+        globals.player.Face_AnimSpecific = 3;
+    }
+    if (state->UserFlags & 0x10000)
+    {
+        globals.player.Face_AnimSpecific = 5;
+    }
+    if (state->UserFlags & 0x80000)
+    {
+        globals.player.Face_AnimSpecific = 6;
+    }
+}
+
+static unsigned int FaceIdle(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Face_AnimSpecific == 0 && globals.player.Face_ScareTimer == 0.0f &&
+        globals.player.Face_EventTimer == 0.0f && globals.player.Face_PantTimer == 0.0f)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int FaceSwing(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Face_AnimSpecific == 3 && globals.player.Face_ScareTimer == 0.0f &&
+        globals.player.Face_EventTimer == 0.0f && globals.player.Face_PantTimer == 0.0f)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int FaceSneak(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Face_AnimSpecific == 2 && globals.player.Face_ScareTimer == 0.0f &&
+        globals.player.Face_EventTimer == 0.0f && globals.player.Face_PantTimer == 0.0f)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int FaceTeeter(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Face_AnimSpecific == 1 && globals.player.Face_ScareTimer == 0.0f &&
+        globals.player.Face_EventTimer == 0.0f && globals.player.Face_PantTimer == 0.0f)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int FacePant(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Face_PantTimer != 0.0f && globals.player.Face_AnimSpecific < 4 &&
+        globals.player.Face_ScareTimer == 0.0f && globals.player.Face_EventTimer == 0.0f)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int FaceRun(xAnimTransition*, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Face_AnimSpecific == 4 && globals.player.Face_ScareTimer == 0.0f &&
+        globals.player.Face_EventTimer == 0.0f)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int FaceEvent(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Face_EventTimer != 0.0f && globals.player.Face_Event == tran->UserFlags &&
+        globals.player.Face_ScareTimer == 0.0f && globals.player.Face_AnimSpecific < 5)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int FaceScare(xAnimTransition* tran, xAnimSingle*, void*)
+{
+    unsigned char ret = 0;
+    if (globals.player.Face_ScareTimer != 0.0f && globals.player.Face_ScareRandom == tran->UserFlags)
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+static unsigned int FaceClearScareCB(xAnimTransition*, xAnimSingle*, void*)
+{
+    globals.player.Face_ScareTimer = 0.0f;
+    return 0;
+}
+
+static unsigned int FaceMad(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.Face_AnimSpecific == 5;
+}
+
+static unsigned int FaceBlow(xAnimTransition*, xAnimSingle*, void*)
+{
+    return globals.player.Face_AnimSpecific == 6;
 }

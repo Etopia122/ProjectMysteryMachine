@@ -71,8 +71,8 @@ unsigned int VIGetRetraceCount();
 void fn_800056F8(_xVec3* pos);
 void fn_80014A34(signed int mode);
 void fn_80021B20();
-void fn_8005D858(_xEnt* ent, p2EntAsset* asset);
 }
+void zEntPlayer_Init(_xEnt* ent, p2EntAsset* asset);
 void zEntShaggy_SceneStart(zScene* sc);
 void zScene_UpdateFlyToInterface(float dt);
 void xTRCRender();
@@ -890,7 +890,7 @@ void setupPlayer()
     }
     asset->ang.y = 0.0f;
     asset->ang.z = 0.0f;
-    fn_8005D858(&globals.player.ent, asset);
+    zEntPlayer_Init(&globals.player.ent, asset);
 
     if (sPlayerMarkerStartID)
     {
