@@ -1,5 +1,5 @@
-// TODO: 99.8% (NonMatching). zSceneSwitch differs in the byte-swap loop and
-// register use around the camera calls, zSceneLoad in one register swap in the
+// TODO: 99.9% (NonMatching). zSceneSwitch keeps passet in r7 instead of r3 around
+// the byte swap and the camera calls, zSceneLoad has one register swap in the
 // stats reset, zSceneRender in the sort-override loop's register allocation.
 // zSceneVisitedDeadStripped and zSceneZeroDeadStripped must be stripped by the
 // linker once this unit is Matching.
@@ -1666,11 +1666,11 @@ void zSceneSwitch(_zPortal* p)
     globals.sceneCur->pendingPortal = p;
     zPortalAsset* passet = globals.sceneCur->pendingPortal->passet;
 
-#define PID(n) (((char*)&passet->sceneID)[n])
     HackSwapIt((char*)&passet->sceneID, 4);
+    char* id = (char*)&passet->sceneID;
+    unsigned int nextSceneID = (id[0] << 24) | (id[1] << 16) | (id[2] << 8) | id[3];
 
-    if (((PID(0) << 24) | (PID(1) << 16) | (PID(2) << 8) | PID(3)) == globals.sceneCur->sceneID)
-#undef PID
+    if (nextSceneID == globals.sceneCur->sceneID)
     {
         unsigned int markerID = passet->assetMarkerID;
         unsigned int camID = passet->assetCameraID;
