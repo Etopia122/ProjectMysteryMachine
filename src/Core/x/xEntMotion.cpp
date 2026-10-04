@@ -847,7 +847,7 @@ static void xEntMechMove(_xEntMotion* motion, _xScene* sc, float dt, _xEntFrame*
             {
                 mech->state = 6;
             }
-            else
+            else if (mkasst->post_ret_delay != 0.0f)
             {
                 mech->state = 5;
             }

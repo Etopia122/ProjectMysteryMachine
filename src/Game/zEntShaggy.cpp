@@ -2798,7 +2798,7 @@ unsigned int Shaggy5_GargRunPick(xAnimTransition* tran, xAnimSingle*, _zEnt* ent
 {
     ShaggyGuts* guts = ShaggyGetGuts(ent);
     return guts->prefIdle == 3 && guts->swap == NULL &&
-           guts->idleTimer >= 0.0625f * tran->UserFlags &&
+           guts->idleTimer > 0.0625f * tran->UserFlags &&
            guts->idleTimer - 0.5f < 0.0625f * tran->UserFlags;
 }
 
