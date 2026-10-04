@@ -17,6 +17,8 @@
 #include "iMath.h"
 #include "iSnd.h"
 #include "xMemMgr.h"
+#include "iDraw.h"
+#include "xMovePoint.h"
 
 #ifndef NULL
 #define NULL 0
@@ -1416,15 +1418,38 @@ void xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
 extern "C" void* memcpy(void* dst, const void* src, unsigned long n);
 extern const _xVec3 g_Y3;
 extern const _xVec3 g_O3;
+extern const _xVec3 g_Z3;
+double asin(double);
+void xDrawSetColor(iColor_tag color);
+unsigned int xRayHitsSceneFast(_xRay3* r, _xScene* sc);
+unsigned int zEntPlayer_MoveInfo();
+void zEntPlayer_Notify(unsigned char characterSubType);
+unsigned int zEntIsShaggy(_zEnt* ent);
+void xEntBeginUpdate(_xEnt* ent, _xScene* sc, float dt);
+void xEntEndUpdate(_xEnt* ent, _xScene* sc, float dt);
+void xEntApplyPhysics(_xEnt* ent, _xScene* sc, float dt);
+void xEntMove(_xEnt* ent, _xScene* sc, float dt);
+void xEntCollide(_xEnt* ent, _xScene* sc, float dt);
+_xVec3* zMovePointGetPos(_zMovePoint* m);
+unsigned char zMovePointIsOn(_zMovePoint* m);
+float zMovePointGetNext(_zMovePoint* current, _zMovePoint* prev, _zMovePoint** next, _xVec3* hdng);
+class zAssetModelParam;
+zAssetModelParam* zEntGetModelParams(unsigned int assetID, unsigned int* size);
+signed int zParamGetInt(zAssetModelParam* param, unsigned int size, char* tok, signed int def);
+float zParamGetFloat(zAssetModelParam* param, unsigned int size, char* tok, float def);
+signed int zParamGetVector(zAssetModelParam* param, unsigned int size, char* tok, _xVec3 def,
+                           _xVec3* result);
 void xEntBeginCollide(_xEnt* ent, _xScene* sc, float dt);
 void xEntEndCollide(_xEnt* ent, _xScene* sc, float dt);
 xModelInstance* xModelInstanceAlloc(RpAtomic* data, void* object, unsigned short flags, unsigned char boneIndex,
                                     unsigned char* boneRemap);
 void xModelInstanceFree(xModelInstance* inst);
 static void VIRM_initVilDflt(st_zEntVillain* ent);
-static void zVIL_input_stim(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* sc, float dt);
+static signed int zVIL_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* sc, float dt);
+static float VNAV_get_movespeed(st_zEntVillain* vil, float rnd);
 void xMat4x3RMul3x3(_xMat4x3* o, _xMat3x3* a, _xMat4x3* b);
 signed int zEntPlayer_Damage(xBase* src, unsigned int damage);
+signed int zEntPlayer_Damage(xBase* src, unsigned int damage, _xVec3* knockback);
 class RwTexture;
 extern "C" signed int RwRenderStateSet(signed int state, void* value);
 class RxObjSpace3DVertex
@@ -1447,6 +1472,7 @@ public:
     unsigned char r, g, b, a;
 };
 static en_ZVILLAIN_HEADBUTT_RESPONSE VOUT_spikey_header(st_zEntVillain* vil);
+static signed int VNAV_chklos_timz(void* usrdata, _xVec3* mypos, _zMovePoint* mvpt);
 static en_NPC_ANIMSTATES VANM_set(st_zEntVillain* ent, en_NPC_ANIMSTATES* best, signed int cnt, signed int sync);
 
 static _zParEmitter* sEmitHoloPoof;
@@ -3502,6 +3528,2171 @@ static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT e
 static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off);
 static signed int VWEP_lobActivatePRJ(zEntProjectile* prj, st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static zEntProjectile* VWEP_lobReservePRJ(st_zEntVillain* vil);
+static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* pos_tgt);
+static signed int VWEP_swipe(st_zEntVillain* vil);
+static en_BEHAVIOUR_GOAL VGOL_set(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal);
+static signed int VCFG_getParm(st_ZVIL_CONFIG_REFERENCE* vilcfg, en_NPC_INI_PARAMETERS pid, void* val);
+static void VCFG_readAsset(st_ZVIL_CONFIG_REFERENCE* vilcfg);
+static inline void VCFG_readSAnim(zAssetModelParam* parms, unsigned int pmsize, char* name, _xVec3* vec, st_ZVIL_CONFIG_REFERENCE* vilcfg, _xVec3* dst, signed int bit);
+static void VCFG_readParms(st_ZVIL_CONFIG_REFERENCE* vilcfg);
+static void VIRM_initVilDflt(st_zEntVillain* vil);
+static inline signed int VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe);
+static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float chance);
+static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame);
+static _xVec3* VUTIL_mdlpos(st_zEntVillain* vil);
+static inline float VUTIL_sqrt(float x);
+static inline signed int VUTIL_heroInFov(st_zEntVillain* vil);
+static inline signed int VUTIL_heroInSight(st_zEntVillain* vil, signed int lastknown);
+static inline void VUTIL_chkSight(st_zEntVillain* vil, signed int lastknown);
+static void zVIL_precalc(st_zEntVillain* vil, signed int flags);
+static inline void VTMR_tick(st_zEntVillain* vil, signed int idx, float dt);
+static void zVIL_upd_timers(st_zEntVillain* vil, float dt);
+static void zVIL_apply_vilcfg(st_zEntVillain* vil, st_ZVIL_CONFIG_REFERENCE* vilcfg);
+static inline signed int VNAV_weightedPick(float* wts, signed int cnt);
+static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force);
+static inline xAnimSingle* VANM_single(st_zEntVillain* vil);
+static inline unsigned int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int mask);
+static inline void VNAV_animspeed(st_zEntVillain* vil, float spd, _xVec3* sanim);
+static float VNAV_get_movespeed(st_zEntVillain* vil, float rnd);
+static signed int VNAV_chklos_timz(void* usrdata, _xVec3* pos, _zMovePoint* mvpt);
+static inline float VNAV_dist(_xVec3* a, _xVec3* b);
+static signed int VNAV_get_nav(st_zEntVillain* vil);
+static en_ZVILLAIN_HEADBUTT_RESPONSE VOUT_spikey_header(st_zEntVillain* vil);
+static signed int VOUT_apply_anchor(st_zEntVillain* vil);
+static signed int VOUT_dogoto_widget(st_zEntVillain* vil, xBase* widge, float keepaway, signed int follow);
+static signed int zVIL_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt);
+static void zVIL_elcb_move(_xEnt* xe, _xScene* scn, float dt, _xEntFrame* frame);
+static void zVIL_elcb_bupdate(_xEnt* xe, _xVec3* pos_bound);
+static inline void VUTIL_resetctx(st_STIMULUS_CONTEXT_DATA* ctx);
+static void zVIL_elcb_update(_xEnt* xe, _xScene* scn, float dt);
+static signed int zVIL_elcb_event(xBase* from, xBase* to, unsigned int toEvent, float* toParam, xBase* toParamWidget);
+
+static signed int zVIL_elcb_event(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
+                                  xBase* toParamWidget)
+{
+    st_zEntVillain* vil = (st_zEntVillain*)to;
+    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+
+    vil->vhf->sysevent(vil, from, toEvent, toParam, toParamWidget, &stimctxt);
+    if (stimctxt.stim)
+    {
+        st_STIMULUS_CONTEXT_DATA resp = {};
+
+        if (!vil->standby || vil->tmr_list[ZVIL_TDUR_STDBY] <= 0.0f)
+        {
+            resp = stimctxt;
+            resp.stim = (en_NPC_STIMULUS)0;
+            vil->vhf->stimulus(vil, &stimctxt, &resp);
+            if (resp.stim)
+            {
+                zVIL_trangoal(vil, &resp, globals.update_dt);
+            }
+        }
+    }
+    return 1;
+}
+
+static void zVIL_elcb_update(_xEnt* xe, _xScene* scn, float dt)
+{
+    st_zEntVillain* vil = (st_zEntVillain*)xe;
+    st_STIMULUS_CONTEXT_DATA ctx = {};
+
+    zVIL_upd_timers(vil, dt);
+    if (vil->anim_playing && !zEntIsShaggy(vil) && vil->subType != 0x11)
+    {
+        xAnimSingle* single = VANM_single(vil);
+        xAnimState* state = single ? single->State : NULL;
+
+        if (state->ID != g_anamhash[vil->anim_playnext])
+        {
+            vil->anim_playing = 0;
+            vil->model->Flags |= 0x100;
+        }
+        else
+        {
+            vil->model->Flags &= ~0x100;
+        }
+    }
+    else
+    {
+        vil->model->Flags |= 0x100;
+    }
+
+    vil->vhf->query(vil, ZVIL_Q_DOUPDATE);
+
+    VUTIL_resetctx(&ctx);
+    vil->vhf->notice(vil, (en_ZVIL_NOTICE)1, &ctx);
+    if (ctx.stim)
+    {
+        zVIL_trangoal(vil, &ctx, dt);
+    }
+
+    VUTIL_resetctx(&ctx);
+    vil->vhf->aware(vil, scn, dt, &ctx);
+    if (ctx.stim)
+    {
+        zVIL_trangoal(vil, &ctx, dt);
+    }
+
+    xEntBeginUpdate(vil, scn, dt);
+    if (vil->pflags & 2)
+    {
+        xEntApplyPhysics(vil, scn, dt);
+    }
+    if (vil->pflags & 1)
+    {
+        xEntMove(vil, scn, dt);
+    }
+    xFFXApply(vil, scn, dt);
+    if (vil->collis)
+    {
+        xEntCollide(vil, scn, dt);
+    }
+    xEntEndUpdate(vil, scn, dt);
+
+    VUTIL_resetctx(&ctx);
+    vil->vhf->respond(vil, &ctx);
+    if (ctx.stim)
+    {
+        zVIL_trangoal(vil, &ctx, dt);
+    }
+
+    vil->precalc.flg_status = 0x40000000;
+    VCFG_getParm(&vil->vilcfg, ZVIL_PARM_MDLSCL_BASE, &vil->model->Scale);
+
+    VUTIL_resetctx(&ctx);
+    vil->vhf->notice(vil, (en_ZVIL_NOTICE)2, &ctx);
+    vil->precalc.flg_status = 0x20000000;
+    VSND_procQueue(vil, dt);
+}
+
+static inline void VUTIL_resetctx(st_STIMULUS_CONTEXT_DATA* ctx)
+{
+    memset(ctx, 0, sizeof(st_STIMULUS_CONTEXT_DATA));
+    ctx->stim = (en_NPC_STIMULUS)0;
+}
+
+static void zVIL_elcb_bupdate(_xEnt* xe, _xVec3* pos_bound)
+{
+    st_zEntVillain* vil = (st_zEntVillain*)xe;
+    st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
+    _xVec3 vec_off = {};
+
+    npcinfo = &g_npcTable[vil->asset->subtype];
+    vec_off = npcinfo->vec_bndoff;
+    xMat3x3RMulVec(&vec_off, (_xMat3x3*)vil->model->Mat, &vec_off);
+    xVec3Add(&vil->bound.sph.center, &vec_off, pos_bound);
+    vil->bound.sph.r = g_npcTable[vil->asset->subtype].rad_bound;
+    xBoundUpdate(&vil->bound);
+
+    vil->bound2.sph.r = g_npcTable[vil->asset->subtype].rad_bound2;
+    if (vil->bound2.sph.r > 0.0f)
+    {
+        npcinfo = &g_npcTable[vil->asset->subtype];
+        vec_off = npcinfo->vec_bnd2off;
+        xMat3x3RMulVec(&vec_off, (_xMat3x3*)vil->model->Mat, &vec_off);
+        xVec3Add(&vil->bound2.sph.center, &vec_off, pos_bound);
+    }
+}
+
+static void zVIL_elcb_move(_xEnt* xe, _xScene* scn, float dt, _xEntFrame* frame)
+{
+    st_zEntVillain* vil = (st_zEntVillain*)xe;
+
+    vil->vhf->calcmove(vil, scn, dt, frame);
+    if (vil->domove)
+    {
+        zVIL_apply_move(vil, dt, frame);
+    }
+}
+
+static signed int zVIL_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt)
+{
+    signed int rc = 1;
+    st_STIMULUS_CONTEXT_DATA exitctxt = {};
+    signed int i;
+
+    if (stimctxt->stim == 5 && stimctxt->trangoal != vil->goal)
+    {
+        if (stimctxt->tranmode)
+        {
+            vil->mode = stimctxt->tranmode;
+        }
+        for (i = 0; i < 4; i++)
+        {
+            vil->snd_queue[i].sndEvent = (en_NPC_SOUND)-1;
+            vil->snd_queue[i].sndDirect = 0;
+        }
+
+        exitctxt.stim = (en_NPC_STIMULUS)3;
+        exitctxt.trangoal = vil->goal;
+        if (!vil->vhf->trangoal(vil, &exitctxt, dt))
+        {
+            rc = 0;
+        }
+        stimctxt->stim = (en_NPC_STIMULUS)4;
+        if (!vil->vhf->trangoal(vil, stimctxt, dt))
+        {
+            rc = 0;
+        }
+        VGOL_set(vil, stimctxt->trangoal);
+        vil->tmr_list[ZVIL_TYMR_CURGOAL] = 0.0f;
+    }
+    return rc;
+}
+
+static signed int VOUT_dogoto_widget(st_zEntVillain* vil, xBase* widge, float keepaway, signed int follow)
+{
+    signed int rc = 0;
+
+    vil->allow |= 1;
+    if (vil->nav_next)
+    {
+        vil->nav_prev = vil->nav_next;
+    }
+    vil->nav_next = NULL;
+    vil->need_navpt = 0;
+    if (follow)
+    {
+        vil->flg_misc |= 0x20000000;
+        vil->flg_misc &= ~0x10000000;
+    }
+    else
+    {
+        vil->flg_misc &= ~0x20000000;
+        vil->flg_misc |= 0x10000000;
+    }
+    vil->flg_misc &= ~0x40000000;
+    vil->flg_misc &= ~0x80000000;
+    vil->ds2_goto_keepaway = keepaway * keepaway;
+
+    switch (widge->baseType)
+    {
+    case 13:
+        if (follow)
+        {
+            vil->nav_next = (_zMovePoint*)widge;
+            rc = 1;
+            vil->flg_misc &= ~0x10000000;
+            vil->flg_misc &= ~0x20000000;
+        }
+        else
+        {
+            vil->pos_goto = *zMovePointGetPos((_zMovePoint*)widge);
+        }
+        break;
+    case 2:
+    case 3:
+    case 4:
+    case 6:
+    case 8:
+    case 11:
+    case 12:
+    case 18:
+    case 23:
+    case 24:
+    case 27:
+        if (follow)
+        {
+            vil->tgt_follow = (_xEnt*)widge;
+        }
+        else
+        {
+            vil->pos_goto = ((_xMat4x3*)((_xEnt*)widge)->model->Mat)->pos;
+        }
+        break;
+    }
+    return rc;
+}
+
+static signed int VOUT_apply_anchor(st_zEntVillain* vil)
+{
+    signed int found = 0;
+
+    if (vil->tgt_protect)
+    {
+        switch (vil->tgt_protect->baseType)
+        {
+        case 13:
+            vil->pos_pursue_home = *zMovePointGetPos((_zMovePoint*)vil->tgt_protect);
+            break;
+        case 2:
+        case 3:
+        case 4:
+        case 6:
+        case 8:
+        case 11:
+        case 12:
+        case 18:
+        case 23:
+        case 24:
+        case 27:
+            found = 1;
+            vil->pos_pursue_home = ((_xMat4x3*)vil->tgt_protect->model->Mat)->pos;
+            break;
+        default:
+            xSceneID2Name(globals.sceneCur, vil->id);
+            xSceneID2Name(globals.sceneCur, vil->tgt_protect->id);
+            vil->tgt_protect = NULL;
+            found = 0;
+            vil->ds2_goto_keepaway = 0.0f;
+            break;
+        }
+    }
+    if (!found)
+    {
+        found = 1;
+        vil->pos_pursue_home = *VUTIL_mdlpos(vil);
+        vil->ds2_goto_keepaway = 0.0f;
+    }
+    return found;
+}
+
+static en_ZVILLAIN_HEADBUTT_RESPONSE VOUT_spikey_header(st_zEntVillain* vil)
+{
+    signed int resp = 0;
+    signed int side = 0;
+    _xVec3 pos_plyr = {};
+    _xVec3 dir = {};
+    float dang;
+    float ang;
+
+    if (!(vil->abl_spyk & 1))
+    {
+        return (en_ZVILLAIN_HEADBUTT_RESPONSE)0;
+    }
+
+    pos_plyr = *xBoundCenter(&globals.player.ent.bound);
+    xVec3Sub(&dir, &pos_plyr, VUTIL_mdlpos(vil));
+    xVec3Normalize(&dir, &dir);
+    dang = xAngleClamp(atan2(dir.x, dir.z)) - vil->frame->rot.angle;
+    ang = xAngleClamp(dang + 0.7853982f);
+    if (ang > 0.0f && ang <= 1.5707964f)
+    {
+        side = 1;
+    }
+    else if (ang > 1.5707964f && ang <= 3.1415927f)
+    {
+        side = 4;
+    }
+    else if (ang > 3.1415927f && ang < 4.712389f)
+    {
+        side = 2;
+    }
+    else if (ang > 0.0f && ang < 1.5707964f)
+    {
+        side = 3;
+    }
+    xAngleClamp(dang);
+
+    // The original has no breaks here, so each side also checks the later ones.
+    switch (side)
+    {
+    case 1:
+        if (vil->abl_spyk & 2)
+        {
+            resp = 4;
+        }
+    case 2:
+        if (vil->abl_spyk & 4)
+        {
+            resp = 4;
+        }
+    case 3:
+        if (vil->abl_spyk & 8)
+        {
+            resp = 4;
+        }
+    case 4:
+        if (vil->abl_spyk & 0x10)
+        {
+            resp = 4;
+        }
+        break;
+    }
+    return (en_ZVILLAIN_HEADBUTT_RESPONSE)resp;
+}
+
+static signed int VNAV_get_nav(st_zEntVillain* vil)
+{
+    _zMovePoint* nxt = NULL;
+
+    vil->tmr_list[3] = vil->vilcfg.tymref_list[3];
+    if (!(vil->tmr_list[ZVIL_TDUR_NAVDELAY] <= 0.0f))
+    {
+        nxt = NULL;
+    }
+    else if (!vil->nav_prev)
+    {
+        if (zMovePointIsOn(vil->nav_mvptlist))
+        {
+            vil->nav_prev = vil->nav_mvptlist;
+            nxt = vil->nav_mvptlist;
+        }
+        else
+        {
+            nxt = NULL;
+        }
+    }
+    else if (vil->nav_next)
+    {
+        zMovePointGetNext(vil->nav_next, vil->nav_prev, &nxt, NULL);
+    }
+    else
+    {
+        zMovePointGetNext(vil->nav_prev, NULL, &nxt, NULL);
+    }
+
+    if (nxt)
+    {
+        vil->need_navpt = 0;
+        if (vil->nav_prev)
+        {
+            vil->dst_navTween = VNAV_dist(zMovePointGetPos(nxt), zMovePointGetPos(vil->nav_prev));
+        }
+        else if (((_xMovePoint*)nxt)->spl)
+        {
+            vil->dst_navTween = VNAV_dist(zMovePointGetPos(nxt), VUTIL_mdlpos(vil));
+        }
+    }
+
+    if (vil->nav_next)
+    {
+        vil->nav_prev = vil->nav_next;
+    }
+    vil->nav_next = nxt;
+    return vil->nav_next != NULL;
+}
+
+static inline float VNAV_dist(_xVec3* a, _xVec3* b)
+{
+    _xVec3 d;
+    float d2;
+
+    xVec3Sub(&d, a, b);
+    d2 = xVec3Dot(&d, &d);
+    if (d2 > 0.0f)
+    {
+        d2 = xsqrt(d2);
+    }
+    return d2;
+}
+
+static signed int VNAV_chklos_timz(void* usrdata, _xVec3* pos, _zMovePoint* mvpt)
+{
+    st_zEntVillain* vil = (st_zEntVillain*)usrdata;
+    _xRay3 ray;
+    _xVec3* pos_mp;
+    float len;
+
+    ray.min_t = 0.001f + vil->bound.sph.r;
+    pos_mp = zMovePointGetPos(mvpt);
+    xVec3Sub(&ray.dir, pos_mp, pos);
+    len = xVec3Normalize(&ray.dir, &ray.dir);
+    ray.origin.x = ray.dir.x * ray.min_t + pos->x;
+    ray.origin.y = ray.dir.y * ray.min_t + pos->y;
+    ray.origin.z = ray.dir.z * ray.min_t + pos->z;
+    ray.max_t = len - ray.min_t;
+    ray.flags = 0x800;
+    return (unsigned char)(xRayHitsSceneFast(&ray, globals.sceneCur) == 0);
+}
+
+static float VNAV_get_movespeed(st_zEntVillain* vil, float rnd)
+{
+    float spd = rnd;
+
+    if (VANM_stateUserFlags(vil, 0x1E000000) & 0x04000000)
+    {
+        return 5.0f;
+    }
+
+    if (vil->goal == ZVIL_GOAL_GUMMED && (vil->abl_move & 0x100000))
+    {
+        spd *= vil->spd_move;
+        if (vil->flg_misc & 2)
+        {
+            VNAV_animspeed(vil, spd, &vil->sanim_move);
+        }
+        return spd;
+    }
+
+    if (VANM_stateUserFlags(vil, 0x1E) == 0xA)
+    {
+        return spd * 5.0f;
+    }
+
+    if (VANM_stateUserFlags(vil, 0x1E) == 6)
+    {
+        spd *= vil->spd_chase;
+        if (vil->flg_misc & 4)
+        {
+            VNAV_animspeed(vil, spd, &vil->sanim_chase);
+        }
+        return spd;
+    }
+
+    if (VANM_stateUserFlags(vil, 0x1E) == 4)
+    {
+        if (vil->asset->subtype == eEntVillainBossBlackKnight)
+        {
+            float ext = vil->spd_chase - vil->spd_move;
+            if (ext < 0.0f)
+            {
+                ext = -ext;
+            }
+            switch (vil->hitpts)
+            {
+            case 4:
+                ext *= 0.0f;
+                break;
+            case 3:
+                ext *= 0.33f;
+                break;
+            case 2:
+                ext *= 0.66f;
+                break;
+            }
+            spd *= vil->spd_move + ext;
+        }
+        else
+        {
+            spd *= vil->spd_move;
+        }
+        if (vil->flg_misc & 2)
+        {
+            VNAV_animspeed(vil, spd, &vil->sanim_move);
+        }
+        return spd;
+    }
+
+    if (VANM_stateUserFlags(vil, 0x1E) == 1)
+    {
+        if (vil->flg_misc & 1)
+        {
+            float base = vil->sanim_idle.x;
+            if (vil->anim_playing && !(base < 0.001f))
+            {
+                xAnimSingle* single = VANM_single(vil);
+                if (single)
+                {
+                    single->CurrentSpeed = base;
+                }
+            }
+        }
+        return spd;
+    }
+
+    return 0.0f;
+}
+
+static inline void VNAV_animspeed(st_zEntVillain* vil, float spd, _xVec3* sanim)
+{
+    _xVec3 sa = *sanim;
+    float fac;
+    float lim;
+    xAnimSingle* single;
+
+    if (!vil->anim_playing || sa.x < 0.001f)
+    {
+        return;
+    }
+    fac = spd / sa.x;
+    lim = (fac < sa.z) ? fac : sa.z;
+    if (!(sa.y > lim))
+    {
+        sa.y = (fac < sa.z) ? fac : sa.z;
+    }
+    single = VANM_single(vil);
+    if (single)
+    {
+        single->CurrentSpeed = sa.y;
+    }
+}
+
+static inline unsigned int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int mask)
+{
+    xAnimSingle* single = VANM_single(vil);
+    xAnimState* state = single ? single->State : NULL;
+    return state ? (state->UserFlags & mask) : 0;
+}
+
+static inline xAnimSingle* VANM_single(st_zEntVillain* vil)
+{
+    if (vil->model && vil->model->Anim)
+    {
+        return vil->model->Anim->Single;
+    }
+    return NULL;
+}
+
+static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force)
+{
+    static signed int use_random = 1;
+    _zMovePoint* mvpt = NULL;
+    signed int idx_far = -1;
+    float ds2_plyr[12];
+    float ds2_vil[12];
+    _xVec3 pos_ref = {};
+    _xVec3 pos_plyr = {};
+    signed int i;
+
+    if (!force && vil->precalc.ds2_VtoP > 16.0f)
+    {
+        return NULL;
+    }
+
+    for (i = 0; i < 12; i++)
+    {
+        _zMovePoint* mp = g_mmtp[i];
+        if (!mp)
+        {
+            ds2_plyr[i] = -1.0f;
+            ds2_vil[i] = -1.0f;
+        }
+        else
+        {
+            _xVec3 delt;
+            _xVec3* pos_mp;
+
+            // The original measures from a zero vector rather than the move point.
+            delt.x = pos_ref.x - VUTIL_mdlpos(vil)->x;
+            delt.y = pos_ref.y - VUTIL_mdlpos(vil)->y;
+            delt.z = pos_ref.z - VUTIL_mdlpos(vil)->z;
+            ds2_vil[i] = delt.x * delt.x + delt.z * delt.z;
+
+            pos_plyr = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            pos_mp = zMovePointGetPos(mp);
+            xVec3Sub(&pos_plyr, &pos_plyr, pos_mp);
+            ds2_plyr[i] = xVec3Dot(&pos_plyr, &pos_plyr);
+        }
+    }
+
+    for (i = 0; i < 12; i++)
+    {
+        if (!(ds2_plyr[i] < 0.0f) && !(ds2_vil[i] < 0.0f))
+        {
+            if (idx_far < 0)
+            {
+                idx_far = i;
+            }
+            if (ds2_plyr[i] > ds2_plyr[idx_far])
+            {
+                idx_far = i;
+            }
+        }
+    }
+    if (idx_far >= 0 && ds2_vil[idx_far] > 1.0f)
+    {
+        mvpt = g_mmtp[idx_far];
+    }
+
+    if (use_random)
+    {
+        signed int list_near[4] = { 8, 9, 10, 11 };
+        signed int list_far[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+        float wts_near[4] = { 0.2f, 0.3f, 0.3f, 0.2f };
+        float wts_far[8] = { 1.0f, 2.0f, 2.0f, 1.0f, 2.0f, 1.0f, 1.0f, 2.0f };
+        float tot = 0.0f;
+
+        for (i = 0; i < 8; i++)
+        {
+            if (wts_far[i] < 0.0f)
+            {
+                wts_far[i] = -wts_far[i];
+            }
+            tot += wts_far[i];
+        }
+        for (i = 0; i < 8; i++)
+        {
+            wts_far[i] *= 1.0f / tot;
+        }
+
+        if (xUtil_yesno(0.2f))
+        {
+            mvpt = g_mmtp[list_near[VNAV_weightedPick(wts_near, 4)]];
+        }
+        else
+        {
+            mvpt = g_mmtp[list_far[VNAV_weightedPick(wts_far, 8)]];
+        }
+    }
+
+    if (!mvpt && force)
+    {
+        mvpt = vil->nav_mvptlist;
+        vil->nav_next = NULL;
+    }
+    else if (force && mvpt && mvpt == vil->nav_next)
+    {
+        vil->nav_next = NULL;
+    }
+    return mvpt;
+}
+
+static inline signed int VNAV_weightedPick(float* wts, signed int cnt)
+{
+    signed int sel = 0;
+    signed int i;
+    float r = iurand();
+    float lo;
+    float hi = 0.0f;
+
+    for (i = 0; i < cnt; i++)
+    {
+        lo = hi;
+        hi += wts[i];
+        if (r >= lo && r <= hi)
+        {
+            sel = i;
+            break;
+        }
+    }
+    return sel;
+}
+
+static void zVIL_apply_vilcfg(st_zEntVillain* vil, st_ZVIL_CONFIG_REFERENCE* vilcfg)
+{
+    signed int allow = 0;
+    unsigned int vflags = vilcfg->vilp2ass->villFlags;
+    st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
+
+    if (vflags & 1)
+    {
+        allow = 1;
+    }
+    if (vflags & 2)
+    {
+        allow |= 2;
+    }
+    if (vflags & 4)
+    {
+        allow |= 4;
+    }
+    if (vflags & 8)
+    {
+        allow |= 0x10;
+    }
+    if (vflags & 0x10)
+    {
+        allow |= 8;
+    }
+    if (vflags & 0x80)
+    {
+        allow |= 0x100;
+    }
+    if (vflags & 0x100)
+    {
+        allow |= 0x200;
+    }
+    if (vflags & 0x20)
+    {
+        allow |= 0x40;
+    }
+    if (vflags & 0x40)
+    {
+        allow |= 0x80;
+    }
+    vil->allow = allow;
+    vil->flg_misc = vilcfg->misc_flags;
+
+    VCFG_getParm(vilcfg, ZVIL_PARM_SANIM_IDLE, &vil->sanim_idle);
+    VCFG_getParm(vilcfg, ZVIL_PARM_SANIM_MOVE, &vil->sanim_move);
+    VCFG_getParm(vilcfg, ZVIL_PARM_SANIM_CHASE, &vil->sanim_chase);
+
+    npcinfo = &g_npcTable[vil->asset->subtype];
+    if (npcinfo->vec_bndoff.x != vilcfg->vec_bndoffset.x || npcinfo->vec_bndoff.y != vilcfg->vec_bndoffset.y ||
+        npcinfo->vec_bndoff.z != vilcfg->vec_bndoffset.z)
+    {
+        npcinfo->vec_bndoff = vilcfg->vec_bndoffset;
+    }
+    if (npcinfo->rad_bound != vilcfg->rad_bound)
+    {
+        npcinfo->rad_bound = vilcfg->rad_bound;
+    }
+    npcinfo->rad_bound2 = vilcfg->rad_bound2;
+    npcinfo->vec_bnd2off = vilcfg->vec_bnd2offset;
+
+    VCFG_getParm(vilcfg, ZVIL_PARM_WANDER_ARC, &vil->ang_wander);
+    VCFG_getParm(vilcfg, ZVIL_PARM_HIT_POINTS, &vil->hitpts);
+    VCFG_getParm(vilcfg, ZVIL_PARM_MOVE_RATE, &vil->spd_move);
+    VCFG_getParm(vilcfg, ZVIL_PARM_CHASE_RATE, &vil->spd_chase);
+    VCFG_getParm(vilcfg, ZVIL_PARM_TURN_RATE, &vil->spd_turn);
+    VCFG_getParm(vilcfg, ZVIL_PARM_DETECT_RADIUS, &vil->ds2_detect);
+    VCFG_getParm(vilcfg, ZVIL_PARM_DETECT_HEIGHT, &vil->hyt_detect);
+    VCFG_getParm(vilcfg, ZVIL_PARM_DETECT_HYTOFF, &vil->hyt_dtctoff);
+    VCFG_getParm(vilcfg, ZVIL_PARM_FOV_ANGLE, &vil->fov_detect);
+    VCFG_getParm(vilcfg, ZVIL_PARM_PURSUE_RADIUS, &vil->ds2_pursue);
+    VCFG_getParm(vilcfg, ZVIL_PARM_LOB_RANGE, &vil->dst_lob);
+    VCFG_getParm(vilcfg, ZVIL_PARM_LOB_SPEED, &vil->spd_lob);
+    VCFG_getParm(vilcfg, ZVIL_PARM_LOB_SALVO, &vil->cnt_lobSalvo);
+    VCFG_getParm(vilcfg, ZVIL_PARM_LOB_ARC, &vil->fac_lobarc);
+    VCFG_getParm(vilcfg, ZVIL_PARM_LOB_HEAVY, &vil->fac_lobheavy);
+    VCFG_getParm(vilcfg, ZVIL_PARM_LOB_PRJTYPE, &vil->prjTypeID);
+    VCFG_getParm(vilcfg, ZVIL_PARM_EXTEND_RANGE, &vil->dst_extend);
+    VCFG_getParm(vilcfg, ZVIL_PARM_EXTEND_WIDTH, &vil->wid_extend);
+    VCFG_getParm(vilcfg, ZVIL_PARM_EXTEND_RATE, &vil->spd_extend);
+
+    vilcfg->tymref_list[23] =
+        (g_npcTable[vil->asset->subtype].decay > vilcfg->tymref_list[23]) ? g_npcTable[vil->asset->subtype].decay
+                                                                            : vilcfg->tymref_list[23];
+}
+
+static void zVIL_upd_timers(st_zEntVillain* vil, float dt)
+{
+    VTMR_tick(vil, 9, dt);
+    VTMR_tick(vil, 28, dt);
+    VTMR_tick(vil, 29, -dt);
+    VTMR_tick(vil, 30, dt);
+    VTMR_tick(vil, 19, dt);
+    VTMR_tick(vil, 20, dt);
+    VTMR_tick(vil, 24, dt);
+    VTMR_tick(vil, 6, dt);
+    VTMR_tick(vil, 7, dt);
+    VTMR_tick(vil, 27, dt);
+
+    switch (vil->goal)
+    {
+    case 9:
+        VTMR_tick(vil, 15, dt);
+    case 4:
+        VTMR_tick(vil, 1, dt);
+    case 5:
+        VTMR_tick(vil, 0, dt);
+        VTMR_tick(vil, 3, dt);
+        VTMR_tick(vil, 24, dt);
+        VTMR_tick(vil, 8, dt);
+        break;
+    case 6:
+    case 7:
+    case 8:
+        VTMR_tick(vil, 3, dt);
+        VTMR_tick(vil, 24, dt);
+        break;
+    case 12:
+        VTMR_tick(vil, 0, dt);
+        break;
+    case 13:
+        VTMR_tick(vil, 15, dt);
+        break;
+    case 14:
+        VTMR_tick(vil, 16, dt);
+        break;
+    case 16:
+        VTMR_tick(vil, 17, dt);
+        break;
+    case 23:
+        VTMR_tick(vil, 11, dt);
+        break;
+    case 17:
+    case 18:
+        VTMR_tick(vil, 10, dt);
+        VTMR_tick(vil, 2, dt);
+        VTMR_tick(vil, 5, dt);
+        break;
+    case 19:
+        VTMR_tick(vil, 3, dt);
+        break;
+    case 21:
+    case 22:
+        VTMR_tick(vil, 18, dt);
+        VTMR_tick(vil, 21, dt);
+    case 20:
+        VTMR_tick(vil, 26, dt);
+        break;
+    case 24:
+        VTMR_tick(vil, 12, dt);
+        VTMR_tick(vil, 0, dt);
+        VTMR_tick(vil, 4, dt);
+        break;
+    case 26:
+        VTMR_tick(vil, 13, dt);
+        VTMR_tick(vil, 0, dt);
+        VTMR_tick(vil, 25, dt);
+        VTMR_tick(vil, 4, dt);
+        break;
+    case 25:
+        VTMR_tick(vil, 14, dt);
+        VTMR_tick(vil, 0, dt);
+        VTMR_tick(vil, 4, dt);
+        break;
+    case 27:
+        VTMR_tick(vil, 22, dt);
+        break;
+    case 32:
+        VTMR_tick(vil, 23, dt);
+        break;
+    }
+}
+
+static inline void VTMR_tick(st_zEntVillain* vil, signed int idx, float dt)
+{
+    float t = vil->tmr_list[idx] - dt;
+    vil->tmr_list[idx] = (t < -1.0f) ? -1.0f : t;
+}
+
+static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
+{
+    st_ZVIL_PRECALC* pc;
+    signed int doflags = flags;
+    signed int old_pit;
+    signed int old_los;
+    _xVec3 pos_vil;
+    _xVec3 ctr_vil;
+    _xVec3 pos_plyr;
+    _xVec3 ctr_plyr;
+    _xVec3 vec = {};
+
+    if (flags & 2)
+    {
+        doflags |= 1;
+    }
+
+    pc = &vil->precalc;
+    old_los = (pc->flg_plyr >> 3) & 1;
+    old_pit = pc->flg_xtra & 1;
+    memset(pc, 0, sizeof(st_ZVIL_PRECALC));
+
+    pos_vil = *VUTIL_mdlpos(vil);
+    ctr_vil = *xBoundCenter(&vil->bound);
+    pos_plyr = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+    ctr_plyr = *xBoundCenter(&globals.player.ent.bound);
+
+    if (doflags & 1)
+    {
+        _xVec3 dir = {};
+        float ds2;
+
+        vec.x = pos_plyr.x - pos_vil.x;
+        vec.y = pos_plyr.y - pos_vil.y;
+        vec.z = pos_plyr.z - pos_vil.z;
+        pc->ds2_VtoP = vec.x * vec.x + vec.z * vec.z;
+        ds2 = pc->ds2_VtoP;
+        if (ds2 > 0.0f)
+        {
+            ds2 = VUTIL_sqrt(ds2);
+        }
+        pc->dst_VtoP = ds2;
+
+        xVec3Sub(&dir, xBoundCenter(&globals.player.ent.bound), VUTIL_mdlpos(vil));
+        xVec3Normalize(&dir, &dir);
+        pc->ang_VtoP = xAngleClamp(atan2(dir.x, dir.z));
+        xVec3Normalize(&pc->dir_VtoP, &dir);
+        xVec3Sub(&pc->vec_VtoP, &pos_plyr, &pos_vil);
+
+        pc->plyr_mvinf = zEntPlayer_MoveInfo();
+        if (g_scene_is_a_boss_battle)
+        {
+            pc->plyr_mvinf &= ~0xFF00;
+        }
+        else if (!(pc->plyr_mvinf & 0xFF00))
+        {
+            float tym = vil->vilcfg.tymref_list[ZVIL_TWIN_IGNORESNEAK];
+            vil->tmr_list[ZVIL_TWIN_IGNORESNEAK] = 0.25f * (iurand() - 0.5f) * tym + tym;
+        }
+        else if (!(vil->tmr_list[ZVIL_TWIN_IGNORESNEAK] <= 0.0f))
+        {
+            pc->plyr_mvinf &= ~0xFF00;
+        }
+        pc->flg_status |= 1;
+    }
+
+    if (doflags & 4)
+    {
+        pc->dif_plyrCtr = ctr_plyr.y - pos_plyr.y;
+        pc->hyt_plyr = 2.0f * pc->dif_plyrCtr;
+        pc->dif_vilCtr = ctr_vil.y - pos_vil.y;
+        pc->hyt_vil = 2.0f * pc->dif_vilCtr;
+        pc->flg_status |= 4;
+    }
+
+    if (vil->mode > ZVIL_MODE_NORMAL && zVIL_chk_pitfall(vil, old_pit, 0.25f))
+    {
+        pc->flg_xtra |= 1;
+    }
+
+    if (doflags & 8)
+    {
+        float dx;
+        float dz;
+        float yaw;
+
+        dx = vil->pos_pursue_home.x - VUTIL_mdlpos(vil)->x;
+        dz = vil->pos_pursue_home.z - VUTIL_mdlpos(vil)->z;
+        pc->ds2_anchor = dx * dx + dz * dz;
+        dx = vil->pos_guard_home.x - VUTIL_mdlpos(vil)->x;
+        dz = vil->pos_guard_home.z - VUTIL_mdlpos(vil)->z;
+        pc->ds2_grdpos = dx * dx + dz * dz;
+        yaw = vil->frame->rot.angle;
+        pc->cos_faceang = cos(yaw);
+        pc->sin_faceang = sin(yaw);
+        pc->flg_status |= 8;
+    }
+
+    if (doflags & 2)
+    {
+        float hd = vil->hyt_detect;
+        float top = 0.5f * hd + vil->hyt_dtctoff;
+        float bot = top - hd;
+
+        if (vil->vhf->query(vil, ZVIL_Q_CANDETECT))
+        {
+            float rad2 = vil->ds2_detect;
+
+            if (pc->plyr_mvinf & 0xFF00)
+            {
+                float r = 0.0625f * rad2;
+                rad2 = r * r;
+            }
+            if (pc->ds2_VtoP < rad2)
+            {
+                float dy = pc->vec_VtoP.y;
+
+                if (dy < top && dy > bot)
+                {
+                    float rclose;
+
+                    pc->flg_plyr |= 1;
+                    rclose = 0.0625f * vil->ds2_detect;
+                    if (pc->ds2_VtoP < rclose * rclose)
+                    {
+                        pc->flg_plyr |= 1;
+                    }
+                    VUTIL_chkSight(vil, old_los);
+                }
+            }
+            if (pc->dst_VtoP < 1.1f)
+            {
+                pc->flg_plyr |= 0x10;
+            }
+            if (pc->dst_VtoP < vil->dst_lob)
+            {
+                pc->flg_plyr |= 0x20;
+            }
+            if (pc->dst_VtoP < vil->dst_extend)
+            {
+                pc->flg_plyr |= 0x40;
+            }
+        }
+
+        if (vil->flg_misc & 0x80000000)
+        {
+            if (!(pc->flg_plyr & 1))
+            {
+                VUTIL_chkSight(vil, old_los);
+            }
+
+            vec.x = ctr_plyr.x - vil->pos_pursue_home.x;
+            vec.y = ctr_plyr.y - vil->pos_pursue_home.y;
+            vec.z = ctr_plyr.z - vil->pos_pursue_home.z;
+            pc->ds2_plyrToAnchor = vec.x * vec.x + vec.z * vec.z;
+            if (pc->ds2_plyrToAnchor > vil->ds2_pursue)
+            {
+                float atpos = g_npcTable[vil->asset->subtype].ds2_atpos;
+
+                if (vil->ds2_pursue > atpos)
+                {
+                    float rad;
+                    float dx;
+                    float dz;
+
+                    xVec3Normalize(&pc->pos_intercept, &vec);
+                    rad = vil->ds2_pursue;
+                    if (rad > 0.0f)
+                    {
+                        rad = VUTIL_sqrt(rad);
+                    }
+                    xVec3SMulBy(&pc->pos_intercept, rad);
+                    xVec3AddTo(&pc->pos_intercept, &vil->pos_pursue_home);
+                    dx = pos_vil.x - pc->pos_intercept.x;
+                    dz = pos_vil.z - pc->pos_intercept.z;
+                    if (g_npcTable[vil->asset->subtype].ds2_atpos < dx * dx + dz * dz)
+                    {
+                        pc->flg_plyr |= 0x400;
+                    }
+                }
+            }
+        }
+        pc->flg_status |= 2;
+    }
+
+    if (pc->dst_VtoP < 5.0f)
+    {
+        float dy = pc->vec_VtoP.y;
+        if (dy < 0.0f)
+        {
+            dy = -dy;
+        }
+        if (dy < 3.0f)
+        {
+            zEntPlayer_Notify((unsigned char)vil->asset->subtype);
+        }
+    }
+    pc->flg_status |= 0x80000000;
+}
+
+static inline void VUTIL_chkSight(st_zEntVillain* vil, signed int lastknown)
+{
+    st_ZVIL_PRECALC* pc = &vil->precalc;
+
+    if (VUTIL_heroInFov(vil))
+    {
+        pc->flg_plyr |= 4;
+    }
+    if (vil->allow & 0x200)
+    {
+        pc->flg_plyr |= 8;
+    }
+    else if (VUTIL_heroInSight(vil, lastknown))
+    {
+        pc->flg_plyr |= 8;
+    }
+}
+
+static inline signed int VUTIL_heroInSight(st_zEntVillain* vil, signed int lastknown)
+{
+    _xRay3 ray = {};
+    _xVec3 pos_eye = {};
+    float dst_max;
+
+    if (!xUtil_yesno(0.1f))
+    {
+        return lastknown;
+    }
+
+    pos_eye = *xBoundCenter(&vil->bound);
+    ray.min_t = 0.001f + vil->bound.sph.r;
+    xVec3Sub(&ray.dir, xBoundCenter(&globals.player.ent.bound), &pos_eye);
+    ray.max_t = xVec3Normalize(&ray.dir, &ray.dir);
+    dst_max = VUTIL_sqrt(vil->ds2_detect);
+    if (dst_max < ray.max_t)
+    {
+        ray.max_t = VUTIL_sqrt(vil->ds2_detect);
+    }
+    ray.origin.x = ray.dir.x * ray.min_t + pos_eye.x;
+    ray.origin.y = ray.dir.y * ray.min_t + pos_eye.y;
+    ray.origin.z = ray.dir.z * ray.min_t + pos_eye.z;
+    ray.flags = 0x800;
+    return xRayHitsSceneFast(&ray, globals.sceneCur) == 0;
+}
+
+static inline signed int VUTIL_heroInFov(st_zEntVillain* vil)
+{
+    _xVec3 pos_plyr = *xBoundCenter(&globals.player.ent.bound);
+    _xVec3 dir = {};
+    float ang;
+    float da;
+
+    xVec3Sub(&dir, &pos_plyr, VUTIL_mdlpos(vil));
+    xVec3Normalize(&dir, &dir);
+    ang = xAngleClamp(atan2(dir.x, dir.z));
+    if (vil->fov_detect <= 0.0f)
+    {
+        return 0;
+    }
+    da = vil->frame->rot.angle - ang;
+    if (da < 0.0f)
+    {
+        da = -da;
+    }
+    return da < 0.5f * vil->fov_detect;
+}
+
+static inline float VUTIL_sqrt(float x)
+{
+    return xsqrt(x);
+}
+
+static _xVec3* VUTIL_mdlpos(st_zEntVillain* vil)
+{
+    return &((_xMat4x3*)vil->model->Mat)->pos;
+}
+
+static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
+{
+    _xVec3 pos_cur = {};
+    signed int doturn = 0;
+    signed int dotran = 0;
+    signed int dovel = 0;
+    signed int bigturn = 0;
+    float dang = 0.0f;
+    float yaw;
+    _xMat4x3* mdlmat = (_xMat4x3*)vil->model->Mat;
+
+    pos_cur = mdlmat->pos;
+    if (!vil->domove)
+    {
+        return;
+    }
+
+    if (vil->abl_move & 0x2000)
+    {
+        vil->ang_mdlface = frame->rot.angle;
+    }
+    if (vil->abl_move & 0x4000)
+    {
+        frame->rot.angle -= 1.5707964f;
+    }
+    if (vil->domove & 0x80000)
+    {
+        frame->rot.angle += 1.5707964f;
+    }
+    else if (vil->domove & 0x40000)
+    {
+        frame->rot.angle -= 1.5707964f;
+    }
+
+    if (vil->domove & 0x40)
+    {
+        doturn = 1;
+        dang = vil->ang_moveto - frame->rot.angle;
+    }
+    else if (vil->domove & 0x80)
+    {
+        doturn = 1;
+        dang = xAngleClamp(atan2(vil->dir_moveto.x, vil->dir_moveto.z)) - frame->rot.angle;
+    }
+    else if (vil->domove & 0x100)
+    {
+        dang = vil->dlt_faceang;
+        doturn = 1;
+    }
+    else if (vil->domove & 0x800)
+    {
+        doturn = 1;
+        dang = xAngleClamp(atan2(vil->pos_moveto.x - pos_cur.x, vil->pos_moveto.z - pos_cur.z)) -
+               frame->rot.angle;
+    }
+    else if (vil->domove & 0x400)
+    {
+        doturn = 1;
+        dang = xAngleClamp(atan2(vil->dlt_moveto.x, vil->dlt_moveto.z)) - frame->rot.angle;
+    }
+
+    if (!(vil->domove & 1))
+    {
+        doturn = 0;
+    }
+    if (vil->domove & 2)
+    {
+        dotran = 1;
+    }
+    if (vil->domove & 4)
+    {
+        dotran = 1;
+    }
+    if (vil->domove & 8)
+    {
+        dotran = 1;
+    }
+    if (vil->domove & 0x5000)
+    {
+        dovel = 1;
+    }
+    if (vil->domove & 0x20000000)
+    {
+        doturn = 0;
+        frame->drot.angle = vil->ang_moveto - frame->rot.angle;
+        frame->mode |= 0x20;
+    }
+    if (vil->domove & 0x40000000)
+    {
+        dotran = 0;
+        ((_xMat4x3*)frame)->pos = vil->pos_moveto;
+        frame->mode |= 1;
+    }
+
+    yaw = frame->rot.angle;
+    if (doturn &&
+        ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400) || (VANM_stateUserFlags(vil, 0x1E000000) & 0x02000000)))
+    {
+        float rnd = 0.15f * iurand() + 0.85f;
+        float rate;
+
+        if (vil->domove & 0x10000)
+        {
+            rate = dt * vil->wiz_moveto;
+        }
+        else
+        {
+            rate = rnd * (dt * vil->spd_turn);
+        }
+        if (dang > 3.1415927f)
+        {
+            dang -= 6.2831855f;
+        }
+        if (dang < -3.1415927f)
+        {
+            dang += 6.2831855f;
+        }
+        if (vil->abl_move & 0x4000)
+        {
+            frame->rot.angle += 1.5707964f;
+        }
+        if (vil->domove & 0x80000)
+        {
+            frame->rot.angle -= 1.5707964f;
+        }
+        else if (vil->domove & 0x40000)
+        {
+            frame->rot.angle += 1.5707964f;
+        }
+        frame->drot.angle = rate * dang;
+        frame->mode |= 0x20;
+        yaw += frame->drot.angle;
+        if (((dang < 0.0f) ? -dang : dang) > 0.5f * vil->fov_detect)
+        {
+            bigturn = 1;
+        }
+        dotran = 1;
+    }
+
+    if (vil->domove & 0x10)
+    {
+        dotran = 0;
+    }
+    if (vil->domove & 0x40000000)
+    {
+        dotran = 0;
+    }
+
+    if (dotran)
+    {
+        float rnd;
+        float spd;
+        float dst;
+        float ds2;
+        float ds2_step;
+        float lim_rand;
+        float lim_snap;
+        float dx;
+        float dz;
+
+        if (bigturn)
+        {
+            rnd = 0.4f * iurand() + 0.6f;
+        }
+        else
+        {
+            rnd = 0.1f * iurand() + 0.9f;
+        }
+        if (vil->domove & 0x8000)
+        {
+            spd = vil->spd_moveto;
+        }
+        else
+        {
+            spd = VNAV_get_movespeed(vil, rnd);
+        }
+        spd = spd * dt;
+
+        dx = vil->pos_moveto.x - pos_cur.x;
+        dz = vil->pos_moveto.z - pos_cur.z;
+        ds2_step = spd * spd;
+        ds2 = dx * dx + dz * dz;
+        if (ds2 < ds2_step)
+        {
+            dst = xsqrt(ds2);
+        }
+        else
+        {
+            dst = spd;
+        }
+
+        lim_rand = 0.25f;
+        lim_snap = 0.1f;
+        frame->dpos.x = 0.0f;
+        frame->dpos.y = 0.0f;
+        frame->dpos.z = 0.0f;
+        if (vil->asset->subtype == 0x18)
+        {
+            lim_rand = 0.1f;
+            lim_snap = 0.01f;
+        }
+
+        if (ds2 < lim_rand)
+        {
+            frame->dpos.x = (vil->pos_moveto.x - pos_cur.x) * (0.5f * iurand());
+            frame->dpos.z = (vil->pos_moveto.z - pos_cur.z) * (0.5f * iurand());
+        }
+        else if (ds2 < lim_snap)
+        {
+            frame->dpos.x = vil->pos_moveto.x - pos_cur.x;
+            frame->dpos.z = vil->pos_moveto.z - pos_cur.z;
+        }
+        else
+        {
+            float cs = cos(yaw);
+            float sn = sin(yaw);
+
+            if (vil->domove & 2)
+            {
+                if (vil->domove & 0x20)
+                {
+                    frame->dpos.x = 0.5f * -dst * sn;
+                }
+                else
+                {
+                    frame->dpos.x = dst * sn;
+                }
+            }
+            else
+            {
+                frame->dpos.x = 0.0f;
+            }
+            if (vil->domove & 8)
+            {
+                if (vil->domove & 0x20)
+                {
+                    frame->dpos.z = 0.5f * -dst * cs;
+                }
+                else
+                {
+                    frame->dpos.z = dst * cs;
+                }
+            }
+            else
+            {
+                frame->dpos.z = 0.0f;
+            }
+        }
+
+        if (vil->domove & 4)
+        {
+            float dy = vil->pos_moveto.y - pos_cur.y;
+
+            if (dy * dy < ds2_step)
+            {
+                frame->dpos.y = dy;
+            }
+            else if (ds2 < 0.0625f)
+            {
+                frame->dpos.y = (dy < 0.0f) ? -1.0f * spd : spd;
+            }
+            else
+            {
+                float frac = dy / xsqrt(ds2);
+                if (frac > 1.0f)
+                {
+                    frac = 1.0f;
+                }
+                if (frac < -1.0f)
+                {
+                    frac = -1.0f;
+                }
+                frame->dpos.y = spd * frac;
+            }
+        }
+        frame->mode |= 2;
+    }
+
+    if (dovel)
+    {
+        if (vil->domove & 0x1000)
+        {
+            frame->vel = vil->vel_moveto;
+            frame->mode |= 4;
+        }
+        else if (vil->domove & 0x4000)
+        {
+            xVec3AddTo(&frame->dvel, &vil->vel_moveto);
+            frame->mode |= 8;
+        }
+    }
+
+    if (!(vil->abl_move & 0x1000) && !(vil->abl_move & 0x400))
+    {
+        if (vil->goal != ZVIL_GOAL_GUMMED && vil->goal != ZVIL_GOAL_SOAPED && !(vil->pflags & 4))
+        {
+            if (frame->dpos.y < 0.01f)
+            {
+                frame->dpos.y -= 0.01f;
+                frame->mode |= 2;
+            }
+        }
+    }
+    vil->domove = 0;
+}
+
+static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float chance)
+{
+    _xRay3 ray = {};
+    _xVec3 pos_eye = {};
+    _xVec3 pos_probe = {};
+    _xVec3 vec_side = {};
+    signed int pitfall;
+    float rad;
+    _xMat4x3* mat;
+
+    if (!xUtil_yesno(chance))
+    {
+        return def;
+    }
+
+    rad = vil->bound.sph.r;
+    vil->bound.sph.r = 0.0f;
+    if (!VUTIL_tagpos(vil, 9, &pos_eye))
+    {
+        pos_eye = *xBoundCenter(&vil->bound);
+    }
+
+    mat = (_xMat4x3*)vil->model->Mat;
+    xVec3SMul(&pos_probe, &mat->at, 1.5f * rad);
+    pos_probe.y -= 3.5f * rad;
+    xVec3AddTo(&pos_probe, &mat->pos);
+    xVec3SMul(&vec_side, &mat->right, 0.3f);
+    xVec3AddTo(&pos_probe, &vec_side);
+
+    ray.min_t = 0.001f;
+    ray.flags = 0x800;
+    pitfall = VUTIL_rayhole(&ray, &pos_eye, &pos_probe);
+    if (!pitfall)
+    {
+        xVec3Sub(&pos_probe, &pos_probe, &vec_side);
+        xVec3Sub(&pos_probe, &pos_probe, &vec_side);
+        pitfall = VUTIL_rayhole(&ray, &pos_eye, &pos_probe);
+    }
+
+    vil->bound.sph.r = rad;
+    return pitfall;
+}
+
+static inline signed int VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe)
+{
+    xVec3Sub(&ray->dir, pos_probe, pos_eye);
+    ray->max_t = xVec3Normalize(&ray->dir, &ray->dir);
+    ray->origin.x = ray->dir.x * ray->min_t + pos_eye->x;
+    ray->origin.y = ray->dir.y * ray->min_t + pos_eye->y;
+    ray->origin.z = ray->dir.z * ray->min_t + pos_eye->z;
+    return xRayHitsSceneFast(ray, globals.sceneCur) == 0;
+}
+
+static void VIRM_initVilDflt(st_zEntVillain* vil)
+{
+    _xVec3 vec_push = {};
+    _xVec3 dir_VtoP = {};
+    _xVec3 dir_face = {};
+    _xVec3 pos_plyr = {};
+    _xVec3 vec_delt = {};
+    float yaw;
+    float dot;
+    signed int dmg;
+    st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
+
+    pos_plyr = *xBoundCenter(&globals.player.ent.bound);
+    xVec3Sub(&vec_delt, &pos_plyr, &((_xMat4x3*)vil->model->Mat)->pos);
+    xVec3Normalize(&vec_delt, &vec_delt);
+    xAngleClamp(atan2(vec_delt.x, vec_delt.z));
+    xVec3Normalize(&dir_VtoP, &vec_delt);
+
+    yaw = vil->frame->rot.angle;
+    dir_face.x = isin(yaw);
+    dir_face.y = 0.0f;
+    dir_face.z = icos(yaw);
+    dot = xVec3Dot(&dir_VtoP, &dir_face);
+    if (0.2f > dot)
+    {
+        dot = 0.2f;
+    }
+
+    npcinfo = &g_npcTable[vil->asset->subtype];
+    vec_push = vil->precalc.dir_VtoP;
+    vec_push.x *= dot * npcinfo->strength;
+    vec_push.y *= dot * npcinfo->strength;
+    dmg = (npcinfo->dmg_give > 0) ? npcinfo->dmg_give : 0;
+    zEntPlayer_Damage(vil, dmg, &vec_push);
+}
+
+static void VCFG_readParms(st_ZVIL_CONFIG_REFERENCE* vilcfg)
+{
+    unsigned int pmsize = 0;
+    _xVec3 vec = { 0.0f, 0.0f, 0.0f };
+    _xVec3 def_vert = { 0.0f, 0.0f, 0.0f };
+    _xVec3 def_bnd = { 0.0f, 0.0f, 0.0f };
+    zAssetModelParam* parms;
+    signed int i;
+
+    if (!vilcfg->asset->modelInfoID)
+    {
+        return;
+    }
+    parms = zEntGetModelParams(vilcfg->asset->modelInfoID, &pmsize);
+    if (!parms || !pmsize)
+    {
+        return;
+    }
+
+    for (i = 0; i < 49; i++)
+    {
+        char* name = g_parmname[i];
+
+        switch (i)
+        {
+        case ZVIL_PARM_MDLSCL_BASE:
+            VCFG_readSAnim(parms, pmsize, name, &vec, vilcfg, &vilcfg->scl_modelBase, 0x8);
+            break;
+        case ZVIL_PARM_SANIM_IDLE:
+            VCFG_readSAnim(parms, pmsize, name, &vec, vilcfg, &vilcfg->sanim_idle, 0x1);
+            break;
+        case ZVIL_PARM_SANIM_MOVE:
+            VCFG_readSAnim(parms, pmsize, name, &vec, vilcfg, &vilcfg->sanim_move, 0x2);
+            break;
+        case ZVIL_PARM_SANIM_CHASE:
+            VCFG_readSAnim(parms, pmsize, name, &vec, vilcfg, &vilcfg->sanim_chase, 0x4);
+            break;
+        case ZVIL_PARM_WANDER_ARC:
+            vilcfg->ang_wander = zParamGetFloat(parms, pmsize, name, 5.0f);
+            break;
+        case ZVIL_PARM_HIT_POINTS:
+            vilcfg->hitpts = zParamGetInt(parms, pmsize, name, 1);
+            break;
+        case ZVIL_PARM_BUBBLED_TIME:
+            vilcfg->tymref_list[ZVIL_TDUR_GUM] = zParamGetFloat(parms, pmsize, name, 10.0f);
+            break;
+        case ZVIL_PARM_GUMMED_TIME:
+            vilcfg->tymref_list[ZVIL_TDUR_SOAP] = zParamGetFloat(parms, pmsize, name, 10.0f);
+            break;
+        case ZVIL_PARM_DAZED_TIME:
+            vilcfg->tymref_list[ZVIL_TDUR_DAZED] = zParamGetFloat(parms, pmsize, name, 5.0f);
+            break;
+        case ZVIL_PARM_EXTEND_RANGE:
+            vilcfg->dst_extend = zParamGetFloat(parms, pmsize, name, 1.0f);
+            break;
+        case ZVIL_PARM_EXTEND_RATE:
+            vilcfg->spd_extend = zParamGetFloat(parms, pmsize, name, 1.0f);
+            break;
+        case ZVIL_PARM_EXTEND_WIDTH:
+            vilcfg->wid_extend = zParamGetFloat(parms, pmsize, name, 1.0f);
+            break;
+        case ZVIL_PARM_EXTEND_TIME:
+            vilcfg->tymref_list[ZVIL_TDUR_EXTEND] = zParamGetFloat(parms, pmsize, name, 2.0f);
+            break;
+        case ZVIL_PARM_FOV_ANGLE:
+            vilcfg->fov_detect = (3.1415927f * zParamGetFloat(parms, pmsize, name, 50.0f)) / 180.0f;
+            break;
+        case ZVIL_PARM_GLOAT_TIME:
+            vilcfg->tymref_list[ZVIL_TDUR_TAUNT] = zParamGetFloat(parms, pmsize, name, 3.0f);
+            break;
+        case ZVIL_PARM_LOB_RANGE:
+            vilcfg->dst_lob = zParamGetFloat(parms, pmsize, name, 5.0f);
+            break;
+        case ZVIL_PARM_LOB_SPEED:
+            vilcfg->spd_lob = zParamGetFloat(parms, pmsize, name, 2.0f);
+            break;
+        case ZVIL_PARM_LOB_SALVO:
+            vilcfg->cnt_lobSalvo = zParamGetInt(parms, pmsize, name, 1);
+            break;
+        case ZVIL_PARM_LOB_RELOAD_TIME:
+            vilcfg->tymref_list[ZVIL_TDUR_LOBRELOAD] = zParamGetFloat(parms, pmsize, name, 1.0f);
+            break;
+        case ZVIL_PARM_LOB_ARC:
+            // The original stores the arc and heaviness parameters into dst_lob.
+            vilcfg->dst_lob = zParamGetFloat(parms, pmsize, name, -1.0f);
+            break;
+        case ZVIL_PARM_LOB_HEAVY:
+            vilcfg->dst_lob = zParamGetFloat(parms, pmsize, name, -1.0f);
+            break;
+        case ZVIL_PARM_DETECT_RADIUS:
+        {
+            float rad = zParamGetFloat(parms, pmsize, name, 5.0f);
+            vilcfg->ds2_detect = rad * rad;
+            break;
+        }
+        case ZVIL_PARM_DETECT_HEIGHT:
+            vilcfg->hyt_detect = zParamGetFloat(parms, pmsize, name, 6.0f);
+            break;
+        case ZVIL_PARM_DETECT_HYTOFF:
+            vilcfg->hyt_dtctoff = zParamGetFloat(parms, pmsize, name, 0.0f);
+            break;
+        case ZVIL_PARM_PURSUE_RADIUS:
+        {
+            float rad = zParamGetFloat(parms, pmsize, name, 5.0f);
+            vilcfg->ds2_pursue = rad * rad;
+            break;
+        }
+        case ZVIL_PARM_MOVE_RATE:
+            vilcfg->spd_move = zParamGetFloat(parms, pmsize, name, 1.0f);
+            break;
+        case ZVIL_PARM_CHASE_RATE:
+            vilcfg->spd_chase = zParamGetFloat(parms, pmsize, name, 1.0f);
+            break;
+        case ZVIL_PARM_TURN_RATE:
+            vilcfg->spd_turn = zParamGetFloat(parms, pmsize, name, 5.235988f);
+            break;
+        case ZVIL_PARM_VERT_GUM_LFOOT:
+        case ZVIL_PARM_VERT_GUM_RFOOT:
+        case ZVIL_PARM_VERT_GUM_ELBOW:
+        case ZVIL_PARM_VERT_GUM_CUSTA:
+        case ZVIL_PARM_VERT_GUM_CUSTB:
+        case ZVIL_PARM_VERT_WEAPON:
+        case ZVIL_PARM_VERT_ATTACK:
+        case ZVIL_PARM_VERT_ATTACKALT:
+        case ZVIL_PARM_VERT_DMG_BOUNCE:
+        case ZVIL_PARM_VERT_LOSEYEBALL:
+        case ZVIL_PARM_VERT_RBSWORDHANDLE:
+        case ZVIL_PARM_VERT_RBSWORDPIVOT:
+            zParamGetVector(parms, pmsize, name, def_vert, &vec);
+            vilcfg->pos_verts[i - ZVIL_PARM_VERT_GUM_LFOOT] = vec;
+            break;
+        case ZVIL_PARM_BND_SPH_CENTER:
+            def_bnd.x = 0.0f;
+            def_bnd.y = 0.7f;
+            def_bnd.z = 0.0f;
+            zParamGetVector(parms, pmsize, name, def_bnd, &vec);
+            vilcfg->vec_bndoffset = vec;
+            break;
+        case ZVIL_PARM_BND_SPH_RADIUS:
+            vilcfg->rad_bound = zParamGetFloat(parms, pmsize, name, 0.7f);
+            break;
+        case ZVIL_PARM_BND2_SPH_CENTER:
+            def_bnd.x = 0.0f;
+            def_bnd.y = 2.1f;
+            def_bnd.z = 0.0f;
+            zParamGetVector(parms, pmsize, name, def_bnd, &vec);
+            vilcfg->vec_bnd2offset = vec;
+            break;
+        case ZVIL_PARM_BND2_SPH_RADIUS:
+            vilcfg->rad_bound2 = zParamGetFloat(parms, pmsize, name, 0.0f);
+            break;
+        case ZVIL_PARM_SPAWNMASK:
+            vilcfg->msk_condspawn = zParamGetInt(parms, pmsize, name, 0);
+            break;
+        case ZVIL_PARM_MINDIFFICULTY:
+            vilcfg->minDifficulty = zParamGetInt(parms, pmsize, name, 0);
+            break;
+        case ZVIL_PARM_DMG_BEGTIME:
+            vilcfg->tym_attack_begin = zParamGetInt(parms, pmsize, name, -1) / 30.0f;
+            break;
+        case ZVIL_PARM_DMG_ENDTIME:
+            vilcfg->tym_attack_end = zParamGetInt(parms, pmsize, name, 1000) / 30.0f;
+            break;
+        }
+    }
+}
+
+static inline void VCFG_readSAnim(zAssetModelParam* parms, unsigned int pmsize, char* name, _xVec3* vec,
+                                  st_ZVIL_CONFIG_REFERENCE* vilcfg, _xVec3* dst, signed int bit)
+{
+    _xVec3 def_scl = { 1.0f, 1.0f, 1.0f };
+
+    if (zParamGetVector(parms, pmsize, name, def_scl, vec) > 2)
+    {
+        vilcfg->misc_flags |= bit;
+    }
+    else
+    {
+        vilcfg->misc_flags &= ~bit;
+    }
+    *dst = *vec;
+}
+
+static void VCFG_readAsset(st_ZVIL_CONFIG_REFERENCE* vilcfg)
+{
+    p2EntVillainAsset* ass = vilcfg->vilp2ass;
+
+    vilcfg->hitpts = ass->hitpoints;
+    vilcfg->fov_detect = (3.1415927f * ass->activateFOV) / 180.0f;
+    vilcfg->ds2_detect = ass->activateRadius * ass->activateRadius;
+    vilcfg->hyt_detect = ass->detectHeight;
+    vilcfg->hyt_dtctoff = ass->detectHeightOffset;
+    vilcfg->ds2_pursue = ass->pursuitRange * ass->pursuitRange;
+    vilcfg->spd_move = ass->speedMovement;
+    vilcfg->spd_chase = ass->speedPursue;
+    vilcfg->spd_turn = (3.1415927f * ass->speedTurn) / 180.0f;
+    vilcfg->spd_lob = ass->lobSpeed;
+    vilcfg->dst_lob = ass->lobRange;
+    vilcfg->cnt_lobSalvo = ass->lobSalvo;
+    vilcfg->fac_lobarc = ass->lobArcness;
+    vilcfg->fac_lobheavy = ass->lobHeavy;
+    vilcfg->dst_extend = ass->extenderRange;
+    vilcfg->wid_extend = ass->extenderWidth;
+    vilcfg->spd_extend = ass->extenderRate;
+
+    vilcfg->tymref_list[0] = 8.0f;
+    vilcfg->tymref_list[1] = 20.0f;
+    vilcfg->tymref_list[2] = 5.0f;
+    vilcfg->tymref_list[3] = 7.0f;
+    vilcfg->tymref_list[4] = 100.0f;
+    vilcfg->tymref_list[5] = 0.3f;
+    vilcfg->tymref_list[6] = -1.0f;
+    vilcfg->tymref_list[7] = 5.0f;
+    vilcfg->tymref_list[8] = 10.0f;
+    vilcfg->tymref_list[9] = 10.0f;
+    vilcfg->tymref_list[10] = 2.0f;
+    vilcfg->tymref_list[ZVIL_TDUR_TAUNT] = ass->durGloatState;
+    vilcfg->tymref_list[ZVIL_TDUR_DAZED] = ass->durDazedState;
+    vilcfg->tymref_list[ZVIL_TDUR_GUM] = ass->durGummedState;
+    vilcfg->tymref_list[ZVIL_TDUR_SOAP] = ass->durBubbleState;
+    vilcfg->tymref_list[15] = 3.0f;
+    vilcfg->tymref_list[16] = 3.0f;
+    vilcfg->tymref_list[17] = 4.0f;
+    vilcfg->tymref_list[ZVIL_TDUR_EXTEND] = ass->extenderDuration;
+    vilcfg->tymref_list[ZVIL_TDUR_LOBRELOAD] = ass->lobDurReload;
+    vilcfg->tymref_list[ZVIL_TDUR_EXTRELOAD] = ass->extenderReloadTime;
+    vilcfg->tymref_list[21] = 3.0f;
+    vilcfg->tymref_list[22] = -1.0f;
+    vilcfg->tymref_list[23] = -1.0f;
+    vilcfg->tymref_list[24] = -1.0f;
+    vilcfg->tymref_list[25] = 2.0f;
+    vilcfg->tymref_list[26] = 0.2f;
+    vilcfg->tymref_list[27] = 0.25f;
+    vilcfg->tymref_list[28] = -1.0f;
+    vilcfg->tymref_list[29] = -1.0f;
+    vilcfg->tymref_list[30] = -1.0f;
+}
+
+static signed int VCFG_getParm(st_ZVIL_CONFIG_REFERENCE* vilcfg, en_NPC_INI_PARAMETERS pid, void* val)
+{
+    signed int rc = 1;
+    float* fval = (float*)val;
+    signed int* ival = (signed int*)val;
+
+    switch (pid)
+    {
+    case ZVIL_PARM_MDLSCL_BASE:
+        *(_xVec3*)val = vilcfg->scl_modelBase;
+        break;
+    case ZVIL_PARM_SANIM_IDLE:
+        *(_xVec3*)val = vilcfg->sanim_idle;
+        break;
+    case ZVIL_PARM_SANIM_MOVE:
+        *(_xVec3*)val = vilcfg->sanim_move;
+        break;
+    case ZVIL_PARM_SANIM_CHASE:
+        *(_xVec3*)val = vilcfg->sanim_chase;
+        break;
+    case ZVIL_PARM_WANDER_ARC:
+        *fval = vilcfg->ang_wander;
+        break;
+    case ZVIL_PARM_HIT_POINTS:
+        *ival = vilcfg->hitpts;
+        break;
+    case ZVIL_PARM_BUBBLED_TIME:
+        *fval = vilcfg->tymref_list[ZVIL_TDUR_SOAP];
+        break;
+    case ZVIL_PARM_GUMMED_TIME:
+        *fval = vilcfg->tymref_list[ZVIL_TDUR_GUM];
+        break;
+    case ZVIL_PARM_DAZED_TIME:
+        *fval = vilcfg->tymref_list[ZVIL_TDUR_DAZED];
+        break;
+    case ZVIL_PARM_EXTEND_RANGE:
+        *fval = vilcfg->dst_extend;
+        break;
+    case ZVIL_PARM_EXTEND_RATE:
+        *fval = vilcfg->spd_extend;
+        break;
+    case ZVIL_PARM_EXTEND_WIDTH:
+        *fval = vilcfg->wid_extend;
+        break;
+    case ZVIL_PARM_EXTEND_TIME:
+        *fval = vilcfg->tymref_list[ZVIL_TDUR_EXTEND];
+        break;
+    case ZVIL_PARM_FOV_ANGLE:
+        *fval = vilcfg->fov_detect;
+        break;
+    case ZVIL_PARM_GLOAT_TIME:
+        *fval = vilcfg->tymref_list[ZVIL_TDUR_TAUNT];
+        break;
+    case ZVIL_PARM_LOB_RANGE:
+        *fval = vilcfg->dst_lob;
+        break;
+    case ZVIL_PARM_LOB_SPEED:
+        *fval = vilcfg->spd_lob;
+        break;
+    case ZVIL_PARM_LOB_SALVO:
+        *ival = vilcfg->cnt_lobSalvo;
+        break;
+    case ZVIL_PARM_LOB_PRJTYPE:
+        switch (vilcfg->asset->subtype)
+        {
+        case 5:
+            *(unsigned int*)val = xStrHash("_PRJ_VWEP_GARGOYLE");
+            break;
+        case 0x10:
+            *(unsigned int*)val = xStrHash("_PRJ_VWEP_TARMONSTER");
+            break;
+        case 0x12:
+            *(unsigned int*)val = xStrHash("_PRJ_VWEP_WITCHDOCTOR");
+            break;
+        case eEntVillainBossBlackKnight:
+            *(unsigned int*)val = xStrHash("_PRJ_VWEP_BLACKKNIGHT");
+            break;
+        case eEntVillainBossGreenGhost:
+            *(unsigned int*)val = xStrHash("_PRJ_VWEP_GREENGHOST");
+            break;
+        case eEntVillainBossRedbeard:
+            *(unsigned int*)val = xStrHash("_PRJ_VWEP_REDBEARD");
+            break;
+        case eEntVillainBossMastermind:
+            *(unsigned int*)val = xStrHash("_PRJ_VWEP_MASTERMIND");
+            break;
+        default:
+            *(unsigned int*)val = 0;
+            break;
+        }
+        break;
+    case ZVIL_PARM_LOB_ARC:
+        *fval = vilcfg->fac_lobarc;
+        break;
+    case ZVIL_PARM_LOB_HEAVY:
+        *fval = vilcfg->fac_lobheavy;
+        break;
+    case ZVIL_PARM_DETECT_RADIUS:
+        *fval = vilcfg->ds2_detect;
+        break;
+    case ZVIL_PARM_DETECT_HEIGHT:
+        *fval = vilcfg->hyt_detect;
+        break;
+    case ZVIL_PARM_DETECT_HYTOFF:
+        *fval = vilcfg->hyt_dtctoff;
+        break;
+    case ZVIL_PARM_PURSUE_RADIUS:
+        *fval = vilcfg->ds2_pursue;
+        break;
+    case ZVIL_PARM_MOVE_RATE:
+        *fval = vilcfg->spd_move;
+        break;
+    case ZVIL_PARM_CHASE_RATE:
+        *fval = vilcfg->spd_chase;
+        break;
+    case ZVIL_PARM_TURN_RATE:
+        *fval = vilcfg->spd_turn;
+        break;
+    case ZVIL_PARM_SPAWNMASK:
+        *ival = vilcfg->msk_condspawn;
+        break;
+    case ZVIL_PARM_MINDIFFICULTY:
+        *ival = vilcfg->minDifficulty;
+        break;
+    case ZVIL_PARM_DMG_BEGTIME:
+        *fval = vilcfg->tym_attack_begin;
+        break;
+    case ZVIL_PARM_DMG_ENDTIME:
+        *fval = vilcfg->tym_attack_end;
+        break;
+    default:
+        rc = 0;
+        break;
+    }
+    return rc;
+}
+
+static en_BEHAVIOUR_GOAL VGOL_set(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal)
+{
+    vil->goal = goal;
+    if (vil->linkCount)
+    {
+        switch (vil->goal)
+        {
+        case ZVIL_GOAL_IDLE:
+            zEntEvent(vil, 0xB3);
+            break;
+        case ZVIL_GOAL_BORED:
+            if (vil->vhf->query(vil, ZVIL_Q_ASLEEP))
+            {
+                zEntEvent(vil, 0xB4);
+            }
+            break;
+        case ZVIL_GOAL_GUARD:
+            zEntEvent(vil, 0xB5);
+            break;
+        case ZVIL_GOAL_PATROL:
+            zEntEvent(vil, 0xB6);
+            break;
+        case ZVIL_GOAL_DAZED:
+            zEntEvent(vil, 0xB7);
+            break;
+        case ZVIL_GOAL_LOOKFORHERO:
+            zEntEvent(vil, 0xB8);
+            break;
+        case ZVIL_GOAL_LISTEN:
+            zEntEvent(vil, 0xB9);
+            break;
+        case ZVIL_GOAL_INVESTIGATE:
+            zEntEvent(vil, 0xBA);
+            break;
+        case ZVIL_GOAL_CHASE:
+            zEntEvent(vil, 0xBB);
+            break;
+        case ZVIL_GOAL_CQCATTACK:
+        case ZVIL_GOAL_LOBBING:
+        case ZVIL_GOAL_SPELLCAST:
+            zEntEvent(vil, 0xBC);
+            break;
+        case ZVIL_GOAL_MINIPATROL:
+            zEntEvent(vil, 0xBD);
+            break;
+        }
+    }
+    return vil->goal;
+}
+
+static signed int VWEP_swipe(st_zEntVillain* vil)
+{
+    static const iColor_tag clr_swipe = { 0x80, 0x00, 0x00, 0xFF };
+    signed int hit = 0;
+    _xCollis colrec = {};
+    iColor_tag clr = {};
+    _xBound bound = {};
+
+    if (vil->precalc.ds2_VtoP > 2.2f)
+    {
+        return 0;
+    }
+
+    colrec.flags = 0;
+    colrec.oid = globals.player.ent.id;
+    colrec.optr = &globals.player.ent;
+    bound.type = 1;
+    bound.qcd = globals.player.ent.bound.qcd;
+    clr = clr_swipe;
+    xDrawSetColor(clr);
+
+    if (VUTIL_tagpos(vil, 6, &bound.sph.center))
+    {
+        bound.sph.r = 0.2f;
+        xBoundHitsBound(&bound, &globals.player.ent.bound, &colrec);
+        if (colrec.flags & 1)
+        {
+            hit = 1;
+        }
+    }
+    if (!hit && VUTIL_tagpos(vil, 7, &bound.sph.center))
+    {
+        bound.sph.r = 0.2f;
+        xBoundHitsBound(&bound, &globals.player.ent.bound, &colrec);
+        if (colrec.flags & 1)
+        {
+            hit = 1;
+        }
+    }
+    if (!hit && VUTIL_tagpos(vil, 5, &bound.sph.center))
+    {
+        bound.sph.r = 0.3f;
+        xBoundHitsBound(&bound, &globals.player.ent.bound, &colrec);
+        if (colrec.flags & 1)
+        {
+            hit = 1;
+        }
+    }
+    if (hit)
+    {
+        xSceneID2Name(globals.sceneCur, vil->id);
+    }
+    return hit;
+}
+
+static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* pos_tgt)
+{
+    _xVec3 dir_ext = {};
+    _xVec3 pos_emit = {};
+    _xVec3 pos_alt = {};
+    _xVec3 dir_tgt = {};
+    _xMat3x3 mat_rot = {};
+    _xVec3 vec_tgt = {};
+    signed int got_main;
+    signed int got_alt;
+    float rad;
+    float fac_wid;
+    float spd;
+    float yaw;
+    float pitch;
+
+    got_main = VUTIL_tagpos(vil, 6, &pos_emit);
+    got_alt = VUTIL_tagpos(vil, 5, &pos_alt);
+    if (!got_main && !got_alt)
+    {
+        pos_emit = pos_alt;
+    }
+    else if (got_main && got_alt && vil->asset->subtype == eEntVillainTypeKillerPlant)
+    {
+        xVec3AddTo(&pos_emit, &pos_alt);
+        xVec3SMulBy(&pos_emit, 0.5f);
+    }
+
+    if (!got_main)
+    {
+        xSceneID2Name(globals.sceneCur, vil->id);
+        pos_emit = *xBoundCenter(&vil->bound);
+        pos_emit.y += 0.4f;
+        pos_emit.x += 1.5f * vil->precalc.sin_faceang;
+        pos_emit.z += 1.5f * vil->precalc.cos_faceang;
+    }
+
+    spd = vil->tmr_list[ZVIL_TDUR_EXTEND];
+    if (!(spd < vil->tmr_list[ZVIL_TYMR_CURGOAL]))
+    {
+        spd = vil->tmr_list[ZVIL_TYMR_CURGOAL];
+    }
+    spd = vil->spd_extend * spd;
+    if (!(spd < vil->dst_extend))
+    {
+        spd = vil->dst_extend;
+    }
+    rad = (0.01f > spd) ? 0.01f : spd;
+    fac_wid = vil->wid_extend / vil->dst_extend;
+
+    yaw = vil->frame->rot.angle;
+    dir_ext.x = isin(yaw);
+    dir_ext.y = 0.0f;
+    dir_ext.z = icos(yaw);
+    yaw = vil->frame->rot.angle;
+
+    if (pos_tgt)
+    {
+        xVec3Sub(&vec_tgt, pos_tgt, &pos_emit);
+        xVec3Normalize(&dir_tgt, &vec_tgt);
+        pitch = asin(dir_tgt.y);
+        if (vil->asset->subtype == eEntVillainTypeKillerPlant)
+        {
+            pitch = 0.0f;
+        }
+        else
+        {
+            float hi = (pitch < 0.25f) ? pitch : 0.25f;
+            if (-0.25f > hi)
+            {
+                pitch = -0.25f;
+            }
+            else if (!(pitch < 0.25f))
+            {
+                pitch = 0.25f;
+            }
+        }
+        xMat3x3Euler(&mat_rot, 0.0f, pitch, 0.0f);
+        xMat3x3LMulVec(&dir_ext, &mat_rot, (_xVec3*)&g_Z3);
+        xMat3x3Euler(&mat_rot, -yaw, 0.0f, 0.0f);
+        xMat3x3LMulVec(&dir_ext, &mat_rot, &dir_ext);
+    }
+
+    if (vil->asset->subtype == eEntVillainTypeKillerPlant)
+    {
+        if (sEmitKillerPlant)
+        {
+            _zParEmitterCustomSettings pecust;
+            _xVec3 dir_vel;
+            _xMat4x3* mat = (_xMat4x3*)vil->model->Mat;
+            float spd_vel;
+
+            pecust.pos = mat->pos;
+            pecust.pos.y += 1.6f;
+            pecust.pos.x += 0.25f * mat->at.x;
+            pecust.pos.z += 0.25f * mat->at.z;
+            xVec3Normalize(&dir_vel, &dir_ext);
+            pecust.custom_flags = 0x60;
+            spd_vel = 0.25f * iurand() + 1.0f;
+            pecust.vel.x = dir_vel.x * spd_vel;
+            pecust.vel.y = dir_vel.y * spd_vel;
+            pecust.vel.z = dir_vel.z * spd_vel;
+            zParEmitterEmitCustom(sEmitKillerPlant, dt, &pecust);
+        }
+    }
+    else
+    {
+        VPAR_emit_extattack(vil, &pos_emit, &dir_ext, rad, fac_wid, dt);
+    }
+    return 0;
+}
 
 static zEntProjectile* VWEP_lobReservePRJ(st_zEntVillain* vil)
 {
@@ -4523,7 +6714,7 @@ static inline void VPRJ_hitstim(st_zEntVillain* vil)
         vil->vhf->stimulus(vil, &stimctxt, &resp);
         if (resp.stim)
         {
-            zVIL_input_stim(vil, &resp, globals.update_dt);
+            zVIL_trangoal(vil, &resp, globals.update_dt);
         }
     }
 }
@@ -4855,7 +7046,7 @@ static signed int VPRJ_BMM_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event
             vil->vhf->stimulus(vil, &stimctxt, &resp);
             if (resp.stim)
             {
-                zVIL_input_stim(vil, &resp, globals.update_dt);
+                zVIL_trangoal(vil, &resp, globals.update_dt);
             }
         }
         VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_EXPLODE);
@@ -7939,7 +10130,7 @@ static inline signed int VOUT_hit_isWall(st_zEntVillain* vil, _xVec3* dir_trav, 
 
             result = 1;
             mvpt = zMovePointFindNearest(flg_look | 0x11, xBoundCenter(&vil->bound), vil,
-                                         (signed int (*)(void*, _xVec3*, _zMovePoint*))VOUT_spikey_header);
+                                         VNAV_chklos_timz);
             vil->need_navpt = 0;
             if (mvpt && mvpt != vil->nav_next)
             {
