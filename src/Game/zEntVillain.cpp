@@ -4507,103 +4507,582 @@ signed int zEntVillain_PlayAFXSound(st_zEntVillain* vil, zAnimFxSound* snd, unsi
 
 static void zVIL_setup_npcTable()
 {
-    // Per-type values computed by the original from inline constants:
-    // typ_person, flg_physics, chk, pen, chkby, penby, ability, atak, dtct, move, spyk, vuln
-    static const unsigned int s_npcflags[50][12] = {
-        { 0x1, 0x1B, 0x10, 0x10, 0x10, 0x10, 0x22804A, 0x10003, 0x80, 0xC031BF, 0x0, 0x3F9E7 }, // 0
-        { 0x5, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20014B, 0x40001, 0x1, 0x2137, 0x0, 0x9 }, // 1
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x20001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 2
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281FCA, 0x20001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 3
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281FCA, 0x20001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 4
-        { 0x0, 0x1B, 0x2E, 0x6E, 0x1C, 0x1C, 0x2A1F4A, 0x40001, 0x800000B1, 0x31BF, 0x0, 0x1F9E7 }, // 5
-        { 0x0, 0x1B, 0x2E, 0x0, 0x1C, 0x0, 0x281F4A, 0x10003, 0x80, 0x4313F, 0x0, 0x61 }, // 6
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x20001, 0x80, 0x213F, 0x0, 0x5F9E7 }, // 7
-        { 0x5, 0x1B, 0x2E, 0x0, 0x1C, 0x0, 0x20014B, 0x40001, 0x1, 0x43137, 0x0, 0x9 }, // 8
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x299F4A, 0x20001, 0x80, 0x213F, 0x0, 0x5F9E7 }, // 9
-        { 0x5, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x2001C3, 0x40001, 0x1, 0x137, 0x0, 0x109 }, // 10
-        { 0x5, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20014B, 0x80001, 0x1, 0x2137, 0x0, 0x9 }, // 11
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281FCA, 0x20001, 0xB1, 0x21BF, 0x0, 0x8001F8E7 }, // 12
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x20001, 0x80, 0x213F, 0x0, 0x5F9E7 }, // 13
-        { 0x1, 0x0, 0x20, 0x20, 0x0, 0x0, 0x20000A, 0x0, 0x0, 0x0, 0x0, 0x0 }, // 14
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x80001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 15
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x40001, 0xB1, 0x29BF, 0x0, 0x4005F9E7 }, // 16
-        { 0x0, 0x1B, 0x2E, 0x6E, 0x1C, 0x1C, 0x2A1F4A, 0x80001, 0x800000B1, 0x31BF, 0x0, 0x1F9E7 }, // 17
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x40001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 18
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20014A, 0x20001, 0x80, 0x213F, 0x0, 0x5F9E7 }, // 19
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x20001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 20
-        { 0x1, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x2080CA, 0x0, 0x80, 0x613F, 0x0, 0x40107 }, // 21
-        { 0x1, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20804A, 0x0, 0x80, 0x20213F, 0x0, 0x601E7 }, // 22
-        { 0x1, 0x1B, 0x10, 0x10, 0x10, 0x10, 0x20804A, 0x0, 0x80, 0x10253F, 0x0, 0x201E7 }, // 23
-        { 0x1, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x22804A, 0x0, 0x80, 0xA13F, 0x0, 0x601E3 }, // 24
-        { 0x1, 0x1B, 0x2E, 0x0, 0x1C, 0x0, 0x281F4A, 0x20001, 0xB1, 0x31BF, 0x0, 0x0 }, // 25
-        { 0x1, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x80001, 0x81, 0x2012, 0x0, 0x0 }, // 26
-        { 0x1, 0x1B, 0x2E, 0x6E, 0x1C, 0x1C, 0x22804A, 0x10003, 0x80, 0x40313F, 0x0, 0x1F807 }, // 27
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 28
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 29
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 30
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 31
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 32
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 33
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 34
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 35
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 36
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 37
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 38
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 39
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 40
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20014B, 0x40001, 0x1, 0x2137, 0x0, 0x9 }, // 41
-        { 0x7, 0x1B, 0x2E, 0x0, 0x1C, 0x0, 0x20014B, 0x40001, 0x1, 0x43137, 0x0, 0x9 }, // 42
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20014B, 0x80001, 0x1, 0x2137, 0x0, 0x9 }, // 43
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x2001C3, 0x40001, 0x1, 0x137, 0x0, 0x109 }, // 44
-        { 0x0, 0x1B, 0x2E, 0x8, 0x1C, 0x8, 0x281F4A, 0x10001, 0xB1, 0x431BF, 0x0, 0x1F987 }, // 45
-        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281FCA, 0x20001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 46
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 47
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 48
-        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 49
-    };
     signed int i;
 
     for (i = 0; i < 50; i++)
     {
-        st_ZVIL_NPCTYPE_LOOKUP* npc = &g_npcTable[i];
-        st_ZVIL_NPC_HANDLERFUNCS* vhf = &g_npcFuncs[i];
-        const unsigned int* v = s_npcflags[i];
-        unsigned char pen = v[3];
+        // Behaviour flags per villain type (the original builds them from
+        // named flag constants; the values are what it compiles to).
+        unsigned int person;
+        unsigned char physics;
+        unsigned char chk;
+        unsigned char pen;
+        unsigned char chkby;
+        unsigned char penby;
+        signed int ability;
+        signed int atak;
+        signed int dtct;
+        signed int move;
+        signed int spyk;
+        signed int vuln;
 
-        if (v[9] & 0x40000)
+        switch (i)
+        {
+        case 0:
+            person = 0x1;
+            physics = 0x1B;
+            chk = 0x10;
+            pen = 0x10;
+            chkby = 0x10;
+            penby = 0x10;
+            ability = 0x22804A;
+            atak = 0x10003;
+            dtct = 0x80;
+            move = 0xC031BF;
+            spyk = 0x0;
+            vuln = 0x3F9E7;
+            break;
+        case 5:
+            person = 0x0;
+            physics = 0x1B;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x2A1F4A;
+            atak = 0x40001;
+            dtct = 0x800000B1;
+            move = 0x31BF;
+            spyk = 0x0;
+            vuln = 0x1F9E7;
+            break;
+        case 2:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281F4A;
+            atak = 0x20001;
+            dtct = 0xB1;
+            move = 0x21BF;
+            spyk = 0x0;
+            vuln = 0x5F9E7;
+            break;
+        case 3:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281FCA;
+            atak = 0x20001;
+            dtct = 0xB1;
+            move = 0x21BF;
+            spyk = 0x0;
+            vuln = 0x5F9E7;
+            break;
+        case 4:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281FCA;
+            atak = 0x20001;
+            dtct = 0xB1;
+            move = 0x21BF;
+            spyk = 0x0;
+            vuln = 0x5F9E7;
+            break;
+        case 6:
+            person = 0x0;
+            physics = 0x1B;
+            chk = 0x2E;
+            pen = 0x0;
+            chkby = 0x1C;
+            penby = 0x0;
+            ability = 0x281F4A;
+            atak = 0x10003;
+            dtct = 0x80;
+            move = 0x4313F;
+            spyk = 0x0;
+            vuln = 0x61;
+            break;
+        case 7:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281F4A;
+            atak = 0x20001;
+            dtct = 0x80;
+            move = 0x213F;
+            spyk = 0x0;
+            vuln = 0x5F9E7;
+            break;
+        case 9:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x299F4A;
+            atak = 0x20001;
+            dtct = 0x80;
+            move = 0x213F;
+            spyk = 0x0;
+            vuln = 0x5F9E7;
+            break;
+        case 12:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281FCA;
+            atak = 0x20001;
+            dtct = 0xB1;
+            move = 0x21BF;
+            spyk = 0x0;
+            vuln = 0x8001F8E7;
+            break;
+        case 13:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281F4A;
+            atak = 0x20001;
+            dtct = 0x80;
+            move = 0x213F;
+            spyk = 0x0;
+            vuln = 0x5F9E7;
+            break;
+        case 15:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281F4A;
+            atak = 0x80001;
+            dtct = 0xB1;
+            move = 0x21BF;
+            spyk = 0x0;
+            vuln = 0x5F9E7;
+            break;
+        case 16:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281F4A;
+            atak = 0x40001;
+            dtct = 0xB1;
+            move = 0x29BF;
+            spyk = 0x0;
+            vuln = 0x4005F9E7;
+            break;
+        case 17:
+            person = 0x0;
+            physics = 0x1B;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x2A1F4A;
+            atak = 0x80001;
+            dtct = 0x800000B1;
+            move = 0x31BF;
+            spyk = 0x0;
+            vuln = 0x1F9E7;
+            break;
+        case 18:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281F4A;
+            atak = 0x40001;
+            dtct = 0xB1;
+            move = 0x21BF;
+            spyk = 0x0;
+            vuln = 0x5F9E7;
+            break;
+        case 19:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x20014A;
+            atak = 0x20001;
+            dtct = 0x80;
+            move = 0x213F;
+            spyk = 0x0;
+            vuln = 0x5F9E7;
+            break;
+        case 20:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281F4A;
+            atak = 0x20001;
+            dtct = 0xB1;
+            move = 0x21BF;
+            spyk = 0x0;
+            vuln = 0x5F9E7;
+            break;
+        case 45:
+            person = 0x0;
+            physics = 0x1B;
+            chk = 0x2E;
+            pen = 0x8;
+            chkby = 0x1C;
+            penby = 0x8;
+            ability = 0x281F4A;
+            atak = 0x10001;
+            dtct = 0xB1;
+            move = 0x431BF;
+            spyk = 0x0;
+            vuln = 0x1F987;
+            break;
+        case 46:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281FCA;
+            atak = 0x20001;
+            dtct = 0xB1;
+            move = 0x21BF;
+            spyk = 0x0;
+            vuln = 0x5F9E7;
+            break;
+        case 21:
+            person = 0x1;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x2080CA;
+            atak = 0x0;
+            dtct = 0x80;
+            move = 0x613F;
+            spyk = 0x0;
+            vuln = 0x40107;
+            break;
+        case 14:
+            person = 0x1;
+            physics = 0x0;
+            chk = 0x20;
+            pen = 0x20;
+            chkby = 0x0;
+            penby = 0x0;
+            ability = 0x20000A;
+            atak = 0x0;
+            dtct = 0x0;
+            move = 0x0;
+            spyk = 0x0;
+            vuln = 0x0;
+            break;
+        case 22:
+            person = 0x1;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x20804A;
+            atak = 0x0;
+            dtct = 0x80;
+            move = 0x20213F;
+            spyk = 0x0;
+            vuln = 0x601E7;
+            break;
+        case 23:
+            person = 0x1;
+            physics = 0x1B;
+            chk = 0x10;
+            pen = 0x10;
+            chkby = 0x10;
+            penby = 0x10;
+            ability = 0x20804A;
+            atak = 0x0;
+            dtct = 0x80;
+            move = 0x10253F;
+            spyk = 0x0;
+            vuln = 0x201E7;
+            break;
+        case 24:
+            person = 0x1;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x22804A;
+            atak = 0x0;
+            dtct = 0x80;
+            move = 0xA13F;
+            spyk = 0x0;
+            vuln = 0x601E3;
+            break;
+        case 25:
+            person = 0x1;
+            physics = 0x1B;
+            chk = 0x2E;
+            pen = 0x0;
+            chkby = 0x1C;
+            penby = 0x0;
+            ability = 0x281F4A;
+            atak = 0x20001;
+            dtct = 0xB1;
+            move = 0x31BF;
+            spyk = 0x0;
+            vuln = 0x0;
+            break;
+        case 26:
+            person = 0x1;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x281F4A;
+            atak = 0x80001;
+            dtct = 0x81;
+            move = 0x2012;
+            spyk = 0x0;
+            vuln = 0x0;
+            break;
+        case 27:
+            person = 0x1;
+            physics = 0x1B;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x22804A;
+            atak = 0x10003;
+            dtct = 0x80;
+            move = 0x40313F;
+            spyk = 0x0;
+            vuln = 0x1F807;
+            break;
+        case 1:
+            person = 0x5;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x20014B;
+            atak = 0x40001;
+            dtct = 0x1;
+            move = 0x2137;
+            spyk = 0x0;
+            vuln = 0x9;
+            break;
+        case 41:
+            person = 0x7;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x20014B;
+            atak = 0x40001;
+            dtct = 0x1;
+            move = 0x2137;
+            spyk = 0x0;
+            vuln = 0x9;
+            break;
+        case 10:
+            person = 0x5;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x2001C3;
+            atak = 0x40001;
+            dtct = 0x1;
+            move = 0x137;
+            spyk = 0x0;
+            vuln = 0x109;
+            break;
+        case 44:
+            person = 0x7;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x2001C3;
+            atak = 0x40001;
+            dtct = 0x1;
+            move = 0x137;
+            spyk = 0x0;
+            vuln = 0x109;
+            break;
+        case 11:
+            person = 0x5;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x20014B;
+            atak = 0x80001;
+            dtct = 0x1;
+            move = 0x2137;
+            spyk = 0x0;
+            vuln = 0x9;
+            break;
+        case 43:
+            person = 0x7;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x20014B;
+            atak = 0x80001;
+            dtct = 0x1;
+            move = 0x2137;
+            spyk = 0x0;
+            vuln = 0x9;
+            break;
+        case 8:
+            person = 0x5;
+            physics = 0x1B;
+            chk = 0x2E;
+            pen = 0x0;
+            chkby = 0x1C;
+            penby = 0x0;
+            ability = 0x20014B;
+            atak = 0x40001;
+            dtct = 0x1;
+            move = 0x43137;
+            spyk = 0x0;
+            vuln = 0x9;
+            break;
+        case 42:
+            person = 0x7;
+            physics = 0x1B;
+            chk = 0x2E;
+            pen = 0x0;
+            chkby = 0x1C;
+            penby = 0x0;
+            ability = 0x20014B;
+            atak = 0x40001;
+            dtct = 0x1;
+            move = 0x43137;
+            spyk = 0x0;
+            vuln = 0x9;
+            break;
+        case 28:
+        case 29:
+        case 30:
+        case 31:
+        case 32:
+        case 33:
+        case 34:
+        case 35:
+        case 36:
+        case 37:
+        case 38:
+        case 39:
+        case 40:
+        case 47:
+        case 48:
+        case 49:
+            person = 0x7;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x48004;
+            atak = 0x0;
+            dtct = 0x1;
+            move = 0x2137;
+            spyk = 0x0;
+            vuln = 0x0;
+            break;
+        default:
+            person = 0x0;
+            physics = 0x1F;
+            chk = 0x2E;
+            pen = 0x6E;
+            chkby = 0x1C;
+            penby = 0x1C;
+            ability = 0x81F40;
+            atak = 0x0;
+            dtct = 0x80;
+            move = 0x2;
+            spyk = 0x40;
+            vuln = 0x1F800;
+            break;
+        }
+
+        if (move & 0x40000)
         {
             pen &= ~0x40;
         }
-        if (v[9] & 0x400)
+        if (move & 0x400)
         {
             pen &= ~0x20;
         }
-        npc->typ_person = (en_NPC_PERSONALITIES)v[0];
-        npc->flg_physics = v[1];
-        npc->flg_chk = v[2];
-        npc->flg_pen = pen;
-        npc->flg_chkby = v[4];
-        npc->flg_penby = v[5];
-        npc->ability = v[6];
-        npc->abl_atak = v[7];
-        npc->abl_dtct = v[8];
-        npc->abl_move = v[9];
-        npc->abl_spyk = v[10];
-        npc->abl_vuln = v[11];
+        g_npcTable[i].typ_person = (en_NPC_PERSONALITIES)person;
+        g_npcTable[i].flg_physics = physics;
+        g_npcTable[i].flg_chk = chk;
+        g_npcTable[i].flg_pen = pen;
+        g_npcTable[i].flg_chkby = chkby;
+        g_npcTable[i].flg_penby = penby;
+        g_npcTable[i].ability = ability;
+        g_npcTable[i].abl_atak = atak;
+        g_npcTable[i].abl_dtct = dtct;
+        g_npcTable[i].abl_move = move;
+        g_npcTable[i].abl_spyk = spyk;
+        g_npcTable[i].abl_vuln = vuln;
 
-        if (!(vhf->flg_funcs & 1))
+        if (!(g_npcFuncs[i].flg_funcs & 1))
         {
-            vhf->flg_funcs |= 2;
-            vhf->flags = VILN_std_flag;
-            vhf->query = VILN_std_query;
-            vhf->sysevent = VILN_std_sysevent;
-            vhf->notice = VILN_std_notice;
-            vhf->aware = VILN_std_aware;
-            vhf->stimulus = VILN_std_stimulus;
-            vhf->trangoal = VILN_std_trangoal;
-            vhf->calcmove = VILN_std_calcmove;
-            vhf->respond = VILN_std_respond;
-            vhf->pickanim = VILN_std_pickanim;
+            g_npcFuncs[i].flg_funcs |= 2;
+            g_npcFuncs[i].flags = VILN_std_flag;
+            g_npcFuncs[i].query = VILN_std_query;
+            g_npcFuncs[i].sysevent = VILN_std_sysevent;
+            g_npcFuncs[i].notice = VILN_std_notice;
+            g_npcFuncs[i].aware = VILN_std_aware;
+            g_npcFuncs[i].stimulus = VILN_std_stimulus;
+            g_npcFuncs[i].trangoal = VILN_std_trangoal;
+            g_npcFuncs[i].calcmove = VILN_std_calcmove;
+            g_npcFuncs[i].respond = VILN_std_respond;
+            g_npcFuncs[i].pickanim = VILN_std_pickanim;
         }
     }
 }
