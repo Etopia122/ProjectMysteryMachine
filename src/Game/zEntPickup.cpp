@@ -147,9 +147,10 @@ RwMatrixTag* fn_80162B60(RwMatrixTag* matrix, const RwV3d* scale, signed int com
 void fn_80015EAC(const char* fmt, ...);
 void fn_80050744(signed int);
 void fn_800527A8(_zEntPickup* ent);
-void fn_800B751C();
 float fn_800294A0(float t);
 }
+
+void zHud_showSnack();
 
 unsigned int xStrHash(const char* str);
 unsigned int xSndPlay(unsigned int id, float volL, float volR, float pitch, unsigned int priority,
@@ -588,7 +589,7 @@ signed int zPickup_Give(_zEntPickup* ent, zAssetPickup* p, unsigned short value)
             }
             break;
         case 4:
-            fn_800B751C();
+            zHud_showSnack();
             zEntPlayer_GiveScoobySnack(5);
             fn_80050744(0x24);
             break;
@@ -859,7 +860,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                             xSndPlay(xStrHash("snackgate_spin3"), 0.5f, 0.5f, 0.0f, 0x7F, 0x200,
                                      0);
                             fn_80050744(0xF);
-                            fn_800B751C();
+                            zHud_showSnack();
                         }
                     }
                     else if (ent->snackGateInfoDisplayed != -1)
@@ -910,7 +911,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                     {
                         ent->state = (ent->state & ~0x3F) | 4;
                         zEntPickup_PlaySound(ent);
-                        fn_800B751C();
+                        zHud_showSnack();
                         ent->grab_pos = *(_xVec3*)&ent->model->Mat->pos;
                         ent->timer = 0.4f;
                         ent->vel.x = 0.0f;

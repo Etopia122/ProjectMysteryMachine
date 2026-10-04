@@ -549,7 +549,15 @@ Game/zHologram.cpp:
 	.sdata2     start:0x80261388 end:0x80261390
 
 Game/zHud.cpp:
-	.text       start:0x800B09F0 end:0x800B97CC
+	.text       start:0x800B09F0 end:0x800B9808
+	.ctors      start:0x8018E5C8 end:0x8018E5CC
+	.rodata     start:0x801A4728 end:0x801A5118
+	.data       start:0x801C5F28 end:0x801C6C68
+	.bss        start:0x8022ECF0 end:0x80233698
+	.sdata      start:0x8025E558 end:0x8025E568
+	.sbss       start:0x8025EF98 end:0x8025EFE8
+	.sdata2     start:0x80261390 end:0x802615A8
+	.sbss2      start:0x80262CB0 end:0x80262CC8
 
 Game/zLaugh.cpp:
 	.text       start:0x800B9808 end:0x800B9AB0
