@@ -1,3 +1,13 @@
+// TODO: 97.8% (NonMatching). Most remaining differences are register
+// allocation: the inlined HealthCheck swaps the health and constant registers
+// in every transition check, and the large update functions (zEntPlayer_Update,
+// PlayerHangCheck/HangUpdate, HeadcollUpdate, CalcJumpImpulse_Smooth) are close
+// but not exact. A few .sdata2 constants (0.35f from zEntPlayer_Damage and
+// -2.0f from CalcJumpImpulse_Smooth) sit earlier in the target pool than the
+// reverse-order model puts them. zEntPlayer_FXSetup, zEntPlayer_ButtonHBFX and
+// zEntPlayer_ButtonBBFX are auto-inlined helpers kept at their PS2 positions so
+// their literals land in the right place; the linker must strip them once this
+// unit is Matching.
 #include "zGlobals.h"
 #include "zScene.h"
 #include "zParEmitter.h"
@@ -1071,6 +1081,11 @@ static inline void PlayerHeadAddTransition(xAnimTable* table, char* dest, xAnimT
         }
         state = state->Next;
     }
+}
+
+static inline unsigned char PlayerIsDigging()
+{
+    return globals.player.DigTimer != 0.0f;
 }
 
 static inline unsigned int PlayerSurfaceAnimCheck(xAnimTransition* tran)
@@ -2644,8 +2659,7 @@ static unsigned int DigCB(xAnimTransition*, xAnimSingle*, void*)
 static unsigned int StopDigCheck(xAnimTransition* tran, xAnimSingle* anim, void* data)
 {
     unsigned char ret = 0;
-    unsigned char digging = globals.player.DigTimer != 0.0f;
-    if (!digging && HealthCheck(tran, anim, data))
+    if (!PlayerIsDigging() && HealthCheck(tran, anim, data))
     {
         ret = 1;
     }
@@ -3817,7 +3831,7 @@ xAnimTable* zEntPlayer_UmbrellaAnimTable()
 
 static unsigned int LampDrawCheck(xAnimTransition*, xAnimSingle* anim, void*)
 {
-    return (anim->Play->ModelInst->Flags & 1) == 0;
+    return !(anim->Play->ModelInst->Flags & 1);
 }
 
 static unsigned int LamponCheck(xAnimTransition*, xAnimSingle* anim, void*)
