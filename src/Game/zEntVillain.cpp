@@ -8134,7 +8134,12 @@ static inline signed int VANM_inDmgWindow(st_zEntVillain* vil)
 
     VCFG_getParm(&vil->vilcfg, ZVIL_PARM_DMG_BEGTIME, &beg);
     VCFG_getParm(&vil->vilcfg, ZVIL_PARM_DMG_ENDTIME, &end);
-    return tym >= beg && tym <= end;
+    unsigned char ok = tym >= beg;
+    if (ok)
+    {
+        ok = tym <= end;
+    }
+    return ok;
 }
 
 static signed int VILN_crit_flag(st_zEntVillain* vil, en_ZVIL_FLAG_GROUPS flaggroup, en_BEHAVIOUR_GOAL goal)
@@ -13740,11 +13745,15 @@ static inline unsigned int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int
 
 static inline xAnimSingle* VANM_single(st_zEntVillain* vil)
 {
-    if (vil->model && vil->model->Anim)
+    if (!vil->model)
     {
-        return vil->model->Anim->Single;
+        return NULL;
     }
-    return NULL;
+    if (!vil->model->Anim)
+    {
+        return NULL;
+    }
+    return vil->model->Anim->Single;
 }
 
 static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force)
