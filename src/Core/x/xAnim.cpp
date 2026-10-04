@@ -1,5 +1,5 @@
-// TODO: 94% (NonMatching). First pass; see check_unit for the remaining
-// functions.
+// TODO: 98.8% (NonMatching). Work in progress; see check_unit for the
+// remaining functions.
 #include "xAnim.h"
 #include "xMath.h"
 #include "xMath3.h"
@@ -193,13 +193,13 @@ static inline float xAnimQuatYaw(_xQuat* q)
     return xAngleClamp(atan2(r.v.x, r.v.z));
 }
 
-static inline float xAnimFileRawTime(xAnimFile* data, void* raw)
+static inline float xAnimFileRawTime(xAnimFile* data)
 {
     if (data->FileFlags & 0x8000)
     {
-        return xMorphSeqDuration((xMorphSeqFile*)raw);
+        return xMorphSeqDuration((xMorphSeqFile*)*data->RawData);
     }
-    return iAnimDuration(raw);
+    return iAnimDuration(*data->RawData);
 }
 
 xAnimState* xAnimTableGetStateID(xAnimTable* table, unsigned int ID);
@@ -385,9 +385,10 @@ static inline void TransitionTimeInit(xAnimSingle* single, xAnimTransition* tran
 {
     if (tran->Flags & 0x20)
     {
-        if ((single->State->Data->FileFlags ^ tran->Dest->Data->FileFlags) & 0x1000)
+        xAnimFile* destData = tran->Dest->Data;
+        if ((single->State->Data->FileFlags ^ destData->FileFlags) & 0x1000)
         {
-            single->Time = tran->Dest->Data->Duration - single->Time;
+            single->Time = destData->Duration - single->Time;
         }
     }
     else
@@ -667,14 +668,9 @@ xAnimFile* xAnimFileNewBilinear(void** rawData, char* name, unsigned int flags,
 {
     xAnimFile* afile;
 
-    if (gxAnimUseGrowAlloc)
-    {
-        afile = (xAnimFile*)xMemGrowAlloc(gActiveHeap, numX * numY * sizeof(void*) + 0x44);
-    }
-    else
-    {
-        afile = (xAnimFile*)xMemAlloc(gActiveHeap, numX * numY * sizeof(void*) + 0x44);
-    }
+    afile = gxAnimUseGrowAlloc ?
+                (xAnimFile*)xMemGrowAlloc(gActiveHeap, numX * numY * sizeof(void*) + 0x44) :
+                (xAnimFile*)xMemAlloc(gActiveHeap, numX * numY * sizeof(void*) + 0x44);
 
     if (numX > 1 || numY > 1)
     {
@@ -704,14 +700,8 @@ xAnimFile* xAnimFileNewBilinear(void** rawData, char* name, unsigned int flags,
     afile->Name = name;
     afile->ID = xStrHash(name);
     afile->FileFlags = flags;
-    if (afile->FileFlags & 0x2000)
-    {
-        afile->Duration = 2.0f * xAnimFileRawTime(afile, *afile->RawData);
-    }
-    else
-    {
-        afile->Duration = xAnimFileRawTime(afile, *afile->RawData);
-    }
+    afile->Duration = (afile->FileFlags & 0x2000) ? 2.0f * xAnimFileRawTime(afile) :
+                                                     xAnimFileRawTime(afile);
     afile->TimeOffset = 0.0f;
     afile->BoneCount = (flags & 0x8000) ? 0 : iAnimBoneCount(*rawData);
     afile->NumAnims[0] = numX;
@@ -734,7 +724,7 @@ void xAnimFileSetPhysics(xAnimFile* data, void* physics)
 
 void xAnimFileSetTime(xAnimFile* data, float duration, float timeOffset)
 {
-    float rawDuration = xAnimFileRawTime(data, *data->RawData);
+    float rawDuration = xAnimFileRawTime(data);
 
     if (timeOffset > rawDuration - 0.1f)
     {
@@ -1003,14 +993,8 @@ xAnimEffect* xAnimStateNewEffect(xAnimState* state, unsigned int flags, float st
 {
     xAnimEffect* effect;
 
-    if (gxAnimUseGrowAlloc)
-    {
-        effect = (xAnimEffect*)xMemGrowAlloc(gActiveHeap, userDataSize + sizeof(xAnimEffect));
-    }
-    else
-    {
-        effect = (xAnimEffect*)xMemAlloc(gActiveHeap, userDataSize + sizeof(xAnimEffect));
-    }
+    effect = gxAnimUseGrowAlloc ? (xAnimEffect*)xMemGrowAlloc(gActiveHeap, userDataSize + sizeof(xAnimEffect)) :
+                               (xAnimEffect*)xMemAlloc(gActiveHeap, userDataSize + sizeof(xAnimEffect));
 
     effect->Flags = flags;
     effect->StartTime = startTime;
@@ -1058,14 +1042,8 @@ xAnimState* xAnimTableNewState(xAnimTable* table, char* name, unsigned int flags
 {
     xAnimState* state;
 
-    if (gxAnimUseGrowAlloc)
-    {
-        state = (xAnimState*)xMemGrowAlloc(gActiveHeap, sizeof(xAnimState));
-    }
-    else
-    {
-        state = (xAnimState*)xMemAlloc(gActiveHeap, sizeof(xAnimState));
-    }
+    state = gxAnimUseGrowAlloc ? (xAnimState*)xMemGrowAlloc(gActiveHeap, sizeof(xAnimState)) :
+                               (xAnimState*)xMemAlloc(gActiveHeap, sizeof(xAnimState));
 
     if (table->StateList == NULL)
     {
@@ -1191,14 +1169,8 @@ xAnimTransition* xAnimTableNewTransition(xAnimTable* table, char* source, char* 
 {
     xAnimTransition* tran;
 
-    if (gxAnimUseGrowAlloc)
-    {
-        tran = (xAnimTransition*)xMemGrowAlloc(gActiveHeap, sizeof(xAnimTransition));
-    }
-    else
-    {
-        tran = (xAnimTransition*)xMemAlloc(gActiveHeap, sizeof(xAnimTransition));
-    }
+    tran = gxAnimUseGrowAlloc ? (xAnimTransition*)xMemGrowAlloc(gActiveHeap, sizeof(xAnimTransition)) :
+                               (xAnimTransition*)xMemAlloc(gActiveHeap, sizeof(xAnimTransition));
 
     if (blendRecip != 0.0f)
     {
@@ -1307,6 +1279,7 @@ xAnimState* xAnimTableGetState(xAnimTable* table, char* name)
     return xAnimTableGetStateID(table, xStrHash(name));
 }
 
+#pragma auto_inline on
 static void EffectSingleStart(xAnimSingle* single)
 {
     xAnimEffect* effect = single->State->Effects;
@@ -1357,6 +1330,7 @@ static void EffectSingleStart(xAnimSingle* single)
 
     single->Effect = effect;
 }
+#pragma auto_inline reset
 
 #pragma auto_inline on
 static void EffectSingleRun(xAnimSingle* single)
@@ -1434,8 +1408,8 @@ static void CalcLastAndDeltas(xAnimSingle* single, _xVec3* tran, _xQuat* quat, f
 {
     float lyaw[2];
     _xQuat inv;
-    _xQuat lquat[2];
     _xVec3 ltran[2];
+    _xQuat lquat[2];
 
     xAnimFileEval(single->State->Data, single->Time, single->BilinearLerp, 5, ltran, lquat, lyaw);
 
@@ -1499,11 +1473,12 @@ static void LoopUpdate(xAnimSingle* single, _xVec3* tran, _xQuat* quat, float* y
         float lyaw[2];
 
         single->Time = duration;
+        float remain = time - duration;
         CalcLastAndDeltas(single, ltran, lquat, lyaw, 0);
         EffectSingleLoop(single);
         single->Time = 0.0f;
         CalcLastAndDeltas(single, NULL, NULL, NULL, 1);
-        single->Time = time - duration;
+        single->Time = remain;
         CalcLastAndDeltas(single, tran, quat, yaw, 0);
         tran->x += ltran[0].x;
         tran->y += ltran[0].y;
@@ -1566,16 +1541,27 @@ static void SingleUpdate(xAnimSingle* single, float timeDelta, _xVec3* tran, _xQ
     float tranDelta = 0.0f;
     float blendDelta = 0.0f;
     float singleTime;
-    float lyaw[2];
-    float byaw[2];
-    _xQuat lquat[2];
-    _xQuat bquat[2];
-    _xVec3 ltran[2];
+    // PERM_BEGIN
     _xVec3 btran[2];
+    _xVec3 ltran[2];
+    _xQuat bquat[2];
+    _xQuat lquat[2];
+    float byaw[2];
+    float lyaw[2];
+    // PERM_END
 
     if (single->State == NULL)
     {
         return;
+    }
+
+    // Stand-in for code the original compiled out: it only makes MWCC's
+    // auto-inliner see this function as large enough to stop inlining
+    // CalcLastAndDeltas, EffectSingleStart and EffectSingleRun here.
+    if (0)
+    {
+        EffectSingleStop(single);
+        EffectSingleStop(single);
     }
 
     void* object = single->Play->Object;

@@ -417,7 +417,7 @@ config.libs = [
     GameLib(
         "Core/x",
         [
-            Object(NonMatching, "Core/x/xAnim.cpp"),
+            Object(NonMatching, "Core/x/xAnim.cpp", extra_cflags=["-bool on"]),
             Object(Matching, "Core/x/xBase.cpp"),
             Object(Matching, "Core/x/xbinio.cpp"),
             Object(Matching, "Core/x/xBound.cpp"),
