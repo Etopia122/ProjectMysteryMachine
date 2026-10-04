@@ -724,6 +724,8 @@ static unsigned int zEntPlayer_FXDigupCB(unsigned int, xAnimActiveEffect*, xAnim
 static unsigned int zEntPlayer_FXScratchCB(unsigned int, xAnimActiveEffect*, xAnimSingle*, void*);
 static void zEntPlayer_FXUpdate(_xEnt* ent, float seconds);
 void zEntPlayer_FXSetup(xAnimTable* table);
+void zEntPlayer_ButtonHBFX();
+void zEntPlayer_ButtonBBFX(_xEnt* ent);
 static void zEntPlayer_FXLostChance(_xEnt* ent);
 void zEntPlayer_Notify(signed int situation);
 void zEntPlayer_Notify(unsigned char characterSubType);
@@ -3010,24 +3012,7 @@ static inline signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll)
         else
         {
             zEntEvent((xBase*)coll->optr, 0x37);
-            if (sEmitterHeadButt != NULL && sEmitterHeadButt2 != NULL)
-            {
-                _zParEmitterCustomSettings info;
-                _xVec3 angles;
-                _xMat4x3* mat = (_xMat4x3*)globals.player.ent.model->Mat;
-                info.custom_flags = 0x20;
-                info.pos.x = mat->pos.x + mat->at.x;
-                info.pos.y = 1.1f + mat->pos.y;
-                info.custom_flags = 0x10020;
-                info.pos.z = mat->pos.z + mat->at.z;
-                xMat3x3GetEuler((_xMat3x3*)mat, &angles);
-                info.rot[1] = 0x40;
-                info.rot[0] = 255.0f * (angles.x / 6.2831855f);
-                info.rot[2] = 255.0f * (angles.z / 6.2831855f);
-                zParEmitterEmitCustom(sEmitterHeadButt, 1.0f / 30.0f, &info);
-                info.rot[0] += 0x40;
-                zParEmitterEmitCustom(sEmitterHeadButt2, 1.0f / 30.0f, &info);
-            }
+            zEntPlayer_ButtonHBFX();
             globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
             globals.player.HeadbuttHit = 1;
             globals.player.HeadbuttVel = 0.25f * globals.player.HeadbuttVel;
@@ -3062,31 +3047,7 @@ void ButtonBBCheck(_xEnt* ent)
                         if ((bounceResponse == 2 || bounceResponse == 3) && buttonState == 0)
                         {
                             zEntEvent((xBase*)coll->optr, 0x37);
-                            if (sEmitterBounceOnVillain != NULL)
-                            {
-                                _zParEmitterCustomSettings info;
-                                info.custom_flags = 0x20;
-                                _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
-                                info.pos.x = mat->pos.x;
-                                float y = mat->pos.y - 1.0f;
-                                info.pos.y = y;
-                                info.pos.z = mat->pos.z;
-                                switch (ent->bound.type)
-                                {
-                                case 4:
-                                case 0:
-                                case 1:
-                                    info.pos = ent->bound.sph.center;
-                                    break;
-                                case 2:
-                                    info.pos.y = y + (ent->bound.box.box.upper.y - ent->bound.box.box.lower.y);
-                                    break;
-                                case 3:
-                                    info.pos.y = y + ent->bound.cyl.h;
-                                    break;
-                                }
-                                zParEmitterEmitCustom(sEmitterBounceOnVillain, 1.0f / 30.0f, &info);
-                            }
+                            zEntPlayer_ButtonBBFX(ent);
                         }
                         else if (coll->hdng.x == 0.0f && coll->hdng.z == 0.0f)
                         {
@@ -7175,10 +7136,10 @@ void zEntPlayerCollide(_xEnt* ent, _xScene* sc, float dt)
     if (ent->collis->chk & 0x20)
     {
         ent->collis->env_sidx = ent->collis->idx;
-        ent->bound.sph.r = 0.91f;
+        ent->bound.sph.r = 0.90999997f;
         iSphereHitsEnv4(&ent->bound.sph, sc->env, (_xMat3x3*)ent->frame, &ent->collis->colls[0]);
         ent->bound.sph.r = 0.7f;
-        globals.player.head_sph.r = 0.91f;
+        globals.player.head_sph.r = 0.90999997f;
         iSphereHitsEnv4(&globals.player.head_sph, sc->env, (_xMat3x3*)ent->frame, &ent->collis->colls[0]);
         globals.player.head_sph.r = 0.7f;
 
@@ -7672,6 +7633,10 @@ static void PlayerHangCheck(_xEnt* ent, _xScene* sc)
 
         if (hangclose != NULL)
         {
+            if (closedist > 16.0f)
+            {
+                return;
+            }
             _xVec3 oldpos = ent->frame->oldpos;
             oldpos.y += ent->bound.sph.r;
 
@@ -8694,6 +8659,62 @@ static RpAtomic* sPlayerBodyAtomic;
 static RpAtomic* sPlayerHeadAtomic;
 static RpClump* sPlayerBodyClump;
 static RpClump* sPlayerHeadClump;
+
+#pragma auto_inline on
+void zEntPlayer_ButtonBBFX(_xEnt* ent)
+{
+    if (sEmitterBounceOnVillain != NULL)
+    {
+        _zParEmitterCustomSettings info;
+        info.custom_flags = 0x20;
+        _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
+        info.pos.x = mat->pos.x;
+        float y = mat->pos.y - 1.0f;
+        info.pos.y = y;
+        info.pos.z = mat->pos.z;
+        switch (ent->bound.type)
+        {
+        case 4:
+        case 0:
+        case 1:
+            info.pos = ent->bound.sph.center;
+            break;
+        case 2:
+            info.pos.y = y + (ent->bound.box.box.upper.y - ent->bound.box.box.lower.y);
+            break;
+        case 3:
+            info.pos.y = y + ent->bound.cyl.h;
+            break;
+        }
+        zParEmitterEmitCustom(sEmitterBounceOnVillain, 1.0f / 30.0f, &info);
+    }
+}
+#pragma auto_inline reset
+
+#pragma auto_inline on
+void zEntPlayer_ButtonHBFX()
+{
+    if (sEmitterHeadButt != NULL && sEmitterHeadButt2 != NULL)
+    {
+        _zParEmitterCustomSettings info;
+        _xVec3 angles;
+        _xMat4x3* mat = (_xMat4x3*)globals.player.ent.model->Mat;
+        info.custom_flags = 0x20;
+        info.pos.x = mat->pos.x + mat->at.x;
+        info.pos.y = 1.1f + mat->pos.y;
+        info.custom_flags = 0x10020;
+        info.pos.z = mat->pos.z + mat->at.z;
+        xMat3x3GetEuler((_xMat3x3*)mat, &angles);
+        info.rot[1] = 0x40;
+        info.rot[0] = 255.0f * (angles.x / 6.2831855f);
+        info.rot[2] = 255.0f * (angles.z / 6.2831855f);
+        zParEmitterEmitCustom(sEmitterHeadButt, 1.0f / 30.0f, &info);
+        info.rot[0] += 0x40;
+        zParEmitterEmitCustom(sEmitterHeadButt2, 1.0f / 30.0f, &info);
+    }
+}
+#pragma auto_inline reset
+
 
 void zEntPlayer_InitCutsceneModelHack()
 {
