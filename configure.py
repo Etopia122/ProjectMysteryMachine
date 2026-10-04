@@ -413,7 +413,7 @@ config.libs = [
             Object(Equivalent, "Core/gc/isavegame.cpp"),
             Object(Matching, "Core/gc/iScrFX.cpp"),
             Object(Equivalent, "Core/gc/iShadow.cpp"),
-            Object(NonMatching, "Core/gc/iSystem.cpp"),
+            Object(Equivalent, "Core/gc/iSystem.cpp"),
             # GameCube-only units linked after the game code (names by role)
             Object(Equivalent, "Core/gc/iSnd.cpp"),
             Object(Equivalent, "Core/gc/iFMV.cpp"),
