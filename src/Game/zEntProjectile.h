@@ -344,7 +344,7 @@ signed int zEntProjectile_gen_logix(zEntProjectile* prj, float dt, zScene* scn, 
 signed int zEntProjectile_gen_attach(zEntProjectile* prj);
 void zEntProjectile_poolRender(en_ZPRJ_CATEGORY cat);
 signed int zEntProjectile_poolUpdate(en_ZPRJ_CATEGORY cat, zScene* scn, float dt);
-void zEntProjectile_prepSystem(signed int num_ptype);
+void zEntProjectile_prepSystem(signed int num_ptype, zScene* scn);
 void zEntProjectile_sceneFinish();
 void zEntProjectile_sceneReset();
 void zEntProjectile_scenePrepare();

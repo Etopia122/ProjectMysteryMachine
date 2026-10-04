@@ -58,7 +58,7 @@ float fn_800294A0(float t);
 float fn_800294C4(float t);
 
 extern _xScene* g_xSceneCur;
-extern unsigned int lbl_8025F0D0; // current scene ID
+extern unsigned int gTransitionSceneID;
 extern signed int lbl_8025ECC0;
 extern signed int lbl_8025ECC4;
 extern _xVec3 lbl_80229088;
@@ -890,7 +890,7 @@ static void xCameraSeeThruCallback(_xEnt* ent)
     {
         ent->flags |= 4;
         ent->fade_tmr = 1.25f;
-        if ((lbl_8025F0D0 ^ 0x20000000) == SCENE_ID("o004") &&
+        if ((gTransitionSceneID ^ 0x20000000) == SCENE_ID("o004") &&
             (ent->id == 0xF933F89E || ent->id == 0xFFF2B7AA))
         {
             ent->fade_tmr = 0.25f;

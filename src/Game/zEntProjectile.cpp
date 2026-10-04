@@ -366,7 +366,7 @@ static inline st_ZPRJ_TYPERECORD* ZPRJ_allocTypes(signed int cnt)
     return table;
 }
 
-void zEntProjectile_prepSystem(signed int num_ptype)
+void zEntProjectile_prepSystem(signed int num_ptype, zScene*)
 {
     st_PROJECTILE_DEPOT* depot = &g_prjdepot;
     signed int i;

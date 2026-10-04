@@ -29,7 +29,7 @@ void xMat4x3RMul3x3(_xMat4x3* o, _xMat3x3* a, _xMat4x3* b);
 char* xSceneID2Name(_xScene* sc, unsigned int id);
 
 extern const _xVec3 g_Y3;
-extern unsigned int lbl_8025F0D0; // current scene ID, set in zSceneInit
+extern unsigned int gTransitionSceneID;
 
 enum en_PROJECTILE_EVENT
 {
@@ -394,7 +394,7 @@ static inline void ZLOB_fadeSetup(_xEnt* ent)
 {
     ent->flags |= 4;
     ent->fade_tmr = 1.25f;
-    if ((lbl_8025F0D0 ^ 0x20000000) == SCENE_ID("o004") &&
+    if ((gTransitionSceneID ^ 0x20000000) == SCENE_ID("o004") &&
         (ent->id == 0xF933F89E || ent->id == 0xFFF2B7AA))
     {
         ent->fade_tmr = 0.25f;

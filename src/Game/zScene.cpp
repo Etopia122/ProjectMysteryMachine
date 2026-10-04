@@ -1,6 +1,8 @@
-// TODO: 99.2% (NonMatching). Remaining differences are register allocation
-// in Switch, Reset, Render, Update, the InitFuncs and the area getters, plus
-// data layout in .bss/.sbss/.sbss2/.sdata.
+// TODO: 99.8% (NonMatching). zSceneSwitch differs in the byte-swap loop and
+// register use around the camera calls, zSceneLoad in one register swap in the
+// stats reset, zSceneRender in register allocation. .sdata2 pools a 0.0f after
+// "MNU3" instead of before it, and .rodata places " VISITED" after the area
+// name strings instead of before them.
 #define xCameraInit xCameraInit_header
 #include "zScene.h"
 #include "zGlobals.h"
@@ -286,9 +288,10 @@ static zSceneObjectInstanceDesc sInitTable[34] = {
     { NULL, 0, 0, 0, NULL, NULL },
 };
 
-static const zSceneSortID sSortConst0 = { 0xFFF2B7A3 };
-static const zSceneSortID sSortConst1 = { 0xFFF2B7A4 };
-static const zSceneSortID sSortConst2 = { 0xFFF2B7AA };
+// Type 2 entries keep the ID of the entity to sort against in the float slot.
+static const unsigned int sSortConst0 = 0xFFF2B7A3;
+static const unsigned int sSortConst1 = 0xFFF2B7A4;
+static const unsigned int sSortConst2 = 0xFFF2B7AA;
 
 static zSceneSortEntry sSortTable[66] = {
     { SCENE_ID("b004"), 0x3A93B8D5, 1, 1000.0f, 0.0f },
@@ -313,15 +316,15 @@ static zSceneSortEntry sSortTable[66] = {
     { SCENE_ID("i006"), 0x90E56560, 1, 10000.0f, 0.0f },
     { SCENE_ID("i006"), 0x9D7EF8C5, 1, 9999.0f, 0.0f },
     { SCENE_ID("i006"), 0x9DA14661, 2, -1.3661381146136485e-36f, 0.10000000149011612f },
-    { SCENE_ID("i006"), 0x1EA6A37D, 2, sSortConst0.f, 0.10000000149011612f },
+    { SCENE_ID("i006"), 0x1EA6A37D, 2, *(float*)&sSortConst0, 0.10000000149011612f },
     { SCENE_ID("i020"), 0x00794266, 1, 10000.0f, 0.0f },
     { SCENE_ID("i020"), 0x0BBA9313, 1, 10000.0f, 0.0f },
-    { SCENE_ID("i020"), 0x1FF4FC52, 2, sSortConst0.f, 0.10000000149011612f },
+    { SCENE_ID("i020"), 0x1FF4FC52, 2, *(float*)&sSortConst0, 0.10000000149011612f },
     { SCENE_ID("i020"), 0x8FD9188B, 1, 10000.0f, 0.0f },
     { SCENE_ID("i020"), 0x8FD9188D, 1, 10000.0f, 0.0f },
     { SCENE_ID("i021"), 0x9C17992C, 2, -1.4451877194954221e-10f, -0.10000000149011612f },
     { SCENE_ID("i021"), 0x0B0E0EAC, 1, 10000.0f, 0.0f },
-    { SCENE_ID("i021"), 0x889C3413, 2, sSortConst0.f, 0.10000000149011612f },
+    { SCENE_ID("i021"), 0x889C3413, 2, *(float*)&sSortConst0, 0.10000000149011612f },
     { SCENE_ID("l017"), 0xF933F817, 2, 3.753733324174391e-08f, -0.10000000149011612f },
     { SCENE_ID("l017"), 0xF933F818, 2, 7.52681181270809e-11f, -0.10000000149011612f },
     { SCENE_ID("l017"), 0xF933F819, 2, 3.2181434996898144e-15f, -0.10000000149011612f },
@@ -340,9 +343,9 @@ static zSceneSortEntry sSortTable[66] = {
     { SCENE_ID("o003"), 0x5E6B8997, 2, -9.768009734401062e-10f, 0.10000000149011612f },
     { SCENE_ID("o003"), 0x5107645D, 2, -9.768009734401062e-10f, 0.10000000149011612f },
     { SCENE_ID("o003"), 0x6BD9B53C, 2, -9.768009734401062e-10f, 0.10000000149011612f },
-    { SCENE_ID("o004"), 0x4B6C4E03, 2, sSortConst1.f, 0.10000000149011612f },
-    { SCENE_ID("o004"), 0x4B6C4E04, 2, sSortConst1.f, 0.10000000149011612f },
-    { SCENE_ID("o004"), 0x4BF5846F, 2, sSortConst2.f, -0.10000000149011612f },
+    { SCENE_ID("o004"), 0x4B6C4E03, 2, *(float*)&sSortConst1, 0.10000000149011612f },
+    { SCENE_ID("o004"), 0x4B6C4E04, 2, *(float*)&sSortConst1, 0.10000000149011612f },
+    { SCENE_ID("o004"), 0x4BF5846F, 2, *(float*)&sSortConst2, -0.10000000149011612f },
     { SCENE_ID("o004"), 0xF933F89E, 1, 32180446.0f, -0.10000000149011612f },
     { SCENE_ID("o004"), 0x1EA6A37A, 1, 20000.0f, 0.0f },
     { SCENE_ID("r001"), 0x0BBA9312, 0, 500.0f, 500.0f },
@@ -520,15 +523,13 @@ extern "C" {
 signed int sprintf(char* s, const char* format, ...);
 char* strcat(char* dst, const char* src);
 char* strcpy(char* dst, const char* src);
-_zVolume* fn_80005AE8(signed int idx);
+_zVolume* fn_80005AE8(unsigned short idx);
 void fn_80005B08();
 void fn_80005B58();
-void fn_80005C34(xSerial* s);
-void fn_80005C54(xSerial* s);
+void fn_80005C34(xBase* b, xSerial* s);
+void fn_80005C54(xBase* b, xSerial* s);
 void fn_800162D8();
-void fn_8005D854(xSerial* s);
 void fn_8006D624();
-void fn_800A8C28(xSerial* s);
 void fn_800A8F88(xBase* b, zScene* s);
 st_zEntVillain* fn_800A9640(unsigned int idx);
 void* fn_800A9650(unsigned int cnt);
@@ -681,7 +682,7 @@ void zEntPickup_Setup();
 
 void zEntPickup_Setup(_zEntPickup* p);
 
-signed int zEntPickup_WarpIsOpen(unsigned int idx);
+unsigned int zEntPickup_WarpIsOpen(unsigned int idx);
 
 void zEntPlayerExit(_xEnt* ent);
 
@@ -689,7 +690,7 @@ void zEntPlayerReset(_xEnt* ent);
 
 void zEntPlayer_LoadCheckPoint();
 
-void zEntProjectile_prepSystem(signed int cnt);
+void zEntProjectile_prepSystem(signed int cnt, zScene* scn);
 
 void zEntProjectile_registerType(zProjectileTypeAsset* asset);
 
@@ -709,7 +710,9 @@ void zEntTriggerLoad(zEntTrigger* ent, xSerial* s);
 
 void zEntTriggerSave(zEntTrigger* ent, xSerial* s);
 
-void zEntVillain_BonusRender();
+void zEntVillain_Load(st_zEntVillain* villain, xSerial* s);
+void zEntVillain_Save(st_zEntVillain* villain, xSerial* s);
+void zEntPlayer_Load(_xEnt* ent, xSerial* s);
 
 void zEntVillain_Init(st_zEntVillain* villain, p2EntAsset* asset);
 
@@ -1188,8 +1191,10 @@ static unsigned int zSceneInitFunc_DefaultEnt(zScene* s, zSceneObjectInstanceDes
 {
     unsigned char* block = NULL;
     unsigned int assetSize = 0;
+    signed int count;
     unsigned int offset = desc->sizeRuntime;
-    signed int count = s->baseCount[desc->baseType];
+    xBase* b;
+    count = s->baseCount[desc->baseType];
 
     if (count)
     {
@@ -1199,7 +1204,7 @@ static unsigned int zSceneInitFunc_DefaultEnt(zScene* s, zSceneObjectInstanceDes
     for (signed int i = 0; i < count; i++)
     {
         void* asset = xSTFindAssetByType(desc->assetType, i, &assetSize);
-        xBase* b = (xBase*)(block + i * offset);
+        b = (xBase*)(block + i * offset);
         zSceneSet(b, base_idx);
         if (desc->objectInitFunc)
         {
@@ -1217,8 +1222,10 @@ static unsigned int zSceneInitFunc_Default(zScene* s, zSceneObjectInstanceDesc* 
 {
     unsigned char* block = NULL;
     unsigned int assetSize = 0;
+    signed int count;
     unsigned int offset = desc->sizeRuntime;
-    signed int count = s->baseCount[desc->baseType];
+    xBase* b;
+    count = s->baseCount[desc->baseType];
 
     if (count)
     {
@@ -1228,7 +1235,7 @@ static unsigned int zSceneInitFunc_Default(zScene* s, zSceneObjectInstanceDesc* 
     for (signed int i = 0; i < count; i++)
     {
         void* asset = xSTFindAssetByType(desc->assetType, i, &assetSize);
-        xBase* b = (xBase*)(block + i * offset);
+        b = (xBase*)(block + i * offset);
         zSceneSet(b, base_idx);
         if (desc->objectInitFunc)
         {
@@ -1266,7 +1273,7 @@ static unsigned int zSceneInitFunc_MovePoint(zScene* s, zSceneObjectInstanceDesc
 static unsigned int zSceneInitFunc_Villain(zScene* s, zSceneObjectInstanceDesc* desc,
                                            unsigned int base_idx)
 {
-    unsigned int count = s->baseCount[desc->baseType];
+    signed int count = s->baseCount[desc->baseType];
     if (count)
     {
         s->baseList[desc->baseType] = (xBase*)fn_800A9650(count);
@@ -1299,9 +1306,8 @@ static unsigned int zSceneInitFunc_Player(zScene* s, zSceneObjectInstanceDesc* d
             {
                 xSceneAddEnt(s, (_xEnt*)s->base[base_idx]);
             }
-            unsigned int id = *(unsigned int*)xSTFindAssetByType('PLYR', idx, NULL);
-            globals.player.ent.id = id;
-            zSceneObjHashtableAdd(id, b);
+            globals.player.ent.id = *(unsigned int*)xSTFindAssetByType('PLYR', idx, NULL);
+            zSceneObjHashtableAdd(b->id, b);
             base_idx++;
         }
     }
@@ -1472,8 +1478,8 @@ void zSceneInit(unsigned int theSceneID)
     zGameScreenTransitionBegin();
     zGameScreenTransitionUpdate(pdone, "...preparing to preload\n");
 
-    s = (zScene*)xMemAlloc(gActiveHeap, sizeof(zScene));
-    globals.sceneCur = s;
+    globals.sceneCur = (zScene*)xMemAlloc(gActiveHeap, sizeof(zScene));
+    s = globals.sceneCur;
     xSceneInit(s, 205, 210, 230, 50);
     s->env = (_xEnv*)xMemAlloc(gActiveHeap, 0x28);
     s->sceneID = theSceneID;
@@ -1514,10 +1520,10 @@ void zSceneInit(unsigned int theSceneID)
     zAnimListInit();
     zGameScreenTransitionUpdate(100.0f, "...initializing scene - base types\n");
 
-    for (i = 0; i < 43; i++)
+    for (signed int j = 0; j < 43; j++)
     {
-        s->baseCount[i] = 0;
-        s->baseList[i] = NULL;
+        s->baseCount[j] = 0;
+        s->baseList[j] = NULL;
     }
     s->num_base = 0;
 
@@ -1528,9 +1534,9 @@ void zSceneInit(unsigned int theSceneID)
         s->num_base += count;
     }
 
-    if (s->num_base)
+    if (s->num_ents)
     {
-        s->base = (xBase**)xMemAlloc(gActiveHeap, s->num_base * sizeof(xBase*));
+        s->base = (xBase**)xMemAlloc(gActiveHeap, s->num_ents * sizeof(xBase*));
     }
     else
     {
@@ -1563,7 +1569,7 @@ void zSceneInit(unsigned int theSceneID)
     signed int prjCount = xSTAssetCountByType('PRJT');
     if (prjCount)
     {
-        zEntProjectile_prepSystem(prjCount);
+        zEntProjectile_prepSystem(prjCount, s);
         for (i = 0; i < prjCount; i++)
         {
             zProjectileTypeAsset* a = (zProjectileTypeAsset*)xSTFindAssetByType('PRJT', i, NULL);
@@ -1629,7 +1635,7 @@ void zSceneExit()
     if (s->baseCount[39])
     {
         zParSys* ps = (zParSys*)s->baseList[39];
-        for (signed int i = 0; i < s->baseCount[39]; i++)
+        for (signed int i = 0; i < (signed int)s->baseCount[39]; i++)
         {
             if (((xBase*)&ps[i])->baseFlags & 4)
             {
@@ -1713,9 +1719,9 @@ void zSceneSave(zScene* ent, xSerial* xs)
         xs->Write(globals.areaStats[i].snacks_tot);
         xs->Write(globals.areaStats[i].tokens_tot);
     }
-    for (unsigned int w = 0; (signed int)w < 26; w++)
+    for (i = 0; i < 26; i++)
     {
-        if (zEntPickup_WarpIsOpen(w))
+        if (zEntPickup_WarpIsOpen(i))
         {
             xs->Write_b1(1);
         }
@@ -1745,7 +1751,7 @@ void zSceneSave(zScene* ent, xSerial* xs)
                 zEntTriggerSave((zEntTrigger*)b, xs);
                 break;
             case 2:
-                fn_800A8C28(xs);
+                zEntVillain_Save((st_zEntVillain*)b, xs);
                 break;
             case 4:
                 zEntPickup_Save((_zEntPickup*)b, xs);
@@ -1808,7 +1814,7 @@ void zSceneSave(zScene* ent, xSerial* xs)
                 zScriptSave((_zScript*)b, xs);
                 break;
             case 29:
-                fn_80005C54(xs);
+                fn_80005C54(b, xs);
                 break;
             case 30:
                 zDispatcher_Save((st_ZDISPATCH_DATA*)b, xs);
@@ -1863,13 +1869,13 @@ void zSceneLoad(zScene* ent, xSerial* xs)
             xs->Read(&globals.areaStats[i].snacks_tot);
             xs->Read(&globals.areaStats[i].tokens_tot);
         }
-        for (unsigned int w = 0; (signed int)w < 26; w++)
+        for (i = 0; i < 26; i++)
         {
             signed int open = 0;
             xs->Read_b1(&open);
             if (open)
             {
-                enableWarpPoint(w);
+                enableWarpPoint(i);
             }
         }
         zCutsceneMgrLoad(NULL, xs);
@@ -1896,10 +1902,10 @@ void zSceneLoad(zScene* ent, xSerial* xs)
                     zEntTriggerLoad((zEntTrigger*)b, xs);
                     break;
                 case 2:
-                    zEntVillain_BonusRender();
+                    zEntVillain_Load((st_zEntVillain*)b, xs);
                     break;
                 case 3:
-                    fn_8005D854(xs);
+                    zEntPlayer_Load((_xEnt*)b, xs);
                     break;
                 case 4:
                     zEntPickup_Load((_zEntPickup*)b, xs);
@@ -1962,7 +1968,7 @@ void zSceneLoad(zScene* ent, xSerial* xs)
                     zScriptLoad((_zScript*)b, xs);
                     break;
                 case 29:
-                    fn_80005C34(xs);
+                    fn_80005C34(b, xs);
                     break;
                 case 30:
                     zDispatcher_Load((st_ZDISPATCH_DATA*)b, xs);
@@ -1985,10 +1991,10 @@ void zSceneLoad(zScene* ent, xSerial* xs)
     }
     else
     {
-        globals.stats.levelTime_sum = 0.0f;
-        globals.stats.visited = 1;
-        globals.stats.areaTime_sum = 0.0f;
         globals.stats.roomTime_sum = 0.0f;
+        globals.stats.visited = 1;
+        globals.stats.timeRunning_sum = 0.0f;
+        globals.stats.timeWalking_sum = 0.0f;
         globals.stats.scares_sum = 0;
         globals.stats.deaths_sum = 0;
         globals.stats.singleJumps_sum = 0;
@@ -2006,8 +2012,12 @@ void zSceneLoad(zScene* ent, xSerial* xs)
 
 void zSceneReset()
 {
+    xBase* b;
+    zScene* s;
+    signed int i;
+
     lbl_8025E868 = 0;
-    zScene* s = globals.sceneCur;
+    s = globals.sceneCur;
     zMusicKill();
     xPadDestroyRumbleChain(0);
     globals.cmgr = NULL;
@@ -2019,9 +2029,9 @@ void zSceneReset()
     iSndWaitForDeadSounds();
     zEntProjectile_sceneReset();
 
-    for (signed int i = 0; i < s->num_base; i++)
+    for (i = 0; i < s->num_base; i++)
     {
-        xBase* b = s->base[i];
+        b = s->base[i];
         if (b != NULL)
         {
             switch (b->baseType)
@@ -2066,9 +2076,12 @@ void zSceneReset()
     }
 
     zMusicNotify(0);
-    for (signed int i = 0; i < globals.sceneCur->num_act_ents; i++)
     {
-        globals.sceneCur->act_ents[i]->updateTimer = 0.0f;
+        zScene* sc = globals.sceneCur;
+        for (i = 0; i < sc->num_act_ents; i++)
+        {
+            sc->act_ents[i]->updateTimer = 0.0f;
+        }
     }
 
     fn_8006D624();
@@ -2181,9 +2194,9 @@ void zSceneSetup()
     zSceneEnableVisited(s);
     xSerialTraverse(zSceneSetup_serialTraverseCB);
     xQuickCullInit(xEntGetAllEntsBox());
+    sCardCheckEnabled = 0;
     iColor_tag black = { 0, 0, 0, 0xFF };
     iColor_tag clear = {};
-    sCardCheckEnabled = 0;
     xScrFxFade(&black, &clear, 1.0f, NULL, 0, 1);
 }
 
@@ -2230,7 +2243,7 @@ void zSceneUpdate(float dt)
     if (s->baseCount[32])
     {
         _zUI* ui = (_zUI*)s->baseList[32];
-        for (i = 0; i < s->baseCount[32]; i++)
+        for (i = 0; i < (signed int)s->baseCount[32]; i++)
         {
             if (ui[i].baseFlags & 4)
             {
@@ -2242,7 +2255,7 @@ void zSceneUpdate(float dt)
     if (s->baseCount[33])
     {
         _zUIFont* uif = (_zUIFont*)s->baseList[33];
-        for (i = 0; i < s->baseCount[33]; i++)
+        for (i = 0; i < (signed int)s->baseCount[33]; i++)
         {
             if (uif[i].baseFlags & 4)
             {
@@ -2351,6 +2364,8 @@ void zSceneUpdate(float dt)
                     zSurfaceUpdate(b[i], s, dt);
                 }
                 break;
+            case 43:
+                break;
             }
         }
     }
@@ -2365,9 +2380,10 @@ void zSceneUpdate(float dt)
         zLobMaster_timestep(s, dt);
         zEntProjectile_poolUpdate(ZPRJ_CAT_UNKNOWN, s, dt);
 
-        for (i = 0; i < s->num_bubbles; i++)
+        _zEnt** bubbles = s->bubbles;
+        for (i = 0; i < (signed int)s->num_bubbles; i++)
         {
-            _zEnt* e = s->bubbles[i];
+            _zEnt* e = bubbles[i];
             if (e->baseFlags & 4)
             {
                 e->update(e, s, dt);
@@ -2635,37 +2651,15 @@ void zSceneRender()
             {
                 avail = 0;
             }
-            char* availVerb = "s$C are";
-            if (avail / sRenderVar2 == 1)
-            {
-                availVerb = "$C is";
-            }
-            char* availFiles = "s";
-            if (sRenderVar4 == 1)
-            {
-                availFiles = "";
-            }
-            char* needVerb = "s$C are";
-            if (sRenderVar0 / sRenderVar2 == 1)
-            {
-                needVerb = "$C is";
-            }
-            char* needFiles = "s";
-            if (sRenderVar3 == 1)
-            {
-                needFiles = "";
-            }
-            char* slot = "B";
-            if (zMenuGetBadCard() == 1)
-            {
-                slot = "A";
-            }
             sprintf(msg,
                     "Insufficient space on the Nintendo GameCube_ Memory Card in Slot %s.\n"
                     "At least $A000210068%d file%s and %d block%s needed to save game data.\n"
                     "($A220020026%d file%s and %d block%s available.)\n\nDo you want to start?",
-                    slot, sRenderVar3, needFiles, sRenderVar0 / sRenderVar2, needVerb,
-                    sRenderVar4, availFiles, avail / sRenderVar2, availVerb);
+                    zMenuGetBadCard() == 1 ? "A" : "B", sRenderVar3, sRenderVar3 == 1 ? "" : "s",
+                    sRenderVar0 / sRenderVar2,
+                    sRenderVar0 / sRenderVar2 == 1 ? "$C is" : "s$C are", sRenderVar4,
+                    sRenderVar4 == 1 ? "" : "s", avail / sRenderVar2,
+                    avail / sRenderVar2 == 1 ? "$C is" : "s$C are");
             xFontBoxSetText(box, msg);
             xFontBoxSetDrawSize(box, 18.0f, 24.0f);
             xFontBoxSetDrawSpacing(box, 17.0f, 24.0f);
@@ -2729,7 +2723,7 @@ xBase* zSceneGetObject(signed int type, signed int idx)
     zScene* s = globals.sceneCur;
     if (s != NULL)
     {
-        for (unsigned int i = 0; i < s->num_base; i++)
+        for (signed int i = 0; i < s->num_base; i++)
         {
             xBase* b = s->base[i];
             if (b != NULL && type == b->baseType)
@@ -2815,14 +2809,12 @@ unsigned int zSceneGetRoominArea(unsigned int sceneID)
 {
     for (unsigned int i = 0; i < 30; i++)
     {
-        signed int room = 0;
         for (signed int j = 0; j < 4; j++)
         {
             if (sceneID == sAreaTable[i].sceneIDs[j])
             {
-                return room;
+                return j;
             }
-            room++;
         }
     }
     return -1;
@@ -2865,10 +2857,9 @@ unsigned int zSceneGetAreaSnacksCollected(unsigned int sceneID)
 {
     unsigned int area = zSceneGetArea(sceneID);
     unsigned int got = globals.areaStats[area].snacks_tot;
-    zSceneArea* a = &sAreaTable[area];
-    if (got > a->totalSnacks)
+    if (got > sAreaTable[area].totalSnacks)
     {
-        a->totalSnacks = got;
+        sAreaTable[area].totalSnacks = got;
     }
     return got;
 }
@@ -2878,7 +2869,11 @@ unsigned int zSceneGetAreaTokensCollected(unsigned int sceneID)
     unsigned int area = zSceneGetArea(sceneID);
     unsigned int got = globals.areaStats[area].tokens_tot;
     unsigned int total = sAreaTable[area].totalMTokens;
-    return got <= total ? got : total;
+    if (got > total)
+    {
+        return total;
+    }
+    return got;
 }
 
 void zSceneGameStatsTally_snack(unsigned int amount)
@@ -2925,6 +2920,8 @@ signed int zRayHitsPlayer(_xRay3* ray)
 unsigned int zSceneCalcProgress()
 {
     unsigned int specials = 0;
+    unsigned int snacks;
+    unsigned int tokens;
     unsigned int mastermind = 0;
     signed int i;
 
@@ -2940,11 +2937,11 @@ unsigned int zSceneCalcProgress()
     roomCnt = 0;
     xSerialTraverse(zSceneCalcProgress_serialTraverseCB);
 
-    unsigned int snacks = globals.stats.snacks_tot;
+    snacks = globals.stats.snacks_tot;
     float pct_rooms = roomCnt / 86.0f;
     float pct_snacks = snacks / 6748.0f;
 
-    unsigned int tokens = 0;
+    tokens = 0;
     for (i = 0; i < 21; i++)
     {
         if (globals.player.Inv_Mtokens[i >> 5] & (1 << (i & 31)))
@@ -2959,7 +2956,7 @@ unsigned int zSceneCalcProgress()
         mastermind = 2;
     }
 
-    unsigned int pct = mastermind + (20.0f * pct_rooms + 43.0f * pct_specials +
+    unsigned int pct = mastermind + (43.0f * pct_specials + 20.0f * pct_rooms +
                                      20.0f * pct_snacks + 15.0f * pct_tokens);
     if (pct == 0 && (specials || snacks || tokens))
     {
