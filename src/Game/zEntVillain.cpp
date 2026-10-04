@@ -3565,7 +3565,6 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags);
 static inline void VTMR_tick(st_zEntVillain* vil, signed int idx, float dt);
 static void zVIL_upd_timers(st_zEntVillain* vil, float dt);
 static void zVIL_apply_vilcfg(st_zEntVillain* vil, st_ZVIL_CONFIG_REFERENCE* vilcfg);
-static inline signed int VNAV_weightedPick(float* wts, signed int cnt);
 static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force);
 static inline xAnimSingle* VANM_single(st_zEntVillain* vil);
 static inline unsigned int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int mask);
@@ -14237,11 +14236,10 @@ static inline xAnimSingle* VANM_single(st_zEntVillain* vil)
 
 static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force)
 {
-    static signed int use_random = 1;
     _zMovePoint* mvpt = NULL;
     signed int idx_far = -1;
-    float ds2_plyr[12];
-    float ds2_vil[12];
+    float ds2_plyr[12] = {};
+    float ds2_vil[12] = {};
     _xVec3 pos_ref = {};
     _xVec3 pos_plyr = {};
     signed int i;
@@ -14253,27 +14251,23 @@ static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force)
 
     for (i = 0; i < 12; i++)
     {
-        _zMovePoint* mp = g_mmtp[i];
-        if (!mp)
+        if (!g_mmtp[i])
         {
             ds2_plyr[i] = -1.0f;
             ds2_vil[i] = -1.0f;
         }
         else
         {
-            _xVec3 delt;
-            _xVec3* pos_mp;
+            // The original measures the villain's distance from a zero
+            // vector rather than from the move point.
+            _xVec3 tgt = pos_ref;
+            _xVec3 delt = {};
 
-            // The original measures from a zero vector rather than the move point.
-            delt.x = pos_ref.x - VUTIL_mdlpos(vil)->x;
-            delt.y = pos_ref.y - VUTIL_mdlpos(vil)->y;
-            delt.z = pos_ref.z - VUTIL_mdlpos(vil)->z;
+            xVec3Sub(&delt, &tgt, &((_xMat4x3*)vil->model->Mat)->pos);
             ds2_vil[i] = delt.x * delt.x + delt.z * delt.z;
-
             pos_plyr = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
-            pos_mp = zMovePointGetPos(mp);
-            xVec3Sub(&pos_plyr, &pos_plyr, pos_mp);
-            ds2_plyr[i] = xVec3Dot(&pos_plyr, &pos_plyr);
+            xVec3Sub(&pos_plyr, &pos_plyr, zMovePointGetPos(g_mmtp[i]));
+            ds2_plyr[i] = pos_plyr.x * pos_plyr.x + pos_plyr.y * pos_plyr.y + pos_plyr.z * pos_plyr.z;
         }
     }
 
@@ -14296,39 +14290,39 @@ static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force)
         mvpt = g_mmtp[idx_far];
     }
 
-    if (use_random)
     {
-        signed int list_near[4] = { 8, 9, 10, 11 };
-        signed int list_far[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-        float wts_near[4] = { 0.2f, 0.3f, 0.3f, 0.2f };
-        float wts_far[8] = { 1.0f, 2.0f, 2.0f, 1.0f, 2.0f, 1.0f, 1.0f, 2.0f };
-        float tot = 0.0f;
+        static signed int use_random = 1;
 
-        for (i = 0; i < 8; i++)
+        if (use_random)
         {
-            if (wts_far[i] < 0.0f)
+            signed int list_near[4] = { 8, 9, 10, 11 };
+            signed int list_far[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+            float wts_near[4] = { 0.2f, 0.3f, 0.3f, 0.2f };
+            float wts_far[12] = { 1.0f, 2.0f, 2.0f, 1.0f, 2.0f, 1.0f, 1.0f, 2.0f };
+
+            VSUP_wtadjust(wts_far, 8, 1.0f);
+            if (xUtil_yesno(0.2f))
             {
-                wts_far[i] = -wts_far[i];
+                mvpt = g_mmtp[VSUP_choose(list_near, wts_near, 4)];
             }
-            tot += wts_far[i];
-        }
-        for (i = 0; i < 8; i++)
-        {
-            wts_far[i] *= 1.0f / tot;
-        }
-
-        if (xUtil_yesno(0.2f))
-        {
-            mvpt = g_mmtp[list_near[VNAV_weightedPick(wts_near, 4)]];
-        }
-        else
-        {
-            mvpt = g_mmtp[list_far[VNAV_weightedPick(wts_far, 8)]];
+            else
+            {
+                mvpt = g_mmtp[VSUP_choose(list_far, wts_far, 8)];
+            }
         }
     }
 
     if (!mvpt && force)
     {
+        // Looks for any teleport point but then falls back to the
+        // villain's own path regardless.
+        for (i = 0; i < 12; i++)
+        {
+            if (g_mmtp[i])
+            {
+                break;
+            }
+        }
         mvpt = vil->nav_mvptlist;
         vil->nav_next = NULL;
     }
@@ -14337,27 +14331,6 @@ static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force)
         vil->nav_next = NULL;
     }
     return mvpt;
-}
-
-static inline signed int VNAV_weightedPick(float* wts, signed int cnt)
-{
-    signed int sel = 0;
-    signed int i;
-    float r = iurand();
-    float lo;
-    float hi = 0.0f;
-
-    for (i = 0; i < cnt; i++)
-    {
-        lo = hi;
-        hi += wts[i];
-        if (r >= lo && r <= hi)
-        {
-            sel = i;
-            break;
-        }
-    }
-    return sel;
 }
 
 static void zVIL_apply_vilcfg(st_zEntVillain* vil, st_ZVIL_CONFIG_REFERENCE* vilcfg)
