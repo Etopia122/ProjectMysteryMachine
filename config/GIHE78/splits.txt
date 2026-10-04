@@ -465,7 +465,15 @@ Game/zEntPickup.cpp:
 	.sdata2     start:0x802605F8 end:0x802606D0
 
 Game/zEntPlayer.cpp:
-	.text       start:0x8004FD58 end:0x8006919C
+	.text       start:0x8004FD58 end:0x800691A8
+	.ctors      start:0x8018E5C0 end:0x8018E5C4
+	.rodata     start:0x801965A0 end:0x8019A118
+	.data       start:0x801B8140 end:0x801B8980
+	.bss        start:0x80229088 end:0x80229668
+	.sdata      start:0x8025E4B8 end:0x8025E4F8
+	.sbss       start:0x8025ECB8 end:0x8025EDC0
+	.sdata2     start:0x802606D0 end:0x802609D8
+	.sbss2      start:0x80262C90 end:0x80262C98
 
 Game/zEntProjectile.cpp:
 	.text       start:0x800691A8 end:0x8006D624

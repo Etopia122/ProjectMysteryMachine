@@ -14,6 +14,9 @@
 #define NULL 0
 #endif
 
+class _xEnt;
+void zEntPlayer_SNDVan(_xEnt* ent);
+
 extern "C" {
 int sprintf(char* s, const char* format, ...);
 char* strcpy(char* dst, const char* src);
@@ -21,8 +24,6 @@ char* strncpy(char* dst, const char* src, unsigned int n);
 int strcmp(const char* a, const char* b);
 unsigned int strlen(const char* s);
 unsigned int fn_800D8C14();
-// TODO: unidentified (zEntPlayer: restores the player after a save)
-void fn_80052764(signed int);
 // TODO: unidentified (xDebug: per-frame debug update)
 void fn_80021B20();
 // iSystem: ask for a reset to the IPL menu
@@ -1870,7 +1871,7 @@ unsigned int zSaveLoad_SaveLoop()
         case 11:
             zGameModeSwitch(eGameMode_Game);
             zGameStateSwitch(1);
-            fn_80052764(0);
+            zEntPlayer_SNDVan(NULL);
             state = 6;
             break;
         case 10:
@@ -1882,7 +1883,7 @@ unsigned int zSaveLoad_SaveLoop()
                 zGameStateSwitch(1);
                 state = 6;
                 saveSuccess = 1;
-                fn_80052764(0);
+                zEntPlayer_SNDVan(NULL);
             }
             else
             {

@@ -138,6 +138,9 @@ public:
     unsigned char pad10[0x4FC - 0x10];
 };
 
+void zEntPlayer_Notify(signed int situation);
+void zEntPlayer_SNDSnackCounter(_xEnt* ent);
+
 extern "C" {
 signed int sprintf(char* s, const char* format, ...);
 RwMatrixTag* RwMatrixUpdate(RwMatrixTag* matrix);
@@ -145,8 +148,6 @@ RwMatrixTag* RwMatrixUpdate(RwMatrixTag* matrix);
 RwMatrixTag* fn_80162B60(RwMatrixTag* matrix, const RwV3d* scale, signed int combineOp);
 // TODO: unidentified functions
 void fn_80015EAC(const char* fmt, ...);
-void fn_80050744(signed int);
-void fn_800527A8(_zEntPickup* ent);
 float fn_800294A0(float t);
 }
 
@@ -591,7 +592,7 @@ signed int zPickup_Give(_zEntPickup* ent, zAssetPickup* p, unsigned short value)
         case 4:
             zHud_showSnack();
             zEntPlayer_GiveScoobySnack(5);
-            fn_80050744(0x24);
+            zEntPlayer_Notify(0x24);
             break;
         case 0:
             zEntPlayer_GiveScoobySnack(p->quantity);
@@ -603,7 +604,7 @@ signed int zPickup_Give(_zEntPickup* ent, zAssetPickup* p, unsigned short value)
                 return 0;
             }
             zEntPlayer_GiveHealth(p->quantity);
-            fn_80050744(0x22);
+            zEntPlayer_Notify(0x22);
             break;
         case 2:
             zEntPlayer_GiveChance(p->quantity);
@@ -803,7 +804,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                         xSndPlay(xStrHash("warpgate_activate"), 0.5f, 0.5f, 0.0f, 0x7F, 0, 0);
                         xSndPlay3D(xStrHash("warpgate_idle_loop"), 0.5f, 0.5f, 0x7F, 0x200, ent,
                                    20.0f);
-                        fn_80050744(0xE);
+                        zEntPlayer_Notify(0xE);
                     }
                     if (globals.pad0 != NULL && (globals.pad0->pressed & 0x20000))
                     {
@@ -859,7 +860,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                             xSndPlay(xStrHash("snackgate_error1"), 0.5f, 0.5f, 0.0f, 0x7F, 0, 0);
                             xSndPlay(xStrHash("snackgate_spin3"), 0.5f, 0.5f, 0.0f, 0x7F, 0x200,
                                      0);
-                            fn_80050744(0xF);
+                            zEntPlayer_Notify(0xF);
                             zHud_showSnack();
                         }
                     }
@@ -993,7 +994,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                     float r8 = 8.0f * globals.player.ent.bound.sph.r;
                     if ((d1 <= r8 * r8 || d2 <= r8 * r8) && p->pickupType == 4)
                     {
-                        fn_80050744(3);
+                        zEntPlayer_Notify(3);
                     }
                 }
             }
@@ -1151,7 +1152,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                     zHud_ShakeSnackCounter();
                     if (zPickup_Give(ent, ent->p, ((zEntPickupAsset*)ent->asset)->pickupValue))
                     {
-                        fn_800527A8(ent);
+                        zEntPlayer_SNDSnackCounter(ent);
                         zEntEvent(ent, ent, 0x23);
                     }
                 }
@@ -1160,7 +1161,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                     if (keyCounter != NULL && sKeyCounterEnabledBeforeGive)
                     {
                         zEntPlayer_GiveKey(ent->p->quantity);
-                        fn_800527A8(ent);
+                        zEntPlayer_SNDSnackCounter(ent);
                         if (keyCounter != NULL)
                         {
                             char s[64];
@@ -1789,7 +1790,7 @@ void zEntPickup_UnlockSnackGate(_xEnt* ent)
         zParEmitterEmitCustom(sEmitDust, 1.0f / 30.0f, &info);
     }
     zEntEvent("MNU4 SNACKGATE UNLOCKED PROMPT", 0x51);
-    fn_80050744(5);
+    zEntPlayer_Notify(5);
 }
 
 void zEntPickupCheat_allWarps()

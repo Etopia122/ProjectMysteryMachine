@@ -483,7 +483,7 @@ config.libs = [
             Object(Matching, "Game/zEntDestructObj.cpp"),
             Object(NonMatching, "Game/zEntHangable.cpp"),
             Object(NonMatching, "Game/zEntPickup.cpp"),
-            Object(NonMatching, "Game/zEntPlayer.cpp"),
+            Object(NonMatching, "Game/zEntPlayer.cpp", extra_cflags=["-bool on"]),
             Object(NonMatching, "Game/zEntProjectile.cpp"),
             Object(NonMatching, "Game/zEntShaggy.cpp", extra_cflags=["-bool on"]),
             Object(Matching, "Game/zEntSimpleObj.cpp"),

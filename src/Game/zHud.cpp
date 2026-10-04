@@ -512,8 +512,9 @@ extern "C" {
 void* memcpy(void* dst, const void* src, unsigned int n);
 signed int sprintf(char* s, const char* format, ...);
 void fn_80030494(signed int type, float alpha);
-void fn_80050744(signed int arg);
 }
+
+void zEntPlayer_Notify(signed int situation);
 
 void xMat3x3Euler(_xMat3x3* m, float yaw, float pitch, float roll);
 
@@ -1259,7 +1260,7 @@ void zHud_showSnackSpecial()
 void zHudShowAllSnacksArea()
 {
     sHudDisplayTimer_allSnacksArea = 2.5f;
-    fn_80050744(0x20);
+    zEntPlayer_Notify(0x20);
 }
 
 void zHudShowSaveSuccess()
