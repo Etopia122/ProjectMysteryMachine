@@ -74,7 +74,7 @@ class rwResourcesGlobals
 {
 public:
     unsigned char pad0[0x24];
-    RwLinkList entriesA; // 0x24
+    RwLinkList* usedEntries; // 0x24
 };
 
 #define RWRESOURCESGLOBAL(var) \
@@ -331,7 +331,7 @@ static void Show_frame()
     if (sResEntry->link.next != NULL)
     {
         rwLinkListRemoveLLLink(&sResEntry->link);
-        rwLinkListAddLLLink(&RWRESOURCESGLOBAL(entriesA), &sResEntry->link);
+        rwLinkListAddLLLink(RWRESOURCESGLOBAL(usedEntries), &sResEntry->link);
     }
 
     DrawFrame(x, y, Width_scale, Height_scale);
