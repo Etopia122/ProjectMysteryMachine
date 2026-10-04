@@ -8025,7 +8025,7 @@ static signed int VILN_std_calcmove(st_zEntVillain* vil, _xScene* scn, float dt,
             vil->vec_knocked.x *= 0.0f;
             vil->vec_knocked.y *= 0.0f;
             vil->vec_knocked.z *= 0.0f;
-            vil->pos_moveto.y += 0.5f * dt * sin(0.0f);
+            vil->pos_moveto.y += 0.5f * dt * sin(5.0f * vil->tmr_list[ZVIL_TYMR_CURGOAL]);
             vil->domove |= 0x800;
             vil->domove |= 4;
             vil->domove |= 0x80000000;
