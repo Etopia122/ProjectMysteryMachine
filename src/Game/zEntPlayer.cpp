@@ -734,6 +734,7 @@ static unsigned int zEntPlayer_FXSpringCB(unsigned int, xAnimActiveEffect*, xAni
 static unsigned int zEntPlayer_FXDigupCB(unsigned int, xAnimActiveEffect*, xAnimSingle*, void*);
 static unsigned int zEntPlayer_FXScratchCB(unsigned int, xAnimActiveEffect*, xAnimSingle*, void*);
 static void zEntPlayer_FXUpdate(_xEnt* ent, float seconds);
+void zEntPlayer_FXSetup(xAnimTable* table);
 static void zEntPlayer_FXLostChance(_xEnt* ent);
 void zEntPlayer_Notify(signed int situation);
 void zEntPlayer_Notify(unsigned char characterSubType);
@@ -918,19 +919,6 @@ static signed int GetHeadcollAnimState();
 static void PlayerAbsControl(_xEnt* ent, float x, float z, float dt);
 static unsigned int PlayerFacing(_xEnt* ent, _xEnt* target, float cosine);
 
-static inline void zEntPlayer_FXSetup(xAnimTable* table)
-{
-    xAnimStateNewEffect(xAnimTableGetState(table, "Inactive_SitFlea"), 1, 0.05f, 0.0f, zEntPlayer_FXScratchCB, 0);
-    gPlayerfx.timer_scratch = 0.0f;
-    xAnimStateNewEffect(xAnimTableGetState(table, "Fall_floatopen"), 1, 0.05f, 0.0f, zEntPlayer_FXOpenBrollyCB, 0);
-    xAnimStateNewEffect(xAnimTableGetState(table, "Action_dig"), 1, 0.05f, 0.0f, zEntPlayer_FXDigupCB, 0);
-    gPlayerfx.timer_digup = 0.0f;
-    xAnimStateNewEffect(xAnimTableGetState(table, "Jump_double"), 1, 0.0f, 0.0f, zEntPlayer_FXSpringCB, 0);
-    xAnimStateNewEffect(xAnimTableGetState(table, "RunToIdle_normal"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
-    xAnimStateNewEffect(xAnimTableGetState(table, "RunToIdle_scared"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
-    xAnimStateNewEffect(xAnimTableGetState(table, "RunToIdle_brave"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
-    xAnimStateNewEffect(xAnimTableGetState(table, "RunToSkid"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
-}
 
 static inline void zEntPlayer_SNDPlayRandom(unsigned int* array, unsigned int max)
 {
@@ -3976,10 +3964,16 @@ void zEntPlayer_Init(_xEnt* ent, p2EntAsset* asset)
     }
     memset(&gPlayerfx, 0, sizeof(_tagPlayerFX));
     zEntPlayerFindEmitters();
-    for (signed int i = 0; i < 10; i++)
-    {
-        zFeetInit(-1, ent, &sPlayerFeet[i], i, ent->model->Anim->Table);
-    }
+    zFeetInit(-1, ent, &sPlayerFeet[0], 0, ent->model->Anim->Table);
+    zFeetInit(-1, ent, &sPlayerFeet[1], 1, ent->model->Anim->Table);
+    zFeetInit(-1, ent, &sPlayerFeet[2], 2, ent->model->Anim->Table);
+    zFeetInit(-1, ent, &sPlayerFeet[3], 3, ent->model->Anim->Table);
+    zFeetInit(-1, ent, &sPlayerFeet[4], 4, ent->model->Anim->Table);
+    zFeetInit(-1, ent, &sPlayerFeet[5], 5, ent->model->Anim->Table);
+    zFeetInit(-1, ent, &sPlayerFeet[6], 6, ent->model->Anim->Table);
+    zFeetInit(-1, ent, &sPlayerFeet[7], 7, ent->model->Anim->Table);
+    zFeetInit(-1, ent, &sPlayerFeet[8], 8, ent->model->Anim->Table);
+    zFeetInit(-1, ent, &sPlayerFeet[9], 9, ent->model->Anim->Table);
     zEntPlayer_FXSetup(ent->model->Anim->Table);
     for (signed int i = 0; i < 5; i++)
     {
@@ -8561,6 +8555,22 @@ static void zEntPlayer_FXUpdate(_xEnt* ent, float seconds)
         gPlayerfx.timer_digup -= seconds;
     }
 }
+
+#pragma auto_inline on
+void zEntPlayer_FXSetup(xAnimTable* table)
+{
+    xAnimStateNewEffect(xAnimTableGetState(table, "Inactive_SitFlea"), 1, 0.05f, 0.0f, zEntPlayer_FXScratchCB, 0);
+    gPlayerfx.timer_scratch = 0.0f;
+    xAnimStateNewEffect(xAnimTableGetState(table, "Fall_floatopen"), 1, 0.05f, 0.0f, zEntPlayer_FXOpenBrollyCB, 0);
+    xAnimStateNewEffect(xAnimTableGetState(table, "Action_dig"), 1, 0.05f, 0.0f, zEntPlayer_FXDigupCB, 0);
+    gPlayerfx.timer_digup = 0.0f;
+    xAnimStateNewEffect(xAnimTableGetState(table, "Jump_double"), 1, 0.0f, 0.0f, zEntPlayer_FXSpringCB, 0);
+    xAnimStateNewEffect(xAnimTableGetState(table, "RunToIdle_normal"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
+    xAnimStateNewEffect(xAnimTableGetState(table, "RunToIdle_scared"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
+    xAnimStateNewEffect(xAnimTableGetState(table, "RunToIdle_brave"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
+    xAnimStateNewEffect(xAnimTableGetState(table, "RunToSkid"), 1, 0.05f, 0.0f, zEntPlayer_SNDSkidCB, 0);
+}
+#pragma auto_inline reset
 
 static unsigned int zEntPlayer_FXScratchCB(unsigned int, xAnimActiveEffect*, xAnimSingle*, void*)
 {
