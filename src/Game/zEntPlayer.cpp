@@ -2036,7 +2036,7 @@ static signed int VillHBCallback(_zEnt* ent, _xCollis* coll)
         ent->frame->mat.pos.y = ((_xMat4x3*)ent->model->Mat)->pos.y;
         ent->frame->mat.pos.z = ((_xMat4x3*)ent->model->Mat)->pos.z;
         globals.player.HeadbuttHit = 1;
-        globals.player.HeadbuttVel = 0.25f * globals.player.HeadbuttVel;
+        globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         zEntPlayer_SNDButtBounce(1);
         zRumbleStart(0, (_tagSDRumbleType)1);
         return 1;
@@ -2597,7 +2597,7 @@ static unsigned int ButtSmashLandCB(xAnimTransition*, xAnimSingle*, void*)
             g_info.vel.x = 0.0f;
             g_info.vel.y = 0.02f;
             g_info.vel.z = 0.0f;
-            g_info.vel_angle_variation = 0.2f;
+            g_info.xzcircle_radius = 0.2f;
             for (signed int i = 0; i < 2; i++)
             {
                 if (i == 0)
@@ -3021,7 +3021,7 @@ static inline signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll)
         {
             globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
             globals.player.HeadbuttHit = 1;
-            globals.player.HeadbuttVel = 0.25f * globals.player.HeadbuttVel;
+            globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         }
         else
         {
@@ -3029,7 +3029,7 @@ static inline signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll)
             zEntPlayer_ButtonHBFX();
             globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
             globals.player.HeadbuttHit = 1;
-            globals.player.HeadbuttVel = 0.25f * globals.player.HeadbuttVel;
+            globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         }
     }
     return 1;
@@ -3139,7 +3139,7 @@ static inline signed int DestructObjHBCallback(_zEnt* ent, _xCollis* coll)
         {
             globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
             globals.player.HeadbuttHit = 1;
-            globals.player.HeadbuttVel = 0.25f * globals.player.HeadbuttVel;
+            globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         }
         else
         {
@@ -3149,7 +3149,7 @@ static inline signed int DestructObjHBCallback(_zEnt* ent, _xCollis* coll)
             {
                 globals.player.HeadbuttHit = 1;
             }
-            globals.player.HeadbuttVel = 0.25f * globals.player.HeadbuttVel;
+            globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         }
     }
     return 1;
@@ -6532,9 +6532,9 @@ void zEntPlayerReset(_xEnt* ent)
 
     for (curr = globals.player.ent.model->Anim->Table->StateList; curr != NULL; curr = curr->Next)
     {
-        if ((curr->Flags & 0x40) && (curr->Data->NumAnims[0] != 3 || curr->Data->NumAnims[1] != 1))
+        if ((curr->UserFlags & 0x40) && (curr->Data->NumAnims[0] != 3 || curr->Data->NumAnims[1] != 1))
         {
-            curr->Flags &= ~0x40;
+            curr->UserFlags &= ~0x40;
         }
     }
 
@@ -7339,7 +7339,7 @@ static _xVec3* GetPosVec(xBase* target)
     switch (target->baseType)
     {
     case 13:
-        pos = (_xVec3*)((char*)target + 0x14);
+        pos = *(_xVec3**)((char*)target + 0x14); // _xMovePoint::pos
         break;
     case 2:
     case 3:

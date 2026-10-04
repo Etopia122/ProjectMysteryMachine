@@ -3556,7 +3556,7 @@ signed int Shaggy8_CallToPlayer()
             switch (tgt->baseType)
             {
             case 13:
-                pos = (_xVec3*)((char*)tgt + 0x14);
+                pos = *(_xVec3**)((char*)tgt + 0x14);
                 break;
             case 2:
             case 3:

@@ -1193,18 +1193,18 @@ static void xEntCollideCeiling(_xEnt* p, _xScene* sc, float dt)
     for (unsigned char idx = 6; idx < p->collis->idx; idx++)
     {
         _xCollis* coll = &p->collis->colls[idx];
+        unsigned int ok;
         if (coll->optr != NULL)
         {
-            if (xEntCollDepenOk(p, sc, coll, dt))
-            {
-            }
+            ok = xEntCollDepenOk(p, sc, coll, dt);
         }
-        else if (p->collis->pen & 0x20)
+        else
         {
-            if (coll->hdng.y > (float)cos(0.78539819f) && coll->dist < hit->dist)
-            {
-                hit = coll;
-            }
+            ok = p->collis->pen & 0x20;
+        }
+        if (ok && coll->hdng.y > (float)cos(0.78539819f) && coll->dist < hit->dist)
+        {
+            hit = coll;
         }
     }
 
@@ -1521,7 +1521,7 @@ void xEntRender(_xEnt* ent)
         ((RpAtomicLike*)ent->model->Data)->pipeline = pipeline;
     }
 
-    unsigned char shadowMode = ent->baseFlags;
+    unsigned char shadowMode = ent->baseType;
     if (shadowMode == 2 || shadowMode == 3)
     {
         _xVec3* pos = (_xVec3*)&((_xMat4x3*)ent->model->Mat)->pos;
