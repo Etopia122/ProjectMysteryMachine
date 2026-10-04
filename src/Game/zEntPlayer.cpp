@@ -13,6 +13,8 @@
 #include "xSnd.h"
 #include "xFFX.h"
 #include "iMath3.h"
+#include "iDraw.h"
+#include "xEntMotion.h"
 
 #ifndef NULL
 #define NULL 0
@@ -24,7 +26,6 @@ class xAnimActiveEffect;
 class xAnimEffect;
 class _zEntButton;
 class _zEntDestructObj;
-class st_zEntVillain;
 
 class RwSphere
 {
@@ -97,8 +98,13 @@ public:
     unsigned int ID;          // 0x8
     unsigned int FileFlags;   // 0xC
     float Duration;           // 0x10
-    unsigned char pad14[0x3C - 0x14];
-    void* RawData[1];         // 0x3C
+    float TimeOffset;         // 0x14
+    float PhysBase[4];        // 0x18
+    float PhysDelta[4];       // 0x28
+    unsigned short BoneCount; // 0x38
+    unsigned char NumAnims[2]; // 0x3A
+    void** RawData;           // 0x3C
+    void* Physics;            // 0x40
 };
 
 class xAnimState
@@ -200,7 +206,61 @@ public:
     unsigned char data[0x24];
 };
 
+class p2PlatformSpringboardData
+{
+public:
+    float jmph[3];          // 0x0
+    unsigned int animID[3]; // 0xC
+    _xVec3 jmpdir;          // 0x18
+};
+
+class p2PlatformAsset
+{
+public:
+    unsigned char type;   // 0x0
+    unsigned char pad;    // 0x1
+    unsigned short flags; // 0x2
+    union
+    {
+        p2PlatformSpringboardData sb; // 0x4
+    };
+};
+
+class _zPlatform : public _zEnt
+{
+public:
+    p2PlatformAsset* passet;   // 0xEC
+    _xEntMotion motion;        // 0xF0
+    unsigned short state;      // 0x15C
+    unsigned short plat_flags; // 0x15E
+    float tmr;                 // 0x160
+    signed int ctr;            // 0x164
+    void* src;                 // 0x168
+    xModelInstance* am;        // 0x16C
+    xModelInstance* bm;        // 0x170
+    signed int moving;         // 0x174
+};
+
 class _tagSkidEdge;
+class zSFX;
+
+class tagzFeet
+{
+public:
+    signed int total;          // 0x0
+    _xEnt* owner;              // 0x4
+    signed short entity_type;  // 0x8
+    signed short pitch;        // 0xA
+};
+
+class st_zEntVillain : public _zEnt
+{
+public:
+    unsigned char pad0EC[0x338 - 0xEC];
+    tagzFeet feet;     // 0x338
+    zSFX* sfx_curTalk; // 0x344
+    _xBound bound2;    // 0x348
+};
 
 class _tagFeetSkidMark
 {
@@ -213,14 +273,6 @@ public:
     float remove_timer;      // 0x20
 };
 
-class tagzFeet
-{
-public:
-    signed int total;          // 0x0
-    _xEnt* owner;              // 0x4
-    signed short entity_type;  // 0x8
-    signed short pitch;        // 0xA
-};
 
 class _tagPlayerFX
 {
@@ -344,6 +396,33 @@ void zEntPickup_Drop(_zEntPickup* ent);
 void zEntHangable_FollowUpdate(_zEntHangable* ent);
 void zEntHangable_SetMatrix(_zEntHangable* ent, float dt);
 float iurand();
+signed int Shaggy2_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam, xBase* toParamWidget);
+signed int Shaggy2Plat_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
+                               xBase* toParamWidget);
+void zPlatform_Dismount();
+void zPlatform_Shake(_zPlatform* plat, float, float ampl, float freq);
+void zPlatform_Tremble(_zPlatform* plat, float ampl, float freq, float dur);
+static float CalcJumpImpulse_Smooth(float g, float j, float h, float T, float s);
+void _iAnimSKBFixTransPop(void* data, void* data2, unsigned int bone);
+xAnimState* xAnimTableGetState(xAnimTable* table, char* name);
+signed int zGameModeGet();
+signed int zGameStateGet();
+void iModelTagSetup(iModelTag* tag, RpAtomic* model, float x, float y, float z);
+signed int iModelVertCount(RpAtomic* model);
+void iModelTagIndex(iModelTag* tag, RpAtomic* model, signed int index);
+void xScrFxFade(iColor_tag* base, iColor_tag* dest, float seconds, void (*callback)(), signed int hold,
+                signed int unk);
+void xAnimTableRemoveEffectByCB(xAnimTable* table,
+                                unsigned int (*callback)(unsigned int, xAnimActiveEffect*, xAnimSingle*, void*));
+void zFeetExit(_xEnt* ent, xAnimTable* table);
+void xEntSetNostepNormAngle(float angle);
+void xAnimPlaySetState(xAnimSingle* single, xAnimState* state, float startTime);
+void xEntDefaultBoundUpdate(_xEnt* ent, _xVec3* pos);
+void zEntPlayer_SNDInit();
+static void PlayerBoundUpdate(_xEnt* ent, _xVec3* pos);
+static unsigned int PlayerDepenQuery(_xEnt* ent, _xEnt* other, _xScene* sc, float dt, _xCollis* coll);
+unsigned int iSphereHitsModel3(const _xSphere* b, const xModelInstance* m, _xCollis* coll,
+                               unsigned char ncolls, float sth);
 unsigned int xCollideGetCollsIdx(_xVec3* hdng, _xMat3x3* mat);
 signed int zSurfaceGetDamageType(xSurface* surf);
 unsigned int zSurfaceGetDamagePassthrough(xSurface* surf);
@@ -382,6 +461,7 @@ static inline void xVec3Cross(_xVec3* o, _xVec3* a, _xVec3* b)
 
 extern "C" {
 signed int fn_800ED288();
+void* memcpy(void* dst, const void* src, unsigned int n);
 double acos(double);
 signed int sprintf(char* s, const char* format, ...);
 }
@@ -2321,4 +2401,782 @@ static void PlayerCollsSelectDepen(_xEnt* p)
             }
         }
     }
+}
+
+static _xEnt* PlayerCollCheckOneVillain(_xEnt* ent, _xScene*, void* data)
+{
+    _xEnt* p = (_xEnt*)data;
+    unsigned int modl_coll = 0;
+
+    if (p->collis->idx >= 15)
+    {
+        return NULL;
+    }
+    if (!(ent->chkby & p->collType))
+    {
+        return ent;
+    }
+    if (ent->id == p->id)
+    {
+        return ent;
+    }
+
+    _xCollis* coll = &p->collis->colls[p->collis->idx];
+    if (ent->collLev == 5 && (p->collType & 0x18))
+    {
+        modl_coll = 1;
+    }
+    if (modl_coll)
+    {
+        coll->flags = 0;
+    }
+    else
+    {
+        coll->flags = 0x1F00;
+    }
+
+    if ((cchkButtbounce || (cchkSquish && (ent->subType == 0x16 || ent->subType == 0x18 ||
+                                           ent->subType == 0x15 || ent->subType == 0))) &&
+        (p->frame->oldpos.y >= ent->frame->mat.pos.y + ent->bound.sph.r ||
+         p->frame->oldpos.y >= ent->frame->oldpos.y + ent->bound.sph.r) &&
+        p->frame->mat.pos.y <= ent->frame->mat.pos.y + ent->bound.sph.r)
+    {
+        float playerOldRad = p->bound.sph.r;
+        p->bound.sph.r = playerOldRad * 1.5f;
+        xBoundHitsBound(&p->bound, &ent->bound, coll);
+        p->bound.sph.r = playerOldRad;
+        if (coll->flags & 1)
+        {
+            coll->norm.x = 0.0f;
+            coll->norm.y = 1.0f;
+            coll->norm.z = 0.0f;
+            coll->depen.x = 0.0f;
+            coll->depen.y = (ent->frame->mat.pos.y + ent->bound.sph.r) - p->frame->mat.pos.y;
+            coll->depen.z = 0.0f;
+            coll->dist = p->bound.sph.r - coll->depen.y;
+            coll->hdng.x = 0.0f;
+            coll->hdng.y = -1.0f;
+            coll->hdng.z = 0.0f;
+            coll->tohit.x = coll->hdng.x * coll->dist;
+            coll->tohit.y = coll->hdng.y * coll->dist;
+            coll->tohit.z = coll->hdng.z * coll->dist;
+            coll->oid = ent->id;
+            coll->optr = ent;
+            p->collis->idx++;
+            return ent;
+        }
+    }
+
+    xBoundHitsBound(&p->bound, &ent->bound, coll);
+
+    st_zEntVillain* vill = (st_zEntVillain*)ent;
+    if (vill->bound2.sph.r != 0.0f)
+    {
+        _xCollis coll2;
+        coll2.flags = 0x1F00;
+        coll2.optr = NULL;
+        coll2.dist = 1e19f;
+        xBoundHitsBound(&p->bound, &vill->bound2, &coll2);
+        if ((coll2.flags & 1) && (!(coll->flags & 1) || !(coll->dist < coll2.dist)))
+        {
+            *coll = coll2;
+        }
+    }
+
+    if (coll->flags & 1)
+    {
+        coll->oid = 0;
+        coll->optr = ent;
+        p->collis->idx++;
+        if (coll->flags & 0x10)
+        {
+            _xVec3* pc = xBoundCenter(&p->bound);
+            _xVec3* ec = xBoundCenter(&ent->bound);
+            coll->tohit.x = ec->x - pc->x;
+            coll->tohit.y = ec->y - pc->y;
+            coll->tohit.z = ec->z - pc->z;
+            float len = xsqrt(coll->tohit.x * coll->tohit.x + coll->tohit.y * coll->tohit.y +
+                              coll->tohit.z * coll->tohit.z);
+            float s = -0.35f * (1.0f / len);
+            coll->depen.x = coll->tohit.x * s;
+            coll->depen.y = coll->tohit.y * s;
+            coll->depen.z = coll->tohit.z * s;
+            coll->depen.y = 0.0f;
+            len = xsqrt(coll->depen.x * coll->depen.x + coll->depen.y * coll->depen.y +
+                        coll->depen.z * coll->depen.z);
+            s = -1.0f / len;
+            coll->hdng.x = coll->depen.x * s;
+            coll->hdng.y = coll->depen.y * s;
+            coll->hdng.z = coll->depen.z * s;
+            coll->dist = 0.7f - len;
+            coll->tohit.x = coll->hdng.x * coll->dist;
+            coll->tohit.y = coll->hdng.y * coll->dist;
+            coll->tohit.z = coll->hdng.z * coll->dist;
+        }
+        if ((ent->pflags & 0x20) && ent->bound.type == 1 && p->bound.type == 1 && coll->hdng.y < -0.866025f)
+        {
+            float dx = p->bound.sph.center.x - ent->bound.sph.center.x;
+            float dz = p->bound.sph.center.z - ent->bound.sph.center.z;
+            float rsum = p->bound.sph.r + ent->bound.sph.r;
+            float hsqr = rsum * rsum - (dx * dx + dz * dz);
+            if (hsqr >= 0.0f)
+            {
+                coll->depen.x = 0.0f;
+                coll->depen.y = xsqrt(hsqr) - (p->bound.sph.center.y - ent->bound.sph.center.y);
+                coll->depen.z = 0.0f;
+                coll->dist = p->bound.sph.r - coll->depen.y;
+                coll->hdng.x = 0.0f;
+                coll->hdng.y = -1.0f;
+                coll->hdng.z = 0.0f;
+            }
+        }
+    }
+    return ent;
+}
+
+static _xEnt* PlayerCollCheckOneEnt(_xEnt* ent, _xScene*, void* data)
+{
+    _xEnt* p = (_xEnt*)data;
+    unsigned int modl_coll = 0;
+    unsigned int head_hit = 0;
+
+    if (p->collis->idx >= 15)
+    {
+        return NULL;
+    }
+    if (!(ent->chkby & p->collType))
+    {
+        return ent;
+    }
+    if (ent->id == p->id)
+    {
+        return ent;
+    }
+
+    _xCollis* coll = &p->collis->colls[p->collis->idx];
+    if (ent->collLev == 5 && (p->collType & 0x18))
+    {
+        modl_coll = 1;
+    }
+    if (modl_coll)
+    {
+        coll->flags = 0;
+    }
+    else
+    {
+        coll->flags = 0x1F00;
+    }
+
+    xBoundHitsBound(&p->bound, &ent->bound, coll);
+
+    _xCollis coll2;
+    coll2.flags = 0x1F00;
+    coll2.optr = NULL;
+    coll2.dist = 1e19f;
+    _xSphere temp = p->bound.sph;
+    p->bound.sph = globals.player.head_sph;
+    xBoundHitsBound(&p->bound, &ent->bound, &coll2);
+    p->bound.sph = temp;
+    if ((coll2.flags & 1) && (!(coll->flags & 1) || !(coll->dist < coll2.dist)))
+    {
+        *coll = coll2;
+        head_hit = 1;
+    }
+
+    if (coll->flags & 1)
+    {
+        if (modl_coll)
+        {
+            coll->flags = 0x1F00;
+            unsigned char ncolls =
+                iSphereHitsModel3(head_hit ? &globals.player.head_sph : &p->bound.sph, ent->model, coll,
+                                  15 - p->collis->idx, 0.7853982f);
+            for (unsigned char idx = 0; idx < ncolls; idx++)
+            {
+                coll[idx].optr = ent;
+                p->collis->idx++;
+            }
+            return ent;
+        }
+
+        coll->oid = 0;
+        coll->optr = ent;
+        p->collis->idx++;
+        if (coll->flags & 0x10)
+        {
+            _xVec3* pc = xBoundCenter(&p->bound);
+            _xVec3* ec = xBoundCenter(&ent->bound);
+            coll->tohit.x = ec->x - pc->x;
+            coll->tohit.y = ec->y - pc->y;
+            coll->tohit.z = ec->z - pc->z;
+            float len = xsqrt(coll->tohit.x * coll->tohit.x + coll->tohit.y * coll->tohit.y +
+                              coll->tohit.z * coll->tohit.z);
+            float s = -0.35f * (1.0f / len);
+            coll->depen.x = coll->tohit.x * s;
+            coll->depen.y = coll->tohit.y * s;
+            coll->depen.z = coll->tohit.z * s;
+            coll->depen.y = 0.0f;
+            len = xsqrt(coll->depen.x * coll->depen.x + coll->depen.y * coll->depen.y +
+                        coll->depen.z * coll->depen.z);
+            s = -1.0f / len;
+            coll->hdng.x = coll->depen.x * s;
+            coll->hdng.y = coll->depen.y * s;
+            coll->hdng.z = coll->depen.z * s;
+            coll->dist = 0.7f - len;
+            coll->tohit.x = coll->hdng.x * coll->dist;
+            coll->tohit.y = coll->hdng.y * coll->dist;
+            coll->tohit.z = coll->hdng.z * coll->dist;
+        }
+        if ((ent->pflags & 0x20) && ent->bound.type == 1 && p->bound.type == 1 && coll->hdng.y < -0.866025f)
+        {
+            float dx = p->bound.sph.center.x - ent->bound.sph.center.x;
+            float dz = p->bound.sph.center.z - ent->bound.sph.center.z;
+            float rsum = p->bound.sph.r + ent->bound.sph.r;
+            float hsqr = rsum * rsum - (dx * dx + dz * dz);
+            if (hsqr >= 0.0f)
+            {
+                coll->depen.x = 0.0f;
+                coll->depen.y = xsqrt(hsqr) - (p->bound.sph.center.y - ent->bound.sph.center.y);
+                coll->depen.z = 0.0f;
+                coll->dist = p->bound.sph.r - coll->depen.y;
+                coll->hdng.x = 0.0f;
+                coll->hdng.y = -1.0f;
+                coll->hdng.z = 0.0f;
+            }
+        }
+    }
+    return ent;
+}
+
+void zEntPlayerReset(_xEnt* ent)
+{
+    xModelInstance* minst;
+    xAnimState* curr;
+    unsigned int index;
+
+    _iAnimSKBFixTransPop(xAnimTableGetState(ent->model->Anim->Table, "RunToIdle_normal")->Data->RawData[0],
+                         xAnimTableGetState(ent->model->Anim->Table, "Idle_normal")->Data->RawData[0], 0);
+    _iAnimSKBFixTransPop(xAnimTableGetState(ent->model->Anim->Table, "SkidToIdle")->Data->RawData[0],
+                         xAnimTableGetState(ent->model->Anim->Table, "Idle_normal")->Data->RawData[0], 0);
+
+    if (zGameModeGet() != 0xB || (zGameStateGet() != 5 && zGameStateGet() != 1 && zGameStateGet() != 4))
+    {
+        if (globals.player.Inv_Ammo[0] < globals.player.s.AmmoSceneGum)
+        {
+            globals.player.Inv_Ammo[0] = globals.player.s.AmmoSceneGum;
+        }
+        if (globals.player.Inv_Ammo[1] < globals.player.s.AmmoSceneSoap)
+        {
+            globals.player.Inv_Ammo[1] = globals.player.s.AmmoSceneSoap;
+        }
+        if (zGameModeGet() == 0xB && zGameStateGet() == 2)
+        {
+            gPlayerHitWater = 0;
+            globals.player.Health = 3;
+            sPlayerWaterOffset = 0.0f;
+            gDeadScooby = 0;
+        }
+        else
+        {
+            globals.player.Health = 3;
+            globals.player.Inv_Chances = 3;
+            globals.player.Inv_ScoobySnacks = 0;
+            globals.player.Inv_Specials = globals.player.s.Initial_Specials;
+            globals.player.Inv_Mtokens[0] = 0;
+            gPlayerHitWater = 0;
+            sPlayerWaterOffset = 0.0f;
+            gDeadScooby = 0;
+            globals.player.Inv_Ammo[0] = globals.player.s.AmmoSceneGum;
+            globals.player.Inv_Ammo[1] = globals.player.s.AmmoSceneSoap;
+            globals.player.Inv_Key = 0;
+            globals.player.Inv_Clue = 0;
+        }
+    }
+
+    globals.player.ControlOnEvent = 0;
+    globals.player.ControlOn = 1;
+    globals.player.Speed = 0;
+    globals.player.Sneak = 0;
+    globals.player.Teeter = 0;
+    globals.player.CanSlip = globals.sceneCur->baseCount[26];
+    globals.player.Slide = 0;
+    globals.player.SlideTimer = 0.0f;
+    globals.player.Stepping = 0;
+    globals.player.JumpState = 0;
+    globals.player.LastJumpState = 0;
+    globals.player.IdleMinorTimer = 0.0f;
+    globals.player.IdleMajorTimer = 0.0f;
+    globals.player.IdleSitTimer = 0.0f;
+    globals.player.cheat_mode = 0;
+    globals.player.FireTarget = NULL;
+    globals.player.HeadbuttHit = 0;
+    globals.player.LeanLerp = 1.0f;
+    globals.player.ScareTimer = 0.0f;
+    globals.player.DamageTimer = 0.0f;
+    globals.player.ControlOffTimer = 0.0f;
+    globals.player.HelmetTimer = 0.0f;
+    globals.player.Bounced = 0;
+    globals.player.FallDeathTimer = 0.0f;
+    globals.player.Diggable = NULL;
+    globals.player.Shaggy8Call = NULL;
+    globals.player.Visible = 1;
+    globals.player.AutoMoveSpeed = 0;
+    globals.player.Shaggy1.SetDown = 0;
+    globals.player.Shaggy1.GrabOn = 1;
+    globals.player.Face_ScareTimer = 0.0f;
+    globals.player.Face_EventTimer = 0.0f;
+    globals.player.Face_PantTimer = 0.0f;
+    globals.player.SpecialReceived = 0;
+    globals.player.Jump_CanFloat = 1;
+    globals.player.Jump_CanDouble = 1;
+    globals.player.DamageSource = NULL;
+    globals.player.Jump_Springboard = NULL;
+    globals.player.Jump_SpringboardStart = 0;
+    gPlayerHitWater = 0;
+    sPlayerWaterOffset = 0.0f;
+    gDeadScooby = 0;
+
+    ent->collis->depenq = PlayerDepenQuery;
+    ent->bupdate = PlayerBoundUpdate;
+    surfSlickRatio = 0.0f;
+    surfSlickTimer = 0.0f;
+    globals.player.floor_surf = NULL;
+    globals.player.floor_norm = g_Y3;
+    ent->collis->chk = 0x2E;
+    xEntReset(ent);
+    ent->frame->rot.axis = g_Y3;
+    ent->frame->rot.angle = ent->asset->ang.x;
+    xEntDriveInit(&globals.player.drv, ent);
+    globals.player.drv.flags = 1;
+    xCameraSetTarget(&globals.camera, (_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos);
+    xCameraSetTarget(&globals.camera, (_xMat4x3*)globals.player.ent.model->Mat);
+    memcpy(&gPlayerAbsMat, &globals.camera.hi_cam.mat, sizeof(_xMat4x3));
+    globals.player.Jump_CurrGravity = globals.player.s.Gravity;
+
+    iModelTagSetup(&globals.player.BubbleTag, globals.player.ent.model->Next->Data, 0.0f, 1.334f, 0.475f);
+    iModelTagSetup(&globals.player.HangPawTag[0], globals.player.ent.model->Data, 0.12f, 0.015f, 0.175f);
+    iModelTagSetup(&globals.player.HangPawTag[1], globals.player.ent.model->Data, -0.12f, 0.015f, 0.195f);
+    iModelTagSetup(&globals.player.HangPawTag[2], globals.player.ent.model->Data, 0.2f, 0.018f, -0.62f);
+    iModelTagSetup(&globals.player.HangPawTag[3], globals.player.ent.model->Data, -0.2f, 0.018f, -0.62f);
+    globals.player.HangPawOffset = 1.5f;
+    iModelTagSetup(&globals.player.center_tag, globals.player.ent.model->Data, 0.0f, 0.465f, 0.099f);
+    iModelTagSetup(&globals.player.head_tag, globals.player.ent.model->Next->Data, 0.0f, 1.251f, 0.293f);
+
+    xModelInstance* tongue = globals.player.ent.model;
+    unsigned int tongueIdx = 0;
+    globals.player.TongueFlags[0] = 0;
+    globals.player.TongueFlags[1] = 0;
+    while (tongue != NULL)
+    {
+        if (tongueIdx == 10)
+        {
+            unsigned int tngV = iModelVertCount(tongue->Data);
+            for (unsigned int numV = 0; numV < tngV; numV++)
+            {
+                iModelTag tmpTag;
+                iModelTagIndex(&tmpTag, tongue->Data, numV);
+                for (unsigned int wnum = 0; wnum < 4; wnum++)
+                {
+                    if (tmpTag.wt[wnum] != 0.0f)
+                    {
+                        unsigned char widx = tmpTag.matidx >> (wnum * 8);
+                        globals.player.TongueFlags[widx >> 5] |= 1 << (widx & 0x1F);
+                    }
+                }
+            }
+            break;
+        }
+        tongue = tongue->Next;
+        tongueIdx++;
+    }
+
+    for (curr = globals.player.ent.model->Anim->Table->StateList; curr != NULL; curr = curr->Next)
+    {
+        if ((curr->Flags & 0x40) && (curr->Data->NumAnims[0] != 3 || curr->Data->NumAnims[1] != 1))
+        {
+            curr->Flags &= ~0x40;
+        }
+    }
+
+    for (minst = globals.player.ent.model, index = 0; minst != NULL; minst = minst->Next, index++)
+    {
+        if (index >= 2)
+        {
+            minst->Flags &= ~3;
+        }
+    }
+
+    globals.player.RootUp.x = 0.0f;
+    globals.player.RootUp.y = 1.0f;
+    globals.player.RootUp.z = 0.0f;
+    globals.player.RootUpTarget.x = 0.0f;
+    globals.player.RootUpTarget.y = 1.0f;
+    globals.player.RootUpTarget.z = 0.0f;
+    globals.player.HangElapsed = 0.0f;
+    globals.player.WorldDisguise = 5;
+    globals.player.HangEnt = NULL;
+    globals.player.HangEntLast = NULL;
+    globals.player.Shaggy1.Grab = NULL;
+    globals.player.Shaggy1.GrabTry = NULL;
+    globals.player.Shaggy1.GrabTimer = 0.0f;
+    globals.player.Shaggy1.HangTarget = NULL;
+    globals.player.Shaggy1.ThrowTimer = -1.0f;
+    globals.player.Shaggy1.ThrowTgt = NULL;
+    xEntBeginCollide(&globals.player.ent, globals.sceneCur, 0.0f);
+    xEntSetNostepNormAngle(surfSlideStart);
+    curVelmag = 0.0f;
+    curVelangle = 0.0f;
+    surfSlickness = 1;
+    surfFriction = 1.0f;
+    surfDamping = minVelmag;
+    lastSlickness = 1;
+    surfSticky = 0;
+    zEntPlayer_SNDInit();
+    sVONextSituation = NULL;
+    sVOTimer = 0.0f;
+    for (signed int i = 0; i < 15; i++)
+    {
+        sPlayerInfo[i].elapsedTime = sPlayerInfo[i].delay;
+        sPlayerInfo[i].count = 0;
+    }
+    xAnimPlaySetState(ent->model->Anim->Single, ent->model->Anim->Table->StateList, 0.0f);
+    if (globals.sceneCur->sceneID == 'MNU3')
+    {
+        globals.player.ControlOn = 0;
+        globals.player.ControlOnEvent = 0;
+    }
+    iColor_tag clear = { 0, 0, 0, 0xFF };
+    iColor_tag black = { 0 };
+    xScrFxFade(&clear, &black, 1.0f, NULL, 0, 1);
+}
+
+void zEntPlayerExit(_xEnt* ent)
+{
+    xAnimTableRemoveEffectByCB(ent->model->Anim->Table, zEntPlayer_FXScratchCB);
+    xAnimTableRemoveEffectByCB(ent->model->Anim->Table, zEntPlayer_SNDSkidCB);
+    xAnimTableRemoveEffectByCB(ent->model->Anim->Table, zEntPlayer_FXDigupCB);
+    xAnimTableRemoveEffectByCB(ent->model->Anim->Table, zEntPlayer_FXOpenBrollyCB);
+    xAnimTableRemoveEffectByCB(ent->model->Anim->Table, zEntPlayer_FXSpringCB);
+    zFeetExit(ent, ent->model->Anim->Table);
+}
+
+void zEntPlayerDriveUpdate(_xEnt* p, float dt)
+{
+    _xEntDrive* drv = &globals.player.drv;
+    _zPlatform* plat;
+
+    if (globals.player.drv.odriver != NULL)
+    {
+        _zPlatform* oplat = (_zPlatform*)globals.player.drv.odriver;
+        if (drv->os == 0.0f)
+        {
+            zEntEvent(globals.player.drv.odriver, 0x21);
+            drv->odriver = NULL;
+            drv->otm = 0.0f;
+            if (oplat->subType == 9)
+            {
+                zPlatform_Dismount();
+            }
+            if (oplat->passet->flags & 1)
+            {
+                zPlatform_Shake(oplat, dt, 0.2f, 37.699112f);
+            }
+        }
+    }
+
+    _xCollis* coll = &p->collis->colls[0];
+    _xEnt* cent;
+    if (p->collis->colls[0].flags & 1)
+    {
+        cent = (_xEnt*)coll->optr;
+    }
+    else
+    {
+        cent = NULL;
+    }
+
+    if (cent != NULL && (cent->eventFunc == Shaggy2_EventCB || cent->eventFunc == Shaggy2Plat_EventCB))
+    {
+        globals.player.MountChimney = cent;
+        globals.player.MountChimOldY = ((_xMat4x3*)cent->model->Mat)->pos.y;
+    }
+    else
+    {
+        globals.player.MountChimney = NULL;
+    }
+
+    if (cent == NULL)
+    {
+        if (drv->driver != NULL)
+        {
+            if (globals.player.JumpState != 0 && globals.player.JumpState != 1)
+            {
+                xEntDriveDismount(drv, 1.0f);
+            }
+            else
+            {
+                xEntDriveDismount(drv, 0.3f);
+            }
+        }
+        return;
+    }
+
+    xSurface* surf = zSurfaceGetSurface(coll);
+    if (surf != NULL && surf->state == 0 && zSurfaceGetDamageType(surf))
+    {
+        return;
+    }
+
+    if (cent != drv->driver)
+    {
+        if (drv->driver != NULL)
+        {
+            xEntDriveDismount(drv, 0.3f);
+        }
+        if (cent->baseType != 6)
+        {
+            return;
+        }
+        if (cent->eventFunc == Shaggy2_EventCB || cent->eventFunc == Shaggy2Plat_EventCB)
+        {
+            zEntEvent(cent, 0x20);
+        }
+        plat = (_zPlatform*)cent;
+        if (!(plat->plat_flags & 1))
+        {
+            return;
+        }
+        if (!gPlayerHitWater && cent != drv->odriver)
+        {
+            zEntEvent(cent, 0x20);
+        }
+        if (plat->subType != 0xA)
+        {
+            float ampl;
+            float freq;
+            float dur;
+            if (plat->subType == 0xB)
+            {
+                xEntDriveMount(drv, plat, 0.5f);
+            }
+            else
+            {
+                xEntDriveMount(drv, plat, 0.15f);
+            }
+            if (plat->subType == 9)
+            {
+                zPlatform_Tremble(plat, ampl, freq, dur);
+            }
+            if (plat->passet->flags & 1)
+            {
+                zPlatform_Shake(plat, dt, 0.2f, 37.699112f);
+            }
+        }
+    }
+    else
+    {
+        plat = (_zPlatform*)drv->driver;
+    }
+
+    if (plat->subType == 0xB || plat->subType == 9)
+    {
+        zEntPlayer_Notify(8);
+    }
+
+    if (plat->subType == 0xA && globals.player.Health)
+    {
+        if (!(plat->passet->flags & 2) || globals.player.JumpState == 0 || globals.player.JumpState == 1)
+        {
+            if (plat->tmr <= 0.0f)
+            {
+                plat->ctr = 0;
+            }
+            else if (plat->ctr < 2)
+            {
+                plat->ctr++;
+            }
+
+            float* jmphs = plat->passet->sb.jmph;
+            float h = (((jmphs[0] > jmphs[1]) ? jmphs[0] : jmphs[1]) > jmphs[2])
+                          ? ((jmphs[0] > jmphs[1]) ? jmphs[0] : jmphs[1])
+                          : jmphs[2];
+            float v = CalcJumpImpulse_Smooth(globals.player.s.Gravity, globals.player.s.JumpGravity, h, 0.3f,
+                                             globals.player.s.GravSmooth);
+            startBounce = p->frame->mat.pos.y;
+            globals.player.Jump_CurrGravity = globals.player.s.JumpGravity;
+            globals.player.Jump_HoldTimer = 0.0f;
+            globals.player.Jump_ChangeTimer = 0.3f;
+            if (p->frame->vel.y > 0.0f && globals.player.JumpState == 2)
+            {
+                p->frame->vel.y = v;
+            }
+            else
+            {
+                p->frame->vel.y = v;
+            }
+            globals.player.JumpState = 2;
+            unsigned int flags = p->model->Anim->Single->State->UserFlags;
+            if ((flags & 0x1E) == 0xE || (flags & 0x100))
+            {
+                globals.player.Bounced = 1;
+            }
+            _xVec3* jmpdir = &plat->passet->sb.jmpdir;
+            p->frame->vel.x = jmpdir->x * p->frame->vel.y;
+            p->frame->vel.y = jmpdir->y * p->frame->vel.y;
+            p->frame->vel.z = jmpdir->z * p->frame->vel.y;
+            globals.player.Jump_CanDouble = 0;
+            globals.player.Jump_CanFloat = 1;
+            globals.player.Jump_Springboard = plat;
+            globals.player.Jump_SpringboardStart = 1;
+            xAnimPlay* aplay = plat->model->Anim;
+            if (aplay != NULL)
+            {
+                xAnimSingle* asing = aplay->Single;
+                asing->Time = 0.0f;
+                asing->CurrentSpeed = 1.0f;
+            }
+            globals.player.Bounced = 2;
+            zEntPlayer_Notify(9);
+        }
+    }
+}
+
+void zEntPlayerSurfDamageUpdate(_xEnt* p)
+{
+    if (!(globals.player.DamageTimer > 0.0f))
+    {
+        _xCollis* coll = &p->collis->colls[0];
+        _xCollis* cend = coll + p->collis->idx;
+        for (; coll < cend; coll++)
+        {
+            xSurface* surf;
+            zSurfaceProps* prop;
+            if (!(coll->flags & 1))
+            {
+                continue;
+            }
+            surf = zSurfaceGetSurface(coll);
+            if (surf == NULL || surf->state != 0)
+            {
+                continue;
+            }
+            signed int damaged = 0;
+            prop = (zSurfaceProps*)surf->moprops;
+            if (prop == NULL || prop->asset == NULL)
+            {
+                continue;
+            }
+            switch (prop->asset->game_damage_type)
+            {
+            case 4:
+            case 6:
+                if (zEntPlayer_Damage(surf, 1) != 0)
+                {
+                    globals.player.DamageTimer = 5.0f;
+                }
+                zRumbleStart(0, (_tagSDRumbleType)7);
+                damaged = 1;
+                break;
+            case 1:
+            {
+                _xEnt* cent = (_xEnt*)coll->optr;
+                if (cent != NULL && cent->baseType == 0x29 && !(((_zEntPickup*)cent)->state & 1))
+                {
+                    break;
+                }
+            }
+            case 5:
+                if (globals.player.Health)
+                {
+                    globals.player.DamageTimer = 0.0f;
+                    zEntPlayer_Damage(surf, globals.player.Health);
+                    damaged = 1;
+                }
+                break;
+            }
+            if (damaged)
+            {
+                if (coll->optr != NULL)
+                {
+                    globals.player.DamageSource = (_zEnt*)coll->optr;
+                }
+                return;
+            }
+        }
+    }
+}
+
+static void PlayerBoundUpdate(_xEnt* ent, _xVec3* pos)
+{
+    _xVec3 dpos;
+
+    xEntDefaultBoundUpdate(ent, pos);
+    if ((headcoll_anim >= 4 && headcoll_anim <= 7) || headcoll_anim == 8)
+    {
+        dpos.x = pos->x - ((_xMat4x3*)ent->model->Mat)->pos.x;
+        dpos.y = pos->y - ((_xMat4x3*)ent->model->Mat)->pos.y;
+        dpos.z = pos->z - ((_xMat4x3*)ent->model->Mat)->pos.z;
+        xModelInstance* head = globals.player.ent.model->Next;
+        iModelTagEval(head->Data, &globals.player.head_tag, head->Mat, &globals.player.head_sph.center);
+        globals.player.head_sph.center.x += dpos.x;
+        globals.player.head_sph.center.y += dpos.y;
+        globals.player.head_sph.center.z += dpos.z;
+        _xVec3* c = xBoundCenter(&ent->bound);
+        dpos.x = c->x - globals.player.head_sph.center.x;
+        dpos.y = c->y - globals.player.head_sph.center.y;
+        dpos.z = c->z - globals.player.head_sph.center.z;
+        xVec3Normalize(&dpos, &dpos);
+        dpos.x *= 0.4f;
+        dpos.y *= 0.4f;
+        dpos.z *= 0.4f;
+        globals.player.head_sph.center.x += dpos.x;
+        globals.player.head_sph.center.y += dpos.y;
+        globals.player.head_sph.center.z += dpos.z;
+        globals.player.head_sph.r = 0.7f;
+        if (globals.player.head_sph.center.y < ent->bound.sph.center.y)
+        {
+            globals.player.head_sph.center.y = ent->bound.sph.center.y;
+        }
+    }
+    else
+    {
+        xMat3x3RMulVec(&dpos, (_xMat3x3*)&rendermat, &headcoll_os);
+        _xVec3* c = xBoundCenter(&ent->bound);
+        globals.player.head_sph.center.x = c->x + dpos.x;
+        globals.player.head_sph.center.y = c->y + dpos.y;
+        globals.player.head_sph.r = 0.7f;
+        globals.player.head_sph.center.z = c->z + dpos.z;
+    }
+}
+
+static unsigned int PlayerDepenQuery(_xEnt*, _xEnt*, _xScene*, float, _xCollis* coll)
+{
+    if (globals.player.DamageTimer > 0.0f)
+    {
+        xSurface* surf = zSurfaceGetSurface(coll);
+        if (surf != NULL && surf->state == 0)
+        {
+            zSurfaceProps* prop = (zSurfaceProps*)surf->moprops;
+            if (prop != NULL && prop->asset != NULL)
+            {
+                switch (prop->asset->game_damage_type)
+                {
+                case 0:
+                    return 1;
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                case 6:
+                    if (prop->asset->game_damage_flags & 1)
+                    {
+                        return 0;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    return 1;
 }
