@@ -711,19 +711,8 @@ _xVec3 floor_supp[4];
 float floor_dist[4];
 float floor_tmr[4];
 _zParEmitterCustomSettings g_info;
-
-static unsigned int cchkButtbounce;
-static unsigned int cchkSquish;
-static unsigned int sVO;
-static unsigned int sVOAssetID;
-static unsigned int sVOPriority;
 extern zPlayerSituation sPlayerInfo[37];
-static zPlayerSituation* sVONextSituation;
-static float sVOTimer;
-static RpAtomic* sPlayerBodyAtomic;
-static RpAtomic* sPlayerHeadAtomic;
-static RpClump* sPlayerBodyClump;
-static RpClump* sPlayerHeadClump;
+
 
 #define SND_INVALID 0xFFFEFFFF
 
@@ -920,31 +909,6 @@ static void PlayerAbsControl(_xEnt* ent, float x, float z, float dt);
 static unsigned int PlayerFacing(_xEnt* ent, _xEnt* target, float cosine);
 
 
-static inline void zEntPlayer_SNDPlayRandom(unsigned int* array, unsigned int max)
-{
-    unsigned int i = 0;
-    unsigned int idx = irand() % max;
-    sVOAssetID = array[idx];
-    while (true)
-    {
-        sVO = xSndPlay(sVOAssetID, 1.0f, 1.0f, 0.0f, 0x80, 0x202, 0);
-        if (sVO != 0 && sVO != SND_INVALID)
-        {
-            break;
-        }
-        idx++;
-        if (idx >= max)
-        {
-            idx = 0;
-        }
-        i++;
-        sVOAssetID = array[idx];
-        if (i >= max)
-        {
-            break;
-        }
-    }
-}
 
 static inline void zEntPlayer_SNDButtBounce(signed int hit_villain)
 {
@@ -1972,6 +1936,14 @@ static signed int GetHeadcollAnimState()
     }
     return 0;
 }
+
+static unsigned int cchkButtbounce;
+static unsigned int cchkSquish;
+static unsigned int sVO;
+static unsigned int sVOAssetID;
+static unsigned int sVOPriority;
+static zPlayerSituation* sVONextSituation;
+static float sVOTimer;
 
 static void HeadcollUpdate(float dt)
 {
@@ -5760,11 +5732,9 @@ void zEntPlayerVelUpdate(_xEnt* ent, float dt)
 
 void zEntPlayerFloorUpdate(_xEnt* p, float dt)
 {
-    static _xVec3 lorigins[4] = {
-        { -0.3f, 0.0f, 0.3f },
-        { 0.3f, 0.0f, 0.3f },
-        { 0.3f, 0.0f, -0.3f },
-        { -0.3f, 0.0f, -0.3f },
+    static _xVec3 lorigins[6] = {
+        { -0.3f, 0.0f, 0.3f },  { 0.3f, 0.0f, 0.3f }, { 0.3f, 0.0f, -0.3f },
+        { -0.3f, 0.0f, -0.3f }, { 0.0f, 0.0f, 0.3f }, { 0.0f, 0.0f, -0.3f },
     };
     _xCollis* fcoll = &p->collis->colls[0];
     xSurface* fsurf = zSurfaceGetSurface(fcoll);
@@ -6071,6 +6041,46 @@ void zEntPlayerFloorUpdate(_xEnt* p, float dt)
         break;
     }
 }
+
+zPlayerSituation sPlayerInfo[37] = {
+    { 0, 0, 120.0f, 0.0f, 0.0f, 0, 0 },
+    { 1, 0, 2.0f, 0.0f, 0.0f, 0, 1 },
+    { 0, 0, 60.0f, 0.0f, 0.0f, 0, 2 },
+    { 0, 0, 60.0f, 0.0f, 0.0f, 0, 3 },
+    { 0, 0, 120.0f, 1.0f, 0.0f, 0, 4 },
+    { 0, 0, 2.0f, 0.5f, 0.0f, 0, 5 },
+    { 0, 0, 120.0f, 1.0f, 0.0f, 0, 6 },
+    { 0, 0, 2.0f, 0.0f, 0.0f, 0, 7 },
+    { 1, 0, 20.0f, 0.5f, 0.0f, 0, 8 },
+    { 0, 0, 1.0f, 0.0f, 0.0f, 0, 9 },
+    { 0, 0, 60.0f, 0.0f, 0.0f, 0, 10 },
+    { 0, 0, 60.0f, 1.0f, 0.0f, 0, 11 },
+    { 0, 0, 30.0f, 0.0f, 0.0f, 0, 12 },
+    { 0, 0, 60.0f, 0.0f, 0.0f, 0, 13 },
+    { 5, 0, 60.0f, 0.5f, 0.0f, 0, 14 },
+    { 5, 0, 5.0f, 1.0f, 0.0f, 0, 15 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 16 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 17 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 18 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 19 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 20 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 21 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 22 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 23 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 24 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 25 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 26 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 27 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 28 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 29 },
+    { 1, 0, 30.0f, 0.0f, 0.0f, 0, 30 },
+    { 1, 0, 2.0f, 1.0f, 0.0f, 0, 31 },
+    { 1, 0, 30.0f, 0.2f, 0.0f, 0, 32 },
+    { 1, 0, 30.0f, 0.5f, 0.0f, 0, 33 },
+    { 1, 0, 30.0f, 0.5f, 0.0f, 0, 34 },
+    { 1, 0, 30.0f, 0.5f, 0.0f, 0, 35 },
+    { 1, 0, 30.0f, 0.5f, 0.0f, 0, 36 },
+};
 
 static unsigned int PlayerDepenQuery(_xEnt*, _xEnt*, _xScene*, float, _xCollis* coll)
 {
@@ -8150,6 +8160,33 @@ void zEntPlayer_SNDVan(_xEnt*)
     xSndPlay(sPlayerSndfx.van_id, 0.5f, 0.5f, 0.0f, 0x80, 2, 0);
 }
 
+static inline void zEntPlayer_SNDPlayRandom(unsigned int* array, unsigned int max)
+{
+    unsigned int i = 0;
+    unsigned int idx = irand() % max;
+    sVOAssetID = array[idx];
+    while (true)
+    {
+        sVO = xSndPlay(sVOAssetID, 1.0f, 1.0f, 0.0f, 0x80, 0x202, 0);
+        if (sVO != 0 && sVO != SND_INVALID)
+        {
+            break;
+        }
+        idx++;
+        if (idx >= max)
+        {
+            idx = 0;
+        }
+        i++;
+        sVOAssetID = array[idx];
+        if (i >= max)
+        {
+            break;
+        }
+    }
+}
+
+
 void zEntPlayer_SituationDo()
 {
     if (sVONextSituation != NULL && globals.player.Health)
@@ -8652,6 +8689,11 @@ static unsigned int zEntPlayer_SNDSkidCB(unsigned int, xAnimActiveEffect*, xAnim
     zRumbleStart(0, (_tagSDRumbleType)6);
     return 0;
 }
+
+static RpAtomic* sPlayerBodyAtomic;
+static RpAtomic* sPlayerHeadAtomic;
+static RpClump* sPlayerBodyClump;
+static RpClump* sPlayerHeadClump;
 
 void zEntPlayer_InitCutsceneModelHack()
 {
