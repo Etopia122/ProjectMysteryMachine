@@ -453,6 +453,16 @@ void zEntPickup_Drop(_zEntPickup* ent);
 void zEntHangable_FollowUpdate(_zEntHangable* ent);
 void zEntHangable_SetMatrix(_zEntHangable* ent, float dt);
 float iurand();
+unsigned int zEntDestructObj_Headbutt(_zEntDestructObj* ent);
+unsigned int zEntDestructObj_ButtBounce(_zEntDestructObj* ent);
+unsigned int zEntDestructObj_CheckState(_zEntDestructObj* ent);
+unsigned int zEntButton_Headbutt(_zEntButton* ent);
+unsigned int zEntButton_ButtBounce(_zEntButton* ent);
+unsigned int zEntButton_Stand(_zEntButton* ent);
+unsigned int zEntButton_CheckState(_zEntButton* ent);
+signed int Shaggy8_HBCallback(_zEnt* ent, _xCollis* coll);
+void xMat3x3GetEuler(_xMat3x3* m, _xVec3* a);
+static signed int GetHeadcollAnimState();
 void Shaggy0_PlayerStates(xAnimTable* table);
 unsigned int Shaggy0_FlipCB(xAnimTransition* tran, xAnimSingle* single, _zEnt* ent);
 void Shaggy0_PlayerTransitions(xAnimTable* table);
@@ -490,7 +500,7 @@ void zEntPlayer_Render(_zEnt* ent);
 void zEntPlayerReset(_xEnt* ent);
 void zEntVillain_Stun(st_zEntVillain* vil, float tym);
 unsigned int zEntVillain_Bounce(st_zEntVillain* vil);
-void zEntVillain_Headbutt(st_zEntVillain* vil, _xVec3* dir);
+signed int zEntVillain_Headbutt(st_zEntVillain* vil, _xVec3* dir);
 void zEntBubble_EnableCollision();
 void zEntBubble_DisableCollision();
 void xEntApplyPhysics(_xEnt* ent, _xScene* sc, float dt);
@@ -514,8 +524,8 @@ static void HeadcollUpdate(float dt);
 static void HeadbuttTest(_xCollis* coll, _xCollis* endcoll, float angle_cosine,
                          signed int (*callback)(_zEnt*, _xCollis*));
 static signed int VillHBCallback(_zEnt* ent, _xCollis* coll);
-static void PlayerDestructObjCheck(_xEnt* ent);
-static void PlayerButtonCheck(_xEnt* ent);
+void DestructObjBBCheck(_xEnt* ent);
+void ButtonBBCheck(_xEnt* ent);
 static unsigned int PlayerFacing(_xEnt* ent, _xEnt* target, float cosine);
 void zLightAddLocal(_xEnt* ent);
 void zLightRemoveLocal();
@@ -1325,17 +1335,31 @@ void zEntPlayer_SNDBitePickup(_xEnt*)
     xSndPlay(sPlayerSndfx.bite_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
-static inline void zEntPlayer_SNDButtBounce()
+static inline void zEntPlayer_SNDButtBounce(signed int hit_villain)
 {
     float pitch;
-    sPlayerSndfx.butt_pitch = fn_800C751C(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
-    xSndPlay(sPlayerSndfx.butt_id[sPlayerSndfx.butt_snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
-    signed int newsnd = sPlayerSndfx.butt_snd;
-    while (newsnd == sPlayerSndfx.butt_snd)
+    if (hit_villain)
     {
-        newsnd = fn_800ED288() % 3;
+        sPlayerSndfx.head_pitch = fn_800C751C(sPlayerSndfx.head_pitch, &pitch, 0x1E, 1.5f);
+        xSndPlay(sPlayerSndfx.head_id[sPlayerSndfx.head_snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
+        signed int newsnd = sPlayerSndfx.head_snd;
+        while (newsnd == sPlayerSndfx.head_snd)
+        {
+            newsnd = fn_800ED288() % 3;
+        }
+        sPlayerSndfx.head_snd = newsnd;
     }
-    sPlayerSndfx.butt_snd = newsnd;
+    else
+    {
+        sPlayerSndfx.butt_pitch = fn_800C751C(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
+        xSndPlay(sPlayerSndfx.butt_id[sPlayerSndfx.butt_snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
+        signed int newsnd = sPlayerSndfx.butt_snd;
+        while (newsnd == sPlayerSndfx.butt_snd)
+        {
+            newsnd = fn_800ED288() % 3;
+        }
+        sPlayerSndfx.butt_snd = newsnd;
+    }
 }
 
 void zEntPlayer_SNDInit()
@@ -5066,8 +5090,8 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
     zEntBubble_DisableCollision();
     PlayerEGenCheck(ent, (zScene*)sc, dt);
     globals.player.HeadbuttHit = 0;
-    PlayerDestructObjCheck(ent);
-    PlayerButtonCheck(ent);
+    ButtonBBCheck(ent);
+    DestructObjBBCheck(ent);
 
     if (globals.player.Shaggy1.GrabOn)
     {
@@ -5167,7 +5191,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                         globals.player.Jump_CanDouble = 1;
                         globals.player.Jump_CanFloat = 1;
                         zRumbleStart(0, (_tagSDRumbleType)2);
-                        zEntPlayer_SNDButtBounce();
+                        zEntPlayer_SNDButtBounce(0);
                     }
                     case 4:
                         if (coll->hdng.x == 0.0f && coll->hdng.z == 0.0f)
@@ -7306,4 +7330,347 @@ xAnimTable* zEntPlayer_AnimTable()
     xAnimTableNewTransition(table, "Action_dig", "Idle_normal", StopDigCheck, NULL, 0, 4, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
     xAnimTableNewTransition(table, "Action_dig", "Idle_brave", StopDigCheck, NULL, 0, 8, 0.0f, 0.0f, 0, 0, 0.15f, NULL);
     return table;
+}
+
+static signed int DestructObjHBCallback(_zEnt* ent, _xCollis* coll)
+{
+    _zEnt* dobj = (_zEnt*)coll->optr;
+    if (dobj->baseType != 0x1B)
+    {
+        return 0;
+    }
+    unsigned int headResponse = zEntDestructObj_Headbutt((_zEntDestructObj*)dobj);
+    unsigned int dobjState = zEntDestructObj_CheckState((_zEntDestructObj*)coll->optr);
+    if ((headResponse == 4 || headResponse == 5) && dobjState != 2)
+    {
+        if (!(globals.player.Inv_Specials & 0x800))
+        {
+            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.HeadbuttHit = 1;
+            globals.player.HeadbuttVel = 0.25f * globals.player.HeadbuttVel;
+        }
+        else
+        {
+            zEntEvent((xBase*)coll->optr, 0x3A);
+            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            if (dobjState != 1 || headResponse != 5)
+            {
+                globals.player.HeadbuttHit = 1;
+            }
+            globals.player.HeadbuttVel = 0.25f * globals.player.HeadbuttVel;
+        }
+    }
+    return 1;
+}
+
+#pragma auto_inline on
+static void HeadbuttTest(_xCollis* coll, _xCollis* endcoll, float angle_cosine,
+                         signed int (*headbuttCB)(_zEnt*, _xCollis*))
+{
+    _zEnt* ent = (_zEnt*)&globals.player.ent;
+    if ((globals.player.ent.model->Anim->Single->State->UserFlags & 0x1E) == 0xC)
+    {
+        float dx2 = isin(ent->frame->rot.angle);
+        float dz2 = icos(ent->frame->rot.angle);
+        for (; coll < endcoll; coll++)
+        {
+            if ((float)__fabs(coll->hdng.y) < 0.7071f)
+            {
+                _zEnt* villent = (_zEnt*)coll->optr;
+                float dx = villent->frame->mat.pos.x - ((_xMat4x3*)ent->model->Mat)->pos.x;
+                float dz = villent->frame->mat.pos.z - ((_xMat4x3*)ent->model->Mat)->pos.z;
+                float mag = xsqrt(dx * dx + dz * dz);
+                if (mag > 1e-7f && dx2 * dx + dz2 * dz > angle_cosine * mag && headbuttCB(ent, coll))
+                {
+                    return;
+                }
+            }
+        }
+    }
+}
+#pragma auto_inline reset
+
+void DestructObjBBCheck(_xEnt* ent)
+{
+    if (ent->collis->dyn_eidx > ent->collis->dyn_sidx)
+    {
+        _xCollis* coll = &ent->collis->colls[ent->collis->dyn_sidx];
+        if (coll->optr != NULL && ((xBase*)coll->optr)->baseType == 0x1B)
+        {
+            HeadbuttTest(coll, &ent->collis->colls[ent->collis->dyn_eidx], 0.1f, DestructObjHBCallback);
+            coll = &ent->collis->colls[ent->collis->dyn_sidx];
+            _xCollis* endcoll = &ent->collis->colls[ent->collis->dyn_eidx];
+            if (globals.player.Health && (ent->model->Anim->Single->State->UserFlags & 0x1E) == 0xE)
+            {
+                for (; coll < endcoll; coll++)
+                {
+                    if (coll->hdng.y < -0.5f)
+                    {
+                        unsigned int bounceResponse = zEntDestructObj_ButtBounce((_zEntDestructObj*)coll->optr);
+                        unsigned int buttonState = zEntDestructObj_CheckState((_zEntDestructObj*)coll->optr);
+                        if (bounceResponse == 3 && buttonState != 2)
+                        {
+                            zEntEvent((xBase*)coll->optr, 0x3A);
+                            ent->frame->mat.pos = *(_xVec3*)&((_xMat4x3*)ent->model->Mat)->pos;
+                            startBounce = ent->frame->mat.pos.y;
+                            zEntPlayerJumpStart(ent, &globals.player.s.Bounce);
+                            globals.player.Jump_CanDouble = 1;
+                            globals.player.Jump_CanFloat = 1;
+                        }
+                        if (coll->hdng.x == 0.0f && coll->hdng.z == 0.0f)
+                        {
+                            ent->frame->vel.y = 0.0f;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+static signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll)
+{
+    _zEnt* button = (_zEnt*)coll->optr;
+    if (button->baseType != 0x18)
+    {
+        return 0;
+    }
+    unsigned int headResponse = zEntButton_Headbutt((_zEntButton*)button);
+    unsigned int buttonState = zEntButton_CheckState((_zEntButton*)coll->optr);
+    if (headResponse == 4 && buttonState == 0)
+    {
+        if (!(globals.player.Inv_Specials & 0x800))
+        {
+            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.HeadbuttHit = 1;
+            globals.player.HeadbuttVel = 0.25f * globals.player.HeadbuttVel;
+        }
+        else
+        {
+            zEntEvent((xBase*)coll->optr, 0x37);
+            if (sEmitterHeadButt != NULL && sEmitterHeadButt2 != NULL)
+            {
+                _zParEmitterCustomSettings info;
+                _xVec3 angles;
+                _xMat4x3* mat = (_xMat4x3*)globals.player.ent.model->Mat;
+                info.custom_flags = 0x20;
+                info.pos.x = mat->pos.x + mat->at.x;
+                info.pos.y = 1.1f + mat->pos.y;
+                info.custom_flags = 0x10020;
+                info.pos.z = mat->pos.z + mat->at.z;
+                xMat3x3GetEuler((_xMat3x3*)mat, &angles);
+                info.rot[1] = 0x40;
+                info.rot[0] = 255.0f * (angles.x / 6.2831855f);
+                info.rot[2] = 255.0f * (angles.z / 6.2831855f);
+                zParEmitterEmitCustom(sEmitterHeadButt, 1.0f / 30.0f, &info);
+                info.rot[0] += 0x40;
+                zParEmitterEmitCustom(sEmitterHeadButt2, 1.0f / 30.0f, &info);
+            }
+            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.HeadbuttHit = 1;
+            globals.player.HeadbuttVel = 0.25f * globals.player.HeadbuttVel;
+        }
+    }
+    return 1;
+}
+
+void ButtonBBCheck(_xEnt* ent)
+{
+    if (ent->collis->dyn_eidx > ent->collis->dyn_sidx)
+    {
+        _xCollis* coll = &ent->collis->colls[ent->collis->dyn_sidx];
+        if (coll->optr != NULL && ((xBase*)coll->optr)->baseType == 0x18)
+        {
+            if ((globals.player.Inv_Specials & 0x800) && ((xBase*)coll->optr)->baseType == 0x18 &&
+                (globals.player.ent.model->Anim->Single->State->UserFlags & 0x1E) == 0xC)
+            {
+                HeadbuttTest(coll, &ent->collis->colls[ent->collis->dyn_eidx], 0.1f, ButtonHBCallback);
+            }
+            coll = &ent->collis->colls[ent->collis->dyn_sidx];
+            _xCollis* endcoll = &ent->collis->colls[ent->collis->dyn_eidx];
+            if (((xBase*)coll->optr)->baseType == 0x18 && globals.player.Health &&
+                (ent->model->Anim->Single->State->UserFlags & 0x1E) == 0xE)
+            {
+                for (; coll < endcoll; coll++)
+                {
+                    if (coll->hdng.y < -0.866025f)
+                    {
+                        unsigned int bounceResponse = zEntButton_ButtBounce((_zEntButton*)coll->optr);
+                        unsigned int buttonState = zEntButton_CheckState((_zEntButton*)coll->optr);
+                        if ((bounceResponse == 2 || bounceResponse == 3) && buttonState == 0)
+                        {
+                            zEntEvent((xBase*)coll->optr, 0x37);
+                            if (sEmitterBounceOnVillain != NULL)
+                            {
+                                _zParEmitterCustomSettings info;
+                                info.custom_flags = 0x20;
+                                _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
+                                info.pos.x = mat->pos.x;
+                                float y = mat->pos.y - 1.0f;
+                                info.pos.y = y;
+                                info.pos.z = mat->pos.z;
+                                switch (ent->bound.type)
+                                {
+                                case 4:
+                                case 0:
+                                case 1:
+                                    info.pos = ent->bound.sph.center;
+                                    break;
+                                case 2:
+                                    info.pos.y = y + (ent->bound.box.box.upper.y - ent->bound.box.box.lower.y);
+                                    break;
+                                case 3:
+                                    info.pos.y = y + ent->bound.cyl.h;
+                                    break;
+                                }
+                                zParEmitterEmitCustom(sEmitterBounceOnVillain, 1.0f / 30.0f, &info);
+                            }
+                        }
+                        else if (coll->hdng.x == 0.0f && coll->hdng.z == 0.0f)
+                        {
+                            ent->frame->vel.y = 0.0f;
+                        }
+                    }
+                }
+            }
+
+            _xEntCollis* collis = ent->collis;
+            _zEnt* bn = (_zEnt*)collis->colls[0].optr;
+            if (bn != NULL && bn->baseType == 0x18 && collis->colls[0].norm.x == 0.0f && collis->colls[0].norm.z == 0.0f)
+            {
+                unsigned int response = zEntButton_Stand((_zEntButton*)bn);
+                unsigned int buttonState = zEntButton_CheckState((_zEntButton*)collis->colls[0].optr);
+                if (response == 1 && buttonState == 0)
+                {
+                    zEntEvent((xBase*)collis->colls[0].optr, 0x37);
+                }
+            }
+        }
+    }
+}
+
+static signed int VillHBCallback(_zEnt* ent, _xCollis* coll)
+{
+    _zEnt* villent = (_zEnt*)coll->optr;
+    if (villent->subType == 0x24)
+    {
+        return Shaggy8_HBCallback(ent, coll);
+    }
+    if (zEntVillain_Headbutt((st_zEntVillain*)villent, &coll->hdng))
+    {
+        ent->frame->mat.pos.x = ((_xMat4x3*)ent->model->Mat)->pos.x;
+        ent->frame->mat.pos.y = ((_xMat4x3*)ent->model->Mat)->pos.y;
+        ent->frame->mat.pos.z = ((_xMat4x3*)ent->model->Mat)->pos.z;
+        globals.player.HeadbuttHit = 1;
+        globals.player.HeadbuttVel = 0.25f * globals.player.HeadbuttVel;
+        zEntPlayer_SNDButtBounce(1);
+        zRumbleStart(0, (_tagSDRumbleType)1);
+        return 1;
+    }
+    return 0;
+}
+
+static void HeadcollUpdate(float dt)
+{
+    signed int headcoll_animto = GetHeadcollAnimState();
+    if (headcoll_animto != headcoll_anim)
+    {
+        headcoll_fromos = headcoll_os;
+        if (headcoll_animto != 0)
+        {
+            headcoll_bltime = headcoll_bltimes[headcoll_animto];
+        }
+        else
+        {
+            headcoll_bltime = headcoll_bltimes[headcoll_anim];
+        }
+        headcoll_anim = headcoll_animto;
+        headcoll_tmr = headcoll_bltime;
+    }
+    if (headcoll_tmr > 0.0f)
+    {
+        float t = headcoll_tmr - dt;
+        headcoll_tmr = t;
+        if (t <= 0.0f)
+        {
+            headcoll_tmr = 0.0f;
+            headcoll_os = headcoll_oses[headcoll_anim];
+        }
+        t = t / headcoll_bltime;
+        float s = 1.0f - t;
+        headcoll_os.x = headcoll_fromos.x * t + headcoll_oses[headcoll_anim].x * s;
+        headcoll_os.y = headcoll_fromos.y * t + headcoll_oses[headcoll_anim].y * s;
+        headcoll_os.z = headcoll_fromos.z * t + headcoll_oses[headcoll_anim].z * s;
+    }
+}
+
+static signed int GetHeadcollAnimState()
+{
+    xAnimState* state = globals.player.ent.model->Anim->Single->State;
+    if ((state->UserFlags & 0x1E) == 0xC)
+    {
+        return 1;
+    }
+    if ((state->UserFlags & 0x1E) == 4)
+    {
+        return 2;
+    }
+    if ((state->UserFlags & 0x1E) == 6 && (state->UserFlags & 0x1E) != 0x20)
+    {
+        return 3;
+    }
+
+    static unsigned int JNORMAL_ID = xStrHash("Jump_normal");
+    static unsigned int JDOUBLE_ID = xStrHash("Jump_double");
+    static unsigned int JWALK_ID = xStrHash("Jump_walk");
+    static unsigned int JRUN_ID = xStrHash("Jump_run");
+    static unsigned int JSB_ID = xStrHash("Jump_springboard");
+    static unsigned int FNORMAL_ID = xStrHash("Fall_normal");
+    static unsigned int FWALK_ID = xStrHash("Fall_walk");
+    static unsigned int FRUN_ID = xStrHash("Fall_run");
+
+    if (state->ID == JNORMAL_ID)
+    {
+        return (globals.player.ent.frame->vel.y <= 0.0f) ? 9 : 4;
+    }
+    if (state->ID == JDOUBLE_ID)
+    {
+        return (globals.player.ent.frame->vel.y <= 0.0f) ? 9 : 5;
+    }
+    if (state->ID == JWALK_ID)
+    {
+        return (globals.player.ent.frame->vel.y <= 0.0f) ? 10 : 6;
+    }
+    if (state->ID == JRUN_ID)
+    {
+        return (globals.player.ent.frame->vel.y <= 0.0f) ? 11 : 7;
+    }
+    if (state->ID == JSB_ID)
+    {
+        return (globals.player.ent.frame->vel.y <= 0.0f) ? 9 : 8;
+    }
+    if (state->ID == FNORMAL_ID)
+    {
+        return 9;
+    }
+    if (state->ID == FWALK_ID)
+    {
+        return 10;
+    }
+    if (state->ID == FRUN_ID)
+    {
+        return 11;
+    }
+    return 0;
+}
+
+static unsigned int PlayerFacing(_xEnt* ent, _xEnt* target, float cosine)
+{
+    float fx = ent->frame->mat.at.x;
+    float fz = ent->frame->mat.at.z;
+    float flen = xsqrt(fx * fx + fz * fz);
+    float dx = target->frame->mat.pos.x - ((_xMat4x3*)ent->model->Mat)->pos.x;
+    float dz = target->frame->mat.pos.z - ((_xMat4x3*)ent->model->Mat)->pos.z;
+    float dlen = xsqrt(dx * dx + dz * dz);
+    return fx * dx + fz * dz > cosine * flen * dlen;
 }
