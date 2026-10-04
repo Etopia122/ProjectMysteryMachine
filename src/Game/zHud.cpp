@@ -2492,7 +2492,7 @@ void zHudElementsCB_GumpackRender()
         signed int offset[2] = { 17, -70 };
         sprintf(str, "%d", (globals.player.Inv_Ammo[0] - 1) / 5);
         zHud_DrawText(item->hframe.pos.x + offset[0],
-                      item->hframe.pos.y + offset[1], 90.0f, 100.0f, str, 0x40, 1.0f,
+                      item->hframe.pos.y + offset[1], 90.0f, 70.0f, str, 0x40, 1.0f,
                       item->hframe.color.a, DROPSHADOW_NORMAL);
     }
 }

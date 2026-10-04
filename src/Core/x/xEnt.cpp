@@ -1531,6 +1531,7 @@ void xEntRender(_xEnt* ent)
         if (dx * dx + dy * dy + dz * dz < ShadowThreshold || shadowMode == 3)
         {
             xShadowRender(ent);
+            return;
         }
 
         float radius = ent->bound.sph.r;

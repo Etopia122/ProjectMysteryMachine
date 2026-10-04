@@ -643,11 +643,6 @@ void xQuatFromMat(_xQuat* q, _xMat3x3* m)
         q->s = root * (mp[j + k * 4] - mp[k + j * 4]);
         qvp[j] = root * (mp[i + j * 4] + mp[j + i * 4]);
         qvp[k] = root * (mp[i + k * 4] + mp[k + i * 4]);
-
-        if (q->s < 0.0f)
-        {
-            xQuatFlip(q, q);
-        }
     }
 }
 
