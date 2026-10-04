@@ -817,10 +817,10 @@ static unsigned int FaceClearScareCB(xAnimTransition*, xAnimSingle*, void*);
 static unsigned int FaceMad(xAnimTransition*, xAnimSingle*, void*);
 static unsigned int FaceBlow(xAnimTransition*, xAnimSingle*, void*);
 xAnimTable* zEntPlayer_AnimTable();
-static signed int DestructObjHBCallback(_zEnt* ent, _xCollis* coll);
+static inline signed int DestructObjHBCallback(_zEnt* ent, _xCollis* coll);
 void DestructObjBBCheck(_xEnt* ent);
 void ButtonBBCheck(_xEnt* ent);
-static signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll);
+static inline signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll);
 static void PlayerAddToAllStates(xAnimTable* table, xAnimTransition* tran);
 static unsigned int SD0_TossCB(xAnimTransition*, xAnimSingle*, void*);
 static unsigned int ClearHelmetCB(xAnimTransition*, xAnimSingle*, void*);
@@ -2026,15 +2026,15 @@ static void HeadbuttTest(_xCollis* coll, _xCollis* endcoll, float angle_cosine,
     _zEnt* ent = (_zEnt*)&globals.player.ent;
     if ((globals.player.ent.model->Anim->Single->State->UserFlags & 0x1E) == 0xC)
     {
-        float dx2 = isin(ent->frame->rot.angle);
-        float dz2 = icos(ent->frame->rot.angle);
+        float dx2 = isin(globals.player.ent.frame->rot.angle);
+        float dz2 = icos(globals.player.ent.frame->rot.angle);
         for (; coll < endcoll; coll++)
         {
             if ((float)__fabs(coll->hdng.y) < 0.7071f)
             {
                 _zEnt* villent = (_zEnt*)coll->optr;
-                float dx = villent->frame->mat.pos.x - ((_xMat4x3*)ent->model->Mat)->pos.x;
-                float dz = villent->frame->mat.pos.z - ((_xMat4x3*)ent->model->Mat)->pos.z;
+                float dx = villent->frame->mat.pos.x - ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x;
+                float dz = villent->frame->mat.pos.z - ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z;
                 float mag = xsqrt(dx * dx + dz * dz);
                 if (mag > 1e-7f && dx2 * dx + dz2 * dz > angle_cosine * mag && headbuttCB(ent, coll))
                 {
@@ -2090,6 +2090,7 @@ static unsigned int PlungerCheck(xAnimTransition*, xAnimSingle*, void*)
     return ret;
 }
 
+#pragma auto_inline on
 static unsigned int TeeterCheck(xAnimTransition*, xAnimSingle*, void*)
 {
     unsigned char ret = 0;
@@ -2101,7 +2102,9 @@ static unsigned int TeeterCheck(xAnimTransition*, xAnimSingle*, void*)
     return ret;
 }
 #pragma auto_inline reset
+#pragma auto_inline reset
 
+#pragma auto_inline on
 static unsigned int SlipperyCheck(xAnimTransition*, xAnimSingle*, void*)
 {
     unsigned char ret = 0;
@@ -2111,6 +2114,7 @@ static unsigned int SlipperyCheck(xAnimTransition*, xAnimSingle*, void*)
     }
     return ret;
 }
+#pragma auto_inline reset
 
 static unsigned int HotsauceCheck(xAnimTransition*, xAnimSingle*, void*)
 {
@@ -2967,14 +2971,16 @@ static unsigned int DeathCB(xAnimTransition*, xAnimSingle*, void*)
     return 0;
 }
 
+#pragma auto_inline on
 static unsigned int FallToDeathStart(xAnimTransition*, xAnimSingle*, void*)
 {
     return globals.player.FallDeathTimer != 0.0f;
 }
+#pragma auto_inline reset
 
-static unsigned int FallToDeathDrop(xAnimTransition*, xAnimSingle*, void*)
+static unsigned int FallToDeathDrop(xAnimTransition* tran, xAnimSingle* anim, void* data)
 {
-    return (globals.player.FallDeathTimer != 0.0f) == 0;
+    return !FallToDeathStart(tran, anim, data);
 }
 
 static unsigned int FallToDeathDropCB(xAnimTransition*, xAnimSingle*, void*)
@@ -3024,7 +3030,7 @@ static void PlayerAddToAllStates(xAnimTable* table, xAnimTransition* tran)
     xAnimTableAddTransition(table, tran, "Inactive_Magnify Inactive_Dizzy Inactive_BlowFeet Inactive_LookAround");
 }
 
-static signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll)
+static inline signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll)
 {
     _zEnt* button = (_zEnt*)coll->optr;
     if (button->baseType != 0x18)
@@ -3183,7 +3189,7 @@ void DestructObjBBCheck(_xEnt* ent)
     }
 }
 
-static signed int DestructObjHBCallback(_zEnt* ent, _xCollis* coll)
+static inline signed int DestructObjHBCallback(_zEnt* ent, _xCollis* coll)
 {
     _zEnt* dobj = (_zEnt*)coll->optr;
     if (dobj->baseType != 0x1B)
