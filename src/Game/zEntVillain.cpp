@@ -13,6 +13,7 @@
 #include "xSnd.h"
 #include "xFFX.h"
 #include "xordarray.h"
+#include "rwtypes.h"
 #include "iMath.h"
 #include "iSnd.h"
 #include "xMemMgr.h"
@@ -1408,6 +1409,43 @@ char* xSceneID2Name(_xScene* sc, unsigned int id);
 void xAnimTableAddTransition(xAnimTable* table, xAnimTransition* tran, char* source);
 void Shaggy5_WitchTransitions(xAnimTable* table);
 
+
+_tagLightning* zLightningAdd(_tagLightningAdd* add);
+void zLightningKill(_tagLightning* l);
+void xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
+extern "C" void* memcpy(void* dst, const void* src, unsigned long n);
+extern const _xVec3 g_Y3;
+extern const _xVec3 g_O3;
+void xEntBeginCollide(_xEnt* ent, _xScene* sc, float dt);
+void xEntEndCollide(_xEnt* ent, _xScene* sc, float dt);
+xModelInstance* xModelInstanceAlloc(RpAtomic* data, void* object, unsigned short flags, unsigned char boneIndex,
+                                    unsigned char* boneRemap);
+void xModelInstanceFree(xModelInstance* inst);
+static void VIRM_initVilDflt(st_zEntVillain* ent);
+static void zVIL_input_stim(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* sc, float dt);
+void xMat4x3RMul3x3(_xMat4x3* o, _xMat3x3* a, _xMat4x3* b);
+signed int zEntPlayer_Damage(xBase* src, unsigned int damage);
+class RwTexture;
+extern "C" signed int RwRenderStateSet(signed int state, void* value);
+class RxObjSpace3DVertex
+{
+public:
+    _xVec3 objVertex; // 0x0
+    _xVec3 objNormal; // 0xC
+    RwRGBA color;     // 0x18
+    float u;          // 0x1C
+    float v;          // 0x20
+};
+extern "C" void* RwIm3DTransform(RxObjSpace3DVertex* pVerts, unsigned int numVerts, void* ltm, unsigned int flags);
+extern "C" signed int RwIm3DRenderPrimitive(signed int primType);
+extern "C" signed int RwIm3DEnd();
+static void SuperVillainGumDraw(_xVec3* from, _xVec3* to, float top_radius, float bot_radius);
+
+class ScoobRGBA
+{
+public:
+    unsigned char r, g, b, a;
+};
 static en_ZVILLAIN_HEADBUTT_RESPONSE VOUT_spikey_header(st_zEntVillain* vil);
 static en_NPC_ANIMSTATES VANM_set(st_zEntVillain* ent, en_NPC_ANIMSTATES* best, signed int cnt, signed int sync);
 
@@ -1442,6 +1480,60 @@ static signed int g_emitnext;
 static signed int g_emitready;
 static signed int g_scene_is_a_boss_battle;
 static char* g_datablock;
+static _tagLightning* g_bk_lytstrk[5];
+static st_REDBEARD_SWORD g_rbsword[4];
+static _xVec3 g_bgg_prj_pos;
+static _tagLightning* g_mm_lytstrk[5];
+static RxObjSpace3DVertex sStripVert[32];
+static ScoobRGBA g_holoPoofBirth[50] = {
+    { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF },
+    { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF }, { 0xFF, 0xFF, 0xFF, 0xFF },
+};
+static ScoobRGBA g_holoPoofDeath[50] = {
+    { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF },
+    { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF },
+    { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF },
+    { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF },
+    { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF },
+    { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF },
+    { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF },
+    { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF },
+    { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF },
+    { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF }, { 0x00, 0x1A, 0xFB, 0xFF },
+};
+static ScoobRGBA g_holoDotsBirth[50] = {
+    { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF },
+    { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF },
+    { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF },
+    { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF },
+    { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF },
+    { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF },
+    { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF },
+    { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF },
+    { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF },
+    { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF }, { 0x04, 0xFB, 0xFB, 0xFF },
+};
+static ScoobRGBA g_holoDotsDeath[50] = {
+    { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF },
+    { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF },
+    { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF },
+    { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF },
+    { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF },
+    { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF },
+    { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF },
+    { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF },
+    { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF },
+    { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF }, { 0x04, 0x32, 0xFB, 0xFF },
+};
+
 class st_NPC_NOBONUS
 {
 public:
@@ -3355,6 +3447,2173 @@ static xAnimTable* VANM_mktable_MM();
 static xAnimTable* VANM_mktable_RB();
 static xAnimTable* VANM_mktable_GG();
 static xAnimTable* VANM_mktable_BK();
+static void VPAR_emit_extattack(st_zEntVillain* ent, _xVec3* origin, _xVec3* aimdir, float length, float slope, float dt);
+static inline signed int VPAR_emit_headbutt(float dt, st_zEntVillain_ParEmitRecord* vpar, _zParEmitterCustomSettings* pecust);
+static inline signed int VUTIL_tagpos(st_zEntVillain* ent, signed int idx, _xVec3* pos);
+static void VPAR_emit_partype(st_zEntVillain* ent, en_VPAR_EMITTER_ROLE emittype, float dt);
+static void VPAR_readyize_emitters();
+static void VEFX_zapTheKnight(st_zEntVillain* vil, signed int cleanup);
+static void VEFX_mm_zapper(st_zEntVillain* vil, signed int cleanup);
+static void VEFX_hologram(st_zEntVillain* vil, float dt);
+static void VEFX_plop_gum(st_zEntVillain* ent);
+static void SuperVillainGumDraw(_xVec3* from, _xVec3* to, float top_radius, float bot_radius);
+static void VWEP_rbs_chkCollide(st_REDBEARD_SWORD* rbs, float dt);
+static inline void VWEP_rbs_flight(st_REDBEARD_SWORD* rbs, float dt);
+static void VWEP_rbs_throw(st_REDBEARD_SWORD* rbs);
+static void VWEP_rbs_bupdate(_xEnt* ent_rbs, _xVec3* pos);
+static inline xModelInstance* VWEP_rbs_animmodel(st_zEntVillain* vil);
+static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil);
+static inline void VPRJ_BMM_flaskhurt(zEntProjectile* prj, float dt, _zParEmitter* emitter);
+static inline void VPRJ_BMM_blackflask(zEntProjectile* prj, float dt);
+static inline void VPRJ_BMM_greenflask(zEntProjectile* prj, float dt);
+static inline void VPRJ_BMM_redflask(zEntProjectile* prj, float dt);
+static inline void VPRJ_prjsound(st_zEntVillain* vil, zEntProjectile* prj, en_NPC_SOUND snd);
+static signed int VPRJ_BMM_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event);
+static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, _xEntFrame* frame);
+static void VPRJ_BMM_detach(zEntProjectile* prj);
+static signed int VPRJ_BMM_attach(zEntProjectile* prj);
+static void VPRJ_BMM_bupdate(_xEnt* ent, _xVec3* pos);
+static signed int VPRJ_BRB_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event);
+static signed int VPRJ_BRB_logix(zEntProjectile* prj, float dt);
+static void VPRJ_BRB_detach(zEntProjectile* prj);
+static signed int VPRJ_BRB_attach(zEntProjectile* prj);
+static inline void VPRJ_hitstim(st_zEntVillain* vil);
+static inline void VPRJ_emitat(_zParEmitter* emitter, zEntProjectile* prj, float dt, float yoff);
+static inline void VPRJ_BGG_shockpos(zEntProjectile* prj, float dt);
+static signed int VPRJ_BGG_shockwave(zEntProjectile* prj, float dt);
+static signed int VPRJ_BGG_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event);
+static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt);
+static void VPRJ_BGG_detach(zEntProjectile* prj);
+static signed int VPRJ_BGG_attach(zEntProjectile* prj);
+static void VPRJ_zapTheAxe(zEntProjectile* prj, signed int cleanup);
+static signed int VPRJ_BBK_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event);
+static signed int VPRJ_BBK_prjmove(zEntProjectile* prj, float dt, _xEntFrame* frame);
+static signed int VPRJ_BBK_logix(zEntProjectile* prj, float dt);
+static void VPRJ_BBK_detach(zEntProjectile* prj);
+static signed int VPRJ_BBK_attach(zEntProjectile* prj);
+static void VPRJ_BBK_bupdate(_xEnt* ent, _xVec3* pos);
+static signed int VWEP_lobInitMMFlask(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
+static signed int VWEP_lobInitRBSword(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
+static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos);
+static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
+static signed int VWEP_lobInitBKAxe(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
+static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
+static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT event, void* ctxt);
+static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off);
+static signed int VWEP_lobActivatePRJ(zEntProjectile* prj, st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
+static zEntProjectile* VWEP_lobReservePRJ(st_zEntVillain* vil);
+
+static zEntProjectile* VWEP_lobReservePRJ(st_zEntVillain* vil)
+{
+    en_ZPRJ_CATEGORY cat;
+    en_ZPRJ_CATEGORY prefer;
+    en_ZVMM_FLASK_TYPE typ_flask = MAST_FLSK_SMOG;
+    zEntProjectile* prj;
+
+    switch (vil->asset->subtype)
+    {
+    case 5:
+    case 0x10:
+        prefer = ZPRJ_CAT_GRAVBALL;
+        break;
+    case 0x12:
+        prefer = ZPRJ_CAT_ARROW;
+        break;
+    case eEntVillainBossBlackKnight:
+        prefer = ZPRJ_CAT_BKAXE;
+        break;
+    case eEntVillainBossGreenGhost:
+        prefer = ZPRJ_CAT_GGSHOCK;
+        break;
+    case eEntVillainBossRedbeard:
+        prefer = ZPRJ_CAT_RBSWORD;
+        break;
+    case eEntVillainBossMastermind:
+    {
+        en_ZVMM_FLASK_TYPE flasks[3] = { MAST_FLSK_SMOG, MAST_FLSK_ACID, MAST_FLSK_FIRE };
+        prefer = ZPRJ_CAT_MMFLASK;
+        switch (vil->hitpts)
+        {
+        case 4:
+            typ_flask = MAST_FLSK_SMOG;
+            break;
+        case 3:
+            typ_flask = MAST_FLSK_ACID;
+            break;
+        case 2:
+            typ_flask = MAST_FLSK_FIRE;
+            break;
+        case 1:
+        {
+            signed int idx = 0;
+            signed int i;
+            float r = iurand();
+            float lo;
+            float hi = 0.0f;
+            for (i = 0; i < 3; i++)
+            {
+                lo = hi;
+                hi += 0.33333334f;
+                if (r >= lo && r <= hi)
+                {
+                    idx = i;
+                    break;
+                }
+            }
+            typ_flask = flasks[idx];
+            break;
+        }
+        default:
+            typ_flask = MAST_FLSK_SMOG;
+            break;
+        }
+        break;
+    }
+    default:
+        xSceneID2Name(globals.sceneCur, vil->id);
+        prefer = ZPRJ_CAT_ARROW;
+        break;
+    }
+
+    cat = zEntProjectile_catFromPrjType(vil->prjTypeID, prefer);
+    prj = zEntProjectile_acquire(cat, vil->prjTypeID);
+    if (!prj)
+    {
+        return NULL;
+    }
+    if (cat == ZPRJ_CAT_MMFLASK)
+    {
+        ((st_ZVMM_FLASK_DATA*)prj->xtradata)->typ_flask = typ_flask;
+    }
+    prj->owner = vil;
+    prj->ownerContext = NULL;
+    prj->ownerNotify = VWEP_prjOwnerNotify;
+    return prj;
+}
+
+static signed int VWEP_lobActivatePRJ(zEntProjectile* prj, st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off,
+                                      _xVec3* vec_spin, float arcness, float heavy)
+{
+    signed int rc = 0;
+
+    if (!prj)
+    {
+        return 0;
+    }
+
+    switch (vil->prj_reserved->cat_proj)
+    {
+    case ZPRJ_CAT_ARROW:
+        rc = VWEP_lobInitArrow(vil, pos_tgt, vec_off);
+        prj->flg_prop |= 0x30000014;
+        break;
+    case ZPRJ_CAT_GRAVBALL:
+    case ZPRJ_CAT_BOUNCEBALL:
+        rc = VWEP_lobInitArcing(vil, pos_tgt, vec_off, vec_spin, arcness, heavy);
+        prj->flg_prop |= 0x30000014;
+        if (vil->asset->subtype == 5 || vil->asset->subtype == 0x10)
+        {
+            prj->flags &= ~1;
+        }
+        break;
+    case ZPRJ_CAT_BKAXE:
+        rc = VWEP_lobInitBKAxe(vil, pos_tgt, vec_off, vec_spin, arcness, heavy);
+        break;
+    case ZPRJ_CAT_GGSHOCK:
+        rc = VWEP_lobInitGGQuaker(vil, pos_tgt, vec_off, vec_spin, arcness, heavy);
+        break;
+    case ZPRJ_CAT_RBSWORD:
+        rc = VWEP_lobInitRBSword(vil, pos_tgt, vec_off, vec_spin, arcness, heavy);
+        break;
+    case ZPRJ_CAT_MMFLASK:
+        rc = VWEP_lobInitMMFlask(vil, pos_tgt, vec_off, vec_spin, arcness, heavy);
+        break;
+    }
+
+    if (rc)
+    {
+        prj->StateSet((en_ZPRJ_STATES)2);
+        if (prj->cat_proj != ZPRJ_CAT_GGSHOCK && prj->cat_proj != ZPRJ_CAT_MMFLASK)
+        {
+            prj->SendEvent(ZPRJ_EVNT_LAUNCH);
+        }
+    }
+    else
+    {
+        prj->Abort();
+    }
+
+    if (prj->cat_proj != ZPRJ_CAT_GGSHOCK && prj->cat_proj != ZPRJ_CAT_MMFLASK)
+    {
+        vil->prj_reserved = NULL;
+    }
+    return 1;
+}
+
+static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off)
+{
+    _xVec3 pos = {};
+    ST_CAT_AIMDATA aiminf = {};
+    zEntProjectile* prj = vil->prj_reserved;
+
+    prj->ColDelaySet(0.4f, 1);
+    VWEP_lobLaunchPos(vil, &pos);
+
+    aiminf.spd_base = vil->spd_lob;
+    aiminf.dir_base = ((_xMat4x3*)vil->model->Mat)->at;
+    aiminf.arrow.pos_src = pos;
+    if (vec_off)
+    {
+        xVec3Add(&aiminf.arrow.pos_tgt, pos_tgt, vec_off);
+    }
+    else
+    {
+        aiminf.arrow.pos_tgt = *pos_tgt;
+    }
+    return prj->AimAtTarget(&aiminf, 1);
+}
+
+static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT event, void* ctxt)
+{
+    signed int rc = 0;
+    st_zEntVillain* vil = (st_zEntVillain*)prj->owner;
+    signed int dosnd = !(vil->ability & 1);
+
+    switch (event)
+    {
+    case ZPRJ_EVNT_LAUNCH:
+        if (dosnd)
+        {
+            VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_LAUNCH);
+        }
+        rc = 1;
+        break;
+    case ZPRJ_EVNT_HITPLYR:
+        VPRJ_hitstim(vil);
+        if (dosnd)
+        {
+            VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_EXPLODE);
+        }
+        rc = 1;
+        break;
+    case ZPRJ_EVNT_INFLIGHT:
+        if (dosnd && !iSndIsPlaying(0, (unsigned int)prj))
+        {
+            VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_FLIGHT);
+        }
+        rc = 1;
+        break;
+    case ZPRJ_EVNT_DETONATE:
+        if (dosnd)
+        {
+            xSndStopChildren((unsigned int)prj);
+            VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_SPLAT);
+        }
+        rc = 1;
+        break;
+    case ZPRJ_EVNT_TRANSTATE:
+        if (prj->state != 2)
+        {
+            xSndStopChildren((unsigned int)prj);
+        }
+        rc = 1;
+        break;
+    case ZPRJ_EVNT_ABORT:
+    case ZPRJ_EVNT_SELFDESTRUCT:
+    case ZPRJ_EVNT_DEATH:
+        xSndStopChildren((unsigned int)prj);
+        if (vil->prj_reserved == prj)
+        {
+            vil->prj_reserved = NULL;
+        }
+        rc = 1;
+        break;
+    }
+    return rc;
+}
+
+static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
+                                     float arcness, float heavy)
+{
+    signed int retval = 1;
+    _xVec3 pos = {};
+    ST_CAT_AIMDATA aiminf = {};
+    _xVec3 vec_tmp = {};
+    zEntProjectile* prj = vil->prj_reserved;
+    _xMat4x3* mat;
+
+    aiminf.idx_caim = ZPRJ_CAIM_GRAVBALL;
+    prj->ColDelaySet(0.4f, 1);
+    VWEP_lobLaunchPos(vil, &pos);
+
+    if (vil->asset->subtype == eEntVillainBossBlackKnight)
+    {
+        mat = (_xMat4x3*)vil->model->Mat;
+        xVec3SMul(&vec_tmp, &mat->up, 2.0f);
+        xVec3AddTo(&pos, &vec_tmp);
+        xVec3SMul(&vec_tmp, &mat->right, -1.5f);
+        xVec3AddTo(&pos, &vec_tmp);
+    }
+
+    aiminf.spd_base = vil->spd_lob;
+    aiminf.dir_base = ((_xMat4x3*)vil->model->Mat)->at;
+    aiminf.grav.pos_src = pos;
+    if (vec_off)
+    {
+        xVec3Add(&aiminf.grav.pos_tgt, pos_tgt, vec_off);
+    }
+    else
+    {
+        aiminf.grav.pos_tgt = *pos_tgt;
+    }
+    aiminf.grav.fac_arcness = (arcness <= 0.0f) ? 1.0f : arcness;
+    aiminf.grav.acc_gravity = (heavy <= 0.0f) ? 1.5f : heavy;
+
+    if (vec_spin)
+    {
+        prj->FlexMatSet(vec_spin, globals.update_dt);
+        prj->flg_categ |= 0x4000000;
+    }
+    else
+    {
+        prj->flg_categ &= ~0x4000000;
+    }
+
+    if (!prj->AimAtTarget(&aiminf, 1))
+    {
+        retval = 0;
+    }
+    return retval;
+}
+
+static signed int VWEP_lobInitBKAxe(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
+                                    float arcness, float heavy)
+{
+    _xVec3 ang_yaw = {};
+    _xVec3 delta = {};
+    _xVec3 ang_flip = { 0.0f, 0.0f, 1.5707964f };
+    _xMat3x3 mat_rot = {};
+    zEntProjectile* prj = vil->prj_reserved;
+    st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
+    _xMat4x3* frame;
+
+    VWEP_lobInitArcing(vil, pos_tgt, vec_off, vec_spin, arcness, heavy);
+
+    xMat3x3Euler(&mat_rot, &ang_flip);
+    xMat4x3RMul3x3((_xMat4x3*)prj->frame, &mat_rot, (_xMat4x3*)prj->frame);
+
+    frame = (_xMat4x3*)prj->frame;
+    delta.x = frame->pos.x - pos_tgt->x;
+    delta.y = frame->pos.y - pos_tgt->y;
+    delta.z = frame->pos.z - pos_tgt->z;
+    ang_yaw.y = xAngleClamp(atan2(delta.x, delta.z));
+    xMat3x3Euler(&mat_rot, &ang_yaw);
+    xMat4x3RMul3x3((_xMat4x3*)prj->frame, &mat_rot, (_xMat4x3*)prj->frame);
+    prj->frame->mode |= 0x101;
+    prj->SyncFrame(1);
+
+    axfx->rad_zap = vil->dst_extend;
+    axfx->dst_zapdrop = vil->wid_extend;
+    axfx->tym_zapdur = vil->spd_extend;
+    axfx->planes.y = vil->dst_lob;
+    axfx->planes.z = -268.5f;
+    axfx->planes.x = 46.0f;
+
+    if (vec_spin)
+    {
+        prj->FlexMatSet(vec_spin, globals.update_dt);
+        prj->flg_categ |= 0x4000000;
+    }
+    else
+    {
+        prj->flg_categ &= ~0x4000000;
+    }
+
+    prj->ds2_maxlife = 10000.0f;
+    return 1;
+}
+
+static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
+                                       float arcness, float heavy)
+{
+    _xVec3 pos = {};
+    ST_CAT_AIMDATA aiminf = {};
+    zEntProjectile* prj = vil->prj_reserved;
+    st_BGG_QUAKEBALL* quake = (st_BGG_QUAKEBALL*)prj->xtradata;
+
+    prj->ColDelaySet(0.4f, 1);
+    VWEP_lobLaunchPos(vil, &pos);
+
+    aiminf.spd_base = vil->spd_lob;
+    aiminf.dir_base = ((_xMat4x3*)vil->model->Mat)->at;
+    aiminf.grav.pos_src = pos;
+    if (vec_off)
+    {
+        xVec3Add(&aiminf.grav.pos_tgt, pos_tgt, vec_off);
+    }
+    else
+    {
+        aiminf.grav.pos_tgt = *pos_tgt;
+    }
+    prj->AimAtTarget(&aiminf, 1);
+
+    prj->cat_data.gravball.acc_gravity = (heavy <= 0.0f) ? 1.5f : heavy;
+    quake->rad_build = vil->dst_lob;
+    quake->spd_flight = (vil->spd_lob > 0.2f) ? vil->spd_lob : 0.2f;
+    quake->hyt_shock = vil->wid_extend;
+    quake->rad_shock = vil->dst_extend;
+    quake->tym_shock = vil->spd_extend;
+    return 1;
+}
+
+static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos)
+{
+    _xVec3 vec_tmp = {};
+
+    if (!VUTIL_tagpos(vil, 6, pos))
+    {
+        xSceneID2Name(globals.sceneCur, vil->id);
+        *pos = *xBoundCenter(&vil->bound);
+        xVec3SMul(&vec_tmp, &((_xMat4x3*)vil->model->Mat)->at, 0.5f);
+        vec_tmp.y += 0.5f;
+        xVec3AddTo(pos, &vec_tmp);
+    }
+}
+
+static signed int VWEP_lobInitRBSword(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
+                                      float arcness, float heavy)
+{
+    zEntProjectile* prj = vil->prj_reserved;
+    st_REDBEARD_SWORD* rbs = (st_REDBEARD_SWORD*)prj->xtradata;
+    _xVec3 vec_pos = {};
+    signed int rc;
+
+    rc = VUTIL_tagpos(vil, 10, &vec_pos);
+    if (!rc)
+    {
+        rc = VUTIL_tagpos(vil, 6, &vec_pos);
+    }
+    if (!rc)
+    {
+        rc = VUTIL_tagpos(vil, 5, &vec_pos);
+    }
+    if (!rc)
+    {
+        rc = VUTIL_tagpos(vil, 9, &vec_pos);
+    }
+    if (!rc)
+    {
+        vec_pos = *xBoundCenter(&vil->bound);
+    }
+
+    ((_xMat4x3*)prj->frame)->pos = vec_pos;
+    xMat3x3Euler((_xMat3x3*)prj->frame, 0.0f, 0.0f, 3.1415927f);
+    prj->frame->mode |= 0x101;
+    prj->SyncFrame(1);
+
+    rbs->dst_far = vil->dst_extend;
+    rbs->spd_fly = (1.999999f * vil->dst_extend) / 5.0f;
+    rbs->dir_end = vil->precalc.dir_VtoP;
+    xVec3SMul(&rbs->pos_end, &rbs->dir_end, rbs->dst_far);
+    return 1;
+}
+
+static signed int VWEP_lobInitMMFlask(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
+                                      float arcness, float heavy)
+{
+    static _xVec3 ang_tilt = { 0.0f, 0.0f, 0.7853982f };
+    zEntProjectile* prj = vil->prj_reserved;
+    _xMat3x3 mat_rot = {};
+    st_ZVMM_FLASK_DATA* flask = (st_ZVMM_FLASK_DATA*)prj->xtradata;
+
+    VUTIL_tagpos(vil, 6, &((_xMat4x3*)prj->frame)->pos);
+    xMat3x3Euler(&mat_rot, &ang_tilt);
+    xMat4x3RMul3x3((_xMat4x3*)prj->frame, &mat_rot, (_xMat4x3*)prj->frame);
+    prj->frame->mode |= 0x101;
+    prj->SyncFrame(1);
+
+    if (vec_spin)
+    {
+        prj->FlexMatSet(vec_spin, globals.update_dt);
+        prj->flg_categ |= 0x4000000;
+    }
+    else
+    {
+        prj->flg_categ &= ~0x4000000;
+    }
+
+    flask->stage = MAST_STAGE_TEASE;
+    flask->spd_flight = (vil->spd_lob > 0.2f) ? vil->spd_lob : 0.2f;
+    flask->hyt_aftermath = vil->wid_extend;
+    flask->tym_aftermath = vil->wid_extend;
+    flask->rad_aftermath = vil->wid_extend;
+    flask->arcness = (arcness <= 0.0f) ? 1.0f : arcness;
+    flask->heavy = (heavy <= 0.0f) ? 1.5f : heavy;
+    return 1;
+}
+
+static void VPRJ_BBK_bupdate(_xEnt* ent, _xVec3* pos)
+{
+    ent->bound.sph.center = *pos;
+    ent->bound.sph.r = 0.75f;
+    xBoundUpdate(&ent->bound);
+}
+
+static signed int VPRJ_BBK_attach(zEntProjectile* prj)
+{
+    signed int i;
+
+    prj->bupdate = VPRJ_BBK_bupdate;
+    prj->cat_data.idx_cdat = 2;
+    prj->OrientSet(0);
+    prj->ColDelaySet(50.0f, 1);
+    prj->tym_maxlife = (prj->tym_maxlife < 30.0f) ? 30.0f : prj->tym_maxlife;
+    for (i = 0; i < 10; i++)
+    {
+        st_BKAXE_DATA* axfx = &g_axfxpool[i];
+        if (!(axfx->flg_stat & 1))
+        {
+            memset(axfx, 0, sizeof(st_BKAXE_DATA));
+            axfx->flg_stat |= 1;
+            prj->xtradata = axfx;
+            break;
+        }
+    }
+    if (prj->xtradata)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+static void VPRJ_BBK_detach(zEntProjectile* prj)
+{
+    st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
+
+    if (axfx)
+    {
+        VPRJ_zapTheAxe(prj, 1);
+        memset(axfx, 0, sizeof(st_BKAXE_DATA));
+        prj->xtradata = NULL;
+    }
+}
+
+static signed int VPRJ_BBK_logix(zEntProjectile* prj, float dt)
+{
+    _xVec3 pos_prj = {};
+    st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
+    st_ZPRJ_CAT_BOUNCEBALL* bounce = &prj->cat_data.bounce;
+
+    if (bounce->atRest)
+    {
+        prj->SendEvent(ZPRJ_EVNT_ATREST, dt);
+    }
+    else
+    {
+        prj->SendEvent(ZPRJ_EVNT_INFLIGHT, dt);
+    }
+
+    pos_prj = ((_xMat4x3*)prj->model->Mat)->pos;
+    if (prj->tmr_alive >= prj->tym_maxlife)
+    {
+        prj->SendEvent(ZPRJ_EVNT_SELFDESTRUCT);
+        prj->StateSet((en_ZPRJ_STATES)3);
+        return 1;
+    }
+
+    if (pos_prj.z > axfx->planes.z || pos_prj.y < axfx->planes.x)
+    {
+        prj->ColDelaySet(-1.0f, 0);
+        prj->flg_pen = 0x7E;
+    }
+    else
+    {
+        prj->ColDelaySet(5.0f, 0);
+    }
+
+    if (pos_prj.y < axfx->planes.y)
+    {
+        prj->StateSet((en_ZPRJ_STATES)3);
+    }
+
+    if (prj->plyr_colrec->flags & 1)
+    {
+        if (prj->flg_prop & 0x10)
+        {
+            zEntPlayer_Damage(prj, 1);
+        }
+        prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
+        prj->StateSet((en_ZPRJ_STATES)3);
+    }
+    else if ((bounce->atRest == 1 || (prj->collis->colls[0].flags & 1)) && bounce->atRest == 0)
+    {
+        prj->SendEvent(ZPRJ_EVNT_STARTRESTING);
+        prj->tmr_curstate = 0.0f;
+        bounce->atRest = 1;
+        bounce->acc_gravity = 0.0f;
+        VPRJ_zapTheAxe(prj, 0);
+        prj->frame->dvel.x = 0.0f;
+        prj->frame->dvel.y = 0.0f;
+        prj->frame->dvel.z = 0.0f;
+        prj->frame->vel.x = 0.0f;
+        prj->frame->vel.y = 0.0f;
+        prj->frame->vel.z = 0.0f;
+        prj->frame->mode |= 0xC;
+        axfx->flg_stat |= 2;
+    }
+
+    if (bounce->atRest == 1 && prj->tmr_curstate > axfx->tym_zapdur)
+    {
+        prj->SendEvent(ZPRJ_EVNT_DETONATE);
+        prj->StateSet((en_ZPRJ_STATES)3);
+    }
+    return 1;
+}
+
+static signed int VPRJ_BBK_prjmove(zEntProjectile* prj, float dt, _xEntFrame* frame)
+{
+    st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
+    st_ZPRJ_CAT_BOUNCEBALL* bounce = &prj->cat_data.bounce;
+
+    if (bounce->atRest != 1)
+    {
+        frame->dvel.x = 0.0f;
+        frame->dvel.y = -(dt * bounce->acc_gravity);
+        frame->dvel.z = 0.0f;
+        frame->mode |= 8;
+        if (prj->flg_categ & 0x4000000)
+        {
+            xMat4x3RMul3x3((_xMat4x3*)frame, &prj->common.mat_flex, (_xMat4x3*)frame);
+            prj->frame->mode |= 0x100;
+        }
+    }
+    else
+    {
+        if (((_xMat4x3*)frame)->at.y > -0.25f)
+        {
+            xMat4x3RMul3x3((_xMat4x3*)frame, &prj->common.mat_flex, (_xMat4x3*)frame);
+            prj->frame->mode |= 0x100;
+        }
+        if ((axfx->flg_stat & 2) && !(prj->frame->mode & 0x100))
+        {
+            axfx->flg_stat &= ~2;
+        }
+    }
+    return 1;
+}
+
+static signed int VPRJ_BBK_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event)
+{
+    st_zEntVillain* vil = (st_zEntVillain*)prj->owner;
+
+    switch (event)
+    {
+    case ZPRJ_EVNT_LAUNCH:
+        VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_LAUNCH);
+        break;
+    case ZPRJ_EVNT_INFLIGHT:
+        if (!iSndIsPlaying(0, (unsigned int)prj))
+        {
+            VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_FLIGHT);
+        }
+        break;
+    case ZPRJ_EVNT_STARTRESTING:
+        xSndStopChildren((unsigned int)prj);
+        VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_SPLAT);
+        xSndPlay3D(xStrHash("bk_shock"), 1.0f, 0.0f, 0x80, 0x202, prj, 25.0f);
+    case ZPRJ_EVNT_ATREST:
+        if (!iSndIsPlaying(0, (unsigned int)prj))
+        {
+            xSndPlay3D(xStrHash("bk_shock"), 1.0f, 0.0f, 0x80, 0x202, prj, 25.0f);
+        }
+        break;
+    case ZPRJ_EVNT_HITPLYR:
+        VPRJ_hitstim(vil);
+        VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_EXPLODE);
+        break;
+    case ZPRJ_EVNT_TRANSTATE:
+    case ZPRJ_EVNT_DEATH:
+        if (prj->state != 2)
+        {
+            xSndStopChildren((unsigned int)prj);
+        }
+        break;
+    }
+    return 1;
+}
+
+static void VPRJ_zapTheAxe(zEntProjectile* prj, signed int cleanup)
+{
+    _xVec3 from = {};
+    _xVec3 loca = {};
+    signed int i;
+    st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
+    _xVec3* pos;
+
+    for (i = 0; i < 8; i++)
+    {
+        if (axfx->strk[i])
+        {
+            zLightningKill(axfx->strk[i]);
+            axfx->strk[i] = NULL;
+        }
+    }
+
+    if (cleanup)
+    {
+        return;
+    }
+
+    pos = &((_xMat4x3*)prj->model->Mat)->pos;
+    loca = *pos;
+    loca.y += 50.0f;
+    {
+        _tagLightningAdd add = {};
+        add.start = pos;
+        add.end = &loca;
+        add.time = axfx->tym_zapdur;
+        add.total_points = 0x10;
+        add.thickness = 0.25f;
+        add.r = 0xFF;
+        add.g = 0xFF;
+        add.b = 0xFF;
+        add.rand_radius = 5.0f;
+        add.flags = 0x34;
+        axfx->strk[0] = zLightningAdd(&add);
+    }
+    {
+        _tagLightningAdd add = {};
+        add.start = &((_xMat4x3*)prj->model->Mat)->pos;
+        add.end = &loca;
+        add.time = axfx->tym_zapdur;
+        add.total_points = 0x10;
+        add.thickness = 0.16f;
+        add.r = 0x50;
+        add.g = 0x50;
+        add.b = 0xFF;
+        add.rand_radius = 3.0f;
+        add.setup_degrees = 90.0f * iurand() + 20.0f;
+        add.move_degrees = 360.0f * iurand() + 180.0f;
+        if (irand() & 1)
+        {
+            add.move_degrees = -add.move_degrees;
+        }
+        add.flags = 0x3C;
+        add.rot_radius = 0.5f;
+        axfx->strk[1] = zLightningAdd(&add);
+    }
+
+    from = ((_xMat4x3*)prj->model->Mat)->pos;
+    from.y += 1.0f;
+    for (i = 2; i <= 4; i++)
+    {
+        _tagLightningAdd add = {};
+
+        loca = ((_xMat4x3*)prj->model->Mat)->pos;
+        loca.x += axfx->rad_zap * (2.0f * (iurand() - 0.5f));
+        loca.z += axfx->rad_zap * (2.0f * (iurand() - 0.5f));
+        loca.y -= axfx->dst_zapdrop;
+        add.start = &from;
+        add.end = &loca;
+        add.time = axfx->tym_zapdur;
+        add.total_points = 0x10;
+        add.thickness = 0.25f;
+        add.r = 0xFF;
+        add.g = 0xFF;
+        add.b = 0xFF;
+        add.rand_radius = 5.0f;
+        add.flags = 0x34;
+        axfx->strk[i] = zLightningAdd(&add);
+    }
+}
+
+static signed int VPRJ_BGG_attach(zEntProjectile* prj)
+{
+    signed int i;
+
+    prj->cat_data.idx_cdat = 0;
+    prj->flags &= ~1;
+    prj->flg_prop &= ~8;
+    for (i = 0; i < 4; i++)
+    {
+        st_BGG_QUAKEBALL* quake = &g_quakepool[i];
+        if (!(quake->flg_stat & 1))
+        {
+            memset(quake, 0, sizeof(st_BGG_QUAKEBALL));
+            quake->flg_stat |= 1;
+            quake->phase = BGG_PHAZ_BUILDUP;
+            prj->xtradata = quake;
+            break;
+        }
+    }
+    return prj->xtradata != NULL;
+}
+
+static void VPRJ_BGG_detach(zEntProjectile* prj)
+{
+    if (prj->xtradata)
+    {
+        memset(prj->xtradata, 0, sizeof(st_BGG_QUAKEBALL));
+        prj->xtradata = NULL;
+    }
+}
+
+static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
+{
+    signed int start_fall;
+    float dist;
+    _xVec3 dir_delt = {};
+    _xVec3 vec_delt = {};
+    _xVec3 pos_ryht = {};
+    _xVec3 pos_left = {};
+    _xVec3 vec_tmp = {};
+    st_zEntVillain* vil;
+    st_BGG_QUAKEBALL* quake;
+    _xEntCollis* collis;
+
+    quake = (st_BGG_QUAKEBALL*)prj->xtradata;
+    vil = (st_zEntVillain*)prj->owner;
+
+    if (prj->tmr_alive > prj->tym_maxlife)
+    {
+        prj->StateSet((en_ZPRJ_STATES)3);
+        return 1;
+    }
+    if ((prj->plyr_colrec->flags & 1) && (prj->flg_prop & 0x10))
+    {
+        zEntPlayer_Damage(prj, 1);
+        prj->StateSet((en_ZPRJ_STATES)3);
+        return 1;
+    }
+
+    switch (quake->phase)
+    {
+    case BGG_PHAZ_BUILDUP:
+        VPRJ_emitat(sEmitGreenBall, prj, dt, 3.0f);
+        prj->SendEvent((en_PROJECTILE_EVENT)0xF, dt);
+        prj->ColDelaySet(0.4f, 0);
+        VUTIL_tagpos(vil, 6, &pos_left);
+        VUTIL_tagpos(vil, 7, &pos_ryht);
+        xVec3Add(&vec_tmp, &pos_left, &pos_ryht);
+        xVec3SMul(&((_xMat4x3*)prj->frame)->pos, &vec_tmp, 0.5f);
+        prj->frame->mode |= 1;
+        break;
+    case BGG_PHAZ_FLY:
+        prj->SendEvent(ZPRJ_EVNT_INFLIGHT, dt);
+        VPRJ_emitat(sEmitGreenBall, prj, dt, 1.5f);
+        start_fall = 0;
+        xVec3Sub(&vec_delt, &quake->pos_tgt, &((_xMat4x3*)prj->model->Mat)->pos);
+        if (quake->flg_stat & 2)
+        {
+            quake->flg_stat &= ~2;
+            prj->tmr_curstate = 0.0f;
+            dist = xVec3Normalize(&dir_delt, &vec_delt);
+            quake->tym_flightMax = (0.2f + dist) / quake->spd_flight;
+            xVec3SMul(&prj->frame->vel, &dir_delt, quake->spd_flight);
+            prj->frame->mode |= 4;
+        }
+        collis = prj->collis;
+        if (prj->tmr_curstate > quake->tym_flightMax)
+        {
+            start_fall = 1;
+        }
+        else if (vec_delt.x * vec_delt.x + vec_delt.y * vec_delt.y + vec_delt.z * vec_delt.z < 0.0625f)
+        {
+            start_fall = 1;
+        }
+        else if (collis->env_sidx < collis->env_eidx || collis->npc_sidx < collis->npc_eidx ||
+                 collis->stat_sidx < collis->stat_eidx || collis->dyn_sidx < collis->dyn_eidx)
+        {
+            start_fall = 1;
+        }
+        if (start_fall)
+        {
+            quake->flg_stat |= 2;
+            quake->phase = BGG_PHAZ_FALL;
+        }
+        break;
+    case BGG_PHAZ_FALL:
+        prj->SendEvent(ZPRJ_EVNT_INFLIGHT, dt);
+        VPRJ_emitat(sEmitGreenBall, prj, dt, 0.0f);
+        if (quake->flg_stat & 2)
+        {
+            quake->flg_stat &= ~2;
+            prj->tmr_curstate = 0.0f;
+            prj->frame->vel.x = 0.0f;
+            prj->frame->vel.z = 0.0f;
+            prj->frame->mode |= 4;
+        }
+        if (prj->collis->colls[0].flags & 1)
+        {
+            quake->flg_stat |= 2;
+            quake->phase = BGG_PHAZ_SHOCKWAVE;
+        }
+        else
+        {
+            prj->frame->dvel.x = 0.0f;
+            prj->frame->dvel.y = -(dt * prj->cat_data.gravball.acc_gravity);
+            prj->frame->dvel.z = 0.0f;
+            prj->frame->mode |= 8;
+        }
+        break;
+    case BGG_PHAZ_SHOCKWAVE:
+        if (quake->flg_stat & 2)
+        {
+            quake->flg_stat &= ~2;
+            prj->tmr_curstate = 0.0f;
+            prj->frame->dvel.x = 0.0f;
+            prj->frame->dvel.y = 0.0f;
+            prj->frame->dvel.z = 0.0f;
+            prj->frame->vel.x = 0.0f;
+            prj->frame->vel.y = 0.0f;
+            prj->frame->vel.z = 0.0f;
+            prj->frame->mode |= 0xC;
+            prj->flg_chk &= ~0x10;
+            prj->flg_pen &= ~0x10;
+            VPRJ_emitat(sEmitGreenBallSmack, prj, dt, 0.0f);
+            VPRJ_BGG_shockpos(prj, dt);
+            prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
+        }
+        else
+        {
+            prj->SendEvent((en_PROJECTILE_EVENT)0x10, dt);
+        }
+        VPRJ_BGG_shockwave(prj, dt);
+        if (prj->tmr_curstate > quake->tym_shock)
+        {
+            prj->StateSet((en_ZPRJ_STATES)3);
+        }
+        break;
+    }
+    return 1;
+}
+
+static signed int VPRJ_BGG_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event)
+{
+    st_zEntVillain* vil = (st_zEntVillain*)prj->owner;
+
+    switch (event)
+    {
+    case ZPRJ_EVNT_HITPLYR:
+        VPRJ_hitstim(vil);
+        break;
+    case ZPRJ_EVNT_LAUNCH:
+        VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_LAUNCH);
+        break;
+    case ZPRJ_EVNT_INFLIGHT:
+        if (!iSndIsPlaying(0, (unsigned int)prj))
+        {
+            VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_FLIGHT);
+        }
+        break;
+    case ZPRJ_EVNT_DETONATE:
+        if (!iSndIsPlaying(0, (unsigned int)prj))
+        {
+            VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_EXPLODE);
+        }
+        break;
+    case (en_PROJECTILE_EVENT)0x10:
+        if (!iSndIsPlaying(0, (unsigned int)prj))
+        {
+            VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_SPLAT);
+        }
+        break;
+    case ZPRJ_EVNT_TRANSTATE:
+    case ZPRJ_EVNT_ABORT:
+    case ZPRJ_EVNT_SELFDESTRUCT:
+    case ZPRJ_EVNT_DEATH:
+        if (prj->state != 2)
+        {
+            xSndStopChildren((unsigned int)prj);
+        }
+        break;
+    }
+    return 1;
+}
+
+static signed int VPRJ_BGG_shockwave(zEntProjectile* prj, float dt)
+{
+    float br;
+    float fb;
+    _xVec3 delta = {};
+    _xVec3 pos_plyr = {};
+    _xVec3 pos_prj = {};
+    float outer;
+    float inner;
+    st_BGG_QUAKEBALL* quake = (st_BGG_QUAKEBALL*)prj->xtradata;
+    _zParEmitterCustomSettings pecust;
+    float d2;
+    float hh;
+
+    if (quake->tym_shock < 0.1f)
+    {
+        return 0;
+    }
+
+    outer = quake->rad_shock * (prj->tmr_curstate / quake->tym_shock);
+    pos_prj = ((_xMat4x3*)prj->model->Mat)->pos;
+    pos_plyr = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+    xVec3Sub(&delta, &pos_plyr, &pos_prj);
+    inner = 0.85f * outer;
+    br = globals.player.ent.bound.sph.r;
+
+    pecust.custom_flags = 0x20020;
+    pecust.xzcircle_radius = outer;
+    pecust.pos = g_bgg_prj_pos;
+    zParEmitterEmitCustom(sEmitGreenBallShockwave, dt, &pecust);
+
+    fb = outer + br;
+    d2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
+    if (d2 > fb * fb)
+    {
+        return 1;
+    }
+    hh = 0.5f * quake->hyt_shock;
+    if (pos_plyr.y - br > pos_prj.y + hh)
+    {
+        return 1;
+    }
+    if (pos_plyr.y + br < pos_prj.y - hh)
+    {
+        return 1;
+    }
+    if (inner > br && d2 < (inner - br) * (inner - br))
+    {
+        return 1;
+    }
+    return 0;
+}
+
+static inline void VPRJ_BGG_shockpos(zEntProjectile* prj, float dt)
+{
+    if (prj)
+    {
+        g_bgg_prj_pos = ((_xMat4x3*)prj->model->Mat)->pos;
+    }
+    else
+    {
+        _zParEmitterCustomSettings pecust;
+        pecust.custom_flags = 0x20020;
+        pecust.xzcircle_radius = 0.0f;
+        pecust.pos = g_bgg_prj_pos;
+        zParEmitterEmitCustom(sEmitGreenBallShockwave, dt, &pecust);
+    }
+}
+
+static inline void VPRJ_emitat(_zParEmitter* emitter, zEntProjectile* prj, float dt, float yoff)
+{
+    _zParEmitterCustomSettings pecust;
+
+    pecust.custom_flags = 0x20;
+    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
+    pecust.pos.y += yoff;
+    zParEmitterEmitCustom(emitter, dt, &pecust);
+}
+
+static inline void VPRJ_hitstim(st_zEntVillain* vil)
+{
+    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+    st_STIMULUS_CONTEXT_DATA resp = {};
+
+    stimctxt.stim = (en_NPC_STIMULUS)0x19;
+    if (!vil->standby || vil->tmr_list[ZVIL_TDUR_STDBY] <= 0.0f)
+    {
+        resp = stimctxt;
+        resp.stim = (en_NPC_STIMULUS)0;
+        vil->vhf->stimulus(vil, &stimctxt, &resp);
+        if (resp.stim)
+        {
+            zVIL_input_stim(vil, &resp, globals.update_dt);
+        }
+    }
+}
+
+static signed int VPRJ_BRB_attach(zEntProjectile* prj)
+{
+    signed int i;
+
+    prj->cat_data.idx_cdat = 0;
+    for (i = 0; i < 4; i++)
+    {
+        st_REDBEARD_SWORD* rbs = &g_rbsword[i];
+        if (!(rbs->flg_stat & 1))
+        {
+            memset(rbs, 0, sizeof(st_REDBEARD_SWORD));
+            rbs->flg_stat |= 1;
+            prj->xtradata = rbs;
+            break;
+        }
+    }
+    return prj->xtradata != NULL;
+}
+
+static void VPRJ_BRB_detach(zEntProjectile* prj)
+{
+    if (prj->xtradata)
+    {
+        memset(prj->xtradata, 0, sizeof(st_REDBEARD_SWORD));
+        prj->xtradata = NULL;
+    }
+}
+
+static signed int VPRJ_BRB_logix(zEntProjectile* prj, float dt)
+{
+    st_ZPRJ_CAT_ARROW* arrow = &prj->cat_data.arrow;
+    _xEntCollis* collis;
+
+    if (arrow->amStuck)
+    {
+        prj->SendEvent(ZPRJ_EVNT_ATREST, dt);
+    }
+    else
+    {
+        prj->SendEvent(ZPRJ_EVNT_INFLIGHT, dt);
+    }
+
+    if (prj->tmr_alive > prj->tym_maxlife)
+    {
+        prj->StateSet((en_ZPRJ_STATES)3);
+        return 1;
+    }
+
+    if (prj->plyr_colrec->flags & 1)
+    {
+        if (prj->flg_prop & 0x10)
+        {
+            zEntPlayer_Damage(prj, 1);
+        }
+        if (prj->flg_categ & 0x1000000)
+        {
+            if (!arrow->amStuck)
+            {
+                arrow->amStuck = 1;
+                arrow->ent_stuck = &globals.player.ent;
+                xVec3Sub(&arrow->pos_stuck, &((_xMat4x3*)arrow->ent_stuck->model->Mat)->pos,
+                         &((_xMat4x3*)prj->model->Mat)->pos);
+                prj->frame->vel.x = 0.0f;
+                prj->frame->vel.y = 0.0f;
+                prj->frame->vel.z = 0.0f;
+                prj->OrientSet(0x10000000);
+            }
+        }
+        else
+        {
+            prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
+            prj->StateSet((en_ZPRJ_STATES)3);
+        }
+        return 1;
+    }
+
+    collis = prj->collis;
+    if (collis->colls[0].flags & 1)
+    {
+        prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
+        prj->StateSet((en_ZPRJ_STATES)3);
+    }
+    else if (collis->colls[1].flags & 1)
+    {
+        if (prj->flg_categ & 0x2000000)
+        {
+            arrow->amStuck = 2;
+            prj->pflags |= 4;
+            prj->frame->vel.x = 0.0f;
+            prj->frame->vel.z = 0.0f;
+            prj->frame->mode |= 4;
+        }
+        else
+        {
+            prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
+            prj->StateSet((en_ZPRJ_STATES)3);
+        }
+    }
+    else if (collis->env_sidx < collis->env_eidx || collis->stat_sidx < collis->stat_eidx ||
+             collis->dyn_sidx < collis->dyn_eidx)
+    {
+        if (prj->flg_categ & 0x2000000)
+        {
+            arrow->amStuck = 2;
+            prj->pflags |= 4;
+            prj->frame->vel.x = 0.0f;
+            prj->frame->vel.z = 0.0f;
+            prj->frame->mode |= 4;
+        }
+        else if (prj->flg_categ & 0x1000000)
+        {
+            arrow->amStuck = 1;
+            prj->pflags |= 4;
+            prj->frame->vel.x = 0.0f;
+            prj->frame->vel.y = 0.0f;
+            prj->frame->vel.z = 0.0f;
+            prj->frame->mode |= 4;
+            prj->OrientSet(0);
+        }
+        else
+        {
+            prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
+            prj->StateSet((en_ZPRJ_STATES)3);
+        }
+    }
+    return 1;
+}
+
+static signed int VPRJ_BRB_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event)
+{
+    return 1;
+}
+
+static void VPRJ_BMM_bupdate(_xEnt* ent, _xVec3* pos)
+{
+    ent->bound.sph.center = *pos;
+    ent->bound.sph.r = 0.5f;
+    xBoundUpdate(&ent->bound);
+}
+
+static signed int VPRJ_BMM_attach(zEntProjectile* prj)
+{
+    signed int i;
+
+    prj->cat_data.idx_cdat = 2;
+    prj->bupdate = VPRJ_BMM_bupdate;
+    prj->OrientSet(0);
+    for (i = 0; i < 10; i++)
+    {
+        st_ZVMM_FLASK_DATA* flask = &g_mmflask[i];
+        if (!(flask->flg_stat & 1))
+        {
+            memset(flask, 0, sizeof(st_ZVMM_FLASK_DATA));
+            flask->flg_stat |= 1;
+            prj->xtradata = flask;
+            break;
+        }
+    }
+    return prj->xtradata != NULL;
+}
+
+static void VPRJ_BMM_detach(zEntProjectile* prj)
+{
+    if (prj->xtradata)
+    {
+        memset(prj->xtradata, 0, sizeof(st_ZVMM_FLASK_DATA));
+        prj->xtradata = NULL;
+    }
+}
+
+static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, _xEntFrame* frame)
+{
+    st_zEntVillain* vil;
+    st_ZVMM_FLASK_DATA* flask;
+    _xEntFrame* f;
+
+    flask = (st_ZVMM_FLASK_DATA*)prj->xtradata;
+    vil = (st_zEntVillain*)prj->owner;
+
+    if (prj->tmr_alive > prj->tym_maxlife)
+    {
+        prj->StateSet((en_ZPRJ_STATES)3);
+        return 1;
+    }
+
+    if ((prj->plyr_colrec->flags & 1) && (prj->flg_prop & 0x10))
+    {
+        zEntPlayer_Damage(prj, 1);
+        prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
+        prj->StateSet((en_ZPRJ_STATES)3);
+        return 1;
+    }
+
+    switch (flask->stage)
+    {
+    case MAST_STAGE_TEASE:
+        prj->SendEvent((en_PROJECTILE_EVENT)0xF, dt);
+        prj->ColDelaySet(0.4f, 0);
+        VUTIL_tagpos(vil, 6, &((_xMat4x3*)prj->frame)->pos);
+        f = prj->frame;
+        f->mode |= 1;
+        prj->frame->dvel.x = 0.0f;
+        prj->frame->dvel.y = 0.0f;
+        prj->frame->dvel.z = 0.0f;
+        prj->frame->vel.x = 0.0f;
+        prj->frame->vel.y = 0.0f;
+        prj->frame->vel.z = 0.0f;
+        prj->frame->mode |= 0xC;
+        break;
+    case MAST_STAGE_TOSS:
+        if (flask->flg_stat & 2)
+        {
+            ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
+            _xVec3* tgt;
+            _xVec3* src;
+
+            flask->flg_stat &= ~2;
+            prj->tmr_curstate = 0.0f;
+            aiminf.spd_base = flask->spd_flight;
+            tgt = &((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            src = &((_xMat4x3*)prj->model->Mat)->pos;
+            xVec3Sub(&aiminf.dir_base, src, tgt);
+            aiminf.grav.pos_src = *src;
+            aiminf.grav.pos_tgt = *tgt;
+            aiminf.grav.acc_gravity = flask->heavy;
+            aiminf.grav.fac_arcness = 1.0f;
+            prj->AimAtTarget(&aiminf, 1);
+            prj->cat_data.gravball.acc_gravity = flask->heavy;
+            prj->SendEvent(ZPRJ_EVNT_LAUNCH, dt);
+        }
+        prj->SendEvent(ZPRJ_EVNT_INFLIGHT, dt);
+        if (prj->collis->colls[0].flags & 1)
+        {
+            flask->flg_stat |= 2;
+            flask->stage = MAST_STAGE_AFTERMATH;
+        }
+        prj->frame->dvel.x = 0.0f;
+        prj->frame->dvel.y = -(dt * prj->cat_data.gravball.acc_gravity);
+        prj->frame->dvel.z = 0.0f;
+        prj->frame->mode |= 8;
+        if (prj->flg_categ & 0x4000000)
+        {
+            xMat4x3RMul3x3((_xMat4x3*)frame, &prj->common.mat_flex, (_xMat4x3*)frame);
+            prj->frame->mode |= 0x100;
+        }
+        break;
+    case MAST_STAGE_AFTERMATH:
+        if (flask->flg_stat & 2)
+        {
+            flask->flg_stat &= ~2;
+            prj->tmr_curstate = 0.0f;
+            prj->flags &= ~1;
+            prj->flg_prop &= ~8;
+            prj->frame->dvel.x = 0.0f;
+            prj->frame->dvel.y = 0.0f;
+            prj->frame->dvel.z = 0.0f;
+            prj->frame->vel.x = 0.0f;
+            prj->frame->vel.y = 0.0f;
+            prj->frame->vel.z = 0.0f;
+            prj->frame->mode |= 0xC;
+            prj->flg_chk &= ~0x10;
+            prj->flg_pen &= ~0x10;
+            prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
+        }
+        prj->SendEvent((en_PROJECTILE_EVENT)0x10, dt);
+        switch (flask->typ_flask)
+        {
+        case MAST_FLSK_FIRE:
+            VPRJ_BMM_redflask(prj, dt);
+            break;
+        case MAST_FLSK_ACID:
+            VPRJ_BMM_greenflask(prj, dt);
+            break;
+        case MAST_FLSK_SMOG:
+            VPRJ_BMM_blackflask(prj, dt);
+            break;
+        }
+        if (prj->tmr_curstate > flask->tym_aftermath)
+        {
+            prj->StateSet((en_ZPRJ_STATES)3);
+        }
+        break;
+    }
+    return 1;
+}
+
+static signed int VPRJ_BMM_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event)
+{
+    st_zEntVillain* vil = (st_zEntVillain*)prj->owner;
+
+    switch (event)
+    {
+    case ZPRJ_EVNT_LAUNCH:
+        VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_LAUNCH);
+        break;
+    case ZPRJ_EVNT_INFLIGHT:
+        if (!iSndIsPlaying(0, (unsigned int)prj))
+        {
+            VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_FLIGHT);
+        }
+        break;
+    case ZPRJ_EVNT_DETONATE:
+    {
+        unsigned int aid;
+
+        xSndStopChildren((unsigned int)prj);
+        aid = VSND_select_sound(vil, VSND_TYP_PRJ_SPLAT);
+        if (aid)
+        {
+            xSndPlay3D(aid, 0.5f, 0.0f, 0x80, 0x202, prj, 25.0f);
+            xSndPlay3D(xStrHash("bk_shock"), 1.0f, 0.0f, 0x80, 0x202, prj, 40.0f);
+        }
+        break;
+    }
+    case ZPRJ_EVNT_HITPLYR:
+    {
+        st_STIMULUS_CONTEXT_DATA stimctxt = {};
+        st_STIMULUS_CONTEXT_DATA resp = {};
+
+        stimctxt.stim = (en_NPC_STIMULUS)0x19;
+        if (!vil->standby || vil->tmr_list[ZVIL_TDUR_STDBY] <= 0.0f)
+        {
+            resp = stimctxt;
+            resp.stim = (en_NPC_STIMULUS)0;
+            vil->vhf->stimulus(vil, &stimctxt, &resp);
+            if (resp.stim)
+            {
+                zVIL_input_stim(vil, &resp, globals.update_dt);
+            }
+        }
+        VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_EXPLODE);
+        break;
+    }
+    case ZPRJ_EVNT_TRANSTATE:
+    case ZPRJ_EVNT_DEATH:
+        if (prj->state != 2)
+        {
+            xSndStopChildren((unsigned int)prj);
+        }
+        break;
+    }
+    return 1;
+}
+
+static inline void VPRJ_prjsound(st_zEntVillain* vil, zEntProjectile* prj, en_NPC_SOUND snd)
+{
+    unsigned int aid = VSND_select_sound(vil, snd);
+    if (aid)
+    {
+        xSndPlay3D(aid, 0.5f, 0.0f, 0x80, 0x202, prj, 25.0f);
+    }
+}
+
+static inline void VPRJ_BMM_redflask(zEntProjectile* prj, float dt)
+{
+    VPRJ_BMM_flaskhurt(prj, dt, sEmitMMRedFlask);
+}
+
+static inline void VPRJ_BMM_greenflask(zEntProjectile* prj, float dt)
+{
+    VPRJ_BMM_flaskhurt(prj, dt, sEmitMMGreenFlask);
+}
+
+static inline void VPRJ_BMM_blackflask(zEntProjectile* prj, float dt)
+{
+    VPRJ_BMM_flaskhurt(prj, dt, sEmitMMBlackFlask);
+}
+
+static inline void VPRJ_BMM_flaskhurt(zEntProjectile* prj, float dt, _zParEmitter* emitter)
+{
+    _xCollis colrec = {};
+    float rad_oldbnd;
+    st_ZVMM_FLASK_DATA* flask = (st_ZVMM_FLASK_DATA*)prj->xtradata;
+    _zParEmitterCustomSettings pecust;
+
+    if (flask->tym_aftermath < 0.1f)
+    {
+        return;
+    }
+    rad_oldbnd = prj->bound.sph.r;
+    prj->bound.sph.r = (prj->tmr_curstate / flask->tym_aftermath) * flask->rad_aftermath;
+    xBoundHitsBound(&prj->bound, &globals.player.ent.bound, &colrec);
+    if (colrec.flags & 1)
+    {
+        zEntPlayer_Damage(prj, 1);
+        prj->SendEvent(ZPRJ_EVNT_HITPLYR);
+    }
+    prj->bound.sph.r = rad_oldbnd;
+    pecust.custom_flags = 0x20;
+    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
+    zParEmitterEmitCustom(emitter, dt, &pecust);
+}
+
+static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil)
+{
+    unsigned int aid;
+    signed int i;
+    _xVec3 vec_pos = {};
+    _xMat4x3 mat;
+
+    if (rbs->flg_stat & 1)
+    {
+        xModelInstanceFree(rbs->model);
+        rbs->model = NULL;
+        rbs->flg_stat &= ~1;
+    }
+
+    memset(rbs, 0, sizeof(st_REDBEARD_SWORD));
+    rbs->flg_stat |= 1;
+    rbs->rbvil = rbvil;
+    rbs->mdl_animsword = VWEP_rbs_animmodel(rbs->rbvil);
+    rbs->aid_mdlFile = xStrHash("weprb_sword");
+    rbs->mdlFile = (RpAtomic*)xSTFindAsset(rbs->aid_mdlFile, NULL);
+    rbs->model = xModelInstanceAlloc(rbs->mdlFile, rbs, 0, 0, NULL);
+    rbs->frame = &rbs->raw_frame;
+    rbs->collis = (_xEntCollis*)&rbs->raw_collis;
+
+    vec_pos = ((_xMat4x3*)rbs->rbvil->model->Mat)->pos;
+    xMat3x3Euler((_xMat3x3*)&mat, 0.0f, 0.0f, 0.0f);
+    mat.flags = 0;
+    mat.pos = vec_pos;
+
+    rbs->bound.type = 1;
+    rbs->bound.sph.r = 0.75f;
+    rbs->bound.sph.center = vec_pos;
+    xBoundUpdate(&rbs->bound);
+    memcpy(rbs->model->Mat, &mat, 0x40);
+
+    rbs->frame->rot.axis = g_Y3;
+    rbs->frame->rot.angle = 0.0f;
+    rbs->frame->vel = g_O3;
+    rbs->bupdate = VWEP_rbs_bupdate;
+
+    rbs->ent_colchk[0] = &globals.player.ent;
+    for (i = 1; i < 5; i++)
+    {
+        rbs->ent_colchk[i] = (_xEnt*)zSceneFindObject(xStrHash(g_strz_rbtgt[i]));
+        if (rbs->ent_colchk[i] && rbs->ent_colchk[i]->baseType != 0x1B)
+        {
+            rbs->ent_colchk[i] = NULL;
+        }
+    }
+    rbs->flg_stat |= 2;
+}
+
+static inline xModelInstance* VWEP_rbs_animmodel(st_zEntVillain* vil)
+{
+    signed int idx = 0;
+    xModelInstance* minst = vil->model;
+    xModelInstance* da_minst = NULL;
+
+    while (minst && !da_minst)
+    {
+        if (idx == 1)
+        {
+            da_minst = minst;
+        }
+        minst = minst->Next;
+        idx++;
+    }
+    return da_minst;
+}
+
+static void VWEP_rbs_bupdate(_xEnt* ent_rbs, _xVec3* pos)
+{
+    ent_rbs->bound.type = 1;
+    ent_rbs->bound.sph.r = 0.75f;
+    ent_rbs->bound.sph.center = *pos;
+    xBoundUpdate(&ent_rbs->bound);
+}
+
+static void VWEP_rbs_throw(st_REDBEARD_SWORD* rbs)
+{
+    signed int rc;
+    _xMat4x3* mat;
+
+    rbs->tym_age = 0.0f;
+    rbs->dst_far = rbs->rbvil->dst_extend;
+    rbs->spd_fly = (1.99999f * rbs->rbvil->dst_extend) / 5.0f;
+    rbs->dir_end = rbs->rbvil->precalc.dir_VtoP;
+    xVec3SMul(&rbs->pos_end, &rbs->dir_end, rbs->dst_far);
+
+    mat = (_xMat4x3*)rbs->frame;
+    xMat3x3Euler((_xMat3x3*)mat, 0.0f, 0.0f, 0.0f);
+    rc = VUTIL_tagpos(rbs->rbvil, 10, &mat->pos);
+    if (!rc)
+    {
+        rc = VUTIL_tagpos(rbs->rbvil, 6, &mat->pos);
+    }
+    if (!rc)
+    {
+        rc = VUTIL_tagpos(rbs->rbvil, 5, &mat->pos);
+    }
+    if (!rc)
+    {
+        rc = VUTIL_tagpos(rbs->rbvil, 9, &mat->pos);
+    }
+    if (!rc)
+    {
+        mat->pos = *xBoundCenter(&rbs->rbvil->bound);
+    }
+
+    memcpy(rbs->model->Mat, rbs->frame, 0x40);
+    rbs->bound.sph.center = ((_xMat4x3*)rbs->frame)->pos;
+    rbs->mdl_animsword->Flags &= ~1;
+    rbs->model->Flags |= 1;
+    rbs->flg_stat |= 4;
+}
+
+static inline void VWEP_rbs_flight(st_REDBEARD_SWORD* rbs, float dt)
+{
+}
+
+static void VWEP_rbs_chkCollide(st_REDBEARD_SWORD* rbs, float dt)
+{
+    signed int i;
+    _xEnt* tgt;
+    _xCollis colrec = {};
+
+    xEntBeginCollide(rbs, globals.sceneCur, dt);
+    if (rbs->ent_colchk[0])
+    {
+        xBoundHitsBound(&rbs->bound, &rbs->ent_colchk[0]->bound, &colrec);
+        if (colrec.flags & 1)
+        {
+            VIRM_initVilDflt(rbs->rbvil);
+        }
+    }
+
+    rbs->bound.sph.r = 1.5f;
+    for (i = 1; i < 5; i++)
+    {
+        tgt = rbs->ent_colchk[i];
+        colrec.flags = 0;
+        if (!tgt)
+        {
+            continue;
+        }
+        if (!xEntIsVisible(tgt))
+        {
+            rbs->ent_colchk[i] = NULL;
+            continue;
+        }
+        colrec.optr = tgt;
+        colrec.oid = tgt->id;
+        xBoundHitsBound(&rbs->bound, &tgt->bound, &colrec);
+        if (colrec.flags & 1)
+        {
+            colrec.flags = 0;
+            xBoundHitsModel(&rbs->bound, tgt->model, &colrec, 1, 0.7853982f);
+            if (colrec.flags & 1)
+            {
+                zEntEvent(rbs->rbvil, 0, tgt, 0x16, NULL, NULL, 0);
+                rbs->ent_colchk[i] = NULL;
+            }
+        }
+    }
+    rbs->bound.sph.r = 0.75f;
+    xEntEndCollide(rbs, globals.sceneCur, dt);
+}
+
+static void SuperVillainGumDraw(_xVec3* from, _xVec3* to, float top_radius, float bot_radius)
+{
+    _xVec3 offset = { 0.0f, 0.0f, 1.0f };
+    _xMat3x3 mat;
+    signed int i;
+    RxObjSpace3DVertex* vert = sStripVert;
+    _xVec3 vec_in;
+
+    for (i = 0; i < 16; i++)
+    {
+        float u;
+
+        xMat3x3Euler(&mat, (3.1415927f * (22.5f * i)) / 180.0f, 0.0f, 0.0f);
+        offset.z = top_radius;
+        xMat3x3LMulVec(&vec_in, &mat, &offset);
+        vert[0].objVertex.x = from->x + vec_in.x;
+        vert[0].objVertex.y = from->y + vec_in.y;
+        u = 0.0625f * i;
+        vert[0].objVertex.z = from->z + vec_in.z;
+        vert[0].u = u;
+        vert[0].v = 0.0f;
+        vert[0].color.red = 0x80;
+        vert[0].color.green = 0x80;
+        vert[0].color.blue = 0x80;
+        vert[0].color.alpha = 0xFF;
+
+        offset.z = bot_radius;
+        xMat3x3LMulVec(&vec_in, &mat, &offset);
+        vert[1].objVertex.x = to->x + vec_in.x;
+        vert[1].objVertex.y = to->y + vec_in.y;
+        vert[1].objVertex.z = to->z + vec_in.z;
+        vert[1].u = u;
+        vert[1].v = 1.0f;
+        vert[1].color.red = 0x80;
+        vert[1].color.green = 0x80;
+        vert[1].color.blue = 0x80;
+        vert[1].color.alpha = 0xFF;
+        vert += 2;
+    }
+
+    // Close the strip: the original writes these two past the end of the
+    // 32-vertex array (kept as-is).
+    vert[0] = sStripVert[0];
+    vert[0].u = 1.0f;
+    vert[1] = sStripVert[1];
+    vert[1].u = 1.0f;
+
+    if (RwIm3DTransform(sStripVert, 34, NULL, 0x19))
+    {
+        RwIm3DRenderPrimitive(4);
+        RwIm3DEnd();
+    }
+}
+
+static void VEFX_plop_gum(st_zEntVillain* ent)
+{
+    RwTexture* tex;
+    _xMat3x3 dir_shoot;
+    _xVec3 pos_vert = {};
+    _xVec3 npcpos = {};
+    signed int i;
+    _xVec3 to = {};
+    _xVec3 from = {};
+
+    tex = (RwTexture*)xSTFindAsset(xStrHash("GUM-FLOOR"), NULL);
+    if (tex)
+    {
+        RwRenderStateSet(1, *(void**)tex);
+    }
+
+    npcpos = ((_xMat4x3*)ent->model->Mat)->pos;
+    for (i = 0; i <= 4; i++)
+    {
+        if (!VUTIL_tagpos(ent, i, &pos_vert))
+        {
+            continue;
+        }
+        from = pos_vert;
+        to.x = pos_vert.x;
+        to.z = pos_vert.z;
+        if (pos_vert.y > npcpos.y)
+        {
+            to.y = npcpos.y;
+        }
+        else
+        {
+            to.y = pos_vert.y;
+            from.y = npcpos.y;
+        }
+        if (!(from.y - to.y < 0.002f))
+        {
+            _xVec3 dir;
+            xVec3Sub(&dir, &to, &from);
+            xMat3x3LookVec(&dir_shoot, &dir);
+            SuperVillainGumDraw(&from, &to, 0.1f, 0.35f);
+        }
+    }
+}
+
+// GameCube addition: the hologram poof/dots effect while a villain fades.
+static void VEFX_hologram(st_zEntVillain* vil, float dt)
+{
+    _zParEmitterCustomSettings pecust;
+    float tym;
+    unsigned int typ;
+
+    if (!(vil->ability & 8))
+    {
+        return;
+    }
+
+    tym = (vil->tmr_list[ZVIL_TDUR_DECAY] > vil->tmr_list[ZVIL_TYMR_MINANIMPLAY]) ?
+              vil->tmr_list[ZVIL_TDUR_DECAY] :
+              vil->tmr_list[ZVIL_TYMR_MINANIMPLAY];
+    if (tym != 0.0f)
+    {
+        typ = vil->asset->subtype;
+        pecust.custom_flags = 0x5A0;
+        pecust.color_birth[0] = g_holoPoofBirth[typ].r;
+        pecust.color_birth[1] = g_holoPoofBirth[typ].g;
+        pecust.color_birth[2] = g_holoPoofBirth[typ].b;
+        pecust.color_death[0] = g_holoPoofDeath[typ].r;
+        pecust.color_death[1] = g_holoPoofDeath[typ].g;
+        pecust.color_death[2] = g_holoPoofDeath[typ].b;
+        pecust.pos = *xBoundCenter(&vil->bound);
+        pecust.color_birth[3] = 0;
+        pecust.color_death[3] = 0;
+        pecust.size_death = 5.0f * vil->bound.sph.r;
+        zParEmitterEmitCustom(sEmitHoloPoof, dt, &pecust);
+
+        typ = vil->asset->subtype;
+        pecust.color_birth[0] = g_holoDotsBirth[typ].r;
+        pecust.color_birth[1] = g_holoDotsBirth[typ].g;
+        pecust.color_birth[2] = g_holoDotsBirth[typ].b;
+        pecust.color_birth[3] = 0xFF;
+        pecust.color_death[0] = g_holoDotsDeath[typ].r;
+        pecust.color_death[1] = g_holoDotsDeath[typ].g;
+        pecust.color_death[2] = g_holoDotsDeath[typ].b;
+        pecust.color_death[3] = 0;
+        pecust.custom_flags = 0x201A0;
+        pecust.xzcircle_radius = vil->bound.sph.r;
+        zParEmitterEmitCustom(sEmitHoloDots, dt, &pecust);
+    }
+
+    if (xUtil_yesno(tym))
+    {
+        vil->flags |= 1;
+    }
+    else
+    {
+        vil->flags &= ~1;
+    }
+}
+
+static void VEFX_mm_zapper(st_zEntVillain* vil, signed int cleanup)
+{
+    _tagLightningAdd add = {};
+    signed int i;
+
+    for (i = 0; i < 5; i++)
+    {
+        if (g_mm_lytstrk[i])
+        {
+            zLightningKill(g_mm_lytstrk[i]);
+            g_mm_lytstrk[i] = NULL;
+        }
+    }
+
+    if (cleanup)
+    {
+        return;
+    }
+
+    add.type = eLT_Line;
+    add.start = xBoundCenter(&vil->bound);
+    add.end = xBoundCenter(&globals.player.ent.bound);
+    add.time = 0.2f;
+    add.total_points = 0x10;
+    add.thickness = 0.15f;
+    add.r = 0xFF;
+    add.g = 0xFF;
+    add.b = 0xFF;
+    add.rand_radius = 5.0f;
+    add.flags = 0x34;
+    g_mm_lytstrk[0] = zLightningAdd(&add);
+
+    add.type = eLT_Rotating;
+    add.total_points = 0x10;
+    add.thickness = 0.1f;
+    add.r = 0x50;
+    add.g = 0x50;
+    add.b = 0xFF;
+    add.rand_radius = 3.0f;
+    add.setup_degrees = 90.0f * iurand() + 20.0f;
+    add.move_degrees = 360.0f * iurand() + 180.0f;
+    if (irand() & 1)
+    {
+        add.move_degrees = -add.move_degrees;
+    }
+    add.flags = 0x3C;
+    add.rot_radius = 0.5f;
+    g_mm_lytstrk[1] = zLightningAdd(&add);
+}
+
+static void VEFX_zapTheKnight(st_zEntVillain* vil, signed int cleanup)
+{
+    _xVec3 loca = {};
+    signed int i;
+    _tagLightningAdd add = {};
+
+    for (i = 0; i < 5; i++)
+    {
+        if (g_bk_lytstrk[i])
+        {
+            zLightningKill(g_bk_lytstrk[i]);
+            g_bk_lytstrk[i] = NULL;
+        }
+    }
+
+    if (cleanup)
+    {
+        return;
+    }
+
+    loca = *xBoundCenter(&vil->bound);
+    loca.y += 20.0f;
+    add.start = xBoundCenter(&vil->bound);
+    add.end = &loca;
+    add.time = (vil->tmr_list[ZVIL_TDUR_HURT] > vil->tmr_list[ZVIL_TYMR_MINANIMPLAY]) ?
+                   vil->tmr_list[ZVIL_TDUR_HURT] :
+                   vil->tmr_list[ZVIL_TYMR_MINANIMPLAY];
+    add.type = eLT_Line;
+    add.total_points = 0x10;
+    add.thickness = 1.25f;
+    add.r = 0xFF;
+    add.g = 0xFF;
+    add.b = 0xFF;
+    add.rand_radius = 5.0f;
+    add.flags = 0x34;
+    g_bk_lytstrk[0] = zLightningAdd(&add);
+
+    add.type = eLT_Rotating;
+    add.total_points = 0x10;
+    add.thickness = 0.6f;
+    add.r = 0x50;
+    add.g = 0x50;
+    add.b = 0xFF;
+    add.rand_radius = 4.0f;
+    add.setup_degrees = 90.0f * iurand() + 20.0f;
+    add.move_degrees = 12360.0f * iurand() + 1280.0f;
+    if (irand() & 1)
+    {
+        add.move_degrees = -add.move_degrees;
+    }
+    add.flags = 0x3C;
+    add.rot_radius = 0.5f;
+    g_bk_lytstrk[1] = zLightningAdd(&add);
+}
+
+static void VPAR_readyize_emitters()
+{
+    en_zEntVillainSubTypeID viltype;
+    st_zEntVillain_ParEmitInfo* vinf;
+    xBase* pebase;
+    signed int flg_omit;
+    signed int flg_need;
+    unsigned int emitid;
+    en_VPAR_EMITTER_ROLE emitrole;
+
+    for (vinf = g_emitinfo; vinf->emitname; vinf++)
+    {
+        emitid = xStrHash(vinf->emitname);
+        emitrole = vinf->emitrole;
+        viltype = vinf->viltype;
+        flg_need = vinf->flg_need;
+        flg_omit = vinf->flg_omit;
+        pebase = zSceneFindObject(emitid);
+        if (pebase && pebase->baseType == 0x26)
+        {
+            st_zEntVillain_ParEmitRecord* rec;
+            if (g_emitnext >= 32)
+            {
+                rec = NULL;
+            }
+            else
+            {
+                rec = &g_emitpool[g_emitnext++];
+            }
+            if (rec)
+            {
+                rec->emitrole = emitrole;
+                rec->viltype = viltype;
+                rec->vilowner = 0;
+                rec->emitterID = emitid;
+                rec->emitctxt = (_zParEmitter*)pebase;
+                rec->flg_need = flg_need;
+                rec->flg_omit = flg_omit;
+                XOrdAppend(&g_emitlist, rec);
+            }
+        }
+    }
+
+    g_emitready = 1;
+    sEmitHoloPoof = zParEmitterFind("ParEmit_Vil_HoloPoof");
+    sEmitHoloDots = zParEmitterFind("ParEmit_Vil_HoloDots");
+    sEmitGreenBall = zParEmitterFind("GREENBALL EMITTER");
+    sEmitGreenBallSmack = zParEmitterFind("GREENBALL SMACK EMITTER");
+    sEmitGreenBallShockwave = zParEmitterFind("GREENBALL SHOCKWAVE EMITTER");
+    sEmitGGVortexHurt = zParEmitterFind("VORTEX EMITTER GG HURT");
+    sEmitGGVortex1 = zParEmitterFind("VORTEX EMITTER 1");
+    sEmitGGVortex2 = zParEmitterFind("VORTEX EMITTER 2");
+    sEmitGGVortex3 = zParEmitterFind("VORTEX EMITTER 3");
+    sEmitWitchDying = zParEmitterFind("PAREMIT_WITCH_DYING");
+    sEmitKillerPlant = zParEmitterFind("PAREMIT_KILLERPLANT_CLOUD");
+    sEmitMMRedFlask = zParEmitterFind("PAREMIT_MM_REDFLASK");
+    sEmitMMGreenFlask = zParEmitterFind("PAREMIT_MM_GREENFLASK");
+    sEmitMMBlackFlask = zParEmitterFind("PAREMIT_MM_BLACKFLASK");
+    sEmitMMTeleportShow = zParEmitterFind("PAREMIT_MM_TELEPORT_SHOW");
+    sEmitMMTeleportHide = zParEmitterFind("PAREMIT_MM_TELEPORT_HIDE");
+    sEmitRBFlames = zParEmitterFind("RB STOPPING WALL EMITTER");
+}
+
+static void VPAR_emit_partype(st_zEntVillain* ent, en_VPAR_EMITTER_ROLE emittype, float dt)
+{
+    _xVec3 vilhed = {};
+    _xVec3 vilctr = {};
+    signed int idx;
+    signed int do_emit = 0;
+    signed int i;
+    st_zEntVillain_ParEmitRecord* vpar;
+    _zParEmitterCustomSettings pecust = { 0 };
+
+    vilctr = *xBoundCenter(&ent->bound);
+    if (!VUTIL_tagpos(ent, 8, &vilhed))
+    {
+        vilhed = *(_xVec3*)&((_xMat4x3*)ent->model->Mat)->pos;
+        vilhed.y += ent->precalc.hyt_vil;
+    }
+    vilhed.y += 0.1f;
+
+    for (i = 0; i < g_emitlist.cnt; i++)
+    {
+        vpar = (st_zEntVillain_ParEmitRecord*)g_emitlist.list[i];
+        if (!vpar->emitctxt)
+        {
+            continue;
+        }
+        if (vpar->emitrole != emittype)
+        {
+            continue;
+        }
+        if (vpar->viltype != -1 && vpar->viltype != ent->asset->subtype)
+        {
+            continue;
+        }
+        if (vpar->flg_need != (vpar->flg_need & ent->ability))
+        {
+            continue;
+        }
+        if (ent->ability & vpar->flg_omit)
+        {
+            continue;
+        }
+
+        idx = 0;
+        pecust.custom_flags = 0;
+        switch (emittype)
+        {
+        case VPAR_EMIT_EXTATTACK:
+            do_emit = 0;
+            break;
+        case VPAR_EMIT_GUMMY:
+            pecust.custom_flags = 0x20;
+            for (idx = 0; idx <= 4; idx++)
+            {
+                if (VUTIL_tagpos(ent, idx, &pecust.pos))
+                {
+                    zParEmitterEmitCustom(vpar->emitctxt, dt, &pecust);
+                }
+            }
+            do_emit = 0;
+            break;
+        case VPAR_EMIT_HEADBUTT:
+            do_emit = VPAR_emit_headbutt(dt, vpar, &pecust);
+            break;
+        case VPAR_EMIT_BORED:
+        case VPAR_EMIT_GUARD:
+            pecust.pos = vilhed;
+            pecust.custom_flags = 0x20;
+            if (vpar->emitterID == xStrHash("ParEmit_Vil_Bored"))
+            {
+                pecust.color_birth[3] = 0;
+                pecust.custom_flags |= 0x180;
+                pecust.color_death[3] = 0;
+            }
+            do_emit = 1;
+            break;
+        case VPAR_EMIT_QUESTMARK:
+        case VPAR_EMIT_EXCLAIM:
+            if (g_scene_is_a_boss_battle)
+            {
+                break;
+            }
+        case VPAR_EMIT_BUTTBOUNCE:
+        case VPAR_EMIT_STUN:
+            do_emit = 1;
+            pecust.custom_flags = 0x20;
+            pecust.pos = vilhed;
+            break;
+        case VPAR_EMIT_POOF:
+        case VPAR_EMIT_TELEPORT:
+            do_emit = 0;
+            break;
+        default:
+            pecust.custom_flags = 0x20;
+            do_emit = 1;
+            pecust.pos = vilctr;
+            break;
+        }
+
+        if (do_emit)
+        {
+            zParEmitterEmitCustom(vpar->emitctxt, dt, &pecust);
+        }
+    }
+}
+
+static inline signed int VUTIL_tagpos(st_zEntVillain* ent, signed int idx, _xVec3* pos)
+{
+    if (!(ent->flg_vert & (1 << idx)))
+    {
+        return 0;
+    }
+    iModelTagEval(ent->model->Data, &ent->tag_vert[idx], ent->model->Mat, pos);
+    return 1;
+}
+
+static inline signed int VPAR_emit_headbutt(float dt, st_zEntVillain_ParEmitRecord* vpar,
+                                            _zParEmitterCustomSettings* pecust)
+{
+    _xVec3 angles = {};
+    _xMat4x3* mat;
+
+    pecust->custom_flags = 0x20;
+    mat = (_xMat4x3*)globals.player.ent.model->Mat;
+    pecust->pos.x = mat->pos.x + mat->at.x;
+    pecust->pos.y = 1.1f + mat->pos.y;
+    pecust->custom_flags = 0x20 | 0x10000;
+    pecust->pos.z = mat->pos.z + mat->at.z;
+    xMat3x3GetEuler((_xMat3x3*)mat, &angles);
+    pecust->rot[1] = 0x40;
+    pecust->rot[0] = 255.0f * (angles.x / 6.2831855f);
+    pecust->rot[2] = 255.0f * (angles.z / 6.2831855f);
+    if (vpar->emitterID == xStrHash("ParEmit_SD_Headbutt2"))
+    {
+        pecust->rot[0] += 0x40;
+    }
+    else
+    {
+        dt = 0.0f;
+    }
+    zParEmitterEmitCustom(vpar->emitctxt, dt, pecust);
+    return 0;
+}
+
+static void VPAR_emit_extattack(st_zEntVillain* ent, _xVec3* origin, _xVec3* aimdir, float length, float slope,
+                                float dt)
+{
+    st_zEntVillain_ParEmitRecord* vpar;
+    _zParEmitterCustomSettings* pecust;
+    float delta;
+    float fv = 0.0f;
+    signed int j;
+    signed int i;
+
+    for (i = 0; i < g_emitlist.cnt; i++)
+    {
+        vpar = (st_zEntVillain_ParEmitRecord*)g_emitlist.list[i];
+        if (!vpar->emitctxt)
+        {
+            continue;
+        }
+        if (vpar->emitrole != VPAR_EMIT_EXTATTACK)
+        {
+            continue;
+        }
+        if (vpar->viltype != -1 && vpar->viltype != ent->asset->subtype)
+        {
+            continue;
+        }
+        if (vpar->flg_need != (vpar->flg_need & ent->ability))
+        {
+            continue;
+        }
+        if (ent->ability & vpar->flg_omit)
+        {
+            continue;
+        }
+
+        delta = length / 25.0f;
+        pecust = &g_pecust;
+        pecust->custom_flags = 0x2FE1;
+        pecust->life = 0.75f;
+        pecust->count = 1;
+        pecust->color_birth[0] = 0xAA;
+        pecust->color_birth[1] = 0xAA;
+        pecust->color_birth[2] = 0xAA;
+        pecust->color_birth[3] = 0xFF;
+        pecust->color_death[0] = 0x11;
+        pecust->color_death[1] = 0x11;
+        pecust->color_death[2] = 0x11;
+        pecust->color_death[3] = 0x11;
+        for (j = 0; j < 25; j++)
+        {
+            fv += delta;
+            pecust->size_birth = slope * fv * (1.0f + (1.0f - iurand()));
+            pecust->size_death = 0.25f * pecust->size_birth;
+            pecust->size_birth_variation = pecust->size_death;
+            xVec3SMul(&pecust->pos, aimdir, fv);
+            xVec3AddTo(&pecust->pos, origin);
+            xVec3SMul(&pecust->vel, aimdir, -ent->spd_extend);
+            zParEmitterEmitCustom(vpar->emitctxt, dt, pecust);
+        }
+    }
+}
 
 static xAnimTable* VANM_mktable_BK()
 {
