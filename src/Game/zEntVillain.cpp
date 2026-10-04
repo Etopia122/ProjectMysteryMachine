@@ -3793,22 +3793,6 @@ signed int zEntVillain_Startup()
 {
     typedef signed int (*LogixFn)(zEntProjectile*, float, zScene*, _xEntFrame*);
     typedef signed int (*NotifyFn)(zEntProjectile*, en_PROJECTILE_EVENT, void*);
-    st_ZPRJ_CATEGORY_FUNCS fn_bbk = { 1, VPRJ_BBK_attach, VPRJ_BBK_detach, (LogixFn)VPRJ_BBK_logix,
-                                      VPRJ_BBK_prjmove, (NotifyFn)VPRJ_BBK_notify, NULL,
-                                      zEntProjectile_gen_aimer, NULL, NULL };
-    st_ZPRJ_CATEGORY_FUNCS fn_bgg = { 1, VPRJ_BGG_attach, VPRJ_BGG_detach, (LogixFn)VPRJ_BGG_logix,
-                                      NULL, (NotifyFn)VPRJ_BGG_notify, NULL,
-                                      zEntProjectile_gen_aimer, NULL, NULL };
-    st_ZPRJ_CATEGORY_FUNCS fn_brb = { 1, VPRJ_BRB_attach, VPRJ_BRB_detach, (LogixFn)VPRJ_BRB_logix,
-                                      NULL, (NotifyFn)VPRJ_BRB_notify, NULL,
-                                      zEntProjectile_gen_aimer, NULL, NULL };
-    st_ZPRJ_CATEGORY_FUNCS fn_bmm = { 1, VPRJ_BMM_attach, VPRJ_BMM_detach, VPRJ_BMM_logix,
-                                      NULL, (NotifyFn)VPRJ_BMM_notify, NULL,
-                                      zEntProjectile_gen_aimer, NULL, NULL };
-    st_ZPRJ_CATEGORY_PROPS pr_bbk = { 0x3D, 0x03, 0x3F, 0x00, 0, 0 };
-    st_ZPRJ_CATEGORY_PROPS pr_bgg = { 0x30000031, 0x03, 0x3F, 0x3F, 0, 0 };
-    st_ZPRJ_CATEGORY_PROPS pr_brb = { 0x3D, 0x03, 0x14, 0x3F, 0, 0 };
-    st_ZPRJ_CATEGORY_PROPS pr_bmm = { 0x3000003D, 0x03, 0x3F, 0x3F, 0, 0 };
     signed int i;
 
     if (g_npcinit++ != 0)
@@ -3819,8 +3803,17 @@ signed int zEntVillain_Startup()
     g_datablock = (char*)xMemAlloc(gActiveHeap, 0x20000);
     memset(g_datablock, 0, 0x20000);
 
-    // The original walks the type, sound and anim-name tables to their
-    // terminators here without using the counts.
+    // Count the tables (the counts are not used).
+    for (i = 0; g_npcTable[i].enabled; i++)
+    {
+    }
+    for (i = 0; g_npcFuncs[i].flg_funcs & 1; i++)
+    {
+    }
+    for (i = 0; g_animname[i]; i++)
+    {
+    }
+
     for (i = 0; i < 147; i++)
     {
         g_anamhash[i] = xStrHash(g_animname[i]);
@@ -3831,14 +3824,33 @@ signed int zEntVillain_Startup()
         g_anamhash[i] = xStrHash(g_animname[i]);
     }
 
-    zEntProjectile_addCat(ZPRJ_CAT_BKAXE, &fn_bbk);
-    zEntProjectile_addProps(ZPRJ_CAT_BKAXE, &pr_bbk);
-    zEntProjectile_addCat(ZPRJ_CAT_GGSHOCK, &fn_bgg);
-    zEntProjectile_addProps(ZPRJ_CAT_GGSHOCK, &pr_bgg);
-    zEntProjectile_addCat(ZPRJ_CAT_RBSWORD, &fn_brb);
-    zEntProjectile_addProps(ZPRJ_CAT_RBSWORD, &pr_brb);
-    zEntProjectile_addCat(ZPRJ_CAT_MMFLASK, &fn_bmm);
-    zEntProjectile_addProps(ZPRJ_CAT_MMFLASK, &pr_bmm);
+    {
+        st_ZPRJ_CATEGORY_FUNCS fn_bbk = { 1, VPRJ_BBK_attach, VPRJ_BBK_detach, (LogixFn)VPRJ_BBK_logix,
+                                          VPRJ_BBK_prjmove, (NotifyFn)VPRJ_BBK_notify, NULL,
+                                          zEntProjectile_gen_aimer, NULL, NULL };
+        st_ZPRJ_CATEGORY_FUNCS fn_bgg = { 1, VPRJ_BGG_attach, VPRJ_BGG_detach, (LogixFn)VPRJ_BGG_logix,
+                                          NULL, (NotifyFn)VPRJ_BGG_notify, NULL,
+                                          zEntProjectile_gen_aimer, NULL, NULL };
+        st_ZPRJ_CATEGORY_FUNCS fn_brb = { 1, VPRJ_BRB_attach, VPRJ_BRB_detach, (LogixFn)VPRJ_BRB_logix,
+                                          NULL, (NotifyFn)VPRJ_BRB_notify, NULL,
+                                          zEntProjectile_gen_aimer, NULL, NULL };
+        st_ZPRJ_CATEGORY_FUNCS fn_bmm = { 1, VPRJ_BMM_attach, VPRJ_BMM_detach, VPRJ_BMM_logix,
+                                          NULL, (NotifyFn)VPRJ_BMM_notify, NULL,
+                                          zEntProjectile_gen_aimer, NULL, NULL };
+        st_ZPRJ_CATEGORY_PROPS pr_bbk = { 0x3D, 0x03, 0x3F, 0x00, 0, 0 };
+        st_ZPRJ_CATEGORY_PROPS pr_bgg = { 0x30000031, 0x03, 0x3F, 0x3F, 0, 0 };
+        st_ZPRJ_CATEGORY_PROPS pr_brb = { 0x3D, 0x03, 0x14, 0x3F, 0, 0 };
+        st_ZPRJ_CATEGORY_PROPS pr_bmm = { 0x3000003D, 0x03, 0x3F, 0x3F, 0, 0 };
+
+        zEntProjectile_addCat(ZPRJ_CAT_BKAXE, &fn_bbk);
+        zEntProjectile_addProps(ZPRJ_CAT_BKAXE, &pr_bbk);
+        zEntProjectile_addCat(ZPRJ_CAT_GGSHOCK, &fn_bgg);
+        zEntProjectile_addProps(ZPRJ_CAT_GGSHOCK, &pr_bgg);
+        zEntProjectile_addCat(ZPRJ_CAT_RBSWORD, &fn_brb);
+        zEntProjectile_addProps(ZPRJ_CAT_RBSWORD, &pr_brb);
+        zEntProjectile_addCat(ZPRJ_CAT_MMFLASK, &fn_bmm);
+        zEntProjectile_addProps(ZPRJ_CAT_MMFLASK, &pr_bmm);
+    }
     return g_npcinit;
 }
 
