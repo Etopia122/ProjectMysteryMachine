@@ -6726,33 +6726,50 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
 
     switch (goal)
     {
+    case ZVIL_GOAL_NONE:
+        break;
     case ZVIL_GOAL_AFTERLIFE:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             vil->chkby = 0;
             vil->penby = 0;
             vil->flags &= ~1;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->flags = vil->asset->flags;
+            break;
         }
         break;
     case ZVIL_GOAL_BASEINIT:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             vil->chkby = 0;
             vil->penby = 0;
+            break;
         }
         break;
     case ZVIL_GOAL_STARTUP:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
             _xMat4x3* mat;
             unsigned int mvpt;
@@ -6839,31 +6856,48 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             }
             vil->flg_misc &= 0x3FFFFFFF;
             vil->tgt_stat = 0;
+            break;
         }
         break;
     case ZVIL_GOAL_GOONLINE:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             VILN_std_flagsAll(vil);
             vil->flags |= 1;
+            break;
         }
         break;
     case ZVIL_GOAL_IDLE:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             VILN_std_tymrRand(vil, 0);
             VILN_std_tymrRand(vil, 1);
             vil->tgt_stat = 0;
+            break;
         }
         break;
     case ZVIL_GOAL_BORED:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             VILN_std_tymrRand(vil, 0);
             switch (vil->asset->subtype)
@@ -6883,16 +6917,20 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 }
                 break;
             }
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->pflags = vil->vhf->flags(vil, ZVIL_FGRP_PHYS, ZVIL_GOAL_NONE);
+            break;
         }
         break;
     case ZVIL_GOAL_ACTION:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             if (stimctxt->use_alt_action)
             {
                 vil->anim_loopmult = 0.97f;
@@ -6906,19 +6944,23 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             {
                 vil->pflags &= ~4;
             }
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             if (vil->abl_move & 0x8000)
             {
                 vil->pflags = vil->vhf->flags(vil, ZVIL_FGRP_PHYS, ZVIL_GOAL_NONE);
             }
+            break;
         }
         break;
     case ZVIL_GOAL_AMBUSH:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             vil->pflags &= ~4;
             vil->collis->chk = 0;
@@ -6957,46 +6999,69 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 vil->dst_navTween = d;
                 vil->tmr_list[ZVIL_TYMR_GENERIC] = vil->dst_navTween / 6.0f;
             }
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->pflags = vil->vhf->flags(vil, ZVIL_FGRP_PHYS, ZVIL_GOAL_NONE);
             vil->chkby = vil->vhf->flags(vil, ZVIL_FGRP_CHKBY, ZVIL_GOAL_NONE);
             vil->penby = vil->vhf->flags(vil, ZVIL_FGRP_PENBY, ZVIL_GOAL_NONE);
             vil->collis->chk = vil->vhf->flags(vil, ZVIL_FGRP_CHK, ZVIL_GOAL_NONE);
             vil->collis->pen = vil->vhf->flags(vil, ZVIL_FGRP_PEN, ZVIL_GOAL_NONE);
+            break;
         }
         break;
     case ZVIL_GOAL_FOLLOW:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
+            break;
         }
         break;
     case ZVIL_GOAL_PATROL:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             vil->tgt_stat = 0;
             if (vil->nav_next == NULL)
             {
                 vil->need_navpt = 1;
             }
+            break;
         }
         break;
     case ZVIL_GOAL_MINIPATROL:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
+            break;
         }
         break;
     case ZVIL_GOAL_GUARD:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             VILN_std_tymrRand(vil, 0);
             vil->tgt_stat = 0;
@@ -7004,72 +7069,94 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             {
                 vil->pos_guard_home = stimctxt->pos_guard;
             }
+            break;
         }
         break;
     case ZVIL_GOAL_LOOKFORHERO:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             VILN_std_tymrRand(vil, 15);
             vil->tgt_stat |= 2;
             vil->tgt_stat |= 0x04000000 | 0x8000;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->tgt_stat &= ~2;
+            break;
         }
         break;
     case ZVIL_GOAL_LISTEN:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)0x10, dt);
             VILN_std_tymrRand(vil, 16);
             vil->tgt_stat |= 6;
             vil->tgt_stat |= 0x04000000 | 0x8000;
             vil->ang_listen = vil->precalc.ang_VtoP;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->tgt_stat &= ~2;
+            break;
         }
         break;
     case ZVIL_GOAL_SURPRIZE:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)0x11, dt);
             vil->tgt_stat |= 0xC;
             vil->tgt_stat |= 0x12;
             vil->tgt_stat |= 0x20;
             vil->tgt_stat |= 0x820;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->tgt_stat &= ~2;
+            break;
         }
         break;
     case ZVIL_GOAL_INVESTIGATE:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)0x10, dt);
             VILN_std_enterGoal(vil, goal);
             VILN_std_tymrRand(vil, 17);
             vil->tgt_stat |= 0x42;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->tgt_stat &= ~2;
+            break;
         }
         break;
     case ZVIL_GOAL_ATTACKREADY:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             signed int found = 0;
 
             VILN_std_enterGoal(vil, goal);
@@ -7118,42 +7205,54 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 vil->flg_misc |= 0x80000000;
                 vil->flg_misc &= ~0x40000000;
             }
+            break;
         }
         break;
     case ZVIL_GOAL_CHASE:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             VILN_std_tymrRand(vil, 2);
+            break;
         }
         break;
     case ZVIL_GOAL_CQCATTACK:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             vil->goodattack = 0;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->goodattack = 0;
+            break;
         }
         break;
     case ZVIL_GOAL_LOBBING:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             vil->goodattack = 0;
             vil->tmr_list[21] = -1.0f;
             VCFG_getParm(&vil->vilcfg, (en_NPC_INI_PARAMETERS)0xC, &vil->cnt_lobSalvo);
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->goodattack = 0;
             VILN_std_tymrRand(vil, 19);
             if (vil->prj_reserved)
@@ -7161,12 +7260,17 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 vil->prj_reserved->Abort();
             }
             vil->prj_reserved = NULL;
+            break;
         }
         break;
     case ZVIL_GOAL_SPELLCAST:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             _zMovePoint* bull;
 
             VILN_std_enterGoal(vil, goal);
@@ -7185,26 +7289,36 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             {
                 vil->pos_exttgt = *zMovePointGetPos(bull);
             }
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->goodattack = 0;
             VILN_std_tymrRand(vil, 20);
             xSndStopChildren((unsigned int)vil + 3);
+            break;
         }
         break;
     case ZVIL_GOAL_TAUNT:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             vil->tmr_list[11] = vil->vilcfg.tymref_list[11];
+            break;
         }
         break;
     case ZVIL_GOAL_DAZED:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             float off;
 
             VILN_std_enterGoal(vil, goal);
@@ -7222,20 +7336,24 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 vil->abl_vuln |= 0x100;
                 vil->abl_vuln &= ~0x80;
             }
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             if (vil->abl_vuln & 0x80000000)
             {
                 vil->abl_vuln &= ~0x100;
                 vil->abl_vuln |= 0x80;
             }
+            break;
         }
         break;
     case ZVIL_GOAL_SOAPED:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             VILN_std_tymrRand(vil, 14);
             vil->tmr_list[0] = 2.0f * (0.25f * (iurand() - 0.5f)) + 2.0f;
@@ -7245,9 +7363,8 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->pflags &= ~4;
             vil->collis->pen |= 0x62;
             vil->pos_moveto = ((_xMat4x3*)vil->model->Mat)->pos;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->pflags &= ~0x20;
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)3, dt);
             if (vil->bubble)
@@ -7270,12 +7387,17 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->frame->dvel.x = 0.0f;
             vil->frame->dvel.y = 0.0f;
             vil->frame->dvel.z = 0.0f;
+            break;
         }
         break;
     case ZVIL_GOAL_GUMMED:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             VILN_std_tymrRand(vil, 13);
             vil->tmr_list[0] = 3.0f * (0.25f * (iurand() - 0.5f)) + 3.0f;
@@ -7320,9 +7442,8 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 vil->collis->chk |= 0x26;
                 vil->collis->pen |= 0x66;
             }
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)5, dt);
             if (vil->bubble)
             {
@@ -7335,12 +7456,17 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->bubble = NULL;
             vil->mdl_gumBlob = NULL;
             VILN_std_flagsAll(vil);
+            break;
         }
         break;
     case ZVIL_GOAL_DIE:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, goal);
             vil->pflags |= 4;
             vil->chkby = 0;
@@ -7351,12 +7477,12 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->tgt_stat = 0;
             zEntEvent(vil, vil, 0x24);
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)9, dt);
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             zEntEvent(vil, vil, 0xEF);
             vil->collis->chk = 0;
             vil->collis->pen = 0;
+            break;
         }
         break;
     }
@@ -8912,8 +9038,13 @@ static signed int VILN_gang_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
     {
     case 4:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             float tym;
 
             VILN_enterGoal(vil, goal);
@@ -8921,12 +9052,17 @@ static signed int VILN_gang_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
             vil->tmr_list[0] = 0.25f * (iurand() - 0.5f) * tym + tym;
             tym = vil->vilcfg.tymref_list[8];
             vil->tmr_list[8] = 0.25f * (iurand() - 0.5f) * tym + tym;
+            break;
         }
         break;
     case 12:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             float tym;
             zSFX* sfx;
 
@@ -8967,41 +9103,59 @@ static signed int VILN_gang_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
             {
                 VSND_startTalk(vil, sfx);
             }
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             if (vil->sfx_curTalk)
             {
                 xSndStopChildren((unsigned int)vil + 2);
                 vil->sfx_curTalk = NULL;
             }
+            break;
         }
         break;
     case 31:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             vil->anim_loopmult = 0.97f;
             vil->vhf->pickanim(vil, goal, (en_ZVIL_GOAL_SPOT)(stimctxt->use_alt_action ? 0xA : 0));
+            break;
         }
         break;
     case 8:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_enterGoal(vil, goal);
+            break;
         }
         break;
     case 6:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_enterGoal(vil, goal);
             vil->tgt_stat = 0;
             if (!vil->nav_next)
             {
                 vil->need_navpt = 1;
             }
+            break;
         }
         break;
     }
@@ -9954,52 +10108,78 @@ static signed int VILN_BBK_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     {
     case 8:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_enterGoal(vil, goal);
+            break;
         }
         break;
     case 6:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_enterGoal(vil, goal);
             vil->tgt_stat = 0;
             if (!vil->nav_next)
             {
                 vil->need_navpt = 1;
             }
+            break;
         }
         break;
     case 21:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_enterGoal(vil, goal);
             vil->tmr_list[21] = -1.0f;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             if (vil->prj_reserved)
             {
                 vil->prj_reserved->Abort();
             }
             vil->prj_reserved = NULL;
+            break;
         }
         break;
     case 23:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_enterGoal(vil, goal);
             vil->tmr_list[11] = vil->vilcfg.tymref_list[11];
             vil->allow &= ~8;
+            break;
         }
         break;
     case 27:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             float tym;
 
             VILN_enterGoal(vil, goal);
@@ -10008,11 +10188,11 @@ static signed int VILN_BBK_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->hitpts--;
             VEFX_zapTheKnight(vil, 0);
             vil->allow &= ~8;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             VEFX_zapTheKnight(vil, 1);
             xSndStopChildren((unsigned int)vil + 1);
+            break;
         }
         break;
     }
@@ -12138,49 +12318,83 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     {
     case ZVIL_GOAL_IDLE:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, goal, 0);
             vil->tgt_stat = 0;
+            break;
         }
         break;
     case ZVIL_GOAL_ACTION:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, goal, 0);
+            break;
         }
         break;
     case ZVIL_GOAL_FOLLOW:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, goal, 0);
+            break;
         }
         break;
     case ZVIL_GOAL_PATROL:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, goal, 0);
             vil->tgt_stat = 0;
             if (!vil->nav_next)
             {
                 vil->need_navpt = 1;
             }
+            break;
         }
         break;
     case ZVIL_GOAL_LEAP:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, goal, 0);
+            break;
         }
         break;
     case ZVIL_GOAL_TELEPORT:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, goal, 0);
             vil->flags &= ~1;
             vil->chkby &= ~0x10;
@@ -12213,9 +12427,8 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 vil->tmr_list[ZVIL_TYMR_GENERIC] = 0.5f;
             }
             VILN_BMM_tymrRand(vil, 19);
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             _zParEmitterCustomSettings pecust;
             _xMat4x3* mat = (_xMat4x3*)vil->model->Mat;
 
@@ -12231,29 +12444,46 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->penby |= 0x10;
             vil->collis->chk |= 0x10;
             vil->collis->pen |= 0x10;
+            break;
         }
         break;
     case ZVIL_GOAL_ATTACKREADY:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, goal, 0);
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 0.2f;
+            break;
         }
         break;
     case ZVIL_GOAL_BLOCKHEAD:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, goal, 0);
             VSND_cue(vil, (en_NPC_SOUND)0x38);
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 3.0f * (0.25f * (iurand() - 0.5f)) + 3.0f;
+            break;
         }
         break;
     case ZVIL_GOAL_DAZED:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             float t;
 
             VILN_BMM_enterGoal(vil, goal, 0);
@@ -12262,24 +12492,27 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             t = -1.0f + vil->tmr_list[4];
             vil->tmr_list[4] = (t < -1.0f) ? -1.0f : t;
             vil->abl_vuln |= 0x80;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->abl_vuln &= ~0x80;
+            break;
         }
         break;
     case ZVIL_GOAL_KNOCKBACK:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, goal, 0);
             vil->dst_navTween = 7.5f;
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 1.5f;
             vil->pos_bowling = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
             vil->pflags &= ~4;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->frame->dvel.x = 0.0f;
             vil->frame->dvel.y = 0.0f;
             vil->frame->dvel.z = 0.0f;
@@ -12288,12 +12521,17 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->frame->vel.z = 0.0f;
             vil->frame->mode |= 0xC;
             vil->pflags |= 4;
+            break;
         }
         break;
     case ZVIL_GOAL_LOBBING:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, goal, 0);
             VILN_BMM_tymrRand(vil, 21);
             VWEP_lobActivatePRJ(vil->prj_reserved, vil, xBoundCenter(&globals.player.ent.bound), NULL,
@@ -12301,9 +12539,8 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             VSND_cue(vil, (en_NPC_SOUND)0x3D);
             vil->cnt_lobSalvo = 1;
             vil->goodattack = 0;
-        }
-        else if (stim == ZVIL_STIM_EXITGOAL)
-        {
+            break;
+        case ZVIL_STIM_EXITGOAL:
             vil->goodattack = 0;
             VILN_BMM_tymrRand(vil, 19);
             if (vil->prj_reserved)
@@ -12311,21 +12548,33 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 vil->prj_reserved->Abort();
             }
             vil->prj_reserved = NULL;
+            break;
         }
         break;
     case ZVIL_GOAL_TAUNT:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, goal, 0);
             vil->tmr_list[11] = vil->vilcfg.tymref_list[11];
             VSND_cue(vil, (en_NPC_SOUND)0x42);
+            break;
         }
         break;
     case ZVIL_GOAL_HURT:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_ENTERGOAL)
+        switch (stim)
         {
+        case ZVIL_STIM_EXITGOAL:
+        case ZVIL_STIM_NONE:
+        case ZVIL_STIM_TRANGOAL:
+            break;
+        case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_tymrRand(vil, 22);
             if (vil->hitpts > 1)
             {
@@ -12337,6 +12586,7 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 VILN_BMM_enterGoal(vil, goal, 0);
             }
             vil->hitpts--;
+            break;
         }
         break;
     }
