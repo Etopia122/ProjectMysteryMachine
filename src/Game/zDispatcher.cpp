@@ -744,7 +744,7 @@ static signed int ZDSP_elcb_event(xBase* from, xBase* xb, unsigned int toEvent, 
         break;
     }
     case 0x126:
-        switch ((signed int)toParam[0])
+        switch ((unsigned int)toParam[0])
         {
         case 0:
             zMenuFMVPlay(zFMVFileGetName((eFMVFile)0x13), 1, 0.1f);

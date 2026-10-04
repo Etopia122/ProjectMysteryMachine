@@ -556,6 +556,7 @@ public:
 };
 
 signed int zGameStateGet();
+void zGameStateSwitch(signed int theNewState);
 
 void xScrFxFade(iColor_tag* base, iColor_tag* dest, float seconds, void (*callback)(),
                 signed int hold, signed int unused);
@@ -2966,6 +2967,7 @@ void zHudElementsCB_GameStatsUpdate(float dt)
             if (sHudGameStatsTimer <= 0)
             {
                 sHudGameStatsTimer = 0;
+                zGameStateSwitch(5);
             }
         }
 
