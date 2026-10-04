@@ -3352,7 +3352,7 @@ signed int Shaggy8_HBCallback(_zEnt* plyr, _xCollis* coll)
     return 0;
 }
 
-signed int Shaggy8_BBCallback(_xCollis* coll)
+signed int Shaggy8_BBCallback(_xEnt*, _xCollis* coll)
 {
     _zEnt* ent = (_zEnt*)coll->optr;
     if (ent->baseType == 2 && ent->subType == 0x24)
