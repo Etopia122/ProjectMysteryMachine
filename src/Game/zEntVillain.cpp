@@ -19,6 +19,8 @@
 #include "xMemMgr.h"
 #include "iDraw.h"
 #include "xMovePoint.h"
+#include "xserializer.h"
+#include "zEnt.h"
 
 #ifndef NULL
 #define NULL 0
@@ -1424,7 +1426,11 @@ void xDrawSetColor(iColor_tag color);
 unsigned int xRayHitsSceneFast(_xRay3* r, _xScene* sc);
 unsigned int zEntPlayer_MoveInfo();
 void zEntPlayer_Notify(unsigned char characterSubType);
+void zEntPlayer_Notify(signed int situation);
 unsigned int zEntIsShaggy(_zEnt* ent);
+void zLaughNotify(signed int situation);
+void xAnimPlaySetState(xAnimSingle* single, xAnimState* state, float startTime);
+void zEntShaggy_Init(st_zEntVillain* vil);
 void xModelRender(xModelInstance* modelInst);
 void xEntRender(_xEnt* ent);
 unsigned int iModelTagSetup(iModelTag* tag, RpAtomic* model, float x, float y, float z);
@@ -3500,7 +3506,7 @@ static inline void VPRJ_BMM_greenflask(zEntProjectile* prj, float dt);
 static inline void VPRJ_BMM_redflask(zEntProjectile* prj, float dt);
 static inline void VPRJ_prjsound(st_zEntVillain* vil, zEntProjectile* prj, en_NPC_SOUND snd);
 static signed int VPRJ_BMM_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event);
-static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, _xEntFrame* frame);
+static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, zScene* scn, _xEntFrame* frame);
 static void VPRJ_BMM_detach(zEntProjectile* prj);
 static signed int VPRJ_BMM_attach(zEntProjectile* prj);
 static void VPRJ_BMM_bupdate(_xEnt* ent, _xVec3* pos);
@@ -3518,7 +3524,7 @@ static void VPRJ_BGG_detach(zEntProjectile* prj);
 static signed int VPRJ_BGG_attach(zEntProjectile* prj);
 static void VPRJ_zapTheAxe(zEntProjectile* prj, signed int cleanup);
 static signed int VPRJ_BBK_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event);
-static signed int VPRJ_BBK_prjmove(zEntProjectile* prj, float dt, _xEntFrame* frame);
+static signed int VPRJ_BBK_prjmove(zEntProjectile* prj, float dt, zScene* scn, _xEntFrame* frame);
 static signed int VPRJ_BBK_logix(zEntProjectile* prj, float dt);
 static void VPRJ_BBK_detach(zEntProjectile* prj);
 static signed int VPRJ_BBK_attach(zEntProjectile* prj);
@@ -3681,6 +3687,856 @@ static signed int VILN_std_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA
 static signed int VILN_std_notice(st_zEntVillain* vil, en_ZVIL_NOTICE note, st_STIMULUS_CONTEXT_DATA* resp);
 static signed int VILN_std_query(st_zEntVillain* vil, en_ZVIL_QUERY query);
 static signed int VILN_std_flag(st_zEntVillain* vil, en_ZVIL_FLAG_GROUPS flaggroup, en_BEHAVIOUR_GOAL goal);
+static void zVIL_setup_npcTable();
+signed int zEntVillain_PlayAFXSound(st_zEntVillain* vil, zAnimFxSound* snd, unsigned int* sid_played);
+static inline void VUTIL_sendStim(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt);
+void zEntVillain_Stun(st_zEntVillain* vil, float tym);
+void zEntVillain_HeroWasHurt();
+signed int zEntVillain_Bumped(st_zEntVillain* vil, _xCollis* colrec);
+en_ZVILLAIN_BUBBLE_RESPONSE zEntVillain_Bubble(st_zEntVillain* vil, _zEntBubble* bub);
+static inline void VTAL_hitOutcome(st_zEntVillain* vil);
+signed int zEntVillain_Headbutt(st_zEntVillain* vil, _xVec3* dir);
+unsigned int zEntVillain_Bounce(st_zEntVillain* vil);
+void zEntVillain_BonusRender();
+void zEntVillain_Load(st_zEntVillain* vil, xSerial* s);
+void zEntVillain_Save(st_zEntVillain* vil, xSerial* s);
+void zEntVillain_InitDep(st_zEntVillain* vil);
+void fn_800A8F88(xBase* b, zScene* s);
+void zEntVillain_Init(st_zEntVillain* vil, p2EntAsset* asset);
+st_zEntVillain* zEntVillain_NPCInst(unsigned int npcidx);
+st_zEntVillain* zEntVillain_MemPool(unsigned int npccnt);
+xAnimTable* zEntVillain_AnimTable_Standard();
+xAnimTable* zEntVillain_AnimTable_Gang();
+xAnimTable* zEntVillain_AnimTable_Simple();
+xAnimTable* zEntVillain_AnimTable_Witch();
+xAnimTable* zEntVillain_AnimTable_Shark();
+xAnimTable* zEntVillain_AnimTable_BossSham();
+xAnimTable* zEntVillain_AnimTable_MasterMind();
+xAnimTable* zEntVillain_AnimTable_RedBeard();
+xAnimTable* zEntVillain_AnimTable_GreenGhost();
+xAnimTable* zEntVillain_AnimTable_BlackKnight();
+void zEntVillain_sceneFinish();
+void zEntVillain_scenePrepare();
+signed int zEntVillain_Shutdown();
+signed int zEntVillain_Startup();
+
+signed int zEntVillain_Startup()
+{
+    typedef signed int (*LogixFn)(zEntProjectile*, float, zScene*, _xEntFrame*);
+    typedef signed int (*NotifyFn)(zEntProjectile*, en_PROJECTILE_EVENT, void*);
+    st_ZPRJ_CATEGORY_FUNCS fn_bbk = { 1, VPRJ_BBK_attach, VPRJ_BBK_detach, (LogixFn)VPRJ_BBK_logix,
+                                      VPRJ_BBK_prjmove, (NotifyFn)VPRJ_BBK_notify, NULL,
+                                      zEntProjectile_gen_aimer, NULL, NULL };
+    st_ZPRJ_CATEGORY_FUNCS fn_bgg = { 1, VPRJ_BGG_attach, VPRJ_BGG_detach, (LogixFn)VPRJ_BGG_logix,
+                                      NULL, (NotifyFn)VPRJ_BGG_notify, NULL,
+                                      zEntProjectile_gen_aimer, NULL, NULL };
+    st_ZPRJ_CATEGORY_FUNCS fn_brb = { 1, VPRJ_BRB_attach, VPRJ_BRB_detach, (LogixFn)VPRJ_BRB_logix,
+                                      NULL, (NotifyFn)VPRJ_BRB_notify, NULL,
+                                      zEntProjectile_gen_aimer, NULL, NULL };
+    st_ZPRJ_CATEGORY_FUNCS fn_bmm = { 1, VPRJ_BMM_attach, VPRJ_BMM_detach, VPRJ_BMM_logix,
+                                      NULL, (NotifyFn)VPRJ_BMM_notify, NULL,
+                                      zEntProjectile_gen_aimer, NULL, NULL };
+    st_ZPRJ_CATEGORY_PROPS pr_bbk = { 0x3D, 0x03, 0x3F, 0x00, 0, 0 };
+    st_ZPRJ_CATEGORY_PROPS pr_bgg = { 0x30000031, 0x03, 0x3F, 0x3F, 0, 0 };
+    st_ZPRJ_CATEGORY_PROPS pr_brb = { 0x3D, 0x03, 0x14, 0x3F, 0, 0 };
+    st_ZPRJ_CATEGORY_PROPS pr_bmm = { 0x3000003D, 0x03, 0x3F, 0x3F, 0, 0 };
+    signed int i;
+
+    if (g_npcinit++ != 0)
+    {
+        return g_npcinit;
+    }
+
+    g_datablock = (char*)xMemAlloc(gActiveHeap, 0x20000);
+    memset(g_datablock, 0, 0x20000);
+
+    // The original walks the type, sound and anim-name tables to their
+    // terminators here without using the counts.
+    for (i = 0; i < 147; i++)
+    {
+        g_anamhash[i] = xStrHash(g_animname[i]);
+    }
+    zVIL_setup_npcTable();
+    for (i = 0; i < 147; i++)
+    {
+        g_anamhash[i] = xStrHash(g_animname[i]);
+    }
+
+    zEntProjectile_addCat(ZPRJ_CAT_BKAXE, &fn_bbk);
+    zEntProjectile_addProps(ZPRJ_CAT_BKAXE, &pr_bbk);
+    zEntProjectile_addCat(ZPRJ_CAT_GGSHOCK, &fn_bgg);
+    zEntProjectile_addProps(ZPRJ_CAT_GGSHOCK, &pr_bgg);
+    zEntProjectile_addCat(ZPRJ_CAT_RBSWORD, &fn_brb);
+    zEntProjectile_addProps(ZPRJ_CAT_RBSWORD, &pr_brb);
+    zEntProjectile_addCat(ZPRJ_CAT_MMFLASK, &fn_bmm);
+    zEntProjectile_addProps(ZPRJ_CAT_MMFLASK, &pr_bmm);
+    return g_npcinit;
+}
+
+signed int zEntVillain_Shutdown()
+{
+    return --g_npcinit;
+}
+
+void zEntVillain_scenePrepare()
+{
+    if (g_npcpool && g_npccnt > 0)
+    {
+        memset(g_npcpool, 0x33, g_npccnt * sizeof(st_zEntVillain));
+    }
+    g_npccnt = 0;
+    g_npcpool = NULL;
+    XOrdInit(&g_emitlist, 0x20);
+    g_emitpool = (st_zEntVillain_ParEmitRecord*)xMemAlloc(gActiveHeap, 0x400);
+    memset(g_emitpool, 0, 0x400);
+    g_emitnext = 0;
+    g_emitready = 0;
+}
+
+void zEntVillain_sceneFinish()
+{
+    if (g_npcpool && g_npccnt > 0)
+    {
+        memset(g_npcpool, 0x33, g_npccnt * sizeof(st_zEntVillain));
+    }
+    g_npccnt = 0;
+    g_npcpool = NULL;
+}
+
+xAnimTable* zEntVillain_AnimTable_BlackKnight()
+{
+    return VANM_mktable_BK();
+}
+
+xAnimTable* zEntVillain_AnimTable_GreenGhost()
+{
+    return VANM_mktable_GG();
+}
+
+xAnimTable* zEntVillain_AnimTable_RedBeard()
+{
+    return VANM_mktable_RB();
+}
+
+xAnimTable* zEntVillain_AnimTable_MasterMind()
+{
+    return VANM_mktable_MM();
+}
+
+xAnimTable* zEntVillain_AnimTable_BossSham()
+{
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+
+    table = xAnimTableNew("Villain_BossSham", NULL);
+    xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "SHAM_Move", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "SHAM_Taunt", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    for (i = 140; i < 142; i++)
+    {
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, "Idle", g_animname[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableNewTransition(table, "SHAM_Taunt", "SHAM_Move", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "SHAM_Move", "SHAM_Taunt", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "SHAM_Taunt", "SHAM_Move", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    return table;
+}
+
+xAnimTable* zEntVillain_AnimTable_Shark()
+{
+    return VANM_mktable_SHARK();
+}
+
+xAnimTable* zEntVillain_AnimTable_Witch()
+{
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+
+    table = VANM_mktable_STD();
+    xAnimTableNewState(table, "Shaggy_hold", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    Shaggy5_WitchTransitions(table);
+    return table;
+}
+
+xAnimTable* zEntVillain_AnimTable_Simple()
+{
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+
+    table = xAnimTableNew("Villain_Simple", NULL);
+    xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "SIMP_Action", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewTransition(table, g_animname[146], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, g_animname[146], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Idle", g_animname[146], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    return table;
+}
+
+xAnimTable* zEntVillain_AnimTable_Gang()
+{
+    return VANM_mktable_GANG();
+}
+
+xAnimTable* zEntVillain_AnimTable_Standard()
+{
+    return VANM_mktable_STD();
+}
+
+st_zEntVillain* zEntVillain_MemPool(unsigned int npccnt)
+{
+    if (npccnt)
+    {
+        g_npccnt = npccnt;
+        g_npcpool = (st_zEntVillain*)xMemAlloc(gActiveHeap, npccnt * sizeof(st_zEntVillain));
+        memset(g_npcpool, 0, npccnt * sizeof(st_zEntVillain));
+    }
+    else
+    {
+        if (g_npcpool && g_npccnt > 0)
+        {
+            memset(g_npcpool, 0x33, g_npccnt * sizeof(st_zEntVillain));
+        }
+        g_npccnt = 0;
+        g_npcpool = NULL;
+    }
+    return g_npcpool;
+}
+
+st_zEntVillain* zEntVillain_NPCInst(unsigned int npcidx)
+{
+    return &g_npcpool[npcidx];
+}
+
+void zEntVillain_Init(st_zEntVillain* vil, p2EntAsset* asset)
+{
+    st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
+    _xMat4x3* mat;
+
+    zEntInit(vil, asset, 0x4E504320);
+    vil->eventFunc = zVIL_elcb_event;
+    vil->update = zVIL_elcb_update;
+    vil->bupdate = zVIL_elcb_bupdate;
+    vil->move = zVIL_elcb_move;
+    vil->bound2.type = 1;
+    if (vil->linkCount)
+    {
+        vil->link = (p2LinkAsset*)((char*)vil->asset + sizeof(p2EntAsset) + sizeof(p2EntVillainAsset));
+    }
+    else
+    {
+        vil->link = NULL;
+    }
+    vil->vhf = &g_npcFuncs[vil->asset->subtype];
+    vil->vilcfg.asset = vil->asset;
+    vil->vilcfg.vilp2ass = (p2EntVillainAsset*)((char*)vil->asset + sizeof(p2EntAsset));
+    VCFG_readParms(&vil->vilcfg);
+    VCFG_readAsset(&vil->vilcfg);
+
+    npcinfo = &g_npcTable[vil->asset->subtype];
+    vil->ability = npcinfo->ability;
+    vil->abl_atak = npcinfo->abl_atak;
+    vil->abl_dtct = npcinfo->abl_dtct;
+    vil->abl_move = npcinfo->abl_move;
+    vil->abl_spyk = npcinfo->abl_spyk;
+    vil->abl_vuln = npcinfo->abl_vuln;
+    vil->chkby = vil->vhf->flags(vil, ZVIL_FGRP_CHKBY, ZVIL_GOAL_NONE);
+    vil->penby = vil->vhf->flags(vil, ZVIL_FGRP_PENBY, ZVIL_GOAL_NONE);
+    vil->collis->chk = vil->vhf->flags(vil, ZVIL_FGRP_CHK, ZVIL_GOAL_NONE);
+    vil->collis->pen = vil->vhf->flags(vil, ZVIL_FGRP_PEN, ZVIL_GOAL_NONE);
+    vil->pflags = vil->vhf->flags(vil, ZVIL_FGRP_PHYS, ZVIL_GOAL_NONE);
+    vil->typ_person = g_npcTable[vil->asset->subtype].typ_person;
+    if (vil->flg_misc & 8)
+    {
+        VCFG_getParm(&vil->vilcfg, ZVIL_PARM_MDLSCL_BASE, &vil->asset->scale);
+    }
+    xEntReset(vil);
+    vil->frame->rot.axis = g_Y3;
+    vil->frame->rot.angle = vil->asset->ang.x;
+    mat = (_xMat4x3*)vil->model->Mat;
+    vil->pos_guard_home = mat->pos;
+    xSceneID2Name(globals.sceneCur, vil->id);
+    if (vil->subType == 0xF)
+    {
+        vil->render = VILN_KookRender;
+    }
+}
+
+void fn_800A8F88(xBase* b, zScene* s)
+{
+    st_zEntVillain* vil = (st_zEntVillain*)b;
+    unsigned int mvpt;
+    signed int spawn = 1;
+    signed int mindiff = 0;
+    signed int spawnmask = 0;
+
+    vil->nav_mvptlist = NULL;
+    vil->nav_prev = NULL;
+    vil->nav_next = NULL;
+    mvpt = vil->vilcfg.vilp2ass->movePointAssetID;
+    vil->nav_mvptlist = mvpt ? zMovePoint_From_xAssetID(mvpt) : NULL;
+    zVIL_apply_vilcfg(vil, &vil->vilcfg);
+
+    if (vil->ability & 2)
+    {
+        vil->allow |= 0x800;
+    }
+    if (vil->ability & 2)
+    {
+        if (vil->asset->subtype == 0x17)
+        {
+            vil->allow &= ~0x800;
+        }
+        else
+        {
+            st_NPC_NOBONUS* nb;
+            for (nb = g_nobonus; nb->sceneID; nb++)
+            {
+                if (nb->sceneID == globals.sceneCur->sceneID && (nb->aid_vil == 0 || nb->aid_vil == vil->id))
+                {
+                    vil->allow &= ~0x800;
+                    break;
+                }
+            }
+        }
+    }
+
+    xAnimPlaySetState(vil->model->Anim->Single, vil->model->Anim->Table->StateList, 0.0f);
+    vil->anim_playing = 1;
+    vil->anim_playsync = 0;
+    {
+        en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)1, (en_NPC_ANIMSTATES)1 };
+        VANM_set(vil, list, 2, 0);
+    }
+    vil->vhf->notice(vil, (en_ZVIL_NOTICE)0, NULL);
+
+    switch (vil->vilcfg.vilp2ass->behaviorState)
+    {
+    case 0:
+        vil->goaldflt = ZVIL_GOAL_IDLE;
+        vil->mode = ZVIL_MODE_SHUTDOWN;
+        VGOL_set(vil, ZVIL_GOAL_BASEINIT);
+        vil->chkby = 0;
+        vil->penby = 0;
+        vil->flags &= ~1;
+        break;
+    case 3:
+        vil->goaldflt = ZVIL_GOAL_AMBUSH;
+        vil->mode = ZVIL_MODE_SHUTDOWN;
+        VGOL_set(vil, ZVIL_GOAL_BASEINIT);
+        vil->pflags = 0;
+        vil->collis->chk = 0;
+        vil->collis->pen = 0;
+        vil->chkby = 0;
+        vil->penby = 0;
+        vil->flags &= ~1;
+        break;
+    case 1:
+        vil->goaldflt = ZVIL_GOAL_IDLE;
+        vil->mode = ZVIL_MODE_SHUTDOWN;
+        VGOL_set(vil, ZVIL_GOAL_STARTUP);
+        break;
+    case 2:
+        vil->goaldflt = ZVIL_GOAL_BORED;
+        vil->mode = ZVIL_MODE_SHUTDOWN;
+        VGOL_set(vil, ZVIL_GOAL_STARTUP);
+        break;
+    default:
+        vil->goaldflt = ZVIL_GOAL_IDLE;
+        vil->mode = ZVIL_MODE_SHUTDOWN;
+        VGOL_set(vil, ZVIL_GOAL_STARTUP);
+        break;
+    }
+
+    VCFG_getParm(&vil->vilcfg, ZVIL_PARM_MINDIFFICULTY, &mindiff);
+    VCFG_getParm(&vil->vilcfg, ZVIL_PARM_SPAWNMASK, &spawnmask);
+    if (mindiff < 0)
+    {
+        spawn = 0;
+        xSceneID2Name(globals.sceneCur, vil->id);
+    }
+    if ((unsigned int)spawnmask != (spawnmask & globals.player.Inv_Specials))
+    {
+        spawn = 0;
+    }
+    if (!spawn)
+    {
+        VGOL_set(vil, ZVIL_GOAL_BASEINIT);
+    }
+
+    if ((vil->asset->flags & 1) && vil->mode != ZVIL_MODE_SHUTDOWN)
+    {
+        vil->flags |= 1;
+    }
+    else
+    {
+        vil->flags &= ~1;
+    }
+    vil->nav_prev = NULL;
+    vil->nav_next = NULL;
+    if (vil->nav_mvptlist)
+    {
+        vil->need_navpt = 1;
+    }
+    vil->flg_misc &= 0x3FFFFFFF;
+    vil->tgt_stat = 0;
+
+    if (zEntIsShaggy(vil))
+    {
+        st_STIMULUS_CONTEXT_DATA stimctxt = {};
+
+        zEntShaggy_Init(vil);
+        stimctxt.stim = ZVIL_STIM_TRANGOAL;
+        stimctxt.trangoal = vil->goaldflt;
+        stimctxt.tranmode = ZVIL_MODE_NORMAL;
+        zVIL_trangoal(vil, &stimctxt, globals.update_dt);
+    }
+}
+
+void zEntVillain_InitDep(st_zEntVillain* vil)
+{
+    st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
+    _xMat4x3* mat;
+
+    xEntReset(vil);
+    memset(&vil->vhf, 0, sizeof(st_zEntVillain) - 0xEC);
+    vil->eventFunc = zVIL_elcb_event;
+    vil->update = zVIL_elcb_update;
+    vil->bupdate = zVIL_elcb_bupdate;
+    vil->move = zVIL_elcb_move;
+    vil->bound2.type = 1;
+    if (vil->linkCount)
+    {
+        vil->link = (p2LinkAsset*)((char*)vil->asset + sizeof(p2EntAsset) + sizeof(p2EntVillainAsset));
+    }
+    else
+    {
+        vil->link = NULL;
+    }
+    vil->vhf = &g_npcFuncs[vil->asset->subtype];
+    vil->vilcfg.asset = vil->asset;
+    vil->vilcfg.vilp2ass = (p2EntVillainAsset*)((char*)vil->asset + sizeof(p2EntAsset));
+    VCFG_readParms(&vil->vilcfg);
+    VCFG_readAsset(&vil->vilcfg);
+
+    npcinfo = &g_npcTable[vil->asset->subtype];
+    vil->ability = npcinfo->ability;
+    vil->abl_atak = npcinfo->abl_atak;
+    vil->abl_dtct = npcinfo->abl_dtct;
+    vil->abl_move = npcinfo->abl_move;
+    vil->abl_spyk = npcinfo->abl_spyk;
+    vil->abl_vuln = npcinfo->abl_vuln;
+    vil->chkby = vil->vhf->flags(vil, ZVIL_FGRP_CHKBY, ZVIL_GOAL_NONE);
+    vil->penby = vil->vhf->flags(vil, ZVIL_FGRP_PENBY, ZVIL_GOAL_NONE);
+    vil->collis->chk = vil->vhf->flags(vil, ZVIL_FGRP_CHK, ZVIL_GOAL_NONE);
+    vil->collis->pen = vil->vhf->flags(vil, ZVIL_FGRP_PEN, ZVIL_GOAL_NONE);
+    vil->pflags = vil->vhf->flags(vil, ZVIL_FGRP_PHYS, ZVIL_GOAL_NONE);
+    vil->typ_person = g_npcTable[vil->asset->subtype].typ_person;
+    if (vil->flg_misc & 8)
+    {
+        VCFG_getParm(&vil->vilcfg, ZVIL_PARM_MDLSCL_BASE, &vil->asset->scale);
+    }
+    xEntReset(vil);
+    vil->frame->rot.axis = g_Y3;
+    vil->frame->rot.angle = vil->asset->ang.x;
+    mat = (_xMat4x3*)vil->model->Mat;
+    vil->pos_guard_home = mat->pos;
+    xSceneID2Name(globals.sceneCur, vil->id);
+    fn_800A8F88(vil, NULL);
+}
+
+void zEntVillain_Save(st_zEntVillain* vil, xSerial* s)
+{
+    signed int state = 0;
+
+    if (!(vil->baseFlags & 2))
+    {
+        return;
+    }
+    zEntSave(vil, s);
+    if (vil->goal == ZVIL_GOAL_AFTERLIFE || vil->goal == ZVIL_GOAL_BASEINIT)
+    {
+        state = 1;
+    }
+    else if (vil->mode > ZVIL_MODE_SHUTDOWN && vil->mode < 7 && !vil->vilcfg.vilp2ass->behaviorState)
+    {
+        state = 2;
+    }
+    s->Write_b2(state);
+}
+
+void zEntVillain_Load(st_zEntVillain* vil, xSerial* s)
+{
+    signed int state = 0;
+
+    if (!(vil->baseFlags & 2))
+    {
+        return;
+    }
+    zEntLoad(vil, s);
+    s->Read_b2(&state);
+    if (state & 1)
+    {
+        vil->goaldflt = ZVIL_GOAL_IDLE;
+        vil->mode = ZVIL_MODE_SHUTDOWN;
+        VGOL_set(vil, ZVIL_GOAL_BASEINIT);
+        vil->chkby = 0;
+        vil->penby = 0;
+        vil->flags &= ~1;
+    }
+    else if (state & 2)
+    {
+        vil->goaldflt = ZVIL_GOAL_IDLE;
+        vil->mode = ZVIL_MODE_SHUTDOWN;
+        VGOL_set(vil, ZVIL_GOAL_STARTUP);
+    }
+}
+
+void zEntVillain_BonusRender()
+{
+    signed int i;
+    signed int cnt = g_npccnt;
+
+    for (i = 0; i < cnt; i++)
+    {
+        st_zEntVillain* vil = &g_npcpool[i];
+
+        if (vil->goal == ZVIL_GOAL_GUMMED)
+        {
+            VEFX_plop_gum(vil);
+        }
+        if (vil->mode >= ZVIL_MODE_NORMAL && vil->vhf->xtrarend)
+        {
+            xSceneID2Name(globals.sceneCur, vil->id);
+            vil->vhf->xtrarend(vil);
+        }
+    }
+}
+
+unsigned int zEntVillain_Bounce(st_zEntVillain* vil)
+{
+    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+
+    stimctxt.stim = ZVIL_STIM_BOUNCED;
+    VUTIL_sendStim(vil, &stimctxt);
+    if (stimctxt.res_buttbounce != 0 && stimctxt.res_buttbounce != 3)
+    {
+        VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)6, globals.update_dt);
+    }
+    VTAL_hitOutcome(vil);
+    return stimctxt.res_buttbounce;
+}
+
+signed int zEntVillain_Headbutt(st_zEntVillain* vil, _xVec3* dir)
+{
+    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+
+    stimctxt.stim = ZVIL_STIM_HEADBUTT;
+    if (dir)
+    {
+        _xVec3 dir_back;
+        _xMat4x3* pmat = (_xMat4x3*)globals.player.ent.model->Mat;
+        float len = xVec3Normalize(&stimctxt.dir_headbutt, dir);
+        float dot;
+
+        dir_back.x = vil->precalc.dir_VtoP.x * -1.0f;
+        dir_back.y = vil->precalc.dir_VtoP.y * -1.0f;
+        dir_back.z = vil->precalc.dir_VtoP.z * -1.0f;
+        dot = dir_back.z * pmat->at.z + (dir_back.x * pmat->at.x + dir_back.y * pmat->at.y);
+        if (dot > 1.0f)
+        {
+            dot = 1.0f;
+        }
+        if (dot < 0.0f)
+        {
+            dot = 0.0f;
+        }
+        dot *= len;
+        stimctxt.mag_headbutt = (dot < 0.0f) ? 0.0f : dot;
+    }
+    VUTIL_sendStim(vil, &stimctxt);
+    if (stimctxt.res_headbutt != 0 && stimctxt.res_headbutt != 4)
+    {
+        VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)7, globals.update_dt);
+    }
+    VTAL_hitOutcome(vil);
+    return stimctxt.res_headbutt;
+}
+
+static inline void VTAL_hitOutcome(st_zEntVillain* vil)
+{
+    if (vil->ability & 4)
+    {
+        zEntPlayer_Notify((signed int)0x1F);
+    }
+    if (vil->goal == 0x20)
+    {
+        if (vil->ability & 0x200000)
+        {
+            signed int st = vil->asset->subtype;
+            if ((g_npcTable[st].ability & 0x200000) && (g_npcTable[st].abl_vuln & 4))
+            {
+                g_stattally[st].cnt_killed++;
+                g_stattally[50].cnt_killed++;
+            }
+        }
+        if (vil->allow & 0x800)
+        {
+            VBON_drop_bonusItem(vil);
+        }
+    }
+}
+
+en_ZVILLAIN_BUBBLE_RESPONSE zEntVillain_Bubble(st_zEntVillain* vil, _zEntBubble* bub)
+{
+    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+    unsigned char kind = *((unsigned char*)bub + 0x15);
+
+    stimctxt.res_gods = 0;
+    switch (kind)
+    {
+    case 1:
+        stimctxt.stim = ZVIL_STIM_SOAPED;
+        stimctxt.bubble = bub;
+        VUTIL_sendStim(vil, &stimctxt);
+        if (stimctxt.res_bubble == 2)
+        {
+            VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)3, globals.update_dt);
+            VSND_play(vil, (en_NPC_SOUND)0x1A);
+        }
+        else if (stimctxt.res_bubble != 0)
+        {
+            zLaughNotify(0xB);
+            VSND_play(vil, (en_NPC_SOUND)0x19);
+        }
+        break;
+    case 0:
+        stimctxt.stim = ZVIL_STIM_GUMMED;
+        stimctxt.bubble = bub;
+        VUTIL_sendStim(vil, &stimctxt);
+        if (stimctxt.res_bubble == 2)
+        {
+            VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)5, globals.update_dt);
+            VSND_play(vil, (en_NPC_SOUND)0x1D);
+        }
+        else if (stimctxt.res_bubble != 0)
+        {
+            zLaughNotify(0xA);
+            VSND_play(vil, (en_NPC_SOUND)0x1C);
+        }
+        break;
+    }
+    if (vil->ability & 4)
+    {
+        zEntPlayer_Notify((signed int)0x1F);
+    }
+    if (kind == 0)
+    {
+        return (en_ZVILLAIN_BUBBLE_RESPONSE)2;
+    }
+    return stimctxt.res_bubble;
+}
+
+signed int zEntVillain_Bumped(st_zEntVillain* vil, _xCollis* colrec)
+{
+    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+
+    stimctxt.stim = ZVIL_STIM_BUMPED;
+    stimctxt.colrec = colrec;
+    VUTIL_sendStim(vil, &stimctxt);
+    return stimctxt.res_bumped;
+}
+
+void zEntVillain_HeroWasHurt()
+{
+}
+
+void zEntVillain_Stun(st_zEntVillain* vil, float tym)
+{
+    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+
+    stimctxt.stim = ZVIL_STIM_STUNNING;
+    stimctxt.amt_stun = (tym > 0.1f) ? tym : 0.1f;
+    VUTIL_sendStim(vil, &stimctxt);
+    zLaughNotify(0xC);
+}
+
+static inline void VUTIL_sendStim(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt)
+{
+    if (!vil->standby || vil->tmr_list[ZVIL_TDUR_STDBY] <= 0.0f)
+    {
+        st_STIMULUS_CONTEXT_DATA resp = *stimctxt;
+        resp.stim = (en_NPC_STIMULUS)0;
+        vil->vhf->stimulus(vil, stimctxt, &resp);
+        if (resp.stim)
+        {
+            zVIL_trangoal(vil, &resp, globals.update_dt);
+        }
+    }
+}
+
+signed int zEntVillain_PlayAFXSound(st_zEntVillain* vil, zAnimFxSound* snd, unsigned int* sid_played)
+{
+    st_NPC_SOUND_ENTRY* entry;
+    st_NPC_SOUND_PROPERTIES* props;
+    signed int found = -1;
+    unsigned int sndID;
+    signed int subtype;
+    unsigned int sid;
+
+    if (vil->goal >= 0 && vil->goal < 3 && vil->goaldflt != ZVIL_GOAL_AMBUSH)
+    {
+        // The original still reports success here.
+        return 1;
+    }
+
+    sndID = snd->ID;
+    subtype = vil->asset->subtype;
+    for (entry = g_npcJukeBox; entry->sndList; entry++)
+    {
+        if (entry->viltyp == subtype || entry->viltyp != -1)
+        {
+            st_NPC_SOUND_RECORDS* rec;
+            for (rec = entry->sndList; rec->typ_sound != 0x8000; rec++)
+            {
+                if (rec->aid_sound == sndID)
+                {
+                    found = rec->typ_sound;
+                    break;
+                }
+            }
+            if (entry->viltyp == subtype || found != -1)
+            {
+                break;
+            }
+        }
+    }
+
+    for (props = g_sndProps; props->sndEvent != 0x8000 && props->sndEvent != found; props++)
+    {
+    }
+
+    if (found != -1)
+    {
+        sid = VSND_goPlay(vil, (en_NPC_SOUND)found, 0, props->flg_vsnd, g_npcTable[subtype].dst_noisy);
+    }
+    else
+    {
+        sid = VSND_goPlay(vil, (en_NPC_SOUND)0x8000, sndID, props->flg_vsnd, g_npcTable[subtype].dst_noisy);
+    }
+    if (sid_played)
+    {
+        *sid_played = sid;
+    }
+    return 1;
+}
+
+static void zVIL_setup_npcTable()
+{
+    // Per-type values computed by the original from inline constants:
+    // typ_person, flg_physics, chk, pen, chkby, penby, ability, atak, dtct, move, spyk, vuln
+    static const unsigned int s_npcflags[50][12] = {
+        { 0x1, 0x1B, 0x10, 0x10, 0x10, 0x10, 0x22804A, 0x10003, 0x80, 0xC031BF, 0x0, 0x3F9E7 }, // 0
+        { 0x5, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20014B, 0x40001, 0x1, 0x2137, 0x0, 0x9 }, // 1
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x20001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 2
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281FCA, 0x20001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 3
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281FCA, 0x20001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 4
+        { 0x0, 0x1B, 0x2E, 0x6E, 0x1C, 0x1C, 0x2A1F4A, 0x40001, 0x800000B1, 0x31BF, 0x0, 0x1F9E7 }, // 5
+        { 0x0, 0x1B, 0x2E, 0x0, 0x1C, 0x0, 0x281F4A, 0x10003, 0x80, 0x4313F, 0x0, 0x61 }, // 6
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x20001, 0x80, 0x213F, 0x0, 0x5F9E7 }, // 7
+        { 0x5, 0x1B, 0x2E, 0x0, 0x1C, 0x0, 0x20014B, 0x40001, 0x1, 0x43137, 0x0, 0x9 }, // 8
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x299F4A, 0x20001, 0x80, 0x213F, 0x0, 0x5F9E7 }, // 9
+        { 0x5, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x2001C3, 0x40001, 0x1, 0x137, 0x0, 0x109 }, // 10
+        { 0x5, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20014B, 0x80001, 0x1, 0x2137, 0x0, 0x9 }, // 11
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281FCA, 0x20001, 0xB1, 0x21BF, 0x0, 0x8001F8E7 }, // 12
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x20001, 0x80, 0x213F, 0x0, 0x5F9E7 }, // 13
+        { 0x1, 0x0, 0x20, 0x20, 0x0, 0x0, 0x20000A, 0x0, 0x0, 0x0, 0x0, 0x0 }, // 14
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x80001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 15
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x40001, 0xB1, 0x29BF, 0x0, 0x4005F9E7 }, // 16
+        { 0x0, 0x1B, 0x2E, 0x6E, 0x1C, 0x1C, 0x2A1F4A, 0x80001, 0x800000B1, 0x31BF, 0x0, 0x1F9E7 }, // 17
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x40001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 18
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20014A, 0x20001, 0x80, 0x213F, 0x0, 0x5F9E7 }, // 19
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x20001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 20
+        { 0x1, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x2080CA, 0x0, 0x80, 0x613F, 0x0, 0x40107 }, // 21
+        { 0x1, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20804A, 0x0, 0x80, 0x20213F, 0x0, 0x601E7 }, // 22
+        { 0x1, 0x1B, 0x10, 0x10, 0x10, 0x10, 0x20804A, 0x0, 0x80, 0x10253F, 0x0, 0x201E7 }, // 23
+        { 0x1, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x22804A, 0x0, 0x80, 0xA13F, 0x0, 0x601E3 }, // 24
+        { 0x1, 0x1B, 0x2E, 0x0, 0x1C, 0x0, 0x281F4A, 0x20001, 0xB1, 0x31BF, 0x0, 0x0 }, // 25
+        { 0x1, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281F4A, 0x80001, 0x81, 0x2012, 0x0, 0x0 }, // 26
+        { 0x1, 0x1B, 0x2E, 0x6E, 0x1C, 0x1C, 0x22804A, 0x10003, 0x80, 0x40313F, 0x0, 0x1F807 }, // 27
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 28
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 29
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 30
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 31
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 32
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 33
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 34
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 35
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 36
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 37
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 38
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 39
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 40
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20014B, 0x40001, 0x1, 0x2137, 0x0, 0x9 }, // 41
+        { 0x7, 0x1B, 0x2E, 0x0, 0x1C, 0x0, 0x20014B, 0x40001, 0x1, 0x43137, 0x0, 0x9 }, // 42
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x20014B, 0x80001, 0x1, 0x2137, 0x0, 0x9 }, // 43
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x2001C3, 0x40001, 0x1, 0x137, 0x0, 0x109 }, // 44
+        { 0x0, 0x1B, 0x2E, 0x8, 0x1C, 0x8, 0x281F4A, 0x10001, 0xB1, 0x431BF, 0x0, 0x1F987 }, // 45
+        { 0x0, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x281FCA, 0x20001, 0xB1, 0x21BF, 0x0, 0x5F9E7 }, // 46
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 47
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 48
+        { 0x7, 0x1F, 0x2E, 0x6E, 0x1C, 0x1C, 0x48004, 0x0, 0x1, 0x2137, 0x0, 0x0 }, // 49
+    };
+    signed int i;
+
+    for (i = 0; i < 50; i++)
+    {
+        st_ZVIL_NPCTYPE_LOOKUP* npc = &g_npcTable[i];
+        st_ZVIL_NPC_HANDLERFUNCS* vhf = &g_npcFuncs[i];
+        const unsigned int* v = s_npcflags[i];
+        unsigned char pen = v[3];
+
+        if (v[9] & 0x40000)
+        {
+            pen &= ~0x40;
+        }
+        if (v[9] & 0x400)
+        {
+            pen &= ~0x20;
+        }
+        npc->typ_person = (en_NPC_PERSONALITIES)v[0];
+        npc->flg_physics = v[1];
+        npc->flg_chk = v[2];
+        npc->flg_pen = pen;
+        npc->flg_chkby = v[4];
+        npc->flg_penby = v[5];
+        npc->ability = v[6];
+        npc->abl_atak = v[7];
+        npc->abl_dtct = v[8];
+        npc->abl_move = v[9];
+        npc->abl_spyk = v[10];
+        npc->abl_vuln = v[11];
+
+        if (!(vhf->flg_funcs & 1))
+        {
+            vhf->flg_funcs |= 2;
+            vhf->flags = VILN_std_flag;
+            vhf->query = VILN_std_query;
+            vhf->sysevent = VILN_std_sysevent;
+            vhf->notice = VILN_std_notice;
+            vhf->aware = VILN_std_aware;
+            vhf->stimulus = VILN_std_stimulus;
+            vhf->trangoal = VILN_std_trangoal;
+            vhf->calcmove = VILN_std_calcmove;
+            vhf->respond = VILN_std_respond;
+            vhf->pickanim = VILN_std_pickanim;
+        }
+    }
+}
 
 static signed int VILN_std_flag(st_zEntVillain* vil, en_ZVIL_FLAG_GROUPS flaggroup, en_BEHAVIOUR_GOAL goal)
 {
@@ -11390,7 +12246,7 @@ static signed int VPRJ_BBK_logix(zEntProjectile* prj, float dt)
     return 1;
 }
 
-static signed int VPRJ_BBK_prjmove(zEntProjectile* prj, float dt, _xEntFrame* frame)
+static signed int VPRJ_BBK_prjmove(zEntProjectile* prj, float dt, zScene* scn, _xEntFrame* frame)
 {
     st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
     st_ZPRJ_CAT_BOUNCEBALL* bounce = &prj->cat_data.bounce;
@@ -12018,7 +12874,7 @@ static void VPRJ_BMM_detach(zEntProjectile* prj)
     }
 }
 
-static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, _xEntFrame* frame)
+static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, zScene* scn, _xEntFrame* frame)
 {
     st_zEntVillain* vil;
     st_ZVMM_FLASK_DATA* flask;
