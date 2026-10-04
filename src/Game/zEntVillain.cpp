@@ -3558,11 +3558,10 @@ static void VIRM_initVilDflt(st_zEntVillain* vil);
 static inline signed int VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe);
 static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float chance);
 static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame);
-static _xVec3* VUTIL_mdlpos(st_zEntVillain* vil);
+static inline _xVec3* VUTIL_mdlpos(st_zEntVillain* vil);
 static inline float VUTIL_sqrt(float x);
 static inline signed int VUTIL_heroInFov(st_zEntVillain* vil);
 static inline signed int VUTIL_heroInSight(st_zEntVillain* vil, signed int lastknown);
-static inline void VUTIL_chkSight(st_zEntVillain* vil, signed int lastknown);
 static void zVIL_precalc(st_zEntVillain* vil, signed int flags);
 static inline void VTMR_tick(st_zEntVillain* vil, signed int idx, float dt);
 static void zVIL_upd_timers(st_zEntVillain* vil, float dt);
@@ -16423,7 +16422,20 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
                     {
                         pc->flg_plyr |= 1;
                     }
-                    VUTIL_chkSight(vil, old_los);
+                    {
+                        if (VUTIL_heroInFov(vil))
+                        {
+                            pc->flg_plyr |= 4;
+                        }
+                        if (vil->allow & 0x200)
+                        {
+                            pc->flg_plyr |= 8;
+                        }
+                        else if (VUTIL_heroInSight(vil, old_los))
+                        {
+                            pc->flg_plyr |= 8;
+                        }
+                    }
                 }
             }
             if (pc->dst_VtoP < 1.1f)
@@ -16444,7 +16456,20 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
         {
             if (!(pc->flg_plyr & 1))
             {
-                VUTIL_chkSight(vil, old_los);
+                {
+                        if (VUTIL_heroInFov(vil))
+                        {
+                            pc->flg_plyr |= 4;
+                        }
+                        if (vil->allow & 0x200)
+                        {
+                            pc->flg_plyr |= 8;
+                        }
+                        else if (VUTIL_heroInSight(vil, old_los))
+                        {
+                            pc->flg_plyr |= 8;
+                        }
+                    }
             }
 
             vec.x = ctr_plyr.x - vil->pos_pursue_home.x;
@@ -16494,24 +16519,6 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
         }
     }
     pc->flg_status |= 0x80000000;
-}
-
-static inline void VUTIL_chkSight(st_zEntVillain* vil, signed int lastknown)
-{
-    st_ZVIL_PRECALC* pc = &vil->precalc;
-
-    if (VUTIL_heroInFov(vil))
-    {
-        pc->flg_plyr |= 4;
-    }
-    if (vil->allow & 0x200)
-    {
-        pc->flg_plyr |= 8;
-    }
-    else if (VUTIL_heroInSight(vil, lastknown))
-    {
-        pc->flg_plyr |= 8;
-    }
 }
 
 static inline signed int VUTIL_heroInSight(st_zEntVillain* vil, signed int lastknown)
@@ -16568,7 +16575,7 @@ static inline float VUTIL_sqrt(float x)
     return xsqrt(x);
 }
 
-static _xVec3* VUTIL_mdlpos(st_zEntVillain* vil)
+static inline _xVec3* VUTIL_mdlpos(st_zEntVillain* vil)
 {
     return &((_xMat4x3*)vil->model->Mat)->pos;
 }
