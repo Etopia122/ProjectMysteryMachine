@@ -28,6 +28,7 @@ def build_source_dol(dst):
     try:
         run("ninja")
         shutil.copyfile(DOL_OUT, dst)
+        shutil.copyfile(DOL_OUT.replace("main.dol", "main.elf"), dst.replace("main.dol", "main.elf"))
     finally:
         run(sys.executable, "configure.py")
 

@@ -136,7 +136,7 @@ public:
     char footer[0x200];
 };
 
-static char cardwork[2][0xA000];
+static char cardwork[2][0xA000] __attribute__((aligned(32)));
 
 static signed int g_isginit;
 static st_ISG_TPL_TEXPALETTE* g_rawicon;
