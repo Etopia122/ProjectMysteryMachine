@@ -3552,7 +3552,6 @@ static signed int VWEP_swipe(st_zEntVillain* vil);
 static en_BEHAVIOUR_GOAL VGOL_set(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal);
 static signed int VCFG_getParm(st_ZVIL_CONFIG_REFERENCE* vilcfg, en_NPC_INI_PARAMETERS pid, void* val);
 static void VCFG_readAsset(st_ZVIL_CONFIG_REFERENCE* vilcfg);
-static inline void VCFG_readSAnim(zAssetModelParam* parms, unsigned int pmsize, char* name, _xVec3* vec, st_ZVIL_CONFIG_REFERENCE* vilcfg, _xVec3* dst, signed int bit);
 static void VCFG_readParms(st_ZVIL_CONFIG_REFERENCE* vilcfg);
 static void VIRM_initVilDflt(st_zEntVillain* vil);
 static inline signed int VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe);
@@ -3590,6 +3589,14 @@ static inline void VILN_flipAway(float* knock, float push);
 static inline signed int VILN_cmn_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
 static inline void VILN_tran(st_STIMULUS_CONTEXT_DATA* resp, signed int goal, signed int mode);
 static inline void VILN_stimGotoPos(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt);
+static inline void VANM_play(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b);
+static inline void VANM_playLoop(st_zEntVillain* vil, en_NPC_ANIMSTATES a);
+static inline void VANM_play3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c);
+static inline void VANM_play4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
+static inline void VANM_playRand(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b);
+static inline void VANM_playRand3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c);
+static inline void VANM_play5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e);
+static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
 static signed int VILN_BMM_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot);
 static signed int VILN_BMM_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
 static signed int VILN_BMM_calcmove(st_zEntVillain* vil, _xScene* scn, float dt, _xEntFrame* frame);
@@ -8128,295 +8135,148 @@ static signed int VILN_std_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA
 static signed int VILN_std_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot)
 {
 
-    if (goal >= 0) {
-        switch (goal) {                       /* switch 1 */
+    {
+        switch ((unsigned int)goal) {                       /* switch 1 */
         case 0:                                     /* switch 1 */
         case 1:                                     /* switch 1 */
         case 2:                                     /* switch 1 */
         case 3:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x8, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_play(vil, (en_NPC_ANIMSTATES)0x8, (en_NPC_ANIMSTATES)0x1);
             break;
         case 4:                                     /* switch 1 */
             if (gspot == 2) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x2, (en_NPC_ANIMSTATES)0x3 };
-                    VANM_randset(vil, NULL, list, 2);
-                }
+                VANM_playRand(vil, (en_NPC_ANIMSTATES)0x2, (en_NPC_ANIMSTATES)0x3);
                 vil->anim_playsync = 1;
             } else {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             }
             break;
         case 5:                                     /* switch 1 */
             if (gspot == 2) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x5, (en_NPC_ANIMSTATES)0x6 };
-                    VANM_randset(vil, NULL, list, 2);
-                }
+                VANM_playRand(vil, (en_NPC_ANIMSTATES)0x5, (en_NPC_ANIMSTATES)0x6);
                 vil->anim_playsync = 1;
             } else {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x4, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x4, (en_NPC_ANIMSTATES)0x1);
             }
             break;
         case 31:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0xb, (en_NPC_ANIMSTATES)0xe, (en_NPC_ANIMSTATES)0x18 };
-                    VANM_set(vil, list, 3, 0);
-                }
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0xb, (en_NPC_ANIMSTATES)0xe, (en_NPC_ANIMSTATES)0x18);
             } else if (gspot == 0xA) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0xc, (en_NPC_ANIMSTATES)0x36 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_play(vil, (en_NPC_ANIMSTATES)0xc, (en_NPC_ANIMSTATES)0x36);
             }
             break;
         case 8:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x7, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x7);
             break;
         case 6:                                     /* switch 1 */
             if (vil->allow & 0x20) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0xa, (en_NPC_ANIMSTATES)0x7 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_play(vil, (en_NPC_ANIMSTATES)0xa, (en_NPC_ANIMSTATES)0x7);
             } else {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x7, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x7);
             }
             break;
         case 7:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x7, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x7);
             break;
         case 9:                                     /* switch 1 */
-            switch (gspot) {                   /* switch 2; irregular */
-            case 0:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 2:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x2, (en_NPC_ANIMSTATES)0x3 };
-                    VANM_randset(vil, NULL, list, 2);
-                }
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
+            } else if (gspot == 2) {
+                VANM_playRand(vil, (en_NPC_ANIMSTATES)0x2, (en_NPC_ANIMSTATES)0x3);
                 vil->anim_playsync = 1;
-                break;
-            case 11:                                /* switch 2 */
-            case 12:                                /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x9, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            } else if (gspot == 11 || gspot == 12) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x9, (en_NPC_ANIMSTATES)0x1);
             }
             break;
         case 10:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x36, (en_NPC_ANIMSTATES)0x37, (en_NPC_ANIMSTATES)0xa };
-                    VANM_set(vil, list, 3, 0);
-                }
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x36, (en_NPC_ANIMSTATES)0x37, (en_NPC_ANIMSTATES)0xa);
             } else if (gspot == 0xA) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x8, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x8);
             }
             break;
         case 11:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0xd, (en_NPC_ANIMSTATES)0x15, (en_NPC_ANIMSTATES)0x16 };
-                VANM_set(vil, list, 3, 0);
-            }
+            VANM_play3(vil, (en_NPC_ANIMSTATES)0xd, (en_NPC_ANIMSTATES)0x15, (en_NPC_ANIMSTATES)0x16);
             break;
         case 13:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x13, (en_NPC_ANIMSTATES)0x14 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_play(vil, (en_NPC_ANIMSTATES)0x13, (en_NPC_ANIMSTATES)0x14);
             vil->anim_loopmult = 0.6f;
             break;
         case 14:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x11, (en_NPC_ANIMSTATES)0x12, (en_NPC_ANIMSTATES)0x9 };
-                VANM_set(vil, list, 3, 0);
-            }
+            VANM_play3(vil, (en_NPC_ANIMSTATES)0x11, (en_NPC_ANIMSTATES)0x12, (en_NPC_ANIMSTATES)0x9);
             vil->anim_loopmult = 0.6f;
             break;
         case 15:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0xd, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0xd);
             break;
         case 16:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x15, (en_NPC_ANIMSTATES)0x16 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_play(vil, (en_NPC_ANIMSTATES)0x15, (en_NPC_ANIMSTATES)0x16);
             break;
         case 23:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0xe, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0xe);
             vil->anim_playsync = 1;
             break;
         case 24:                                    /* switch 1 */
             if (gspot == 9) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x31, (en_NPC_ANIMSTATES)0x30 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x31, (en_NPC_ANIMSTATES)0x30);
             } else if (gspot == 1) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x30, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x30);
             } else {
-                {
-                    en_NPC_ANIMSTATES list[4] = { (en_NPC_ANIMSTATES)0x2f, (en_NPC_ANIMSTATES)0x30, (en_NPC_ANIMSTATES)0x17, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 4, 0);
-                }
+                VANM_play4(vil, (en_NPC_ANIMSTATES)0x2f, (en_NPC_ANIMSTATES)0x30, (en_NPC_ANIMSTATES)0x17, (en_NPC_ANIMSTATES)0x1);
             }
             break;
         case 17:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 3; irregular */
-            case 0:                                 /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x17, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 11:                                /* switch 3 */
-            case 12:                                /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x9, (en_NPC_ANIMSTATES)0x17, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 3, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x17, (en_NPC_ANIMSTATES)0x1);
+            } else if (gspot == 11 || gspot == 12) {
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x9, (en_NPC_ANIMSTATES)0x17, (en_NPC_ANIMSTATES)0x1);
             }
             break;
         case 19:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0xa, (en_NPC_ANIMSTATES)0x7 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_play(vil, (en_NPC_ANIMSTATES)0xa, (en_NPC_ANIMSTATES)0x7);
             break;
         case 20:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x18, (en_NPC_ANIMSTATES)0x19, (en_NPC_ANIMSTATES)0x1a };
-                VANM_randset(vil, NULL, list, 3);
-            }
+            VANM_playRand3(vil, (en_NPC_ANIMSTATES)0x18, (en_NPC_ANIMSTATES)0x19, (en_NPC_ANIMSTATES)0x1a);
             break;
         case 21:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1e, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1e);
             }
             break;
         case 22:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[5] = { (en_NPC_ANIMSTATES)0x20, (en_NPC_ANIMSTATES)0x21, (en_NPC_ANIMSTATES)0x18, (en_NPC_ANIMSTATES)0x19, (en_NPC_ANIMSTATES)0x1a };
-                    VANM_set(vil, list, 5, 0);
-                }
+                VANM_play5(vil, (en_NPC_ANIMSTATES)0x20, (en_NPC_ANIMSTATES)0x21, (en_NPC_ANIMSTATES)0x18, (en_NPC_ANIMSTATES)0x19, (en_NPC_ANIMSTATES)0x1a);
             }
             break;
         case 26:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 4; irregular */
-            case 0:                                 /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x24, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 5:                                 /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x27, (en_NPC_ANIMSTATES)0x28, (en_NPC_ANIMSTATES)0x24 };
-                    VANM_set(vil, list, 3, 0);
-                }
-                break;
-            case 6:                                 /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x28, (en_NPC_ANIMSTATES)0x27, (en_NPC_ANIMSTATES)0x24 };
-                    VANM_set(vil, list, 3, 0);
-                }
-                break;
-            case 7:                                 /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x25, (en_NPC_ANIMSTATES)0x24 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 8:                                 /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x26, (en_NPC_ANIMSTATES)0x25, (en_NPC_ANIMSTATES)0x24 };
-                    VANM_set(vil, list, 3, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x24);
+            } else if (gspot == 5) {
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x27, (en_NPC_ANIMSTATES)0x28, (en_NPC_ANIMSTATES)0x24);
+            } else if (gspot == 6) {
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x28, (en_NPC_ANIMSTATES)0x27, (en_NPC_ANIMSTATES)0x24);
+            } else if (gspot == 7) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x25, (en_NPC_ANIMSTATES)0x24);
+            } else if (gspot == 8) {
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x26, (en_NPC_ANIMSTATES)0x25, (en_NPC_ANIMSTATES)0x24);
             }
             break;
         case 25:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 5; irregular */
-            case 0:                                 /* switch 5 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x2a, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 5:                                 /* switch 5 */
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x2d, (en_NPC_ANIMSTATES)0x2e, (en_NPC_ANIMSTATES)0x2a };
-                    VANM_set(vil, list, 3, 0);
-                }
-                break;
-            case 6:                                 /* switch 5 */
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x2e, (en_NPC_ANIMSTATES)0x2d, (en_NPC_ANIMSTATES)0x2a };
-                    VANM_set(vil, list, 3, 0);
-                }
-                break;
-            case 7:                                 /* switch 5 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x2b, (en_NPC_ANIMSTATES)0x2a };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 8:                                 /* switch 5 */
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x2c, (en_NPC_ANIMSTATES)0x2b, (en_NPC_ANIMSTATES)0x2a };
-                    VANM_set(vil, list, 3, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x2a);
+            } else if (gspot == 5) {
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x2d, (en_NPC_ANIMSTATES)0x2e, (en_NPC_ANIMSTATES)0x2a);
+            } else if (gspot == 6) {
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x2e, (en_NPC_ANIMSTATES)0x2d, (en_NPC_ANIMSTATES)0x2a);
+            } else if (gspot == 7) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x2b, (en_NPC_ANIMSTATES)0x2a);
+            } else if (gspot == 8) {
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x2c, (en_NPC_ANIMSTATES)0x2b, (en_NPC_ANIMSTATES)0x2a);
             }
             break;
         case 32:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[4] = { (en_NPC_ANIMSTATES)0x34, (en_NPC_ANIMSTATES)0x32, (en_NPC_ANIMSTATES)0x33, (en_NPC_ANIMSTATES)0x35 };
-                VANM_set(vil, list, 4, 0);
-            }
+            VANM_play4(vil, (en_NPC_ANIMSTATES)0x34, (en_NPC_ANIMSTATES)0x32, (en_NPC_ANIMSTATES)0x33, (en_NPC_ANIMSTATES)0x35);
             break;
         }
     }
@@ -10195,134 +10055,73 @@ static signed int VILN_gang_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal
     if (goal >= 0) {
         switch (goal) {                       /* switch 1 */
         case 1:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 3:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 4:                                     /* switch 1 */
-            switch (gspot) {                   /* switch 2; irregular */
-            case 0:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 1:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[4] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x7a, (en_NPC_ANIMSTATES)0x7b, (en_NPC_ANIMSTATES)0x7c };
-                    VANM_randset(vil, NULL, list, 4);
-                }
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
+            } else if (gspot == 1) {
+                VANM_playRand4(vil, (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x7a, (en_NPC_ANIMSTATES)0x7b, (en_NPC_ANIMSTATES)0x7c);
                 vil->anim_loopmult = 5.9700003f;
                 if (xUtil_yesno(0.5f) != 0) {
                     vil->anim_loopmult += 2.0f;
                 } else if (xUtil_yesno(0.5f) != 0) {
                     vil->anim_loopmult += 1.0f;
                 }
-                break;
-            case 12:                                /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x81, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 2:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[4] = { (en_NPC_ANIMSTATES)0x7d, (en_NPC_ANIMSTATES)0x7e, (en_NPC_ANIMSTATES)0x7f, (en_NPC_ANIMSTATES)0x80 };
-                    VANM_randset(vil, NULL, list, 4);
-                }
+            } else if (gspot == 12) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x81);
+            } else if (gspot == 2) {
+                VANM_playRand4(vil, (en_NPC_ANIMSTATES)0x7d, (en_NPC_ANIMSTATES)0x7e, (en_NPC_ANIMSTATES)0x7f, (en_NPC_ANIMSTATES)0x80);
                 vil->anim_loopmult = 1.97f;
                 if (xUtil_yesno(0.5f) != 0) {
                     vil->anim_loopmult += 1.0f;
                 }
-                break;
             }
             break;
         case 12:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 3; irregular */
-            case 0:                                 /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[4] = { (en_NPC_ANIMSTATES)0x87, (en_NPC_ANIMSTATES)0x88, (en_NPC_ANIMSTATES)0x89, (en_NPC_ANIMSTATES)0x8a };
-                    VANM_randset(vil, NULL, list, 4);
-                }
-                break;
-            case 1:                                 /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x87, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 12:                                /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x8b, (en_NPC_ANIMSTATES)0x87 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 2:                                 /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[4] = { (en_NPC_ANIMSTATES)0x87, (en_NPC_ANIMSTATES)0x88, (en_NPC_ANIMSTATES)0x89, (en_NPC_ANIMSTATES)0x8a };
-                    VANM_randset(vil, NULL, list, 4);
-                }
+            if (gspot == 0) {
+                VANM_playRand4(vil, (en_NPC_ANIMSTATES)0x87, (en_NPC_ANIMSTATES)0x88, (en_NPC_ANIMSTATES)0x89, (en_NPC_ANIMSTATES)0x8a);
+            } else if (gspot == 1) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x87);
+            } else if (gspot == 12) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x8b, (en_NPC_ANIMSTATES)0x87);
+            } else if (gspot == 2) {
+                VANM_playRand4(vil, (en_NPC_ANIMSTATES)0x87, (en_NPC_ANIMSTATES)0x88, (en_NPC_ANIMSTATES)0x89, (en_NPC_ANIMSTATES)0x8a);
                 vil->anim_loopmult = 4.9700003f;
                 if (xUtil_yesno(0.5f) != 0) {
                     vil->anim_loopmult += 2.0f;
                 } else if (xUtil_yesno(0.5f) != 0) {
                     vil->anim_loopmult += 1.0f;
                 }
-                break;
             }
             break;
         case 31:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x85, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x85);
             } else if (gspot == 0xA) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x86, (en_NPC_ANIMSTATES)0x85 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x86, (en_NPC_ANIMSTATES)0x85);
             }
             break;
         case 8:                                     /* switch 1 */
             if (vil->allow & 0x20) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x83, (en_NPC_ANIMSTATES)0x82 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x83, (en_NPC_ANIMSTATES)0x82);
             } else {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x82, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x82);
             }
             break;
         case 6:                                     /* switch 1 */
             if (vil->allow & 0x20) {
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x84, (en_NPC_ANIMSTATES)0x83, (en_NPC_ANIMSTATES)0x82 };
-                    VANM_set(vil, list, 3, 0);
-                }
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x84, (en_NPC_ANIMSTATES)0x83, (en_NPC_ANIMSTATES)0x82);
             } else {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x83, (en_NPC_ANIMSTATES)0x82 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x83, (en_NPC_ANIMSTATES)0x82);
             }
             break;
         case 32:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             }
             break;
         }
@@ -10957,47 +10756,26 @@ static signed int VILN_sham_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal
     if (goal >= 0) {
         switch (goal) {
         case 1:
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 3:
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 4:
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 8:
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x8c, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x8c);
             break;
         case 6:
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x8c, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x8c);
             break;
         case 23:
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x8d, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x8d);
             break;
         case 32:
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             }
             break;
         }
@@ -11746,110 +11524,53 @@ static signed int VILN_BBK_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal,
     if (goal >= 0) {
         switch (goal) {                       /* switch 1 */
         case 1:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 3:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 4:                                     /* switch 1 */
-            switch (gspot) {                   /* switch 2; irregular */
-            case 0:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 2:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x3b, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 12:                                /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x3d, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
+            } else if (gspot == 2) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x3b);
+            } else if (gspot == 12) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x3d);
             }
             break;
         case 8:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x3c, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x3c);
             break;
         case 6:                                     /* switch 1 */
-            switch (gspot) {                   /* switch 3; irregular */
-            case 0:                                 /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x3c, (en_NPC_ANIMSTATES)0x3e, (en_NPC_ANIMSTATES)0x3f };
-                    VANM_set(vil, list, 3, 0);
-                }
-                break;
-            case 11:                                /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x3f, (en_NPC_ANIMSTATES)0x3c };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 12:                                /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x3e, (en_NPC_ANIMSTATES)0x3c };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x3c, (en_NPC_ANIMSTATES)0x3e, (en_NPC_ANIMSTATES)0x3f);
+            } else if (gspot == 11) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x3f, (en_NPC_ANIMSTATES)0x3c);
+            } else if (gspot == 12) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x3e, (en_NPC_ANIMSTATES)0x3c);
             }
             break;
         case 23:                                    /* switch 1 */
             if ((gspot == 0) || (gspot == 0xD) || (gspot == 0xE)) {
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x43, (en_NPC_ANIMSTATES)0x44, (en_NPC_ANIMSTATES)0x45 };
-                    VANM_randset(vil, NULL, list, 3);
-                }
+                VANM_playRand3(vil, (en_NPC_ANIMSTATES)0x43, (en_NPC_ANIMSTATES)0x44, (en_NPC_ANIMSTATES)0x45);
             }
             break;
         case 21:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x40, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x40);
             }
             break;
         case 27:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 4; irregular */
-            case 0:                                 /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x41, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 15:                                /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x42, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 16:                                /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x41, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x41);
+            } else if (gspot == 15) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x42);
+            } else if (gspot == 16) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x41);
             }
             break;
         case 32:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x46, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x46);
             break;
         }
     }
@@ -12737,109 +12458,56 @@ static signed int VILN_BGG_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal,
     if (goal >= 0) {
         switch (goal) {                       /* switch 1 */
         case 1:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 3:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 4:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 8:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x47, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x47);
             break;
         case 6:                                     /* switch 1 */
-            switch (gspot) {                   /* switch 2; irregular */
-            case 0:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x49, (en_NPC_ANIMSTATES)0x47 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 11:                                /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x48, (en_NPC_ANIMSTATES)0x47 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 12:                                /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x49, (en_NPC_ANIMSTATES)0x47 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x49, (en_NPC_ANIMSTATES)0x47);
+            } else if (gspot == 11) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x48, (en_NPC_ANIMSTATES)0x47);
+            } else if (gspot == 12) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x49, (en_NPC_ANIMSTATES)0x47);
             }
             break;
         case 23:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x4d, (en_NPC_ANIMSTATES)0x4e };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x4d, (en_NPC_ANIMSTATES)0x4e);
             } else if (gspot == 0xD) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x4e, (en_NPC_ANIMSTATES)0x4d };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x4e, (en_NPC_ANIMSTATES)0x4d);
             }
             break;
         case 21:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x4a, (en_NPC_ANIMSTATES)0x4b, (en_NPC_ANIMSTATES)0x4c };
-                    VANM_set(vil, list, 3, 0);
-                }
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x4a, (en_NPC_ANIMSTATES)0x4b, (en_NPC_ANIMSTATES)0x4c);
                 vil->anim_loopmult = 2.0f + vil->hitpts;
             } else if (gspot == 4) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x4c, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x4c);
             }
             break;
         case 27:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 3; irregular */
-            case 0:                                 /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x4f, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x4f);
                 vil->anim_loopmult = 3.17f;
-                break;
-            case 15:                                /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x50, (en_NPC_ANIMSTATES)0x4f };
-                    VANM_set(vil, list, 2, 0);
-                }
+            } else if (gspot == 15) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x50, (en_NPC_ANIMSTATES)0x4f);
                 vil->anim_loopmult = 2.47f;
-                break;
-            case 16:                                /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x51, (en_NPC_ANIMSTATES)0x4f };
-                    VANM_set(vil, list, 2, 0);
-                }
+            } else if (gspot == 16) {
+                VANM_play(vil, (en_NPC_ANIMSTATES)0x51, (en_NPC_ANIMSTATES)0x4f);
                 vil->anim_loopmult = 1.0f;
-                break;
             }
             break;
         case 32:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x51, (en_NPC_ANIMSTATES)0x50, (en_NPC_ANIMSTATES)0x4f };
-                    VANM_set(vil, list, 3, 0);
-                }
+                VANM_play3(vil, (en_NPC_ANIMSTATES)0x51, (en_NPC_ANIMSTATES)0x50, (en_NPC_ANIMSTATES)0x4f);
             }
             break;
         }
@@ -13721,129 +13389,62 @@ static signed int VILN_BRB_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal,
     if (goal >= 0) {
         switch (goal) {                       /* switch 1 */
         case 1:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 3:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 4:                                     /* switch 1 */
-            switch (gspot) {                   /* switch 2; irregular */
-            case 0:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 2:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x52, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 12:                                /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x54, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 11:                                /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x54, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
+            } else if (gspot == 2) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x52);
+            } else if (gspot == 12) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x54);
+            } else if (gspot == 11) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x54);
             }
             break;
         case 8:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x53, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x53);
             break;
         case 6:                                     /* switch 1 */
             if (gspot == 0) {
                 if (vil->allow & 0x20) {
-                    {
-                        en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x55, (en_NPC_ANIMSTATES)0x53 };
-                        VANM_set(vil, list, 2, 0);
-                    }
+                    VANM_play(vil, (en_NPC_ANIMSTATES)0x55, (en_NPC_ANIMSTATES)0x53);
                 } else {
-                    {
-                        en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x53, (en_NPC_ANIMSTATES)0x1 };
-                        VANM_set(vil, list, 2, 0);
-                    }
+                    VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x53);
                 }
             }
             break;
         case 23:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 3; irregular */
-            case 0:                                 /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x56, (en_NPC_ANIMSTATES)0x57, (en_NPC_ANIMSTATES)0x58 };
-                    VANM_randset(vil, NULL, list, 3);
-                }
-                break;
-            case 13:                                /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x57, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 14:                                /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x58, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_playRand3(vil, (en_NPC_ANIMSTATES)0x56, (en_NPC_ANIMSTATES)0x57, (en_NPC_ANIMSTATES)0x58);
+            } else if (gspot == 13) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x57);
+            } else if (gspot == 14) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x58);
             }
             break;
         case 22:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x5a, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x5a);
             } else if (gspot == 9) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x5c, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x5c);
             }
             break;
         case 27:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 4; irregular */
-            case 0:                                 /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x5d, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 15:                                /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x5d, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 16:                                /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x5d, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x5d);
+            } else if (gspot == 15) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x5d);
+            } else if (gspot == 16) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x5d);
             }
             break;
         case 32:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x61, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x61);
             }
             break;
         }
@@ -15097,218 +14698,162 @@ static signed int VILN_BMM_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal,
         case 1:                                     /* switch 1 */
         case 2:                                     /* switch 1 */
         case 3:                                     /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
         case 4:                                     /* switch 1 */
             if (alt != 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x66, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x66);
             } else {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             }
             break;
         case 31:                                    /* switch 1 */
             if (alt != 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x6a, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x6a);
             } else {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x64, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x64);
             }
             break;
         case 8:                                     /* switch 1 */
             if (alt != 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x67, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x67);
             } else {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x62, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x62);
             }
             break;
         case 6:                                     /* switch 1 */
             if (alt != 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x67, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x67);
             } else {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x62, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x62);
             }
             break;
         case 11:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x65, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x65);
             break;
         case 29:                                    /* switch 1 */
             if (alt != 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x66, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x66);
             } else {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x66, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x66);
             }
             break;
         case 23:                                    /* switch 1 */
             if (alt != 0) {
-                {
-                    en_NPC_ANIMSTATES list[3] = { (en_NPC_ANIMSTATES)0x6a, (en_NPC_ANIMSTATES)0x63, (en_NPC_ANIMSTATES)0x6b };
-                    VANM_randset(vil, NULL, list, 3);
-                }
+                VANM_playRand3(vil, (en_NPC_ANIMSTATES)0x6a, (en_NPC_ANIMSTATES)0x63, (en_NPC_ANIMSTATES)0x6b);
             } else {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x63, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x63);
             }
             break;
         case 17:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x66, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x66);
             } else if (gspot == 0xC) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x68, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x68);
             }
             break;
         case 28:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 2; irregular */
-            case 0:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x6f, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 1:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x70, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 9:                                 /* switch 2 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x71, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x6f);
+            } else if (gspot == 1) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x70);
+            } else if (gspot == 9) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x71);
             }
             break;
         case 24:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 3; irregular */
-            case 0:                                 /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x72, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 1:                                 /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x73, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 9:                                 /* switch 3 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x74, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x72);
+            } else if (gspot == 1) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x73);
+            } else if (gspot == 9) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x74);
             }
             break;
         case 21:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 4; irregular */
-            case 0:                                 /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x6c, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 3:                                 /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x6d, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 4:                                 /* switch 4 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x6e, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x6c);
+            } else if (gspot == 3) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x6d);
+            } else if (gspot == 4) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x6e);
             }
             break;
         case 30:                                    /* switch 1 */
-            switch (gspot) {                   /* switch 5; irregular */
-            case 0:                                 /* switch 5 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x75, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 1:                                 /* switch 5 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x76, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
-            case 9:                                 /* switch 5 */
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x77, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
-                break;
+            if (gspot == 0) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x75);
+            } else if (gspot == 1) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x76);
+            } else if (gspot == 9) {
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x77);
             }
             break;
         case 27:                                    /* switch 1 */
             if (gspot == 0) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x78, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x78);
             } else if (gspot == 0xF) {
-                {
-                    en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x1, (en_NPC_ANIMSTATES)0x1 };
-                    VANM_set(vil, list, 2, 0);
-                }
+                VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             }
             break;
         case 32:                                    /* switch 1 */
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)0x79, (en_NPC_ANIMSTATES)0x1 };
-                VANM_set(vil, list, 2, 0);
-            }
+            VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x79);
             break;
         }
     }
     return 1;
+}
+
+static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
+                                  en_NPC_ANIMSTATES d)
+{
+    en_NPC_ANIMSTATES list[4] = { a, b, c, d };
+    VANM_randset(vil, NULL, list, 4);
+}
+
+static inline void VANM_play5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
+                              en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e)
+{
+    en_NPC_ANIMSTATES list[5] = { a, b, c, d, e };
+    VANM_set(vil, list, 5, 0);
+}
+
+static inline void VANM_playRand3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c)
+{
+    en_NPC_ANIMSTATES list[3] = { a, b, c };
+    VANM_randset(vil, NULL, list, 3);
+}
+
+static inline void VANM_playRand(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b)
+{
+    en_NPC_ANIMSTATES list[2] = { a, b };
+    VANM_randset(vil, NULL, list, 2);
+}
+
+static inline void VANM_play4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
+                              en_NPC_ANIMSTATES d)
+{
+    en_NPC_ANIMSTATES list[4] = { a, b, c, d };
+    VANM_set(vil, list, 4, 0);
+}
+
+static inline void VANM_play3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c)
+{
+    en_NPC_ANIMSTATES list[3] = { a, b, c };
+    VANM_set(vil, list, 3, 0);
+}
+
+static inline void VANM_playLoop(st_zEntVillain* vil, en_NPC_ANIMSTATES a)
+{
+    en_NPC_ANIMSTATES list[2] = { a, (en_NPC_ANIMSTATES)1 };
+    VANM_set(vil, list, 2, 0);
+}
+
+// Animation list helpers. Each takes the states as parameters, so the list is
+// built from a template and then overwritten, as in the original.
+static inline void VANM_play(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b)
+{
+    en_NPC_ANIMSTATES list[2] = { a, b };
+    VANM_set(vil, list, 2, 0);
 }
 
 static inline void VILN_stimGotoPos(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt)
@@ -16978,11 +16523,12 @@ static void VIRM_initVilDflt(st_zEntVillain* vil)
 static void VCFG_readParms(st_ZVIL_CONFIG_REFERENCE* vilcfg)
 {
     unsigned int pmsize = 0;
-    _xVec3 vec = { 0.0f, 0.0f, 0.0f };
     _xVec3 def_vert = { 0.0f, 0.0f, 0.0f };
     _xVec3 def_bnd = { 0.0f, 0.0f, 0.0f };
-    zAssetModelParam* parms;
+    _xVec3 def_scl = { 1.0f, 1.0f, 1.0f };
+    _xVec3 vec = { 0.0f, 0.0f, 0.0f };
     signed int i;
+    zAssetModelParam* parms;
 
     if (!vilcfg->asset->modelInfoID)
     {
@@ -16996,166 +16542,214 @@ static void VCFG_readParms(st_ZVIL_CONFIG_REFERENCE* vilcfg)
 
     for (i = 0; i < 49; i++)
     {
-        char* name = g_parmname[i];
-
         switch (i)
         {
         case ZVIL_PARM_MDLSCL_BASE:
-            VCFG_readSAnim(parms, pmsize, name, &vec, vilcfg, &vilcfg->scl_modelBase, 0x8);
+            if (zParamGetVector(parms, pmsize, g_parmname[i], def_scl, &vec) > 2)
+            {
+                vilcfg->misc_flags |= 0x8;
+            }
+            else
+            {
+                vilcfg->misc_flags &= ~0x8;
+            }
+            vilcfg->scl_modelBase = vec;
             break;
         case ZVIL_PARM_SANIM_IDLE:
-            VCFG_readSAnim(parms, pmsize, name, &vec, vilcfg, &vilcfg->sanim_idle, 0x1);
+            if (zParamGetVector(parms, pmsize, g_parmname[i], def_scl, &vec) > 2)
+            {
+                vilcfg->misc_flags |= 0x1;
+            }
+            else
+            {
+                vilcfg->misc_flags &= ~0x1;
+            }
+            vilcfg->sanim_idle = vec;
             break;
         case ZVIL_PARM_SANIM_MOVE:
-            VCFG_readSAnim(parms, pmsize, name, &vec, vilcfg, &vilcfg->sanim_move, 0x2);
+            if (zParamGetVector(parms, pmsize, g_parmname[i], def_scl, &vec) > 2)
+            {
+                vilcfg->misc_flags |= 0x2;
+            }
+            else
+            {
+                vilcfg->misc_flags &= ~0x2;
+            }
+            vilcfg->sanim_move = vec;
             break;
         case ZVIL_PARM_SANIM_CHASE:
-            VCFG_readSAnim(parms, pmsize, name, &vec, vilcfg, &vilcfg->sanim_chase, 0x4);
+            // Unlike the other scales, any value count turns the chase scale on.
+            if (zParamGetVector(parms, pmsize, g_parmname[i], def_scl, &vec) != 0)
+            {
+                vilcfg->misc_flags |= 0x4;
+            }
+            else
+            {
+                vilcfg->misc_flags &= ~0x4;
+            }
+            vilcfg->sanim_chase = vec;
             break;
         case ZVIL_PARM_WANDER_ARC:
-            vilcfg->ang_wander = zParamGetFloat(parms, pmsize, name, 5.0f);
+            vilcfg->ang_wander = zParamGetFloat(parms, pmsize, g_parmname[i], 5.0f);
             break;
         case ZVIL_PARM_HIT_POINTS:
-            vilcfg->hitpts = zParamGetInt(parms, pmsize, name, 1);
+            vilcfg->hitpts = zParamGetInt(parms, pmsize, g_parmname[i], 1);
             break;
         case ZVIL_PARM_BUBBLED_TIME:
-            vilcfg->tymref_list[ZVIL_TDUR_GUM] = zParamGetFloat(parms, pmsize, name, 10.0f);
+            vilcfg->tymref_list[ZVIL_TDUR_GUM] = zParamGetFloat(parms, pmsize, g_parmname[i], 10.0f);
             break;
         case ZVIL_PARM_GUMMED_TIME:
-            vilcfg->tymref_list[ZVIL_TDUR_SOAP] = zParamGetFloat(parms, pmsize, name, 10.0f);
+            vilcfg->tymref_list[ZVIL_TDUR_SOAP] = zParamGetFloat(parms, pmsize, g_parmname[i], 10.0f);
             break;
         case ZVIL_PARM_DAZED_TIME:
-            vilcfg->tymref_list[ZVIL_TDUR_DAZED] = zParamGetFloat(parms, pmsize, name, 5.0f);
+            vilcfg->tymref_list[ZVIL_TDUR_DAZED] = zParamGetFloat(parms, pmsize, g_parmname[i], 5.0f);
             break;
         case ZVIL_PARM_EXTEND_RANGE:
-            vilcfg->dst_extend = zParamGetFloat(parms, pmsize, name, 1.0f);
+            vilcfg->dst_extend = zParamGetFloat(parms, pmsize, g_parmname[i], 1.0f);
             break;
         case ZVIL_PARM_EXTEND_RATE:
-            vilcfg->spd_extend = zParamGetFloat(parms, pmsize, name, 1.0f);
+            vilcfg->spd_extend = zParamGetFloat(parms, pmsize, g_parmname[i], 1.0f);
             break;
         case ZVIL_PARM_EXTEND_WIDTH:
-            vilcfg->wid_extend = zParamGetFloat(parms, pmsize, name, 1.0f);
+            vilcfg->wid_extend = zParamGetFloat(parms, pmsize, g_parmname[i], 1.0f);
             break;
         case ZVIL_PARM_EXTEND_TIME:
-            vilcfg->tymref_list[ZVIL_TDUR_EXTEND] = zParamGetFloat(parms, pmsize, name, 2.0f);
+            vilcfg->tymref_list[ZVIL_TDUR_EXTEND] = zParamGetFloat(parms, pmsize, g_parmname[i], 2.0f);
             break;
         case ZVIL_PARM_FOV_ANGLE:
-            vilcfg->fov_detect = (3.1415927f * zParamGetFloat(parms, pmsize, name, 50.0f)) / 180.0f;
+            vilcfg->fov_detect = (3.1415927f * zParamGetFloat(parms, pmsize, g_parmname[i], 50.0f)) / 180.0f;
             break;
         case ZVIL_PARM_GLOAT_TIME:
-            vilcfg->tymref_list[ZVIL_TDUR_TAUNT] = zParamGetFloat(parms, pmsize, name, 3.0f);
+            vilcfg->tymref_list[ZVIL_TDUR_TAUNT] = zParamGetFloat(parms, pmsize, g_parmname[i], 3.0f);
             break;
         case ZVIL_PARM_LOB_RANGE:
-            vilcfg->dst_lob = zParamGetFloat(parms, pmsize, name, 5.0f);
+            vilcfg->dst_lob = zParamGetFloat(parms, pmsize, g_parmname[i], 5.0f);
             break;
         case ZVIL_PARM_LOB_SPEED:
-            vilcfg->spd_lob = zParamGetFloat(parms, pmsize, name, 2.0f);
+            vilcfg->spd_lob = zParamGetFloat(parms, pmsize, g_parmname[i], 2.0f);
             break;
         case ZVIL_PARM_LOB_SALVO:
-            vilcfg->cnt_lobSalvo = zParamGetInt(parms, pmsize, name, 1);
+            vilcfg->cnt_lobSalvo = zParamGetInt(parms, pmsize, g_parmname[i], 1);
             break;
         case ZVIL_PARM_LOB_RELOAD_TIME:
-            vilcfg->tymref_list[ZVIL_TDUR_LOBRELOAD] = zParamGetFloat(parms, pmsize, name, 1.0f);
+            vilcfg->tymref_list[ZVIL_TDUR_LOBRELOAD] = zParamGetFloat(parms, pmsize, g_parmname[i], 1.0f);
             break;
         case ZVIL_PARM_LOB_ARC:
             // The original stores the arc and heaviness parameters into dst_lob.
-            vilcfg->dst_lob = zParamGetFloat(parms, pmsize, name, -1.0f);
+            vilcfg->dst_lob = zParamGetFloat(parms, pmsize, g_parmname[i], -1.0f);
             break;
         case ZVIL_PARM_LOB_HEAVY:
-            vilcfg->dst_lob = zParamGetFloat(parms, pmsize, name, -1.0f);
+            vilcfg->dst_lob = zParamGetFloat(parms, pmsize, g_parmname[i], -1.0f);
             break;
         case ZVIL_PARM_DETECT_RADIUS:
         {
-            float rad = zParamGetFloat(parms, pmsize, name, 5.0f);
+            float rad = zParamGetFloat(parms, pmsize, g_parmname[i], 5.0f);
             vilcfg->ds2_detect = rad * rad;
             break;
         }
         case ZVIL_PARM_DETECT_HEIGHT:
-            vilcfg->hyt_detect = zParamGetFloat(parms, pmsize, name, 6.0f);
+            vilcfg->hyt_detect = zParamGetFloat(parms, pmsize, g_parmname[i], 6.0f);
             break;
         case ZVIL_PARM_DETECT_HYTOFF:
-            vilcfg->hyt_dtctoff = zParamGetFloat(parms, pmsize, name, 0.0f);
+            vilcfg->hyt_dtctoff = zParamGetFloat(parms, pmsize, g_parmname[i], 0.0f);
             break;
         case ZVIL_PARM_PURSUE_RADIUS:
         {
-            float rad = zParamGetFloat(parms, pmsize, name, 5.0f);
+            float rad = zParamGetFloat(parms, pmsize, g_parmname[i], 5.0f);
             vilcfg->ds2_pursue = rad * rad;
             break;
         }
         case ZVIL_PARM_MOVE_RATE:
-            vilcfg->spd_move = zParamGetFloat(parms, pmsize, name, 1.0f);
+            vilcfg->spd_move = zParamGetFloat(parms, pmsize, g_parmname[i], 1.0f);
             break;
         case ZVIL_PARM_CHASE_RATE:
-            vilcfg->spd_chase = zParamGetFloat(parms, pmsize, name, 1.0f);
+            vilcfg->spd_chase = zParamGetFloat(parms, pmsize, g_parmname[i], 1.0f);
             break;
         case ZVIL_PARM_TURN_RATE:
-            vilcfg->spd_turn = zParamGetFloat(parms, pmsize, name, 5.235988f);
+            vilcfg->spd_turn = zParamGetFloat(parms, pmsize, g_parmname[i], 5.235988f);
             break;
         case ZVIL_PARM_VERT_GUM_LFOOT:
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[0] = vec;
+            break;
         case ZVIL_PARM_VERT_GUM_RFOOT:
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[1] = vec;
+            break;
         case ZVIL_PARM_VERT_GUM_ELBOW:
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[2] = vec;
+            break;
         case ZVIL_PARM_VERT_GUM_CUSTA:
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[3] = vec;
+            break;
         case ZVIL_PARM_VERT_GUM_CUSTB:
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[4] = vec;
+            break;
         case ZVIL_PARM_VERT_WEAPON:
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[5] = vec;
+            break;
         case ZVIL_PARM_VERT_ATTACK:
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[6] = vec;
+            break;
         case ZVIL_PARM_VERT_ATTACKALT:
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[7] = vec;
+            break;
         case ZVIL_PARM_VERT_DMG_BOUNCE:
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[8] = vec;
+            break;
         case ZVIL_PARM_VERT_LOSEYEBALL:
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[9] = vec;
+            break;
         case ZVIL_PARM_VERT_RBSWORDHANDLE:
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[10] = vec;
+            break;
         case ZVIL_PARM_VERT_RBSWORDPIVOT:
-            zParamGetVector(parms, pmsize, name, def_vert, &vec);
-            vilcfg->pos_verts[i - ZVIL_PARM_VERT_GUM_LFOOT] = vec;
+            zParamGetVector(parms, pmsize, g_parmname[i], def_vert, &vec);
+            vilcfg->pos_verts[11] = vec;
             break;
         case ZVIL_PARM_BND_SPH_CENTER:
             def_bnd.x = 0.0f;
             def_bnd.y = 0.7f;
             def_bnd.z = 0.0f;
-            zParamGetVector(parms, pmsize, name, def_bnd, &vec);
+            zParamGetVector(parms, pmsize, g_parmname[i], def_bnd, &vec);
             vilcfg->vec_bndoffset = vec;
             break;
         case ZVIL_PARM_BND_SPH_RADIUS:
-            vilcfg->rad_bound = zParamGetFloat(parms, pmsize, name, 0.7f);
+            vilcfg->rad_bound = zParamGetFloat(parms, pmsize, g_parmname[i], 0.7f);
             break;
         case ZVIL_PARM_BND2_SPH_CENTER:
             def_bnd.x = 0.0f;
             def_bnd.y = 2.1f;
             def_bnd.z = 0.0f;
-            zParamGetVector(parms, pmsize, name, def_bnd, &vec);
+            zParamGetVector(parms, pmsize, g_parmname[i], def_bnd, &vec);
             vilcfg->vec_bnd2offset = vec;
             break;
         case ZVIL_PARM_BND2_SPH_RADIUS:
-            vilcfg->rad_bound2 = zParamGetFloat(parms, pmsize, name, 0.0f);
+            vilcfg->rad_bound2 = zParamGetFloat(parms, pmsize, g_parmname[i], 0.0f);
             break;
         case ZVIL_PARM_SPAWNMASK:
-            vilcfg->msk_condspawn = zParamGetInt(parms, pmsize, name, 0);
+            vilcfg->msk_condspawn = zParamGetInt(parms, pmsize, g_parmname[i], 0);
             break;
         case ZVIL_PARM_MINDIFFICULTY:
-            vilcfg->minDifficulty = zParamGetInt(parms, pmsize, name, 0);
+            vilcfg->minDifficulty = zParamGetInt(parms, pmsize, g_parmname[i], 0);
             break;
         case ZVIL_PARM_DMG_BEGTIME:
-            vilcfg->tym_attack_begin = zParamGetInt(parms, pmsize, name, -1) / 30.0f;
+            vilcfg->tym_attack_begin = zParamGetInt(parms, pmsize, g_parmname[i], -1) / 30.0f;
             break;
         case ZVIL_PARM_DMG_ENDTIME:
-            vilcfg->tym_attack_end = zParamGetInt(parms, pmsize, name, 1000) / 30.0f;
+            vilcfg->tym_attack_end = zParamGetInt(parms, pmsize, g_parmname[i], 1000) / 30.0f;
             break;
         }
     }
-}
-
-static inline void VCFG_readSAnim(zAssetModelParam* parms, unsigned int pmsize, char* name, _xVec3* vec,
-                                  st_ZVIL_CONFIG_REFERENCE* vilcfg, _xVec3* dst, signed int bit)
-{
-    _xVec3 def_scl = { 1.0f, 1.0f, 1.0f };
-
-    if (zParamGetVector(parms, pmsize, name, def_scl, vec) > 2)
-    {
-        vilcfg->misc_flags |= bit;
-    }
-    else
-    {
-        vilcfg->misc_flags &= ~bit;
-    }
-    *dst = *vec;
 }
 
 static void VCFG_readAsset(st_ZVIL_CONFIG_REFERENCE* vilcfg)
