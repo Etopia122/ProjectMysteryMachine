@@ -12,23 +12,8 @@ extern volatile u32 __OSLastInterruptSrr0;
 extern volatile s16 __OSLastInterrupt;
 extern volatile OSTime __OSLastInterruptTime;
 
-extern OSErrorHandler __OSErrorTable[EXCEPTION_MAX];
-OSErrorHandler __OSErrorTable[EXCEPTION_MAX];
-
-#define FPSCR_ENABLE (FPSCR_VE | FPSCR_OE | FPSCR_UE | FPSCR_ZE | FPSCR_XE)
-u32 __OSFpscrEnableBits = FPSCR_ENABLE;
-
-__declspec(weak) void OSReport(const char* msg, ...) {
-    va_list marker;
-
-    va_start(marker, msg);
-    vprintf(msg, marker);
-    va_end(marker);
-}
-
-__declspec(weak) void OSVReport(const char* msg, va_list list) {
-    vprintf(msg, list);
-}
+// This SDK has no floating-point exception slot: 16 handlers.
+OSErrorHandler __OSErrorTable[16];
 
 __declspec(weak) void OSPanic(const char* file, s32 line, const char* msg, ...) {
     va_list marker;
@@ -52,123 +37,20 @@ __declspec(weak) void OSPanic(const char* file, s32 line, const char* msg, ...) 
     PPCHalt();
 }
 
+// Older SDK: no floating-point exception enabling.
 OSErrorHandler OSSetErrorHandler(OSError error, OSErrorHandler handler) {
     OSErrorHandler oldHandler;
-    BOOL enabled;
 
-    enabled = OSDisableInterrupts();
     oldHandler = __OSErrorTable[error];
     __OSErrorTable[error] = (OSErrorHandler)handler;
-
-    if (error == EXCEPTION_FLOATING_POINT_EXCEPTION) {
-        u32 msr;
-        u32 fpscr;
-        OSThread* thread;
-
-        msr = PPCMfmsr();
-        PPCMtmsr(msr | MSR_FP);
-        fpscr = PPCMffpscr();
-        if (handler) {
-            for (thread = __OSActiveThreadQueue.head; thread;
-                 thread = thread->active_threads_link.next)
-            {
-                thread->context.srr1 |= MSR_FE0 | MSR_FE1;
-                if ((thread->context.state & OS_CONTEXT_STATE_FPSAVED) == 0) {
-                    int i;
-                    thread->context.state |= OS_CONTEXT_STATE_FPSAVED;
-                    for (i = 0; i < 32; ++i) {
-                        *(u64*)&thread->context.fpr[i] = (u64)0xffffffffffffffffLL;
-                        *(u64*)&thread->context.ps[i] = (u64)0xffffffffffffffffLL;
-                    }
-                    thread->context.fpscr = FPSCR_NI;
-                }
-                thread->context.fpscr |= __OSFpscrEnableBits & FPSCR_ENABLE;
-                thread->context.fpscr &=
-                    ~(FPSCR_VXVC | FPSCR_VXIMZ | FPSCR_VXZDZ | FPSCR_VXIDI | FPSCR_VXISI |
-                      FPSCR_VXSNAN | FPSCR_VXSOFT | FPSCR_VXSQRT | FPSCR_VXCVI | FPSCR_XX |
-                      FPSCR_ZX | FPSCR_UX | FPSCR_OX | FPSCR_FX | FPSCR_FI);
-            }
-            fpscr |= __OSFpscrEnableBits & FPSCR_ENABLE;
-            msr |= MSR_FE0 | MSR_FE1;
-        } else {
-            for (thread = __OSActiveThreadQueue.head; thread;
-                 thread = thread->active_threads_link.next)
-            {
-                thread->context.srr1 &= ~(MSR_FE0 | MSR_FE1);
-                thread->context.fpscr &= ~FPSCR_ENABLE;
-                thread->context.fpscr &=
-                    ~(FPSCR_VXVC | FPSCR_VXIMZ | FPSCR_VXZDZ | FPSCR_VXIDI | FPSCR_VXISI |
-                      FPSCR_VXSNAN | FPSCR_VXSOFT | FPSCR_VXSQRT | FPSCR_VXCVI | FPSCR_XX |
-                      FPSCR_ZX | FPSCR_UX | FPSCR_OX | FPSCR_FX | FPSCR_FI);
-            }
-            fpscr &= ~FPSCR_ENABLE;
-            msr &= ~(MSR_FE0 | MSR_FE1);
-        }
-
-        fpscr &= ~(FPSCR_VXVC | FPSCR_VXIMZ | FPSCR_VXZDZ | FPSCR_VXIDI | FPSCR_VXISI |
-                   FPSCR_VXSNAN | FPSCR_VXSOFT | FPSCR_VXSQRT | FPSCR_VXCVI | FPSCR_XX | FPSCR_ZX |
-                   FPSCR_UX | FPSCR_OX | FPSCR_FX | FPSCR_FI);
-
-        PPCMtfpscr(fpscr);
-        PPCMtmsr(msr);
-    }
-
-    OSRestoreInterrupts(enabled);
     return oldHandler;
 }
 
 void __OSUnhandledException(__OSException exception, OSContext* context, u32 dsisr, u32 dar) {
-    OSTime now;
-
-    now = OSGetTime();
-
     if (!(context->srr1 & 2)) {
         OSReport("Non-recoverable Exception %d", exception);
 
     } else {
-        if (exception == EXCEPTION_PROGRAM && (context->srr1 & (0x80000000 >> 11)) &&
-            __OSErrorTable[EXCEPTION_FLOATING_POINT_EXCEPTION] != 0)
-        {
-            u32 fpscr;
-            u32 msr;
-
-            exception = EXCEPTION_FLOATING_POINT_EXCEPTION;
-
-            msr = PPCMfmsr();
-            PPCMtmsr(msr | 0x2000);
-
-            if (__OSFPUContext) {
-                OSSaveFPUContext((OSContext*)__OSFPUContext);
-            }
-
-            fpscr = PPCMffpscr();
-            fpscr &= ~(FPSCR_VXVC | FPSCR_VXIMZ | FPSCR_VXZDZ | FPSCR_VXIDI | FPSCR_VXISI |
-                       FPSCR_VXSNAN | FPSCR_VXSOFT | FPSCR_VXSQRT | FPSCR_VXCVI | FPSCR_XX |
-                       FPSCR_ZX | FPSCR_UX | FPSCR_OX | FPSCR_FX | FPSCR_FI);
-            PPCMtfpscr(fpscr);
-
-            PPCMtmsr(msr);
-
-            if (__OSFPUContext == context) {
-                OSDisableScheduler();
-                __OSErrorTable[exception](exception, context, dsisr, dar);
-                context->srr1 &= ~0x2000;
-                __OSFPUContext = NULL;
-
-                context->fpscr &=
-                    ~(FPSCR_VXVC | FPSCR_VXIMZ | FPSCR_VXZDZ | FPSCR_VXIDI | FPSCR_VXISI |
-                      FPSCR_VXSNAN | FPSCR_VXSOFT | FPSCR_VXSQRT | FPSCR_VXCVI | FPSCR_XX |
-                      FPSCR_ZX | FPSCR_UX | FPSCR_OX | FPSCR_FX | FPSCR_FI);
-                OSEnableScheduler();
-                __OSReschedule();
-            } else {
-                context->srr1 &= ~0x2000;
-                __OSFPUContext = NULL;
-            }
-
-            OSLoadContext(context);
-        }
-
         if (__OSErrorTable[exception]) {
             OSDisableScheduler();
             __OSErrorTable[exception](exception, context, dsisr, dar);
@@ -187,7 +69,7 @@ void __OSUnhandledException(__OSException exception, OSContext* context, u32 dsi
     OSReport("\n");
     OSDumpContext(context);
     OSReport("\nDSISR = 0x%08x                   DAR  = 0x%08x\n", dsisr, dar);
-    OSReport("TB = 0x%016llx\n", now);
+    OSReport("TB = 0x%016llx\n", OSGetTime());
 
     switch (exception) {
     case EXCEPTION_DSI:

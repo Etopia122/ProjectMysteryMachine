@@ -1130,6 +1130,12 @@ dolphin/os/OSContext.c:
 	.text       start:0x80104D9C end:0x80105548
 	.data       start:0x801CD1F0 end:0x801CD3C8
 
+dolphin/os/OSError.c:
+	.text       start:0x80105548 end:0x80105890
+	.data       start:0x801CD3C8 end:0x801CD6E8
+	.bss        start:0x8025B1F0 end:0x8025B230
+	.sdata      start:0x8025E698 end:0x8025E6A0
+
 dolphin/os/OSFont.c:
 	.text       start:0x80105890 end:0x801058E8
 	.sdata      start:0x8025E6A0 end:0x8025E6A8
