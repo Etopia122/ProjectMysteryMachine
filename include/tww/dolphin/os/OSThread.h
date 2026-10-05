@@ -71,7 +71,7 @@ struct OSThread {
     u8* stack_base;
     u32* stack_end;
     u8* error_code;
-    void* data[2];
+    // No data[2] in this older SDK (OSThread is 0x310 bytes).
 };
 
 typedef void (*OSSwitchThreadCallback)(OSThread* from, OSThread* to);

@@ -86,29 +86,7 @@ void _epilog();
 // Declarations:
 //
 
-static void DefaultSwitchThreadCallback(OSThread* from, OSThread* to) {}
-
-static OSSwitchThreadCallback SwitchThreadCallback = DefaultSwitchThreadCallback;
-
-OSSwitchThreadCallback OSSetSwitchThreadCallback(OSSwitchThreadCallback func) {
-    BOOL enable = OSDisableInterrupts();
-    OSSwitchThreadCallback prev = SwitchThreadCallback;
-    OSSwitchThreadCallback temp;
-    if (func) {
-        temp = func;
-    } else {
-        temp = DefaultSwitchThreadCallback;
-    }
-    SwitchThreadCallback = temp;
-
-    OSRestoreInterrupts(enable);
-    if (prev == DefaultSwitchThreadCallback) {
-        return NULL;
-    }
-
-    return prev;
-}
-
+// This older OS library has no switch-thread callback.
 static OSThreadQueue RunQueue[32];
 
 #pragma push
@@ -140,7 +118,6 @@ static inline void OSInitMutexQueue(OSMutexQueue* queue) {
 }
 
 static inline void OSSetCurrentThread(OSThread* thread) {
-    SwitchThreadCallback(__OSCurrentThread, thread);
     __OSCurrentThread = thread;
 }
 
@@ -166,7 +143,6 @@ void __OSThreadInit() {
     *(thread->stack_end) = OS_THREAD_STACK_MAGIC;
 
     OSSetCurrentThread(thread);
-    OSClearStack(0);
 
     RunQueueBits = 0;
     RunQueueHint = FALSE;
@@ -445,8 +421,6 @@ BOOL OSCreateThread(OSThread* thread_, void* func, void* param, void* stackBase,
     thread->stack_end = (void*)((u32)stackBase - stackSize);
     *(u32*)thread->stack_end = OS_THREAD_STACK_MAGIC;
     thread->error_code = NULL;
-    thread->data[0] = NULL;
-    thread->data[1] = NULL;
     enabled = OSDisableInterrupts();
     if (__OSErrorTable[16]) {
         thread->context.srr1 |= 0x900;
