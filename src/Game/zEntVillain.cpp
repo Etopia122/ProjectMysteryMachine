@@ -3547,7 +3547,7 @@ static inline unsigned int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int
 static inline void VNAV_animspeed(st_zEntVillain* vil, float spd, _xVec3* sanim);
 static float VNAV_get_movespeed(st_zEntVillain* vil, float rnd);
 static signed int VNAV_chklos_timz(void* usrdata, _xVec3* pos, _zMovePoint* mvpt);
-static inline float VNAV_dist(_xVec3* a, _xVec3* b);
+static inline float VNAV_dist(_xVec3* d, _xVec3* a, _xVec3* b);
 static signed int VNAV_get_nav(st_zEntVillain* vil);
 static en_ZVILLAIN_HEADBUTT_RESPONSE VOUT_spikey_header(st_zEntVillain* vil);
 static signed int VOUT_apply_anchor(st_zEntVillain* vil);
@@ -13862,13 +13862,14 @@ static signed int VNAV_get_nav(st_zEntVillain* vil)
     if (nxt)
     {
         vil->need_navpt = 0;
+        _xVec3 d = {};
         if (vil->nav_prev)
         {
-            vil->dst_navTween = VNAV_dist(zMovePointGetPos(nxt), zMovePointGetPos(vil->nav_prev));
+            vil->dst_navTween = VNAV_dist(&d, zMovePointGetPos(nxt), zMovePointGetPos(vil->nav_prev));
         }
         else if (((_xMovePoint*)nxt)->spl)
         {
-            vil->dst_navTween = VNAV_dist(zMovePointGetPos(nxt), VUTIL_mdlpos(vil));
+            vil->dst_navTween = VNAV_dist(&d, zMovePointGetPos(nxt), VUTIL_mdlpos(vil));
         }
     }
 
@@ -13880,13 +13881,12 @@ static signed int VNAV_get_nav(st_zEntVillain* vil)
     return vil->nav_next != NULL;
 }
 
-static inline float VNAV_dist(_xVec3* a, _xVec3* b)
+static inline float VNAV_dist(_xVec3* d, _xVec3* a, _xVec3* b)
 {
-    _xVec3 d;
     float d2;
 
-    xVec3Sub(&d, a, b);
-    d2 = xVec3Dot(&d, &d);
+    xVec3Sub(d, a, b);
+    d2 = xVec3Dot(d, d);
     if (d2 > 0.0f)
     {
         d2 = xsqrt(d2);
@@ -14049,6 +14049,9 @@ static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force)
 {
     _zMovePoint* mvpt = NULL;
     signed int idx_far = -1;
+    float unused_a[12] = {};
+    float unused_b[12] = {};
+    signed int unused_c[4] = {};
     float ds2_plyr[12] = {};
     float ds2_vil[12] = {};
     _xVec3 pos_ref = {};
@@ -14069,13 +14072,9 @@ static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force)
         }
         else
         {
-            // The original measures the villain's distance from a zero
-            // vector rather than from the move point.
-            _xVec3 tgt = pos_ref;
-            _xVec3 delt = {};
-
-            xVec3Sub(&delt, &tgt, &((_xMat4x3*)vil->model->Mat)->pos);
-            ds2_vil[i] = delt.x * delt.x + delt.z * delt.z;
+            // The original measures the villain's distance from pos_ref (a
+            // zero vector) rather than from the move point.
+            ds2_vil[i] = VSUP_ds2_toPos(vil, pos_ref);
             pos_plyr = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
             xVec3Sub(&pos_plyr, &pos_plyr, zMovePointGetPos(g_mmtp[i]));
             ds2_plyr[i] = pos_plyr.x * pos_plyr.x + pos_plyr.y * pos_plyr.y + pos_plyr.z * pos_plyr.z;
