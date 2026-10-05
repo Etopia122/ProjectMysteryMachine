@@ -48,7 +48,7 @@ public:
     unsigned int FileFlags;   // 0xC
     float Duration;           // 0x10
     unsigned char pad14[0x3C - 0x14];
-    void* RawData[1];         // 0x3C
+    void** RawData;           // 0x3C
 };
 
 class xAnimState
