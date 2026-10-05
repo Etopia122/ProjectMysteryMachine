@@ -17,18 +17,21 @@ void __AXServiceCallbackStack(void)
 {
     AXVPB* p;
 
+    // This older version has no priority check and updates the stacks with
+    // interrupts disabled.
     for (p = __AXPopCallbackStack(); p; p = __AXPopCallbackStack())
     {
-        if (p->priority != 0)
-        {
-            if (p->callback)
-            {
-                p->callback(p);
-            }
+        BOOL old;
 
-            __AXRemoveFromStack(p);
-            __AXPushFreeStack(p);
+        if (p->callback)
+        {
+            p->callback(p);
         }
+
+        old = OSDisableInterrupts();
+        __AXRemoveFromStack(p);
+        __AXPushFreeStack(p);
+        OSRestoreInterrupts(old);
     }
 }
 
