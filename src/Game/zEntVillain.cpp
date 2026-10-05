@@ -17299,37 +17299,42 @@ static inline void VEFX_hologram_emit(st_zEntVillain* vil, float dt)
 {
     _zParEmitterCustomSettings pecust;
     float tym;
-    unsigned int typ;
+    ScoobRGBA* dot_birth;
+    ScoobRGBA* dot_death;
+    ScoobRGBA* clr_birth;
+    ScoobRGBA* clr_death;
 
     if (vil->ability & 8)
     {
         tym = (vil->tmr_list[ZVIL_TDUR_DECAY] > vil->tmr_list[ZVIL_TYMR_MINANIMPLAY]) ?
                   vil->tmr_list[ZVIL_TDUR_DECAY] :
                   vil->tmr_list[ZVIL_TYMR_MINANIMPLAY];
-        if (tym != 0.0f)
+        if (tym)
         {
-            typ = vil->asset->subtype;
+            clr_birth = &g_holoPoofBirth[vil->asset->subtype];
+            clr_death = &g_holoPoofDeath[vil->asset->subtype];
             pecust.custom_flags = 0x5A0;
-            pecust.color_birth[0] = g_holoPoofBirth[typ].r;
-            pecust.color_birth[1] = g_holoPoofBirth[typ].g;
-            pecust.color_birth[2] = g_holoPoofBirth[typ].b;
-            pecust.color_death[0] = g_holoPoofDeath[typ].r;
-            pecust.color_death[1] = g_holoPoofDeath[typ].g;
-            pecust.color_death[2] = g_holoPoofDeath[typ].b;
+            pecust.color_birth[0] = clr_birth->r;
+            pecust.color_birth[1] = clr_birth->g;
+            pecust.color_birth[2] = clr_birth->b;
+            pecust.color_death[0] = clr_death->r;
+            pecust.color_death[1] = clr_death->g;
+            pecust.color_death[2] = clr_death->b;
             pecust.pos = *xBoundCenter(&vil->bound);
+            pecust.size_death = 5.0f * vil->bound.sph.r;
             pecust.color_birth[3] = 0;
             pecust.color_death[3] = 0;
-            pecust.size_death = 5.0f * vil->bound.sph.r;
             zParEmitterEmitCustom(sEmitHoloPoof, dt, &pecust);
 
-            typ = vil->asset->subtype;
-            pecust.color_birth[0] = g_holoDotsBirth[typ].r;
-            pecust.color_birth[1] = g_holoDotsBirth[typ].g;
-            pecust.color_birth[2] = g_holoDotsBirth[typ].b;
+            dot_birth = &g_holoDotsBirth[vil->asset->subtype];
+            dot_death = &g_holoDotsDeath[vil->asset->subtype];
+            pecust.color_birth[0] = dot_birth->r;
+            pecust.color_birth[1] = dot_birth->g;
+            pecust.color_birth[2] = dot_birth->b;
             pecust.color_birth[3] = 0xFF;
-            pecust.color_death[0] = g_holoDotsDeath[typ].r;
-            pecust.color_death[1] = g_holoDotsDeath[typ].g;
-            pecust.color_death[2] = g_holoDotsDeath[typ].b;
+            pecust.color_death[0] = dot_death->r;
+            pecust.color_death[1] = dot_death->g;
+            pecust.color_death[2] = dot_death->b;
             pecust.color_death[3] = 0;
             pecust.custom_flags = 0x201A0;
             pecust.xzcircle_radius = vil->bound.sph.r;
