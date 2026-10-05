@@ -681,6 +681,7 @@ config.libs = [
         "progress_category": "sdk",
         "objects": [
             Object(NonMatching, "dolphin/dvd/dvdlow.c"),
+            Object(Matching, "dolphin/dvd/dvd.c"),
         ],
     },
     {

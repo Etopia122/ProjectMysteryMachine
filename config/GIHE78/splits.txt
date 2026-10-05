@@ -1185,6 +1185,13 @@ dolphin/src/dvd/dvdfs.c:
 	.sdata      start:0x8025E6D8 end:0x8025E6E0
 	.sbss       start:0x8025F5A8 end:0x8025F5C8
 
+dolphin/dvd/dvd.c:
+	.text       start:0x8010F23C end:0x801118F0
+	.data       start:0x801CDD58 end:0x801CDE70
+	.bss        start:0x8025C120 end:0x8025C1F8
+	.sdata      start:0x8025E6E0 end:0x8025E6E8
+	.sbss       start:0x8025F5C8 end:0x8025F618
+
 dolphin/src/dvd/dvdqueue.c:
 	.text       start:0x801118F0 end:0x80111AE8
 	.bss        start:0x8025C1F8 end:0x8025C218

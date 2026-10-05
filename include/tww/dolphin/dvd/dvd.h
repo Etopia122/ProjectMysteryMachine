@@ -190,7 +190,7 @@ BOOL DVDInquiryAsync(DVDCommandBlock* block, DVDDriveInfo* info, DVDCBCallback c
 void DVDReset(void);
 BOOL DVDSetAutoInvalidation(BOOL autoInval);
 void DVDResume(void);
-static BOOL DVDCancelAsync(DVDCommandBlock* block, DVDCBCallback callback);
+BOOL DVDCancelAsync(DVDCommandBlock* block, DVDCBCallback callback);
 s32 DVDCancel(DVDCommandBlock* block);
 void __DVDPrepareResetAsync(DVDCBCallback callbac);
 BOOL DVDCompareDiskID(DVDDiskID* id1, DVDDiskID* id2);
