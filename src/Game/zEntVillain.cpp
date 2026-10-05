@@ -3586,6 +3586,8 @@ static inline signed int VILN_flagsFromTable(st_zEntVillain* vil, en_ZVIL_FLAG_G
 static inline signed int VILN_cmn_notice(st_zEntVillain* vil, en_ZVIL_NOTICE note, st_STIMULUS_CONTEXT_DATA* resp);
 static inline void VILN_tran(st_STIMULUS_CONTEXT_DATA* resp, signed int goal, signed int mode);
 static inline void VILN_stimGotoPos(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt);
+static inline _zMovePoint* VNAV_mvptFromID(unsigned int aid);
+static inline void VILN_restart(st_zEntVillain* vil);
 static signed int VILN_BMM_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot);
 static signed int VILN_BMM_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
 static signed int VILN_BMM_calcmove(st_zEntVillain* vil, _xScene* scn, float dt, _xEntFrame* frame);
@@ -3747,7 +3749,8 @@ unsigned int zEntVillain_Bounce(st_zEntVillain* vil);
 void zEntVillain_BonusRender();
 void zEntVillain_Load(st_zEntVillain* vil, xSerial* s);
 void zEntVillain_Save(st_zEntVillain* vil, xSerial* s);
-void zEntVillain_InitDep(st_zEntVillain* vil);
+static inline void VCFG_setup(st_ZVIL_CONFIG_REFERENCE* cfg, p2EntAsset* asset);
+void zEntVillain_InitDep(st_zEntVillain* vil, zScene* scn);
 void fn_800A8F88(xBase* b, zScene* s);
 void zEntVillain_Init(st_zEntVillain* vil, p2EntAsset* asset);
 st_zEntVillain* zEntVillain_NPCInst(unsigned int npcidx);
@@ -3974,50 +3977,8 @@ void zEntVillain_Init(st_zEntVillain* vil, p2EntAsset* asset)
 void fn_800A8F88(xBase* b, zScene* s)
 {
     st_zEntVillain* vil = (st_zEntVillain*)b;
-    unsigned int mvpt;
-    signed int spawn = 1;
-    signed int mindiff = 0;
-    signed int spawnmask = 0;
 
-    vil->nav_mvptlist = NULL;
-    vil->nav_prev = NULL;
-    vil->nav_next = NULL;
-    mvpt = vil->vilcfg.vilp2ass->movePointAssetID;
-    vil->nav_mvptlist = mvpt ? zMovePoint_From_xAssetID(mvpt) : NULL;
-    zVIL_apply_vilcfg(vil, &vil->vilcfg);
-
-    if (vil->ability & 2)
-    {
-        vil->allow |= 0x800;
-    }
-    if (vil->ability & 2)
-    {
-        if (vil->asset->subtype == 0x17)
-        {
-            vil->allow &= ~0x800;
-        }
-        else
-        {
-            st_NPC_NOBONUS* nb;
-            for (nb = g_nobonus; nb->sceneID; nb++)
-            {
-                if (nb->sceneID == globals.sceneCur->sceneID && (nb->aid_vil == 0 || nb->aid_vil == vil->id))
-                {
-                    vil->allow &= ~0x800;
-                    break;
-                }
-            }
-        }
-    }
-
-    xAnimPlaySetState(vil->model->Anim->Single, vil->model->Anim->Table->StateList, 0.0f);
-    vil->anim_playing = 1;
-    vil->anim_playsync = 0;
-    {
-        en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)1, (en_NPC_ANIMSTATES)1 };
-        VANM_set(vil, list, 2, 0);
-    }
-    vil->vhf->notice(vil, (en_ZVIL_NOTICE)0, NULL);
+    VILN_restart(vil);
 
     switch (vil->vilcfg.vilp2ass->behaviorState)
     {
@@ -4057,20 +4018,29 @@ void fn_800A8F88(xBase* b, zScene* s)
         break;
     }
 
-    VCFG_getParm(&vil->vilcfg, ZVIL_PARM_MINDIFFICULTY, &mindiff);
-    VCFG_getParm(&vil->vilcfg, ZVIL_PARM_SPAWNMASK, &spawnmask);
-    if (mindiff < 0)
     {
-        spawn = 0;
-        xSceneID2Name(globals.sceneCur, vil->id);
-    }
-    if ((unsigned int)spawnmask != (spawnmask & globals.player.Inv_Specials))
-    {
-        spawn = 0;
-    }
-    if (!spawn)
-    {
-        VGOL_set(vil, ZVIL_GOAL_BASEINIT);
+        signed int spawn;
+        signed int mindiff;
+        signed int spawnmask;
+
+        spawnmask = 0;
+        mindiff = 0;
+        spawn = 1;
+        VCFG_getParm(&vil->vilcfg, ZVIL_PARM_MINDIFFICULTY, &mindiff);
+        VCFG_getParm(&vil->vilcfg, ZVIL_PARM_SPAWNMASK, &spawnmask);
+        if (mindiff < 0)
+        {
+            spawn = 0;
+            xSceneID2Name(globals.sceneCur, vil->id);
+        }
+        if ((unsigned int)spawnmask != (spawnmask & globals.player.Inv_Specials))
+        {
+            spawn = 0;
+        }
+        if (!spawn)
+        {
+            VGOL_set(vil, ZVIL_GOAL_BASEINIT);
+        }
     }
 
     if ((vil->asset->flags & 1) && vil->mode != ZVIL_MODE_SHUTDOWN)
@@ -4092,19 +4062,15 @@ void fn_800A8F88(xBase* b, zScene* s)
 
     if (zEntIsShaggy(vil))
     {
-        st_STIMULUS_CONTEXT_DATA stimctxt = {};
-
         zEntShaggy_Init(vil);
-        stimctxt.stim = ZVIL_STIM_TRANGOAL;
-        stimctxt.trangoal = vil->goaldflt;
-        stimctxt.tranmode = ZVIL_MODE_NORMAL;
+        st_STIMULUS_CONTEXT_DATA stimctxt = {};
+        VILN_tran(&stimctxt, vil->goaldflt, ZVIL_MODE_NORMAL);
         zVIL_trangoal(vil, &stimctxt, globals.update_dt);
     }
 }
 
-void zEntVillain_InitDep(st_zEntVillain* vil)
+void zEntVillain_InitDep(st_zEntVillain* vil, zScene* scn)
 {
-    st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
     _xMat4x3* mat;
 
     xEntReset(vil);
@@ -4123,18 +4089,14 @@ void zEntVillain_InitDep(st_zEntVillain* vil)
         vil->link = NULL;
     }
     vil->vhf = &g_npcFuncs[vil->asset->subtype];
-    vil->vilcfg.asset = vil->asset;
-    vil->vilcfg.vilp2ass = (p2EntVillainAsset*)((char*)vil->asset + sizeof(p2EntAsset));
-    VCFG_readParms(&vil->vilcfg);
-    VCFG_readAsset(&vil->vilcfg);
+    VCFG_setup(&vil->vilcfg, vil->asset);
 
-    npcinfo = &g_npcTable[vil->asset->subtype];
-    vil->ability = npcinfo->ability;
-    vil->abl_atak = npcinfo->abl_atak;
-    vil->abl_dtct = npcinfo->abl_dtct;
-    vil->abl_move = npcinfo->abl_move;
-    vil->abl_spyk = npcinfo->abl_spyk;
-    vil->abl_vuln = npcinfo->abl_vuln;
+    vil->ability = g_npcTable[vil->asset->subtype].ability;
+    vil->abl_atak = g_npcTable[vil->asset->subtype].abl_atak;
+    vil->abl_dtct = g_npcTable[vil->asset->subtype].abl_dtct;
+    vil->abl_move = g_npcTable[vil->asset->subtype].abl_move;
+    vil->abl_spyk = g_npcTable[vil->asset->subtype].abl_spyk;
+    vil->abl_vuln = g_npcTable[vil->asset->subtype].abl_vuln;
     vil->chkby = vil->vhf->flags(vil, ZVIL_FGRP_CHKBY, ZVIL_GOAL_NONE);
     vil->penby = vil->vhf->flags(vil, ZVIL_FGRP_PENBY, ZVIL_GOAL_NONE);
     vil->collis->chk = vil->vhf->flags(vil, ZVIL_FGRP_CHK, ZVIL_GOAL_NONE);
@@ -4151,7 +4113,15 @@ void zEntVillain_InitDep(st_zEntVillain* vil)
     mat = (_xMat4x3*)vil->model->Mat;
     vil->pos_guard_home = mat->pos;
     xSceneID2Name(globals.sceneCur, vil->id);
-    fn_800A8F88(vil, NULL);
+    fn_800A8F88(vil, scn);
+}
+
+static inline void VCFG_setup(st_ZVIL_CONFIG_REFERENCE* cfg, p2EntAsset* asset)
+{
+    cfg->asset = asset;
+    cfg->vilp2ass = (p2EntVillainAsset*)((char*)asset + sizeof(p2EntAsset));
+    VCFG_readParms(cfg);
+    VCFG_readAsset(cfg);
 }
 
 void zEntVillain_Save(st_zEntVillain* vil, xSerial* s)
@@ -5384,6 +5354,13 @@ static signed int VILN_std_sysevent(st_zEntVillain* vil, xBase* from, unsigned i
 {
     switch (toEvent)
     {
+    case 0:
+    case 0x59:
+    case 0x5A:
+    case 0x24:
+    case 0xBC:
+    case 0xBD:
+        break;
     case 0x57:
         VILN_sceneBegin();
         break;
@@ -5521,9 +5498,13 @@ static signed int VILN_std_sysevent(st_zEntVillain* vil, xBase* from, unsigned i
         break;
     case 0x32:
     {
-        signed int spawn = 1;
-        signed int mindiff = 0;
-        signed int spawnmask = 0;
+        signed int spawn;
+        signed int mindiff;
+        signed int spawnmask;
+
+        spawnmask = 0;
+        mindiff = 0;
+        spawn = 1;
 
         VCFG_getParm(&vil->vilcfg, ZVIL_PARM_MINDIFFICULTY, &mindiff);
         VCFG_getParm(&vil->vilcfg, ZVIL_PARM_SPAWNMASK, &spawnmask);
@@ -5550,7 +5531,7 @@ static signed int VILN_std_sysevent(st_zEntVillain* vil, xBase* from, unsigned i
             zEntBubble_Pop(vil->bubble);
         }
         vil->bubble = NULL;
-        zEntVillain_InitDep(vil);
+        zEntVillain_InitDep(vil, globals.sceneCur);
         break;
     case 0xEA:
         resp->stim = ZVIL_STIM_DOACTION;
@@ -7041,7 +7022,6 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         case ZVIL_STIM_ENTERGOAL:
             st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
             _xMat4x3* mat;
-            unsigned int mvpt;
 
             VILN_std_enterGoal(vil, ZVIL_GOAL_STARTUP);
             vil->frame->dvel.x = 0.0f;
@@ -7072,43 +7052,7 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             mat = (_xMat4x3*)vil->model->Mat;
             vil->pos_guard_home = mat->pos;
 
-            vil->nav_mvptlist = NULL;
-            vil->nav_prev = NULL;
-            vil->nav_next = NULL;
-            mvpt = vil->vilcfg.vilp2ass->movePointAssetID;
-            vil->nav_mvptlist = mvpt ? zMovePoint_From_xAssetID(mvpt) : NULL;
-            zVIL_apply_vilcfg(vil, &vil->vilcfg);
-            if (vil->ability & 2)
-            {
-                vil->allow |= 0x800;
-            }
-            if (vil->ability & 2)
-            {
-                if (vil->asset->subtype == 0x17)
-                {
-                    vil->allow &= ~0x800;
-                }
-                else
-                {
-                    st_NPC_NOBONUS* nb;
-                    for (nb = g_nobonus; nb->sceneID; nb++)
-                    {
-                        if (nb->sceneID == globals.sceneCur->sceneID && (nb->aid_vil == 0 || nb->aid_vil == vil->id))
-                        {
-                            vil->allow &= ~0x800;
-                            break;
-                        }
-                    }
-                }
-            }
-            xAnimPlaySetState(vil->model->Anim->Single, vil->model->Anim->Table->StateList, 0.0f);
-            vil->anim_playing = 1;
-            vil->anim_playsync = 0;
-            {
-                en_NPC_ANIMSTATES list[2] = { (en_NPC_ANIMSTATES)1, (en_NPC_ANIMSTATES)1 };
-                VANM_set(vil, list, 2, 0);
-            }
-            vil->vhf->notice(vil, (en_ZVIL_NOTICE)0, NULL);
+            VILN_restart(vil);
             if ((vil->asset->flags & 1) && vil->mode != ZVIL_MODE_SHUTDOWN)
             {
                 vil->flags |= 1;
@@ -13163,9 +13107,6 @@ static signed int VILN_BMM_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA
     return 1;
 }
 
-// Animation list helpers. Each takes the states as parameters, so the list is
-// built from a template and then overwritten, as in the original.
-
 static signed int VILN_BMM_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot)
 {
 
@@ -13281,6 +13222,61 @@ static signed int VILN_BMM_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal,
         }
     }
     return 1;
+}
+
+static inline void VILN_restart(st_zEntVillain* vil)
+{
+    unsigned int mvpt;
+
+    vil->nav_mvptlist = NULL;
+    vil->nav_prev = NULL;
+    vil->nav_next = NULL;
+    mvpt = vil->vilcfg.vilp2ass->movePointAssetID;
+    vil->nav_mvptlist = VNAV_mvptFromID(mvpt);
+    zVIL_apply_vilcfg(vil, &vil->vilcfg);
+
+    if (vil->ability & 2)
+    {
+        vil->allow |= 0x800;
+    }
+    if (vil->ability & 2)
+    {
+        if (vil->asset->subtype == 0x17)
+        {
+            vil->allow &= ~0x800;
+        }
+        else
+        {
+            st_NPC_NOBONUS* nb;
+            for (nb = g_nobonus; nb->sceneID; nb++)
+            {
+                if (nb->sceneID == globals.sceneCur->sceneID && (nb->aid_vil == 0 || nb->aid_vil == vil->id))
+                {
+                    vil->allow &= ~0x800;
+                    break;
+                }
+            }
+        }
+    }
+
+    xAnimPlaySetState(vil->model->Anim->Single, vil->model->Anim->Table->StateList, 0.0f);
+    vil->anim_playing = 1;
+    vil->anim_playsync = 0;
+    VANM_playLoop(vil, (en_NPC_ANIMSTATES)1);
+    vil->vhf->notice(vil, (en_ZVIL_NOTICE)0, NULL);
+}
+
+// Animation list helpers. Each takes the states as parameters, so the list is
+// built from a template and then overwritten, as in the original.
+
+static inline _zMovePoint* VNAV_mvptFromID(unsigned int aid)
+{
+    _zMovePoint* mvpt = NULL;
+    if (aid)
+    {
+        mvpt = zMovePoint_From_xAssetID(aid);
+    }
+    return mvpt;
 }
 
 static inline void VILN_stimGotoPos(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt)
@@ -19511,7 +19507,14 @@ static inline void VSND_setup_soundTable()
         for (rec = entry->sndList; rec->typ_sound != 0x8000; rec++)
         {
             unsigned int aid = xStrHash(rec->nam_sound);
-            rec->aid_sound = iSndLookup(aid) ? aid : 0;
+            if (iSndLookup(aid))
+            {
+                rec->aid_sound = aid;
+            }
+            else
+            {
+                rec->aid_sound = 0;
+            }
         }
     }
 }
@@ -19925,27 +19928,36 @@ static inline st_NPC_SOUND_PROPERTIES* VSND_findProps(en_NPC_SOUND sndEvent, st_
 static inline void VBON_setup_bonusTable()
 {
     _xVec3 pos_hide = { 867.0f, -5309.0f, 2469.0f };
+    st_NPC_BONUS* bonus;
     signed int i;
 
     memset(g_npcBonus, 0, sizeof(g_npcBonus));
     for (i = 0; i < 11; i++)
     {
-        st_NPC_BONUS* bonus = &g_npcBonus[i];
+        bonus = &g_npcBonus[i];
         bonus->pickup = (_zEntPickup*)zSceneFindObject(xStrHash(g_strz_npcBonus[i]));
         if (bonus->pickup)
         {
             zEntPickup_MakeDroppable(bonus->pickup, &pos_hide, NULL);
-            if (i < 5)
+            switch (i)
             {
-                bonus->flg_info |= 0x40000;
-            }
-            else if (i < 8)
-            {
-                bonus->flg_info |= 0x20000;
-            }
-            else
-            {
+            case 8:
+            case 9:
+            case 10:
                 bonus->flg_info |= 0x10000;
+                break;
+            case 5:
+            case 6:
+            case 7:
+                bonus->flg_info |= 0x20000;
+                break;
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                bonus->flg_info |= 0x40000;
+                break;
             }
         }
     }
