@@ -128,7 +128,7 @@ signed int xSGWriteData(st_XSAVEGAME_DATA* xsg, st_XSAVEGAME_WRITECONTEXT* wctxt
 signed int xSGWriteData(st_XSAVEGAME_DATA* xsg, st_XSAVEGAME_WRITECONTEXT* wctxt,
                         signed int* data, signed int n);
 
-extern "C" signed int fn_800C9368(signed int mode, signed int type, unsigned char (*cb)(signed int),
+extern "C" signed int fn_800C9368(signed int mode, signed int type, signed int (*cb)(signed int),
                                   signed int arg);
 unsigned char zSaveLoad_poll(signed int sel);
 signed int zSaveLoad_CardCheckGames(signed int cardNumber, signed int mode);
@@ -721,7 +721,7 @@ signed int zSaveLoad_CardCheckFormatted(signed int cardNumber, signed int mode)
 
         fn_80041CE8(1, cardNumber, cardNumber);
         fn_80041CC4(1, 0x12);
-        signed int sel = fn_800C9368(mode, 3, zSaveLoad_poll, 0);
+        signed int sel = fn_800C9368(mode, 3, (signed int (*)(signed int))zSaveLoad_poll, 0);
         if (sel == 5 || sel == 2 || sel == 4)
         {
             return 2;
@@ -757,7 +757,7 @@ signed int zSaveLoad_CardCheckFormatted(signed int cardNumber, signed int mode)
         fn_80041CE8(1, cardNumber, cardNumber);
         fn_80041CC4(1, 9);
         fn_80041C4C(1, firstBad);
-        signed int sel = fn_800C9368(mode, 3, zSaveLoad_poll, 0);
+        signed int sel = fn_800C9368(mode, 3, (signed int (*)(signed int))zSaveLoad_poll, 0);
         if (sel == 5 || sel == 2 || sel == 4)
         {
             return 2;
@@ -765,7 +765,7 @@ signed int zSaveLoad_CardCheckFormatted(signed int cardNumber, signed int mode)
 
         fn_80041CE8(1, cardNumber, cardNumber);
         fn_80041CC4(1, 0xA);
-        sel = fn_800C9368(mode, 3, zSaveLoad_poll, 0);
+        sel = fn_800C9368(mode, 3, (signed int (*)(signed int))zSaveLoad_poll, 0);
         if (sel == 5 || sel == 2 || sel == 4)
         {
             return 2;
@@ -898,7 +898,7 @@ signed int zSaveLoad_CardCheckSpace(signed int cardNumber, signed int mode, sign
         {
             fn_80041CE8(1, cardNumber, cardNumber);
             fn_80041CC4(1, 0x17);
-            if (fn_800C9368(mode, 3, zSaveLoad_poll, 0) == 3)
+            if (fn_800C9368(mode, 3, (signed int (*)(signed int))zSaveLoad_poll, 0) == 3)
             {
                 fn_80016698(1);
                 return 2;
@@ -1324,8 +1324,8 @@ static inline signed int zSaveLoad_CardtoTgt(signed int card)
 signed int zSaveLoad_GameSelect(signed int mode)
 {
     signed int done = 0;
-    signed int i;
     st_XSAVEGAME_DATA* svinst;
+    signed int i;
     signed int use_tgt;
 
     badCard = 1;
@@ -1594,10 +1594,10 @@ signed int zSaveLoad_SaveGame()
     else
     {
         fn_80041CC4(1, 4);
-        if (fn_800C9368(0, 4, zSaveLoad_poll, 0) == 2)
+        if (fn_800C9368(0, 4, (signed int (*)(signed int))zSaveLoad_poll, 0) == 2)
         {
             fn_80041CC4(1, 0x17);
-            if (fn_800C9368(0, 3, zSaveLoad_poll, 0) == 3)
+            if (fn_800C9368(0, 3, (signed int (*)(signed int))zSaveLoad_poll, 0) == 3)
             {
                 fn_80016698(1);
             }
@@ -2046,7 +2046,7 @@ unsigned char zSaveLoad_poll(signed int)
 }
 
 // Shows a yes/no style prompt and waits for an answer (GameCube only).
-extern "C" signed int fn_800C9368(signed int mode, signed int type, unsigned char (*cb)(signed int),
+extern "C" signed int fn_800C9368(signed int mode, signed int type, signed int (*cb)(signed int),
                                   signed int arg)
 {
     signed int i = 0;
@@ -2134,7 +2134,7 @@ extern "C" signed int fn_800C9368(signed int mode, signed int type, unsigned cha
         zSaveLoad_UIEvent(i, 0x5E);
     }
 
-    unsigned char done = 0;
+    signed int done = 0;
     promptSel = -1;
     while (promptSel == -1)
     {
