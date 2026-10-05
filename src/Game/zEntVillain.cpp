@@ -3433,20 +3433,20 @@ static inline _xVec3 VUTIL_posOf(_xEnt* ent);
 static inline float VSUP_dir_toPos(_zEnt* ent, _xVec3 pos, _xVec3* dir);
 static inline float VSUP_ds2_toPos(_zEnt* ent, _xVec3 pos);
 static inline void VOUT_steer(st_zEntVillain* vil);
-static inline float VOUT_ds2_arrive(st_zEntVillain* vil, _xMat4x3** mat);
 static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp);
 static void VBON_drop_bonusItem(st_zEntVillain* vil);
 static inline void VBON_setup_bonusTable();
 static inline signed int VSND_findProps(en_NPC_SOUND sndEvent, st_NPC_SOUND_PROPERTIES** sprop_caller);
 static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent);
-static inline void VANM_play(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b);
-static inline void VANM_playLoop(st_zEntVillain* vil, en_NPC_ANIMSTATES a);
-static inline void VANM_play3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c);
-static inline void VANM_play4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
-static inline void VANM_playRand(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b);
+static inline void VANM_playRand5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e);
+static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
 static inline void VANM_playRand3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c);
 static inline void VANM_play5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e);
-static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
+static inline void VANM_play4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
+static inline void VANM_play3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c);
+static inline void VANM_playRand(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b);
+static inline void VANM_playLoop(st_zEntVillain* vil, en_NPC_ANIMSTATES a);
+static inline void VANM_play(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b);
 static inline en_NPC_SOUND VSND_typeFromHash(st_zEntVillain* vil, unsigned int aid_snd);
 static inline signed int VSND_isPlaying(st_zEntVillain* vil, signed int channel);
 static inline float VUTIL_jitter(float tym);
@@ -3471,7 +3471,10 @@ static unsigned int VANM_didtran(xAnimTransition* tran, xAnimSingle* single, st_
 static unsigned int VANM_dotran(xAnimTransition* tran, xAnimSingle* single, st_zEntVillain* ent);
 static xAnimTable* VANM_mktable_STD();
 static xAnimTable* VANM_mktable_GANG();
+static xAnimTable* VANM_mktable_SIMP();
 static xAnimTable* VANM_mktable_SHARK();
+static xAnimTable* VANM_mktable_WITCH();
+static xAnimTable* VANM_mktable_SHAM();
 static xAnimTable* VANM_mktable_MM();
 static xAnimTable* VANM_mktable_RB();
 static xAnimTable* VANM_mktable_GG();
@@ -3851,24 +3854,7 @@ xAnimTable* zEntVillain_AnimTable_MasterMind()
 
 xAnimTable* zEntVillain_AnimTable_BossSham()
 {
-    xAnimTable* table;
-    xAnimTransition* tran;
-    signed int i;
-
-    table = xAnimTableNew("Villain_BossSham", NULL);
-    xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
-    xAnimTableNewState(table, "SHAM_Move", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
-    xAnimTableNewState(table, "SHAM_Taunt", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
-    for (i = 140; i < 142; i++)
-    {
-        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
-        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
-        xAnimTableNewTransition(table, "Idle", g_animname[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
-    }
-    xAnimTableNewTransition(table, "SHAM_Taunt", "SHAM_Move", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
-    xAnimTableNewTransition(table, "SHAM_Move", "SHAM_Taunt", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
-    xAnimTableNewTransition(table, "SHAM_Taunt", "SHAM_Move", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
-    return table;
+    return VANM_mktable_SHAM();
 }
 
 xAnimTable* zEntVillain_AnimTable_Shark()
@@ -3878,29 +3864,12 @@ xAnimTable* zEntVillain_AnimTable_Shark()
 
 xAnimTable* zEntVillain_AnimTable_Witch()
 {
-    xAnimTable* table;
-    xAnimTransition* tran;
-    signed int i;
-
-    table = VANM_mktable_STD();
-    xAnimTableNewState(table, "Shaggy_hold", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
-    Shaggy5_WitchTransitions(table);
-    return table;
+    return VANM_mktable_WITCH();
 }
 
 xAnimTable* zEntVillain_AnimTable_Simple()
 {
-    xAnimTable* table;
-    xAnimTransition* tran;
-    signed int i;
-
-    table = xAnimTableNew("Villain_Simple", NULL);
-    xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
-    xAnimTableNewState(table, "SIMP_Action", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
-    xAnimTableNewTransition(table, g_animname[146], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
-    xAnimTableNewTransition(table, g_animname[146], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
-    xAnimTableNewTransition(table, "Idle", g_animname[146], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
-    return table;
+    return VANM_mktable_SIMP();
 }
 
 xAnimTable* zEntVillain_AnimTable_Gang()
@@ -13571,6 +13540,7 @@ static inline signed int VOUT_chkdo_minipatrolArrived(st_zEntVillain* vil)
     return 1;
 }
 
+// Distance (squared) to the move target; flyers and swimmers also count height.
 static inline signed int VOUT_follow_move(st_zEntVillain* vil)
 {
     if (!vil->nav_next && !(vil->flg_misc & 0x10000000) && !(vil->flg_misc & 0x20000000))
@@ -17277,7 +17247,7 @@ static void SuperVillainGumDraw(_xVec3* from, _xVec3* to, float top_radius, floa
 static void VEFX_plop_gum(st_zEntVillain* ent)
 {
     RwTexture* tex;
-    _xMat3x3 dir_shoot;
+    _xMat3x3 dir_shoot = {};
     _xVec3 pos_vert = {};
     _xVec3 npcpos = {};
     signed int i;
@@ -18296,17 +18266,58 @@ static xAnimTable* VANM_mktable_MM()
     return table;
 }
 
+// Small enough to be auto-inlined into its export; the out-of-line copy is
+// dead-stripped by the linker, but its string literals keep their place.
+#pragma auto_inline on
+static xAnimTable* VANM_mktable_SHAM()
+{
+    // Unreferenced in the original as well (only the templates remain).
+    char* unused_names[32] = {};
+    xAnimTransition* unused_tran[147] = {};
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+
+    table = xAnimTableNew("Villain_BossSham", NULL);
+    xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "SHAM_Move", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "SHAM_Taunt", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    for (i = 140; i < 142; i++)
+    {
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, g_animname[i], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+        xAnimTableNewTransition(table, "Idle", g_animname[i], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    }
+    xAnimTableNewTransition(table, "SHAM_Taunt", "SHAM_Move", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "SHAM_Move", "SHAM_Taunt", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "SHAM_Taunt", "SHAM_Move", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    return table;
+}
+
+// Small enough to be auto-inlined into its export; the out-of-line copy is
+// dead-stripped by the linker, but its string literals keep their place.
+#pragma auto_inline on
+static xAnimTable* VANM_mktable_WITCH()
+{
+    // Unreferenced in the original as well (only the templates remain).
+    char* unused_names[32] = {};
+    xAnimTransition* unused_tran[147] = {};
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+
+    table = VANM_mktable_STD();
+    xAnimTableNewState(table, "Shaggy_hold", 0x10, 0x02000004, 1.0f, NULL, NULL, 0.0f, NULL);
+    Shaggy5_WitchTransitions(table);
+    return table;
+}
+
+#pragma auto_inline off
 static xAnimTable* VANM_mktable_SHARK()
 {
-    // Templates of the original's simple/sham/shark tables (unreferenced).
-    char* unused_names0[32] = {};
-    xAnimTransition* unused_tran0[147] = {};
-    char* unused_names1[32] = {};
-    xAnimTransition* unused_tran1[147] = {};
-    char* unused_names2[32] = {};
-    xAnimTransition* unused_tran2[147] = {};
-    char* unused_names3[32] = {};
-    xAnimTransition* unused_tran3[147] = {};
+    // Unreferenced in the original as well (only the templates remain).
+    char* unused_names[32] = {};
+    xAnimTransition* unused_tran[147] = {};
     xAnimTable* table;
     xAnimTransition* tran;
     signed int i;
@@ -18351,6 +18362,28 @@ static xAnimTable* VANM_mktable_SHARK()
     return table;
 }
 
+// Small enough to be auto-inlined into its export; the out-of-line copy is
+// dead-stripped by the linker, but its string literals keep their place.
+#pragma auto_inline on
+static xAnimTable* VANM_mktable_SIMP()
+{
+    // Unreferenced in the original as well (only the templates remain).
+    char* unused_names[32] = {};
+    xAnimTransition* unused_tran[147] = {};
+    xAnimTable* table;
+    xAnimTransition* tran;
+    signed int i;
+
+    table = xAnimTableNew("Villain_Simple", NULL);
+    xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewState(table, "SIMP_Action", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
+    xAnimTableNewTransition(table, g_animname[146], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, g_animname[146], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Idle", g_animname[146], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    return table;
+}
+
+#pragma auto_inline off
 static xAnimTable* VANM_mktable_GANG()
 {
     xAnimTable* table;
@@ -19637,11 +19670,35 @@ static inline en_NPC_SOUND VSND_typeFromHash(st_zEntVillain* vil, unsigned int a
     return typ_sndEvent;
 }
 
-static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
-                                  en_NPC_ANIMSTATES d)
+static inline void VANM_play(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b)
+{
+    en_NPC_ANIMSTATES list[2] = { a, b };
+    VANM_set(vil, list, 2, 0);
+}
+
+static inline void VANM_playLoop(st_zEntVillain* vil, en_NPC_ANIMSTATES a)
+{
+    en_NPC_ANIMSTATES list[2] = { a, (en_NPC_ANIMSTATES)1 };
+    VANM_set(vil, list, 2, 0);
+}
+
+static inline void VANM_playRand(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b)
+{
+    en_NPC_ANIMSTATES list[2] = { a, b };
+    VANM_randset(vil, NULL, list, 2);
+}
+
+static inline void VANM_play3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c)
+{
+    en_NPC_ANIMSTATES list[3] = { a, b, c };
+    VANM_set(vil, list, 3, 0);
+}
+
+static inline void VANM_play4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
+                              en_NPC_ANIMSTATES d)
 {
     en_NPC_ANIMSTATES list[4] = { a, b, c, d };
-    VANM_randset(vil, NULL, list, 4);
+    VANM_set(vil, list, 4, 0);
 }
 
 static inline void VANM_play5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
@@ -19657,35 +19714,18 @@ static inline void VANM_playRand3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_N
     VANM_randset(vil, NULL, list, 3);
 }
 
-static inline void VANM_playRand(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b)
-{
-    en_NPC_ANIMSTATES list[2] = { a, b };
-    VANM_randset(vil, NULL, list, 2);
-}
-
-static inline void VANM_play4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
-                              en_NPC_ANIMSTATES d)
+static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
+                                  en_NPC_ANIMSTATES d)
 {
     en_NPC_ANIMSTATES list[4] = { a, b, c, d };
-    VANM_set(vil, list, 4, 0);
+    VANM_randset(vil, NULL, list, 4);
 }
 
-static inline void VANM_play3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c)
+static inline void VANM_playRand5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
+                                  en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e)
 {
-    en_NPC_ANIMSTATES list[3] = { a, b, c };
-    VANM_set(vil, list, 3, 0);
-}
-
-static inline void VANM_playLoop(st_zEntVillain* vil, en_NPC_ANIMSTATES a)
-{
-    en_NPC_ANIMSTATES list[2] = { a, (en_NPC_ANIMSTATES)1 };
-    VANM_set(vil, list, 2, 0);
-}
-
-static inline void VANM_play(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b)
-{
-    en_NPC_ANIMSTATES list[2] = { a, b };
-    VANM_set(vil, list, 2, 0);
+    en_NPC_ANIMSTATES list[5] = { a, b, c, d, e };
+    VANM_randset(vil, NULL, list, 5);
 }
 
 static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent)
@@ -19693,7 +19733,7 @@ static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent
     float use_wt;
     signed int cnt;
     float wts[32] = {};
-    signed int list[32] = {};
+    signed int list[32] = { 0x3F800000 };
     st_NPC_SOUND_RECORDS* trax;
     st_NPC_SOUND_ENTRY* entry;
     en_zEntVillainSubTypeID viltyp;
@@ -19864,7 +19904,6 @@ static void VBON_drop_bonusItem(st_zEntVillain* vil)
 static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp)
 {
     signed int wt_ramp;
-    _xVec3 farfar = { -9999.0f, -8888.0f, -7777.0f };
     signed int soap_always;
     float food_weight;
     float gum_weight;
@@ -19874,6 +19913,7 @@ static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp)
     signed int cnt;
     float wts[11] = {};
     signed int list[11] = {};
+    _xVec3 farfar = { -9999.0f, -8888.0f, -7777.0f };
     signed int i;
     unsigned int pfx;
 
@@ -20086,26 +20126,6 @@ static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp)
     return &g_npcBonus[choice];
 }
 
-// Distance (squared) to the move target; flyers and swimmers also count height.
-static inline float VOUT_ds2_arrive(st_zEntVillain* vil, _xMat4x3** mat)
-{
-    _xVec3 entpos = {};
-    float dist = VSUP_ds2_toPos(vil, vil->pos_moveto);
-
-    *mat = (_xMat4x3*)vil->model->Mat;
-    entpos = (*mat)->pos;
-    if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
-    {
-        float dy = vil->pos_moveto.y - entpos.y;
-        dy = dy * dy;
-        if (!(dist > dy))
-        {
-            dist = dy;
-        }
-    }
-    return dist;
-}
-
 // Entity position / bound centre by value.
 
 
@@ -20171,6 +20191,8 @@ static inline void VSUP_ang_toXZDir(float angle, _xVec3* dir)
 static inline signed int VSUP_ent_inFOV(st_zEntVillain* vil, _zEnt* ent)
 {
     signed int result = 0;
+    // Unreferenced in the original as well (only the template remains).
+    float unused_pad[29] = {};
     float ang = VSUP_dir_toPos(vil, VUTIL_ctrOf(ent), NULL);
 
     if (vil->fov_detect <= 0.0f)
@@ -20399,8 +20421,14 @@ static signed int VSUP_accum_collide(st_zEntVillain* vil, _xVec3* vec_accum)
     return hit_something;
 }
 
+// Mirror out about the (unit) normal alter. Not used by the GameCube build;
+// only its template remains.
 static inline void VSUP_cheap_reflect(_xVec3* out, _xVec3* alter)
 {
+    _xVec3 vec = {};
+
+    xVec3SMul(&vec, alter, 2.0f * xVec3Dot(out, alter));
+    xVec3Sub(out, out, &vec);
 }
 
 ScoobRGBA g_holoPoofBirth[50] = {
