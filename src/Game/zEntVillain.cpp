@@ -3412,21 +3412,37 @@ static char* g_stz_mmftyp_name[3] = {
 static st_ZVMM_FLASK_DATA g_mmflask[10] = { 0 };
 
 static inline void VSUP_cheap_reflect(_xVec3* out, _xVec3* alter);
-static inline signed int VOUT_hit_isWall(st_zEntVillain* vil, _xVec3* dir_trav, _xCollis* colrec);
 static signed int VSUP_accum_collide(st_zEntVillain* vil, _xVec3* vec_accum);
+static inline float VSUP_yaw(_xVec3 dir);
 static inline void VSUP_wtadjust(float* wts, signed int cnt, float arbref);
 static inline signed int VSUP_choose(signed int* list, float* wts, signed int cnt);
+static inline float VSUP_ent_AOI(st_zEntVillain* vil, _zEnt* ent, signed int* qdrant);
+static inline void VSUP_ang_toXZDir(float angle, _xVec3* dir);
+static inline float VSUP_dir_toPos(_zEnt* ent, _xVec3 pos, _xVec3* dir);
+static inline float VSUP_ds2_toPos(_zEnt* ent, _xVec3 pos);
+static inline _xVec3 VUTIL_posOf(_xEnt* ent);
+static inline _xVec3 VUTIL_ctrOf(_xEnt* ent);
+static inline void VOUT_steer(st_zEntVillain* vil);
+static inline float VOUT_ds2_arrive(st_zEntVillain* vil, _xMat4x3** mat);
 static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp);
 static void VBON_drop_bonusItem(st_zEntVillain* vil);
 static inline void VBON_setup_bonusTable();
 static inline signed int VSND_findProps(en_NPC_SOUND sndEvent, st_NPC_SOUND_PROPERTIES** sprop_caller);
-static inline signed int VSND_addQueueEntry(st_zEntVillain* vil, en_NPC_SOUND sndEvent, signed int flg_vsnd, float radius, float delay, float repeatDelay, signed int repeatCount, unsigned int useThisSound);
-static void VSND_play(st_zEntVillain* vil, en_NPC_SOUND sndEvent);
-static inline void VSND_cue(st_zEntVillain* vil, en_NPC_SOUND sndEvent);
 static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent);
+static inline void VANM_play(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b);
+static inline void VANM_playLoop(st_zEntVillain* vil, en_NPC_ANIMSTATES a);
+static inline void VANM_play3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c);
+static inline void VANM_play4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
+static inline void VANM_playRand(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b);
+static inline void VANM_playRand3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c);
+static inline void VANM_play5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e);
+static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
 static inline en_NPC_SOUND VSND_typeFromHash(st_zEntVillain* vil, unsigned int aid_snd);
 static unsigned int VSND_goPlay(st_zEntVillain* vil, en_NPC_SOUND sndEvent, unsigned int sndExplicit, signed int flg_vsnd, float dist);
 static signed int VSND_procQueue(st_zEntVillain* vil, float dt);
+static inline signed int VSND_addQueueEntry(st_zEntVillain* vil, en_NPC_SOUND sndEvent, signed int flg_vsnd, float radius, float delay, float repeatDelay, signed int repeatCount, unsigned int useThisSound);
+static void VSND_play(st_zEntVillain* vil, en_NPC_SOUND sndEvent);
+static inline void VSND_cue(st_zEntVillain* vil, en_NPC_SOUND sndEvent);
 static inline void VSND_setup_soundTable();
 static inline xAnimSingle* VANM_entSingle(_zEnt* ent);
 static inline xAnimState* VANM_entState(_zEnt* ent);
@@ -3493,14 +3509,15 @@ static signed int VPRJ_BBK_logix(zEntProjectile* prj, float dt);
 static void VPRJ_BBK_detach(zEntProjectile* prj);
 static signed int VPRJ_BBK_attach(zEntProjectile* prj);
 static void VPRJ_BBK_bupdate(_xEnt* ent, _xVec3* pos);
+static inline void VPRJ_startup();
 static signed int VWEP_lobInitMMFlask(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static signed int VWEP_lobInitRBSword(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos);
 static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static signed int VWEP_lobInitBKAxe(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
-static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT event, void* ctxt);
 static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off);
+static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT event, void* ctxt);
 static signed int VWEP_lobActivatePRJ(zEntProjectile* prj, st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static zEntProjectile* VWEP_lobReservePRJ(st_zEntVillain* vil);
 static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* pos_tgt);
@@ -3531,7 +3548,14 @@ static inline float VNAV_dist(_xVec3* a, _xVec3* b);
 static signed int VNAV_get_nav(st_zEntVillain* vil);
 static en_ZVILLAIN_HEADBUTT_RESPONSE VOUT_spikey_header(st_zEntVillain* vil);
 static signed int VOUT_apply_anchor(st_zEntVillain* vil);
+static inline signed int VOUT_hit_isWall(st_zEntVillain* vil, _xVec3* dir_trav, _xCollis* colrec);
 static signed int VOUT_dogoto_widget(st_zEntVillain* vil, xBase* widge, float keepaway, signed int follow);
+static inline signed int VOUT_chase_move(st_zEntVillain* vil);
+static inline signed int VOUT_chkdo_followArrived(st_zEntVillain* vil);
+static inline signed int VOUT_follow_move(st_zEntVillain* vil);
+static inline signed int VOUT_chkdo_minipatrolArrived(st_zEntVillain* vil);
+static inline signed int VOUT_chkdo_patrolArrived(st_zEntVillain* vil);
+static inline signed int VOUT_patrol_move(st_zEntVillain* vil);
 static signed int zVIL_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt);
 static void zVIL_elcb_move(_xEnt* xe, _xScene* scn, float dt, _xEntFrame* frame);
 static void zVIL_elcb_bupdate(_xEnt* xe, _xVec3* pos_bound);
@@ -3544,27 +3568,6 @@ static inline void VILN_flipAway(float* knock, float push);
 static inline signed int VILN_cmn_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
 static inline void VILN_tran(st_STIMULUS_CONTEXT_DATA* resp, signed int goal, signed int mode);
 static inline void VILN_stimGotoPos(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt);
-static inline void VANM_play(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b);
-static inline void VANM_playLoop(st_zEntVillain* vil, en_NPC_ANIMSTATES a);
-static inline void VANM_play3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c);
-static inline void VANM_play4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
-static inline void VANM_playRand(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b);
-static inline void VANM_playRand3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c);
-static inline void VANM_play5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e);
-static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
-static inline float VSUP_yaw(_xVec3 dir);
-static inline float VSUP_dir_toPos(_zEnt* ent, _xVec3 pos, _xVec3* dir);
-static inline float VSUP_ds2_toPos(_zEnt* ent, _xVec3 pos);
-static inline _xVec3 VUTIL_posOf(_xEnt* ent);
-static inline _xVec3 VUTIL_ctrOf(_xEnt* ent);
-static inline void VOUT_steer(st_zEntVillain* vil);
-static inline float VOUT_ds2_arrive(st_zEntVillain* vil, _xMat4x3** mat);
-static inline signed int VOUT_follow_move(st_zEntVillain* vil);
-static inline signed int VOUT_chkdo_followArrived(st_zEntVillain* vil);
-static inline signed int VOUT_patrol_move(st_zEntVillain* vil);
-static inline signed int VOUT_chkdo_patrolArrived(st_zEntVillain* vil);
-static inline void VSUP_ang_toXZDir(float angle, _xVec3* dir);
-static inline float VSUP_ent_AOI(st_zEntVillain* vil, _zEnt* ent, signed int* qdrant);
 static signed int VILN_BMM_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot);
 static signed int VILN_BMM_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
 static signed int VILN_BMM_calcmove(st_zEntVillain* vil, _xScene* scn, float dt, _xEntFrame* frame);
@@ -3584,7 +3587,6 @@ static signed int VILN_BRB_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA
 static signed int VILN_BRB_calcmove(st_zEntVillain* vil, _xScene* scn, float dt, _xEntFrame* frame);
 static signed int VILN_BRB_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt);
 static signed int VILN_BRB_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, st_STIMULUS_CONTEXT_DATA* resp);
-static inline void VWEP_rbs_fly(st_REDBEARD_SWORD* rbs, float dt);
 static signed int VILN_BRB_aware(st_zEntVillain* vil, _xScene* scn, float dt, st_STIMULUS_CONTEXT_DATA* resp);
 static inline void VILN_BRB_flamesnd(unsigned int evt, signed int on);
 static signed int VILN_BRB_notice(st_zEntVillain* vil, en_ZVIL_NOTICE note, st_STIMULUS_CONTEXT_DATA* resp);
@@ -3693,8 +3695,6 @@ static signed int VILN_std_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal,
 static signed int VILN_std_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
 static inline void VOUT_stop(_xEntFrame* frame);
 static inline void VOUT_faceAng(st_zEntVillain* vil, float ang);
-static inline signed int VOUT_chase_move(st_zEntVillain* vil);
-static inline signed int VOUT_chkdo_minipatrolArrived(st_zEntVillain* vil);
 static signed int VILN_std_calcmove(st_zEntVillain* vil, _xScene* scn, float dt, _xEntFrame* frame);
 static inline void VILN_std_enterGoal(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal);
 static inline void VILN_std_tymrRand(st_zEntVillain* vil, signed int idx);
@@ -3783,33 +3783,7 @@ signed int zEntVillain_Startup()
         g_anamhash[i] = xStrHash(g_animname[i]);
     }
 
-    {
-        st_ZPRJ_CATEGORY_FUNCS fn_bbk = { 1, VPRJ_BBK_attach, VPRJ_BBK_detach, (LogixFn)VPRJ_BBK_logix,
-                                          VPRJ_BBK_prjmove, (NotifyFn)VPRJ_BBK_notify, NULL,
-                                          zEntProjectile_gen_aimer, NULL, NULL };
-        st_ZPRJ_CATEGORY_FUNCS fn_bgg = { 1, VPRJ_BGG_attach, VPRJ_BGG_detach, (LogixFn)VPRJ_BGG_logix,
-                                          NULL, (NotifyFn)VPRJ_BGG_notify, NULL,
-                                          zEntProjectile_gen_aimer, NULL, NULL };
-        st_ZPRJ_CATEGORY_FUNCS fn_brb = { 1, VPRJ_BRB_attach, VPRJ_BRB_detach, (LogixFn)VPRJ_BRB_logix,
-                                          NULL, (NotifyFn)VPRJ_BRB_notify, NULL,
-                                          zEntProjectile_gen_aimer, NULL, NULL };
-        st_ZPRJ_CATEGORY_FUNCS fn_bmm = { 1, VPRJ_BMM_attach, VPRJ_BMM_detach, VPRJ_BMM_logix,
-                                          NULL, (NotifyFn)VPRJ_BMM_notify, NULL,
-                                          zEntProjectile_gen_aimer, NULL, NULL };
-        st_ZPRJ_CATEGORY_PROPS pr_bbk = { 0x3D, 0x03, 0x3F, 0x00, 0, 0 };
-        st_ZPRJ_CATEGORY_PROPS pr_bgg = { 0x30000031, 0x03, 0x3F, 0x3F, 0, 0 };
-        st_ZPRJ_CATEGORY_PROPS pr_brb = { 0x3D, 0x03, 0x14, 0x3F, 0, 0 };
-        st_ZPRJ_CATEGORY_PROPS pr_bmm = { 0x3000003D, 0x03, 0x3F, 0x3F, 0, 0 };
-
-        zEntProjectile_addCat(ZPRJ_CAT_BKAXE, &fn_bbk);
-        zEntProjectile_addProps(ZPRJ_CAT_BKAXE, &pr_bbk);
-        zEntProjectile_addCat(ZPRJ_CAT_GGSHOCK, &fn_bgg);
-        zEntProjectile_addProps(ZPRJ_CAT_GGSHOCK, &pr_bgg);
-        zEntProjectile_addCat(ZPRJ_CAT_RBSWORD, &fn_brb);
-        zEntProjectile_addProps(ZPRJ_CAT_RBSWORD, &pr_brb);
-        zEntProjectile_addCat(ZPRJ_CAT_MMFLASK, &fn_bmm);
-        zEntProjectile_addProps(ZPRJ_CAT_MMFLASK, &pr_bmm);
-    }
+    VPRJ_startup();
     return g_npcinit;
 }
 
@@ -4259,9 +4233,8 @@ void zEntVillain_BonusRender()
 
 unsigned int zEntVillain_Bounce(st_zEntVillain* vil)
 {
-    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+    st_STIMULUS_CONTEXT_DATA stimctxt = { ZVIL_STIM_BOUNCED };
 
-    stimctxt.stim = ZVIL_STIM_BOUNCED;
     VUTIL_sendStim(vil, &stimctxt);
     if (stimctxt.res_buttbounce != 0 && stimctxt.res_buttbounce != 3)
     {
@@ -4273,12 +4246,11 @@ unsigned int zEntVillain_Bounce(st_zEntVillain* vil)
 
 signed int zEntVillain_Headbutt(st_zEntVillain* vil, _xVec3* dir)
 {
-    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+    st_STIMULUS_CONTEXT_DATA stimctxt = { ZVIL_STIM_HEADBUTT };
 
-    stimctxt.stim = ZVIL_STIM_HEADBUTT;
     if (dir)
     {
-        _xVec3 dir_back;
+        _xVec3 dir_back = {};
         _xMat4x3* pmat = (_xMat4x3*)globals.player.ent.model->Mat;
         float len = xVec3Normalize(&stimctxt.dir_headbutt, dir);
         float dot;
@@ -4333,7 +4305,7 @@ static inline void VTAL_hitOutcome(st_zEntVillain* vil)
 
 en_ZVILLAIN_BUBBLE_RESPONSE zEntVillain_Bubble(st_zEntVillain* vil, _zEntBubble* bub)
 {
-    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+    st_STIMULUS_CONTEXT_DATA stimctxt = { ZVIL_STIM_GUMMED };
     unsigned char kind = *((unsigned char*)bub + 0x15);
 
     stimctxt.res_gods = 0;
@@ -4383,9 +4355,8 @@ en_ZVILLAIN_BUBBLE_RESPONSE zEntVillain_Bubble(st_zEntVillain* vil, _zEntBubble*
 
 signed int zEntVillain_Bumped(st_zEntVillain* vil, _xCollis* colrec)
 {
-    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+    st_STIMULUS_CONTEXT_DATA stimctxt = { ZVIL_STIM_BUMPED };
 
-    stimctxt.stim = ZVIL_STIM_BUMPED;
     stimctxt.colrec = colrec;
     VUTIL_sendStim(vil, &stimctxt);
     return stimctxt.res_bumped;
@@ -4397,9 +4368,8 @@ void zEntVillain_HeroWasHurt()
 
 void zEntVillain_Stun(st_zEntVillain* vil, float tym)
 {
-    st_STIMULUS_CONTEXT_DATA stimctxt = {};
+    st_STIMULUS_CONTEXT_DATA stimctxt = { ZVIL_STIM_STUNNING };
 
-    stimctxt.stim = ZVIL_STIM_STUNNING;
     stimctxt.amt_stun = (tym > 0.1f) ? tym : 0.1f;
     VUTIL_sendStim(vil, &stimctxt);
     zLaughNotify(0xC);
@@ -5636,42 +5606,9 @@ static inline void VILN_sceneBegin()
 
     if (!g_bonusTableReady)
     {
-        _xVec3 pos_hide = { 867.0f, -5309.0f, 2469.0f };
-        st_NPC_SOUND_ENTRY* entry;
-
-        memset(g_npcBonus, 0, sizeof(g_npcBonus));
-        for (i = 0; i < 11; i++)
-        {
-            st_NPC_BONUS* bonus = &g_npcBonus[i];
-            bonus->pickup = (_zEntPickup*)zSceneFindObject(xStrHash(g_strz_npcBonus[i]));
-            if (bonus->pickup)
-            {
-                zEntPickup_MakeDroppable(bonus->pickup, &pos_hide, NULL);
-                if (i < 5)
-                {
-                    bonus->flg_info |= 0x40000;
-                }
-                else if (i < 8)
-                {
-                    bonus->flg_info |= 0x20000;
-                }
-                else
-                {
-                    bonus->flg_info |= 0x10000;
-                }
-            }
-        }
-        g_bonusTableReady = 1;
+        VBON_setup_bonusTable();
         g_gumModelAsset = (RpAtomic*)xSTFindAsset(xStrHash("gum_puddle"), NULL);
-        for (entry = g_npcJukeBox; entry->sndList; entry++)
-        {
-            st_NPC_SOUND_RECORDS* rec;
-            for (rec = entry->sndList; rec->typ_sound != 0x8000; rec++)
-            {
-                unsigned int aid = xStrHash(rec->nam_sound);
-                rec->aid_sound = iSndLookup(aid) ? aid : 0;
-            }
-        }
+        VSND_setup_soundTable();
     }
     if (!g_emitready)
     {
@@ -6114,7 +6051,7 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
                 }
                 else if (vil->precalc.flg_plyr & 0x20)
                 {
-                    _xVec3 vec_off;
+                    _xVec3 vec_off = {};
                     float spread;
 
                     vec_off.x = 0.5f - iurand();
@@ -8116,61 +8053,6 @@ static signed int VILN_std_calcmove(st_zEntVillain* vil, _xScene* scn, float dt,
         }
         break;
     }
-    return 1;
-}
-
-static inline signed int VOUT_chkdo_minipatrolArrived(st_zEntVillain* vil)
-{
-    _xMat4x3* mat = (_xMat4x3*)vil->model->Mat;
-    _xVec3 entpos = {};
-    float dy = 0.0f;
-    float dist;
-
-    entpos = mat->pos;
-    if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
-    {
-        dy = vil->pos_moveto.y - entpos.y;
-        dy = dy * dy;
-    }
-    dist = VSUP_ds2_toPos(vil, vil->pos_moveto);
-    if (!(dist > dy))
-    {
-        dist = dy;
-    }
-    if (dist > vil->ds2_goto_keepaway + g_npcTable[vil->asset->subtype].ds2_atpos)
-    {
-        return 0;
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)4))
-    {
-        vil->flg_misc &= ~0x80000000;
-    }
-    else
-    {
-        vil->flg_misc &= ~0x40000000;
-    }
-    return 1;
-}
-
-static inline signed int VOUT_chase_move(st_zEntVillain* vil)
-{
-    if (vil->precalc.flg_plyr & 0x400)
-    {
-        vil->pos_moveto = vil->precalc.pos_intercept;
-    }
-    else
-    {
-        vil->pos_moveto = *xBoundCenter(&globals.player.ent.bound);
-    }
-    vil->ang_moveto = vil->precalc.ang_VtoP;
-    vil->domove |= 0x800;
-    vil->domove |= 1;
-    vil->domove |= 0xA;
-    if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
-    {
-        vil->domove |= 4;
-    }
-    vil->domove |= 0x80000000;
     return 1;
 }
 
@@ -11721,7 +11603,7 @@ static signed int VILN_BRB_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         }
         break;
     case 22:
-        VWEP_rbs_fly(&g_rbsword[0], dt);
+        VWEP_rbs_flight(&g_rbsword[0], dt);
         if (vil->tmr_list[ZVIL_TYMR_MINANIMPLAY] <= 0.0f)
         {
             if (vil->tmr_list[4] <= 0.0f)
@@ -11764,55 +11646,6 @@ static signed int VILN_BRB_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         break;
     }
     return 1;
-}
-
-static inline void VWEP_rbs_fly(st_REDBEARD_SWORD* rbs, float dt)
-{
-    _xMat3x3 mat_rot = {};
-    _xVec3 ang = { 25.132741f, 0.0f, 0.0f };
-    _xVec3 dpos = {};
-    _xMat4x3* mat;
-    unsigned int snd;
-
-    rbs->tym_age += dt;
-    if (rbs->tym_age > 2.5f)
-    {
-        rbs->flg_stat |= 8;
-    }
-    else
-    {
-        rbs->flg_stat &= ~8;
-    }
-
-    ang.x *= dt;
-    ang.y *= dt;
-    ang.z *= dt;
-    xMat3x3Euler(&mat_rot, &ang);
-    if (rbs->tym_age < 2.5f)
-    {
-        xVec3SMul(&dpos, &rbs->dir_end, dt * rbs->spd_fly);
-    }
-    else
-    {
-        xVec3SMul(&dpos, &rbs->dir_end, -dt * rbs->spd_fly);
-    }
-
-    xEntBeginUpdate(rbs, globals.sceneCur, dt);
-    mat = (_xMat4x3*)rbs->frame;
-    xMat4x3RMul3x3(mat, &mat_rot, mat);
-    xVec3AddTo(&mat->pos, &dpos);
-    xEntMotionToMatrix(rbs, rbs->frame);
-    xEntEndUpdate(rbs, globals.sceneCur, dt);
-
-    if (!iSndIsPlaying(0, (unsigned int)rbs))
-    {
-        snd = VSND_select_sound(rbs->rbvil, VSND_TYP_PRJ_FLIGHT);
-        if (snd)
-        {
-            xSndPlay3D(snd, 0.5f, 0.0f, 0x80, 0x202, rbs, 25.0f);
-        }
-    }
-    VWEP_rbs_chkCollide(rbs, dt);
 }
 
 static signed int VILN_BRB_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, st_STIMULUS_CONTEXT_DATA* resp)
@@ -13297,6 +13130,9 @@ static signed int VILN_BMM_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA
     return 1;
 }
 
+// Animation list helpers. Each takes the states as parameters, so the list is
+// built from a template and then overwritten, as in the original.
+
 static signed int VILN_BMM_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot)
 {
 
@@ -13411,256 +13247,6 @@ static signed int VILN_BMM_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal,
         }
     }
     return 1;
-}
-
-// Angle of interest: where ent is relative to the villain's facing, and in
-// which quadrant (1 front, 4 right, 2 back, 3 left).
-static inline float VSUP_ent_AOI(st_zEntVillain* vil, _zEnt* ent, signed int* qdrant)
-{
-    float dang = VSUP_dir_toPos(vil, VUTIL_ctrOf(ent), NULL) - vil->frame->rot.angle;
-    float ang = xAngleClamp(dang + 0.7853982f);
-
-    *qdrant = 0;
-    if (ang > 0.0f && ang <= 1.5707964f)
-    {
-        *qdrant = 1;
-    }
-    else if (ang > 1.5707964f && ang <= 3.1415927f)
-    {
-        *qdrant = 4;
-    }
-    else if (ang > 3.1415927f && ang < 4.712389f)
-    {
-        *qdrant = 2;
-    }
-    else if (ang > 0.0f && ang < 1.5707964f)
-    {
-        *qdrant = 3;
-    }
-    return xAngleClamp(dang);
-}
-
-static inline void VSUP_ang_toXZDir(float angle, _xVec3* dir)
-{
-    dir->x = sin(angle);
-    dir->z = cos(angle);
-}
-
-static inline signed int VOUT_chkdo_patrolArrived(st_zEntVillain* vil)
-{
-    _xMat4x3* mat;
-    float dist = VOUT_ds2_arrive(vil, &mat);
-
-    if (dist > g_npcTable[vil->asset->subtype].ds2_atpos)
-    {
-        return 0;
-    }
-    if (!(vil->flg_misc & 0x40000000))
-    {
-        vil->pos_guard_home = mat->pos;
-    }
-    vil->tmr_list[24] = zMovePointGetDelay(vil->nav_next);
-    vil->need_navpt = 1;
-    vil->tmr_list[3] = -1.0f;
-    zEntEvent((xBase*)vil, (xBase*)vil->nav_next, 0x1F);
-    return 1;
-}
-
-static inline signed int VOUT_patrol_move(st_zEntVillain* vil)
-{
-    if (!vil->nav_next)
-    {
-        xSceneID2Name(globals.sceneCur, vil->id);
-        return 0;
-    }
-    vil->pos_moveto = *zMovePointGetPos(vil->nav_next);
-    VOUT_steer(vil);
-    return 1;
-}
-
-static inline signed int VOUT_chkdo_followArrived(st_zEntVillain* vil)
-{
-    _xMat4x3* mat;
-    float dist = VOUT_ds2_arrive(vil, &mat);
-
-    if (dist > vil->ds2_goto_keepaway + g_npcTable[vil->asset->subtype].ds2_atpos)
-    {
-        return 0;
-    }
-    if (!(vil->flg_misc & 0x40000000))
-    {
-        vil->pos_guard_home = mat->pos;
-    }
-    if ((vil->flg_misc & 0x10000000) || (vil->flg_misc & 0x20000000))
-    {
-        vil->ds2_goto_keepaway = 0.0f;
-        vil->flg_misc &= ~0x10000000;
-        vil->flg_misc &= ~0x20000000;
-        vil->allow &= ~1;
-    }
-    else
-    {
-        vil->tmr_list[24] = zMovePointGetDelay(vil->nav_next);
-        vil->need_navpt = 1;
-        vil->tmr_list[3] = -1.0f;
-        zEntEvent((xBase*)vil, (xBase*)vil->nav_next, 0x1F);
-    }
-    return 1;
-}
-
-static inline signed int VOUT_follow_move(st_zEntVillain* vil)
-{
-    if (!vil->nav_next && !(vil->flg_misc & 0x10000000) && !(vil->flg_misc & 0x20000000))
-    {
-        return 0;
-    }
-    if (vil->flg_misc & 0x10000000)
-    {
-        vil->pos_moveto = vil->pos_goto;
-    }
-    else if (vil->flg_misc & 0x20000000)
-    {
-        vil->pos_moveto = ((_xMat4x3*)vil->tgt_follow->model->Mat)->pos;
-    }
-    else
-    {
-        vil->pos_moveto = *zMovePointGetPos(vil->nav_next);
-    }
-    VOUT_steer(vil);
-    return 1;
-}
-
-// Distance (squared) to the move target; flyers and swimmers also count height.
-static inline float VOUT_ds2_arrive(st_zEntVillain* vil, _xMat4x3** mat)
-{
-    _xVec3 entpos = {};
-    float dist = VSUP_ds2_toPos(vil, vil->pos_moveto);
-
-    *mat = (_xMat4x3*)vil->model->Mat;
-    entpos = (*mat)->pos;
-    if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
-    {
-        float dy = vil->pos_moveto.y - entpos.y;
-        dy = dy * dy;
-        if (!(dist > dy))
-        {
-            dist = dy;
-        }
-    }
-    return dist;
-}
-
-static inline void VOUT_steer(st_zEntVillain* vil)
-{
-    vil->ang_moveto = VSUP_dir_toPos(vil, vil->pos_moveto, &vil->dir_moveto);
-    if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
-    {
-        vil->domove |= 4;
-    }
-    vil->domove |= 0x800;
-    vil->domove |= 1;
-    vil->domove |= 0xA;
-    vil->domove |= 0x80000000;
-}
-
-static inline _xVec3 VUTIL_ctrOf(_xEnt* ent)
-{
-    _xVec3 ctr = {};
-
-    ctr = *xBoundCenter(&ent->bound);
-    return ctr;
-}
-
-// Entity position / bound centre by value.
-static inline _xVec3 VUTIL_posOf(_xEnt* ent)
-{
-    _xVec3 pos = {};
-
-    pos = ((_xMat4x3*)ent->model->Mat)->pos;
-    return pos;
-}
-
-static inline float VSUP_ds2_toPos(_zEnt* ent, _xVec3 pos)
-{
-    _xVec3 delta = {};
-
-    xVec3Sub(&delta, &pos, &((_xMat4x3*)ent->model->Mat)->pos);
-    return delta.x * delta.x + delta.z * delta.z;
-}
-
-static inline float VSUP_dir_toPos(_zEnt* ent, _xVec3 pos, _xVec3* dir)
-{
-    _xVec3 delta = {};
-    float ang;
-
-    xVec3Sub(&delta, &pos, &((_xMat4x3*)ent->model->Mat)->pos);
-    xVec3Normalize(&delta, &delta);
-    ang = VSUP_yaw(delta);
-    if (dir)
-    {
-        xVec3Normalize(dir, &delta);
-    }
-    return ang;
-}
-
-// Movement helpers shared by the calcmove handlers (out-of-line on PS2,
-// inlined in the GameCube build).
-static inline float VSUP_yaw(_xVec3 dir)
-{
-    return xAngleClamp(atan2(dir.x, dir.z));
-}
-
-static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
-                                  en_NPC_ANIMSTATES d)
-{
-    en_NPC_ANIMSTATES list[4] = { a, b, c, d };
-    VANM_randset(vil, NULL, list, 4);
-}
-
-static inline void VANM_play5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
-                              en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e)
-{
-    en_NPC_ANIMSTATES list[5] = { a, b, c, d, e };
-    VANM_set(vil, list, 5, 0);
-}
-
-static inline void VANM_playRand3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c)
-{
-    en_NPC_ANIMSTATES list[3] = { a, b, c };
-    VANM_randset(vil, NULL, list, 3);
-}
-
-static inline void VANM_playRand(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b)
-{
-    en_NPC_ANIMSTATES list[2] = { a, b };
-    VANM_randset(vil, NULL, list, 2);
-}
-
-static inline void VANM_play4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
-                              en_NPC_ANIMSTATES d)
-{
-    en_NPC_ANIMSTATES list[4] = { a, b, c, d };
-    VANM_set(vil, list, 4, 0);
-}
-
-static inline void VANM_play3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c)
-{
-    en_NPC_ANIMSTATES list[3] = { a, b, c };
-    VANM_set(vil, list, 3, 0);
-}
-
-static inline void VANM_playLoop(st_zEntVillain* vil, en_NPC_ANIMSTATES a)
-{
-    en_NPC_ANIMSTATES list[2] = { a, (en_NPC_ANIMSTATES)1 };
-    VANM_set(vil, list, 2, 0);
-}
-
-// Animation list helpers. Each takes the states as parameters, so the list is
-// built from a template and then overwritten, as in the original.
-static inline void VANM_play(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b)
-{
-    en_NPC_ANIMSTATES list[2] = { a, b };
-    VANM_set(vil, list, 2, 0);
 }
 
 static inline void VILN_stimGotoPos(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt)
@@ -13958,6 +13544,145 @@ static signed int zVIL_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* s
     return rc;
 }
 
+static inline signed int VOUT_patrol_move(st_zEntVillain* vil)
+{
+    if (!vil->nav_next)
+    {
+        xSceneID2Name(globals.sceneCur, vil->id);
+        return 0;
+    }
+    vil->pos_moveto = *zMovePointGetPos(vil->nav_next);
+    VOUT_steer(vil);
+    return 1;
+}
+
+static inline signed int VOUT_chkdo_patrolArrived(st_zEntVillain* vil)
+{
+    _xMat4x3* mat;
+    float dist = VOUT_ds2_arrive(vil, &mat);
+
+    if (dist > g_npcTable[vil->asset->subtype].ds2_atpos)
+    {
+        return 0;
+    }
+    if (!(vil->flg_misc & 0x40000000))
+    {
+        vil->pos_guard_home = mat->pos;
+    }
+    vil->tmr_list[24] = zMovePointGetDelay(vil->nav_next);
+    vil->need_navpt = 1;
+    vil->tmr_list[3] = -1.0f;
+    zEntEvent((xBase*)vil, (xBase*)vil->nav_next, 0x1F);
+    return 1;
+}
+
+static inline signed int VOUT_chkdo_minipatrolArrived(st_zEntVillain* vil)
+{
+    _xMat4x3* mat = (_xMat4x3*)vil->model->Mat;
+    _xVec3 entpos = {};
+    float dy = 0.0f;
+    float dist;
+
+    entpos = mat->pos;
+    if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
+    {
+        dy = vil->pos_moveto.y - entpos.y;
+        dy = dy * dy;
+    }
+    dist = VSUP_ds2_toPos(vil, vil->pos_moveto);
+    if (!(dist > dy))
+    {
+        dist = dy;
+    }
+    if (dist > vil->ds2_goto_keepaway + g_npcTable[vil->asset->subtype].ds2_atpos)
+    {
+        return 0;
+    }
+    if (vil->vhf->query(vil, (en_ZVIL_QUERY)4))
+    {
+        vil->flg_misc &= ~0x80000000;
+    }
+    else
+    {
+        vil->flg_misc &= ~0x40000000;
+    }
+    return 1;
+}
+
+static inline signed int VOUT_follow_move(st_zEntVillain* vil)
+{
+    if (!vil->nav_next && !(vil->flg_misc & 0x10000000) && !(vil->flg_misc & 0x20000000))
+    {
+        return 0;
+    }
+    if (vil->flg_misc & 0x10000000)
+    {
+        vil->pos_moveto = vil->pos_goto;
+    }
+    else if (vil->flg_misc & 0x20000000)
+    {
+        vil->pos_moveto = ((_xMat4x3*)vil->tgt_follow->model->Mat)->pos;
+    }
+    else
+    {
+        vil->pos_moveto = *zMovePointGetPos(vil->nav_next);
+    }
+    VOUT_steer(vil);
+    return 1;
+}
+
+static inline signed int VOUT_chkdo_followArrived(st_zEntVillain* vil)
+{
+    _xMat4x3* mat;
+    float dist = VOUT_ds2_arrive(vil, &mat);
+
+    if (dist > vil->ds2_goto_keepaway + g_npcTable[vil->asset->subtype].ds2_atpos)
+    {
+        return 0;
+    }
+    if (!(vil->flg_misc & 0x40000000))
+    {
+        vil->pos_guard_home = mat->pos;
+    }
+    if ((vil->flg_misc & 0x10000000) || (vil->flg_misc & 0x20000000))
+    {
+        vil->ds2_goto_keepaway = 0.0f;
+        vil->flg_misc &= ~0x10000000;
+        vil->flg_misc &= ~0x20000000;
+        vil->allow &= ~1;
+    }
+    else
+    {
+        vil->tmr_list[24] = zMovePointGetDelay(vil->nav_next);
+        vil->need_navpt = 1;
+        vil->tmr_list[3] = -1.0f;
+        zEntEvent((xBase*)vil, (xBase*)vil->nav_next, 0x1F);
+    }
+    return 1;
+}
+
+static inline signed int VOUT_chase_move(st_zEntVillain* vil)
+{
+    if (vil->precalc.flg_plyr & 0x400)
+    {
+        vil->pos_moveto = vil->precalc.pos_intercept;
+    }
+    else
+    {
+        vil->pos_moveto = *xBoundCenter(&globals.player.ent.bound);
+    }
+    vil->ang_moveto = vil->precalc.ang_VtoP;
+    vil->domove |= 0x800;
+    vil->domove |= 1;
+    vil->domove |= 0xA;
+    if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
+    {
+        vil->domove |= 4;
+    }
+    vil->domove |= 0x80000000;
+    return 1;
+}
+
 static signed int VOUT_dogoto_widget(st_zEntVillain* vil, xBase* widge, float keepaway, signed int follow)
 {
     signed int rc = 0;
@@ -14020,6 +13745,52 @@ static signed int VOUT_dogoto_widget(st_zEntVillain* vil, xBase* widge, float ke
         break;
     }
     return rc;
+}
+
+static inline signed int VOUT_hit_isWall(st_zEntVillain* vil, _xVec3* dir_trav, _xCollis* colrec)
+{
+    _xVec3 vec_tmp = {};
+    signed int flg_look;
+    signed int result = 0;
+
+    flg_look = 0xC;
+    if (vil->abl_move & 0x1000)
+    {
+        flg_look = 8;
+    }
+
+    if ((float)__fabs(colrec->norm.y) > 0.01f)
+    {
+        result = 0;
+    }
+    else if (vil->mode > ZVIL_MODE_NORMAL)
+    {
+        result = 0;
+    }
+    else if (!(colrec->norm.x * colrec->norm.x + colrec->norm.z * colrec->norm.z > 0.0f))
+    {
+        result = 0;
+    }
+    else
+    {
+        vec_tmp.x = colrec->norm.x;
+        vec_tmp.z = colrec->norm.z;
+        xVec3Normalize(&vec_tmp, &vec_tmp);
+        if ((float)__fabs(xVec3Dot(dir_trav, &vec_tmp)) > 0.8f)
+        {
+            _zMovePoint* mvpt;
+
+            result = 1;
+            mvpt = zMovePointFindNearest(flg_look | 0x11, xBoundCenter(&vil->bound), vil,
+                                         VNAV_chklos_timz);
+            vil->need_navpt = 0;
+            if (mvpt && mvpt != vil->nav_next)
+            {
+                vil->nav_next = mvpt;
+            }
+        }
+    }
+    return result;
 }
 
 static signed int VOUT_apply_anchor(st_zEntVillain* vil)
@@ -16044,29 +15815,6 @@ static signed int VWEP_lobActivatePRJ(zEntProjectile* prj, st_zEntVillain* vil, 
     return 1;
 }
 
-static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off)
-{
-    _xVec3 pos = {};
-    ST_CAT_AIMDATA aiminf = {};
-    zEntProjectile* prj = vil->prj_reserved;
-
-    prj->ColDelaySet(0.4f, 1);
-    VWEP_lobLaunchPos(vil, &pos);
-
-    aiminf.spd_base = vil->spd_lob;
-    aiminf.dir_base = ((_xMat4x3*)vil->model->Mat)->at;
-    aiminf.arrow.pos_src = pos;
-    if (vec_off)
-    {
-        xVec3Add(&aiminf.arrow.pos_tgt, pos_tgt, vec_off);
-    }
-    else
-    {
-        aiminf.arrow.pos_tgt = *pos_tgt;
-    }
-    return prj->AimAtTarget(&aiminf, 1);
-}
-
 static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT event, void* ctxt)
 {
     signed int rc = 0;
@@ -16124,6 +15872,29 @@ static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT e
         break;
     }
     return rc;
+}
+
+static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off)
+{
+    _xVec3 pos = {};
+    ST_CAT_AIMDATA aiminf = {};
+    zEntProjectile* prj = vil->prj_reserved;
+
+    prj->ColDelaySet(0.4f, 1);
+    VWEP_lobLaunchPos(vil, &pos);
+
+    aiminf.spd_base = vil->spd_lob;
+    aiminf.dir_base = ((_xMat4x3*)vil->model->Mat)->at;
+    aiminf.arrow.pos_src = pos;
+    if (vec_off)
+    {
+        xVec3Add(&aiminf.arrow.pos_tgt, pos_tgt, vec_off);
+    }
+    else
+    {
+        aiminf.arrow.pos_tgt = *pos_tgt;
+    }
+    return prj->AimAtTarget(&aiminf, 1);
 }
 
 static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
@@ -16344,6 +16115,37 @@ static signed int VWEP_lobInitMMFlask(st_zEntVillain* vil, _xVec3* pos_tgt, _xVe
     flask->arcness = (arcness <= 0.0f) ? 1.0f : arcness;
     flask->heavy = (heavy <= 0.0f) ? 1.5f : heavy;
     return 1;
+}
+
+static inline void VPRJ_startup()
+{
+    typedef signed int (*LogixFn)(zEntProjectile*, float, zScene*, _xEntFrame*);
+    typedef signed int (*NotifyFn)(zEntProjectile*, en_PROJECTILE_EVENT, void*);
+    st_ZPRJ_CATEGORY_FUNCS fn_bbk = { 1, VPRJ_BBK_attach, VPRJ_BBK_detach, (LogixFn)VPRJ_BBK_logix,
+                                      VPRJ_BBK_prjmove, (NotifyFn)VPRJ_BBK_notify, NULL,
+                                      zEntProjectile_gen_aimer, NULL, NULL };
+    st_ZPRJ_CATEGORY_FUNCS fn_bgg = { 1, VPRJ_BGG_attach, VPRJ_BGG_detach, (LogixFn)VPRJ_BGG_logix,
+                                      NULL, (NotifyFn)VPRJ_BGG_notify, NULL,
+                                      zEntProjectile_gen_aimer, NULL, NULL };
+    st_ZPRJ_CATEGORY_FUNCS fn_brb = { 1, VPRJ_BRB_attach, VPRJ_BRB_detach, (LogixFn)VPRJ_BRB_logix,
+                                      NULL, (NotifyFn)VPRJ_BRB_notify, NULL,
+                                      zEntProjectile_gen_aimer, NULL, NULL };
+    st_ZPRJ_CATEGORY_FUNCS fn_bmm = { 1, VPRJ_BMM_attach, VPRJ_BMM_detach, VPRJ_BMM_logix,
+                                      NULL, (NotifyFn)VPRJ_BMM_notify, NULL,
+                                      zEntProjectile_gen_aimer, NULL, NULL };
+    st_ZPRJ_CATEGORY_PROPS pr_bbk = { 0x3D, 0x03, 0x3F, 0x00, 0, 0 };
+    st_ZPRJ_CATEGORY_PROPS pr_bgg = { 0x30000031, 0x03, 0x3F, 0x3F, 0, 0 };
+    st_ZPRJ_CATEGORY_PROPS pr_brb = { 0x3D, 0x03, 0x14, 0x3F, 0, 0 };
+    st_ZPRJ_CATEGORY_PROPS pr_bmm = { 0x3000003D, 0x03, 0x3F, 0x3F, 0, 0 };
+
+    zEntProjectile_addCat(ZPRJ_CAT_BKAXE, &fn_bbk);
+    zEntProjectile_addProps(ZPRJ_CAT_BKAXE, &pr_bbk);
+    zEntProjectile_addCat(ZPRJ_CAT_GGSHOCK, &fn_bgg);
+    zEntProjectile_addProps(ZPRJ_CAT_GGSHOCK, &pr_bgg);
+    zEntProjectile_addCat(ZPRJ_CAT_RBSWORD, &fn_brb);
+    zEntProjectile_addProps(ZPRJ_CAT_RBSWORD, &pr_brb);
+    zEntProjectile_addCat(ZPRJ_CAT_MMFLASK, &fn_bmm);
+    zEntProjectile_addProps(ZPRJ_CAT_MMFLASK, &pr_bmm);
 }
 
 static void VPRJ_BBK_bupdate(_xEnt* ent, _xVec3* pos)
@@ -17433,6 +17235,51 @@ static void VWEP_rbs_throw(st_REDBEARD_SWORD* rbs)
 
 static inline void VWEP_rbs_flight(st_REDBEARD_SWORD* rbs, float dt)
 {
+    _xMat3x3 mat_rot = {};
+    _xVec3 ang = { 25.132741f, 0.0f, 0.0f };
+    _xVec3 dpos = {};
+    _xMat4x3* mat;
+    unsigned int snd;
+
+    rbs->tym_age += dt;
+    if (rbs->tym_age > 2.5f)
+    {
+        rbs->flg_stat |= 8;
+    }
+    else
+    {
+        rbs->flg_stat &= ~8;
+    }
+
+    ang.x *= dt;
+    ang.y *= dt;
+    ang.z *= dt;
+    xMat3x3Euler(&mat_rot, &ang);
+    if (rbs->tym_age < 2.5f)
+    {
+        xVec3SMul(&dpos, &rbs->dir_end, dt * rbs->spd_fly);
+    }
+    else
+    {
+        xVec3SMul(&dpos, &rbs->dir_end, -dt * rbs->spd_fly);
+    }
+
+    xEntBeginUpdate(rbs, globals.sceneCur, dt);
+    mat = (_xMat4x3*)rbs->frame;
+    xMat4x3RMul3x3(mat, &mat_rot, mat);
+    xVec3AddTo(&mat->pos, &dpos);
+    xEntMotionToMatrix(rbs, rbs->frame);
+    xEntEndUpdate(rbs, globals.sceneCur, dt);
+
+    if (!iSndIsPlaying(0, (unsigned int)rbs))
+    {
+        snd = VSND_select_sound(rbs->rbvil, VSND_TYP_PRJ_FLIGHT);
+        if (snd)
+        {
+            xSndPlay3D(snd, 0.5f, 0.0f, 0x80, 0x202, rbs, 25.0f);
+        }
+    }
+    VWEP_rbs_chkCollide(rbs, dt);
 }
 
 static void VWEP_rbs_chkCollide(st_REDBEARD_SWORD* rbs, float dt)
@@ -19572,6 +19419,89 @@ static inline xAnimSingle* VANM_entSingle(_zEnt* ent)
 
 static inline void VSND_setup_soundTable()
 {
+    st_NPC_SOUND_ENTRY* entry;
+
+    for (entry = g_npcJukeBox; entry->sndList; entry++)
+    {
+        st_NPC_SOUND_RECORDS* rec;
+        for (rec = entry->sndList; rec->typ_sound != 0x8000; rec++)
+        {
+            unsigned int aid = xStrHash(rec->nam_sound);
+            rec->aid_sound = iSndLookup(aid) ? aid : 0;
+        }
+    }
+}
+
+// Inline twin of VSND_play: every caller except VILN_std_aware gets the sound
+// queued inline in the original, std_aware calls the out-of-line VSND_play.
+static inline void VSND_cue(st_zEntVillain* vil, en_NPC_SOUND sndEvent)
+{
+    st_NPC_SOUND_PROPERTIES* sprop = NULL;
+    signed int flg_vsnd;
+    float delay;
+    float radius;
+
+    VSND_findProps(sndEvent, &sprop);
+    flg_vsnd = sprop->flg_vsnd;
+    if (sndEvent != VSND_TYP_HOLOFADE)
+    {
+        flg_vsnd &= 0x0FFFFFFF;
+    }
+    delay = sprop->tym_delayStart;
+    radius = g_npcTable[vil->asset->subtype].dst_noisy;
+    if (sndEvent != VSND_TYP_BOGUS)
+    {
+        VSND_addQueueEntry(vil, sndEvent, flg_vsnd, radius, delay, -1.0f, 0, 0);
+    }
+}
+
+static void VSND_play(st_zEntVillain* vil, en_NPC_SOUND sndEvent)
+{
+    st_NPC_SOUND_PROPERTIES* sprop = NULL;
+    signed int flg_vsnd;
+    float delay;
+    float radius;
+
+    VSND_findProps(sndEvent, &sprop);
+    flg_vsnd = sprop->flg_vsnd;
+    if (sndEvent != VSND_TYP_HOLOFADE)
+    {
+        flg_vsnd &= 0x0FFFFFFF;
+    }
+    delay = sprop->tym_delayStart;
+    radius = g_npcTable[vil->asset->subtype].dst_noisy;
+    if (sndEvent != VSND_TYP_BOGUS)
+    {
+        VSND_addQueueEntry(vil, sndEvent, flg_vsnd, radius, delay, -1.0f, 0, 0);
+    }
+}
+
+static inline signed int VSND_addQueueEntry(st_zEntVillain* vil, en_NPC_SOUND sndEvent, signed int flg_vsnd,
+                                            float radius, float delay, float repeatDelay,
+                                            signed int repeatCount, unsigned int useThisSound)
+{
+    signed int added = 0;
+    signed int i;
+    st_NPC_SOUND_QUEUE* que;
+
+    for (i = 0; i < 4; i++)
+    {
+        que = &vil->snd_queue[i];
+        if (que->sndEvent == VSND_TYP_BOGUS)
+        {
+            memset(que, 0, sizeof(st_NPC_SOUND_QUEUE));
+            que->sndEvent = sndEvent;
+            que->sndDirect = useThisSound;
+            que->flg_frolic = flg_vsnd;
+            que->tmr_delay = delay;
+            que->cnt_repeat = repeatCount;
+            que->radius = radius;
+            que->tym_repeatDelay = repeatDelay;
+            added = 1;
+            break;
+        }
+    }
+    return added;
 }
 
 static signed int VSND_procQueue(st_zEntVillain* vil, float dt)
@@ -19716,6 +19646,9 @@ static unsigned int VSND_goPlay(st_zEntVillain* vil, en_NPC_SOUND sndEvent, unsi
     return xsid;
 }
 
+// Movement helpers shared by the calcmove handlers (out-of-line on PS2,
+// inlined in the GameCube build).
+
 static inline en_NPC_SOUND VSND_typeFromHash(st_zEntVillain* vil, unsigned int aid_snd)
 {
     st_NPC_SOUND_RECORDS* trax;
@@ -19748,6 +19681,57 @@ static inline en_NPC_SOUND VSND_typeFromHash(st_zEntVillain* vil, unsigned int a
         }
     }
     return typ_sndEvent;
+}
+
+static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
+                                  en_NPC_ANIMSTATES d)
+{
+    en_NPC_ANIMSTATES list[4] = { a, b, c, d };
+    VANM_randset(vil, NULL, list, 4);
+}
+
+static inline void VANM_play5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
+                              en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e)
+{
+    en_NPC_ANIMSTATES list[5] = { a, b, c, d, e };
+    VANM_set(vil, list, 5, 0);
+}
+
+static inline void VANM_playRand3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c)
+{
+    en_NPC_ANIMSTATES list[3] = { a, b, c };
+    VANM_randset(vil, NULL, list, 3);
+}
+
+static inline void VANM_playRand(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b)
+{
+    en_NPC_ANIMSTATES list[2] = { a, b };
+    VANM_randset(vil, NULL, list, 2);
+}
+
+static inline void VANM_play4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c,
+                              en_NPC_ANIMSTATES d)
+{
+    en_NPC_ANIMSTATES list[4] = { a, b, c, d };
+    VANM_set(vil, list, 4, 0);
+}
+
+static inline void VANM_play3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c)
+{
+    en_NPC_ANIMSTATES list[3] = { a, b, c };
+    VANM_set(vil, list, 3, 0);
+}
+
+static inline void VANM_playLoop(st_zEntVillain* vil, en_NPC_ANIMSTATES a)
+{
+    en_NPC_ANIMSTATES list[2] = { a, (en_NPC_ANIMSTATES)1 };
+    VANM_set(vil, list, 2, 0);
+}
+
+static inline void VANM_play(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b)
+{
+    en_NPC_ANIMSTATES list[2] = { a, b };
+    VANM_set(vil, list, 2, 0);
 }
 
 static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent)
@@ -19813,78 +19797,6 @@ static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent
     return da_aid_of_sound;
 }
 
-// Inline twin of VSND_play: every caller except VILN_std_aware gets the sound
-// queued inline in the original, std_aware calls the out-of-line VSND_play.
-static inline void VSND_cue(st_zEntVillain* vil, en_NPC_SOUND sndEvent)
-{
-    st_NPC_SOUND_PROPERTIES* sprop = NULL;
-    signed int flg_vsnd;
-    float delay;
-    float radius;
-
-    VSND_findProps(sndEvent, &sprop);
-    flg_vsnd = sprop->flg_vsnd;
-    if (sndEvent != VSND_TYP_HOLOFADE)
-    {
-        flg_vsnd &= 0x0FFFFFFF;
-    }
-    delay = sprop->tym_delayStart;
-    radius = g_npcTable[vil->asset->subtype].dst_noisy;
-    if (sndEvent != VSND_TYP_BOGUS)
-    {
-        VSND_addQueueEntry(vil, sndEvent, flg_vsnd, radius, delay, -1.0f, 0, 0);
-    }
-}
-
-static void VSND_play(st_zEntVillain* vil, en_NPC_SOUND sndEvent)
-{
-    st_NPC_SOUND_PROPERTIES* sprop = NULL;
-    signed int flg_vsnd;
-    float delay;
-    float radius;
-
-    VSND_findProps(sndEvent, &sprop);
-    flg_vsnd = sprop->flg_vsnd;
-    if (sndEvent != VSND_TYP_HOLOFADE)
-    {
-        flg_vsnd &= 0x0FFFFFFF;
-    }
-    delay = sprop->tym_delayStart;
-    radius = g_npcTable[vil->asset->subtype].dst_noisy;
-    if (sndEvent != VSND_TYP_BOGUS)
-    {
-        VSND_addQueueEntry(vil, sndEvent, flg_vsnd, radius, delay, -1.0f, 0, 0);
-    }
-}
-
-static inline signed int VSND_addQueueEntry(st_zEntVillain* vil, en_NPC_SOUND sndEvent, signed int flg_vsnd,
-                                            float radius, float delay, float repeatDelay,
-                                            signed int repeatCount, unsigned int useThisSound)
-{
-    signed int added = 0;
-    signed int i;
-    st_NPC_SOUND_QUEUE* que;
-
-    for (i = 0; i < 4; i++)
-    {
-        que = &vil->snd_queue[i];
-        if (que->sndEvent == VSND_TYP_BOGUS)
-        {
-            memset(que, 0, sizeof(st_NPC_SOUND_QUEUE));
-            que->sndEvent = sndEvent;
-            que->sndDirect = useThisSound;
-            que->flg_frolic = flg_vsnd;
-            que->tmr_delay = delay;
-            que->cnt_repeat = repeatCount;
-            que->radius = radius;
-            que->tym_repeatDelay = repeatDelay;
-            added = 1;
-            break;
-        }
-    }
-    return added;
-}
-
 static inline signed int VSND_findProps(en_NPC_SOUND sndEvent, st_NPC_SOUND_PROPERTIES** sprop_caller)
 {
     st_NPC_SOUND_PROPERTIES* sprop = g_sndProps;
@@ -19906,6 +19818,32 @@ static inline signed int VSND_findProps(en_NPC_SOUND sndEvent, st_NPC_SOUND_PROP
 
 static inline void VBON_setup_bonusTable()
 {
+    _xVec3 pos_hide = { 867.0f, -5309.0f, 2469.0f };
+    signed int i;
+
+    memset(g_npcBonus, 0, sizeof(g_npcBonus));
+    for (i = 0; i < 11; i++)
+    {
+        st_NPC_BONUS* bonus = &g_npcBonus[i];
+        bonus->pickup = (_zEntPickup*)zSceneFindObject(xStrHash(g_strz_npcBonus[i]));
+        if (bonus->pickup)
+        {
+            zEntPickup_MakeDroppable(bonus->pickup, &pos_hide, NULL);
+            if (i < 5)
+            {
+                bonus->flg_info |= 0x40000;
+            }
+            else if (i < 8)
+            {
+                bonus->flg_info |= 0x20000;
+            }
+            else
+            {
+                bonus->flg_info |= 0x10000;
+            }
+        }
+    }
+    g_bonusTableReady = 1;
 }
 
 static void VBON_drop_bonusItem(st_zEntVillain* vil)
@@ -20194,6 +20132,112 @@ static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp)
     return &g_npcBonus[choice];
 }
 
+// Distance (squared) to the move target; flyers and swimmers also count height.
+static inline float VOUT_ds2_arrive(st_zEntVillain* vil, _xMat4x3** mat)
+{
+    _xVec3 entpos = {};
+    float dist = VSUP_ds2_toPos(vil, vil->pos_moveto);
+
+    *mat = (_xMat4x3*)vil->model->Mat;
+    entpos = (*mat)->pos;
+    if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
+    {
+        float dy = vil->pos_moveto.y - entpos.y;
+        dy = dy * dy;
+        if (!(dist > dy))
+        {
+            dist = dy;
+        }
+    }
+    return dist;
+}
+
+static inline void VOUT_steer(st_zEntVillain* vil)
+{
+    vil->ang_moveto = VSUP_dir_toPos(vil, vil->pos_moveto, &vil->dir_moveto);
+    if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
+    {
+        vil->domove |= 4;
+    }
+    vil->domove |= 0x800;
+    vil->domove |= 1;
+    vil->domove |= 0xA;
+    vil->domove |= 0x80000000;
+}
+
+static inline _xVec3 VUTIL_ctrOf(_xEnt* ent)
+{
+    _xVec3 ctr = {};
+
+    ctr = *xBoundCenter(&ent->bound);
+    return ctr;
+}
+
+// Entity position / bound centre by value.
+static inline _xVec3 VUTIL_posOf(_xEnt* ent)
+{
+    _xVec3 pos = {};
+
+    pos = ((_xMat4x3*)ent->model->Mat)->pos;
+    return pos;
+}
+
+static inline float VSUP_ds2_toPos(_zEnt* ent, _xVec3 pos)
+{
+    _xVec3 delta = {};
+
+    xVec3Sub(&delta, &pos, &((_xMat4x3*)ent->model->Mat)->pos);
+    return delta.x * delta.x + delta.z * delta.z;
+}
+
+static inline float VSUP_dir_toPos(_zEnt* ent, _xVec3 pos, _xVec3* dir)
+{
+    _xVec3 delta = {};
+    float ang;
+
+    xVec3Sub(&delta, &pos, &((_xMat4x3*)ent->model->Mat)->pos);
+    xVec3Normalize(&delta, &delta);
+    ang = VSUP_yaw(delta);
+    if (dir)
+    {
+        xVec3Normalize(dir, &delta);
+    }
+    return ang;
+}
+
+static inline void VSUP_ang_toXZDir(float angle, _xVec3* dir)
+{
+    dir->x = sin(angle);
+    dir->z = cos(angle);
+}
+
+// Angle of interest: where ent is relative to the villain's facing, and in
+// which quadrant (1 front, 4 right, 2 back, 3 left).
+static inline float VSUP_ent_AOI(st_zEntVillain* vil, _zEnt* ent, signed int* qdrant)
+{
+    float dang = VSUP_dir_toPos(vil, VUTIL_ctrOf(ent), NULL) - vil->frame->rot.angle;
+    float ang = xAngleClamp(dang + 0.7853982f);
+
+    *qdrant = 0;
+    if (ang > 0.0f && ang <= 1.5707964f)
+    {
+        *qdrant = 1;
+    }
+    else if (ang > 1.5707964f && ang <= 3.1415927f)
+    {
+        *qdrant = 4;
+    }
+    else if (ang > 3.1415927f && ang < 4.712389f)
+    {
+        *qdrant = 2;
+    }
+    else if (ang > 0.0f && ang < 1.5707964f)
+    {
+        *qdrant = 3;
+    }
+    return xAngleClamp(dang);
+}
+
 static inline signed int VSUP_choose(signed int* list, float* wts, signed int cnt)
 {
     float dlta;
@@ -20246,6 +20290,11 @@ static inline void VSUP_wtadjust(float* wts, signed int cnt, float arbref)
     {
         wts[i] *= fac;
     }
+}
+
+static inline float VSUP_yaw(_xVec3 dir)
+{
+    return xAngleClamp(atan2(dir.x, dir.z));
 }
 
 static signed int VSUP_accum_collide(st_zEntVillain* vil, _xVec3* vec_accum)
@@ -20319,52 +20368,6 @@ static signed int VSUP_accum_collide(st_zEntVillain* vil, _xVec3* vec_accum)
     }
 
     return hit_something;
-}
-
-static inline signed int VOUT_hit_isWall(st_zEntVillain* vil, _xVec3* dir_trav, _xCollis* colrec)
-{
-    _xVec3 vec_tmp = {};
-    signed int flg_look;
-    signed int result = 0;
-
-    flg_look = 0xC;
-    if (vil->abl_move & 0x1000)
-    {
-        flg_look = 8;
-    }
-
-    if ((float)__fabs(colrec->norm.y) > 0.01f)
-    {
-        result = 0;
-    }
-    else if (vil->mode > ZVIL_MODE_NORMAL)
-    {
-        result = 0;
-    }
-    else if (!(colrec->norm.x * colrec->norm.x + colrec->norm.z * colrec->norm.z > 0.0f))
-    {
-        result = 0;
-    }
-    else
-    {
-        vec_tmp.x = colrec->norm.x;
-        vec_tmp.z = colrec->norm.z;
-        xVec3Normalize(&vec_tmp, &vec_tmp);
-        if ((float)__fabs(xVec3Dot(dir_trav, &vec_tmp)) > 0.8f)
-        {
-            _zMovePoint* mvpt;
-
-            result = 1;
-            mvpt = zMovePointFindNearest(flg_look | 0x11, xBoundCenter(&vil->bound), vil,
-                                         VNAV_chklos_timz);
-            vil->need_navpt = 0;
-            if (mvpt && mvpt != vil->nav_next)
-            {
-                vil->nav_next = mvpt;
-            }
-        }
-    }
-    return result;
 }
 
 static inline void VSUP_cheap_reflect(_xVec3* out, _xVec3* alter)
