@@ -734,7 +734,7 @@ config.libs = [
         "cflags": cflags_tww_dolphin,
         "progress_category": "sdk",
         "objects": [
-            Object(NonMatching, "dolphin/gx/GXInit.c"),
+            Object(NonMatching, "dolphin/gx/GXInit.c", extra_cflags=["-opt nopeephole"]),
             Object(Matching, "dolphin/gx/GXFifo.c"),
             Object(Matching, "dolphin/gx/GXAttr.c"),
             Object(Matching, "dolphin/gx/GXMisc.c"),
