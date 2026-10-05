@@ -9,7 +9,7 @@ static GXData gxData;
 
 static GXFifoObj FifoObj;
 
-GXData* const gx = &gxData;
+GXData* gx = &gxData;
 
 GXTexRegion* __GXDefaultTexRegionCallback(const GXTexObj* obj, GXTexMapID id) {
     GXTexFmt format;

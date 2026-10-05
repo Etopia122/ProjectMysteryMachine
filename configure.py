@@ -603,20 +603,6 @@ config.libs = [
         ],
     ),
     DolphinLib(
-        "bfbb_gx",
-        [
-            Object(NonMatching, "dolphin/src/gx/GXFifo.c"),
-            Object(NonMatching, "dolphin/src/gx/GXAttr.c"),
-            Object(NonMatching, "dolphin/src/gx/GXMisc.c"),
-            Object(NonMatching, "dolphin/src/gx/GXGeometry.c"),
-            Object(NonMatching, "dolphin/src/gx/GXFrameBuf.c"),
-            Object(NonMatching, "dolphin/src/gx/GXLight.c"),
-            Object(NonMatching, "dolphin/src/gx/GXTexture.c"),
-            Object(NonMatching, "dolphin/src/gx/GXBump.c"),
-            Object(NonMatching, "dolphin/src/gx/GXTransform.c"),
-        ],
-    ),
-    DolphinLib(
         "bfbb_os",
         [
             Object(Matching, "dolphin/src/os/OSAlarm.c"),
@@ -748,8 +734,20 @@ config.libs = [
         "cflags": cflags_tww_dolphin,
         "progress_category": "sdk",
         "objects": [
+            Object(NonMatching, "dolphin/gx/GXInit.c"),
+            Object(NonMatching, "dolphin/gx/GXFifo.c"),
+            Object(NonMatching, "dolphin/gx/GXAttr.c"),
+            Object(Matching, "dolphin/gx/GXMisc.c"),
+            Object(NonMatching, "dolphin/gx/GXGeometry.c"),
+            Object(NonMatching, "dolphin/gx/GXFrameBuf.c"),
+            Object(NonMatching, "dolphin/gx/GXLight.c", extra_cflags=["-fp_contract off"]),
+            Object(NonMatching, "dolphin/gx/GXTexture.c"),
+            Object(NonMatching, "dolphin/gx/GXBump.c"),
+            Object(NonMatching, "dolphin/gx/GXTev.c"),
+            Object(NonMatching, "dolphin/gx/GXPixel.c"),
             Object(Matching, "dolphin/gx/GXDisplayList.c"),
-            Object(NonMatching, "dolphin/gx/GXPerf.c"),
+            Object(NonMatching, "dolphin/gx/GXTransform.c", extra_cflags=["-fp_contract off"]),
+            Object(Matching, "dolphin/gx/GXPerf.c"),
         ],
     },
     # MetroTRK, Runtime and MSL: byte-identical to The Wind Waker's copies.

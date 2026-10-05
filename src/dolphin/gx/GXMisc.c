@@ -46,7 +46,15 @@ void GXFlush(void) {
     PPCSync();
 }
 
-static void __GXAbortWait(u32 clocks) {
+// This SDK revision resets the write-gather pipe here, and GXAbortFrame
+// pulses the PI reset itself (no separate __GXAbort).
+void GXResetWriteGatherPipe(void) {
+    while (PPCMfwpar() & 1) {
+    }
+    PPCMtwpar(0x0C008000);
+}
+
+static inline void __GXAbortWait(u32 clocks) {
     OSTime time0, time1;
     time0 = OSGetTime();
 
@@ -55,16 +63,32 @@ static void __GXAbortWait(u32 clocks) {
     } while (time1 - time0 <= clocks / 4);
 }
 
-void __GXAbort(void) {
-    __PIRegs[0x18 / 4] = 1;
+void GXAbortFrame(void) {
+    __piReg[0x18 / 4] = 1;
     __GXAbortWait(200);
-    __PIRegs[0x18 / 4] = 0;
+    __piReg[0x18 / 4] = 0;
     __GXAbortWait(20);
+    __GXCleanGPFifo();
 }
 
-void GXAbortFrame(void) {
-    __GXAbort();
-    __GXCleanGPFifo();
+void GXSetDrawSync(u16 token) {
+    BOOL enabled;
+    u32 reg;
+
+    enabled = OSDisableInterrupts();
+    reg = token | 0x48000000;
+    GX_WRITE_RAS_REG(reg);
+    GX_SET_REG(reg, token, 16, 31);
+    GX_SET_REG(reg, 0x47, 0, 7);
+    GX_WRITE_RAS_REG(reg);
+    GXFlush();
+    OSRestoreInterrupts(enabled);
+    gx->bpSentNot = 0;
+}
+
+u16 GXReadDrawSync(void) {
+    u16 token = GX_GET_PE_REG(7);
+    return token;
 }
 
 /* ############################################################################################## */

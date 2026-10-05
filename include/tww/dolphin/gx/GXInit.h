@@ -127,7 +127,7 @@ typedef struct _GXData {
 
 STATIC_ASSERT(sizeof(GXData) == 0x4F8);
 
-extern GXData* const gx;
+extern GXData* gx;
 
 // Define register addresses.
 #define GX_CP_ADDR  (0x0C000000)

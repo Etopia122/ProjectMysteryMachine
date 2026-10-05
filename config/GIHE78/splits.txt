@@ -1068,40 +1068,49 @@ dolphin/exi/EXIUart.c:
 	.text       start:0x800FAD8C end:0x800FAFFC
 	.sbss       start:0x8025F3C8 end:0x8025F3D8
 
-dolphin/src/gx/GXFifo.c:
-	.text       start:0x800FC224 end:0x800FC30C
+dolphin/gx/GXInit.c:
+	.text       start:0x800FAFFC end:0x800FC0E8
 
-dolphin/src/gx/GXAttr.c:
-	.text       start:0x800FD598 end:0x800FD634
+dolphin/gx/GXFifo.c:
+	.text       start:0x800FC0E8 end:0x800FCB34
 
-dolphin/src/gx/GXMisc.c:
-	.text       start:0x800FDBD8 end:0x800FDC9C
+dolphin/gx/GXAttr.c:
+	.text       start:0x800FCB34 end:0x800FD9C4
+
+dolphin/gx/GXMisc.c:
+	.text       start:0x800FD9C4 end:0x800FDF54
 	.sbss       start:0x8025F408 end:0x8025F41C
 
-dolphin/src/gx/GXGeometry.c:
-	.text       start:0x800FE0BC end:0x800FE144
+dolphin/gx/GXGeometry.c:
+	.text       start:0x800FDF54 end:0x800FE30C
 
-dolphin/src/gx/GXFrameBuf.c:
-	.text       start:0x800FED68 end:0x800FEDA0
+dolphin/gx/GXFrameBuf.c:
+	.text       start:0x800FE30C end:0x800FEDA0
 
-dolphin/src/gx/GXLight.c:
-	.text       start:0x800FEF30 end:0x800FF02C
+dolphin/gx/GXLight.c:
+	.text       start:0x800FEDA0 end:0x800FF69C
 
-dolphin/src/gx/GXTexture.c:
-	.text       start:0x800FF69C end:0x800FF8C0
-	.data       start:0x801CCA20 end:0x801CCC44
+dolphin/gx/GXTexture.c:
+	.text       start:0x800FF69C end:0x80100888
 
-dolphin/src/gx/GXBump.c:
-	.text       start:0x80100DBC end:0x80100E04
+dolphin/gx/GXBump.c:
+	.text       start:0x80100888 end:0x80100EF4
+
+dolphin/gx/GXTev.c:
+	.text       start:0x80100EF4 end:0x801018B8
+
+dolphin/gx/GXPixel.c:
+	.text       start:0x801018B8 end:0x80102000
 
 dolphin/gx/GXDisplayList.c:
 	.text       start:0x801021A0 end:0x80102210
 
-dolphin/src/gx/GXTransform.c:
-	.text       start:0x80102834 end:0x801028E0
+dolphin/gx/GXTransform.c:
+	.text       start:0x80102210 end:0x801028E0
 
 dolphin/gx/GXPerf.c:
-	.text       start:0x80103178 end:0x80103188
+	.text       start:0x801028E0 end:0x80103188
+	.data       start:0x801CCC90 end:0x801CCD80
 
 dolphin/mtx/mtx.c:
 	.text       start:0x80103188 end:0x80103280
