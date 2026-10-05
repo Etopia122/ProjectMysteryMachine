@@ -650,6 +650,7 @@ config.libs = [
         "cflags": cflags_tww_dolphin,
         "progress_category": "sdk",
         "objects": [
+            Object(Matching, "dolphin/os/OS.c"),
             Object(Matching, "dolphin/os/OSContext.c"),
             Object(Matching, "dolphin/os/OSCache.c"),
             Object(Matching, "dolphin/os/OSError.c"),

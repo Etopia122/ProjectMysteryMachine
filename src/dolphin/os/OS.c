@@ -40,6 +40,14 @@ OSTime __OSStartTime;
 
 BOOL __OSInIPL;
 
+
+
+static inline void DisableWriteGatherPipe(void)
+{
+    PPCMthid2(PPCMfhid2() & ~0x40000000);
+}
+
+// Unreferenced in this game; the linker strips it.
 extern f64 ZeroPS;
 f64 ZeroPS;
 
@@ -134,11 +142,6 @@ skip_ps_init:
 #endif
 }
 
-static void DisableWriteGatherPipe(void)
-{
-    PPCMthid2(PPCMfhid2() & ~0x40000000);
-}
-
 u32 OSGetConsoleType(void) {
     if (BootInfo == NULL || BootInfo->console_type == 0) {
         return OS_CONSOLE_ARTHUR;
@@ -158,7 +161,6 @@ OSExceptionHandler* OSExceptionTable;
 extern BOOL AreWeInitialized;
 BOOL AreWeInitialized;
 
-BOOL __OSIsGcam;
 
 static void ClearArena(void) {
     if (OSGetResetCode() != 0x80000000) {
@@ -203,7 +205,6 @@ static void InquiryCallback(s32 result, DVDCommandBlock* block) {
 
 static u8 DriveBlock[48];
 
-static const char* __OSVersion = "<< Dolphin SDK - OS	release build: Sep 27 2002 14:02:03 (0x2301) >>";
 
 extern u8 __ArenaHi[];
 extern u8 __ArenaLo[];
@@ -221,7 +222,6 @@ void OSInit(void) {
     BI2Debug* DebugInfo;
     void* debugArenaLo;
     u32 inputConsoleType;
-    u32 tdev;
 
     if ((BOOL)AreWeInitialized == FALSE) {
         AreWeInitialized = TRUE;
@@ -285,12 +285,20 @@ void OSInit(void) {
         __OSThreadInit();
         __OSInitAudioSystem();
         DisableWriteGatherPipe();
+
+        if (BootInfo->console_type & OS_CONSOLE_DEVELOPMENT) {
+            BootInfo->console_type = OS_CONSOLE_DEVHW1;
+        } else {
+            BootInfo->console_type = OS_CONSOLE_RETAIL1;
+        }
+        BootInfo->console_type += (__PIRegs[11] & 0xF0000000) >> 28;
+
         if ((BOOL)__OSInIPL == FALSE) {
             __OSInitMemoryProtection();
         }
 
-        OSReport("\nDolphin OS $Revision: 58 $.\n");
-        OSReport("Kernel built : %s %s\n", "Sep 27 2002", "14:02:03");
+        OSReport("\nDolphin OS $Revision: 52 $.\n");
+        OSReport("Kernel built : %s %s\n", "Apr 16 2002", "02:09:06");
         OSReport("Console Type : ");
 
         if (BootInfo == NULL || (inputConsoleType = BootInfo->console_type) == 0) {
@@ -299,12 +307,10 @@ void OSInit(void) {
             inputConsoleType = BootInfo->console_type;
         }
 
-        switch (inputConsoleType & 0xFFFF0000) {
-        case OS_CONSOLE_RETAIL:
+        if ((inputConsoleType & OS_CONSOLE_DEVELOPMENT) == 0) {
             OSReport("Retail %d\n", inputConsoleType);
-            break;
-        default:
-            switch (inputConsoleType & 0x0000FFFF) {
+        } else {
+            switch (inputConsoleType) {
             case OS_CONSOLE_EMULATOR:
                 OSReport("Mac Emulator\n");
                 break;
@@ -318,16 +324,13 @@ void OSInit(void) {
                 OSReport("EPPC Minnow\n");
                 break;
             default:
-                tdev = (u32)inputConsoleType & 0x0000FFFF;
-                OSReport("Development HW%d (%08x)\n", tdev - 3, inputConsoleType);
+                OSReport("Development HW%d\n", inputConsoleType - 0x10000003);
                 break;
             }
-            break;
         }
 
         OSReport("Memory %d MB\n", (u32)BootInfo->memory_size >> 0x14U);
         OSReport("Arena : 0x%x - 0x%x\n", OSGetArenaLo(), OSGetArenaHi());
-        OSRegisterVersion(__OSVersion);
 
         if (BI2DebugFlag && ((*BI2DebugFlag) >= 2)) {
             EnableMetroTRKInterrupts();
@@ -338,10 +341,6 @@ void OSInit(void) {
 
         if ((BOOL)__OSInIPL == FALSE) {
             DVDInit();
-            if ((BOOL)__OSIsGcam) {
-                __OSDeviceCode = 0x9000;
-                return;
-            }
             DCInvalidateRange(&DriveInfo, sizeof(DriveInfo));
             DVDInquiryAsync((DVDCommandBlock*)&DriveBlock, &DriveInfo, InquiryCallback);
         }
@@ -609,7 +608,6 @@ static ASM void OSDefaultExceptionHandler(__REGISTER __OSException exception,
     mfdsisr r5
     mfdar r6
 
-    stwu r1, -8(r1)
     b __OSUnhandledException
     // clang-format on
 #endif
@@ -648,6 +646,13 @@ u32 __OSGetDIConfig(void) {
     return (__DIRegs[DI_CONFIG_IDX] & DI_CONFIG_CONFIG_MASK);
 }
 
-void OSRegisterVersion(const char* version) {
-    OSReport("%s\n", version);
+#undef OSPhysicalToCached
+#undef OSCachedToPhysical
+
+void* OSPhysicalToCached(u32 paddr) {
+    return (void*)(paddr + OS_BASE_CACHED);
+}
+
+u32 OSCachedToPhysical(void* caddr) {
+    return (u32)caddr - OS_BASE_CACHED;
 }

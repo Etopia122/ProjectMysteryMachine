@@ -1111,6 +1111,12 @@ dolphin/mtx/mtx44.c:
 dolphin/src/odenotstub/odenotstub.c:
 	.text       start:0x80103318 end:0x80103320
 
+dolphin/os/OS.c:
+	.text       start:0x80103320 end:0x80103C68
+	.data       start:0x801CCD80 end:0x801CCF40
+	.bss        start:0x8025B1A0 end:0x8025B1F0
+	.sbss       start:0x8025F428 end:0x8025F450
+
 dolphin/src/os/OSAlarm.c:
 	.text       start:0x80103C68 end:0x8010438C
 	.sbss       start:0x8025F450 end:0x8025F458
