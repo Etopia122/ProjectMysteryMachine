@@ -586,12 +586,13 @@ static inline void zHudInterp1d(float dt, float* src, float dst, float speed, si
     }
 }
 
-static inline xModelInstance* zHudLoadModel(unsigned int modelEnum, unsigned int* size)
+static inline xModelInstance* zHudLoadModel(unsigned int modelEnum)
 {
-    void* data = xSTFindAsset(zHudModelGetID(modelEnum), size);
+    unsigned int size;
+    void* data = xSTFindAsset(zHudModelGetID(modelEnum), &size);
     if (data == NULL)
     {
-        data = xSTFindAsset(zHudModelGetID(eHudModel_err), size);
+        data = xSTFindAsset(zHudModelGetID(eHudModel_err), &size);
     }
     if (*(unsigned int*)data == 'FNIM')
     {
@@ -693,17 +694,17 @@ void zHudElementsCB_PlayerStatusInit()
     unsigned int size;
     void* data;
 
-    sHudPlayerStatusArray[0].model = zHudLoadModel(eHudModelHead0, &size);
+    sHudPlayerStatusArray[0].model = zHudLoadModel(eHudModelHead0);
     sHudPlayerStatusArray[0].renderType = 1;
-    sHudPlayerStatusArray[1].model = zHudLoadModel(eHudModelHead1, &size);
+    sHudPlayerStatusArray[1].model = zHudLoadModel(eHudModelHead1);
     sHudPlayerStatusArray[1].renderType = 2;
-    sHudPlayerStatusArray[2].model = zHudLoadModel(eHudModelHead2, &size);
+    sHudPlayerStatusArray[2].model = zHudLoadModel(eHudModelHead2);
     sHudPlayerStatusArray[2].renderType = 3;
-    sHudPlayerStatusArray[3].model = zHudLoadModel(eHudModelHead3, &size);
+    sHudPlayerStatusArray[3].model = zHudLoadModel(eHudModelHead3);
     sHudPlayerStatusArray[3].renderType = 4;
-    sHudPlayerStatusArray[4].model = zHudLoadModel(eHudModelHead4, &size);
+    sHudPlayerStatusArray[4].model = zHudLoadModel(eHudModelHead4);
     sHudPlayerStatusArray[4].renderType = 5;
-    sHudPlayerStatusArray[5].model = zHudLoadModel(eHudModelHead5, &size);
+    sHudPlayerStatusArray[5].model = zHudLoadModel(eHudModelHead5);
     sHudPlayerStatusArray[5].renderType = 6;
 
     for (signed int i = 0; i < 6; i++)
@@ -1073,7 +1074,7 @@ void zHudElementsCB_ChancesRender()
 void zHudElementsCB_SnacksInit()
 {
     unsigned int size;
-    sHudSnackArray[0].model = zHudLoadModel(eHudModelIndividualScoobySnack, &size);
+    sHudSnackArray[0].model = zHudLoadModel(eHudModelIndividualScoobySnack);
     sHudSnackArray[0].renderType = 9;
 }
 
@@ -1305,15 +1306,15 @@ void zHudElementsCB_GumInit()
 {
     unsigned int size;
 
-    sHudGumArray[0].model = zHudLoadModel(eHudModelBubblegumPiece, &size);
+    sHudGumArray[0].model = zHudLoadModel(eHudModelBubblegumPiece);
     sHudGumArray[0].renderType = 8;
-    sHudGumArray[1].model = zHudLoadModel(eHudModelBubblegumPiece5, &size);
+    sHudGumArray[1].model = zHudLoadModel(eHudModelBubblegumPiece5);
     sHudGumArray[1].renderType = 8;
-    sHudGumArray[2].model = zHudLoadModel(eHudModelBubblegumPiece4, &size);
+    sHudGumArray[2].model = zHudLoadModel(eHudModelBubblegumPiece4);
     sHudGumArray[2].renderType = 8;
-    sHudGumArray[3].model = zHudLoadModel(eHudModelBubblegumPiece3, &size);
+    sHudGumArray[3].model = zHudLoadModel(eHudModelBubblegumPiece3);
     sHudGumArray[3].renderType = 8;
-    sHudGumArray[4].model = zHudLoadModel(eHudModelBubblegumPiece2, &size);
+    sHudGumArray[4].model = zHudLoadModel(eHudModelBubblegumPiece2);
     sHudGumArray[4].renderType = 8;
 
     for (signed int i = 0; i < 5; i++)
@@ -1599,10 +1600,10 @@ void zHudElementsCB_SoapInit()
 {
     unsigned int size;
 
-    sHudSoapArray[0].model = zHudLoadModel(eHudModelBarSoap, &size);
+    sHudSoapArray[0].model = zHudLoadModel(eHudModelBarSoap);
     sHudSoapArray[0].renderType = 11;
 
-    xModelInstance* bubble = zHudLoadModel(eHudModelSphere, &size);
+    xModelInstance* bubble = zHudLoadModel(eHudModelSphere);
     for (signed int i = 1; i < 6; i++)
     {
         sHudSoapArray[i].model = bubble;
@@ -1989,13 +1990,14 @@ void zHudElementsCB_MessageRender()
 
 void zHudElementsCB_SoapboxInit()
 {
+    unsigned int animSize;
     unsigned int size;
 
-    sHudSoapboxArray[0].model = zHudLoadModel(eHudModelBoxSoap, &size);
+    sHudSoapboxArray[0].model = zHudLoadModel(eHudModelBoxSoap);
     sHudSoapboxArray[0].renderType = 13;
     zHudItem* item = &sHudSoapboxArray[0];
 
-    void* data = xSTFindAsset(xStrHash("bat_fly.anm"), &size);
+    void* data = xSTFindAsset(xStrHash("bat_fly.anm"), &animSize);
     if (data != NULL)
     {
         xAnimFile* afile = xAnimFileNew(data, "", 0, NULL);
@@ -2244,13 +2246,14 @@ void zHudElementsCB_SoapboxRender()
 
 void zHudElementsCB_GumpackInit()
 {
+    unsigned int animSize;
     unsigned int size;
 
-    sHudGumpackArray[0].model = zHudLoadModel(eHudModelSphere, &size);
+    sHudGumpackArray[0].model = zHudLoadModel(eHudModelSphere);
     sHudGumpackArray[0].renderType = 7;
     zHudItem* item = &sHudGumpackArray[0];
 
-    void* data = xSTFindAsset(xStrHash("bat_fly.anm"), &size);
+    void* data = xSTFindAsset(xStrHash("bat_fly.anm"), &animSize);
     if (data != NULL)
     {
         xAnimFile* afile = xAnimFileNew(data, "", 0, NULL);
@@ -2503,7 +2506,7 @@ void zHudElementsCB_HealthbarInit()
     void* data;
     signed int i;
 
-    xModelInstance* collar = zHudLoadModel(eHudModelScoobyCollar, &size);
+    xModelInstance* collar = zHudLoadModel(eHudModelScoobyCollar);
     for (i = 0; i < 5; i++)
     {
         sHudHealthbarArray[i].model = collar;
@@ -2806,11 +2809,11 @@ void zHudElementsCB_GameStatsInit()
     unsigned int size;
     void* data;
 
-    sHudGameStatsArray[4].model = zHudLoadModel(eHudModelIndividualScoobySnack, &size);
+    sHudGameStatsArray[4].model = zHudLoadModel(eHudModelIndividualScoobySnack);
     sHudGameStatsArray[4].renderType = 10;
-    sHudGameStatsArray[5].model = zHudLoadModel(eHudModelClue, &size);
+    sHudGameStatsArray[5].model = zHudLoadModel(eHudModelClue);
     sHudGameStatsArray[5].renderType = 15;
-    sHudGameStatsArray[6].model = zHudLoadModel(eHudModelIndividualScoobySnack, &size);
+    sHudGameStatsArray[6].model = zHudLoadModel(eHudModelIndividualScoobySnack);
     sHudGameStatsArray[6].renderType = 10;
 
     // NOTE: the original sets up the animations on the player status items here.

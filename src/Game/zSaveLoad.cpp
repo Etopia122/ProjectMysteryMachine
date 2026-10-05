@@ -1958,6 +1958,15 @@ signed int xSGT_SaveProcPrefsCB(void* vp, st_XSAVEGAME_DATA* xsgdata,
     return sum + 1;
 }
 
+// Stand-in for a function the linker strips; it keeps a second 32-byte zeroed
+// buffer template after xSGT_LoadLoadCB's in .rodata.
+signed int zSaveLoadBufDeadStripped(char* name)
+{
+    char buf[32] = "";
+    strcpy(buf, name);
+    return strlen(buf);
+}
+
 signed int xSGT_LoadLoadCB(void* vp, st_XSAVEGAME_DATA* xsgdata, st_XSAVEGAME_READCONTEXT* rctxt,
                            unsigned int ui, signed int i)
 {
