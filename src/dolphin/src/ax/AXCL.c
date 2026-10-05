@@ -8,7 +8,6 @@ static u16 __AXCommandList[2][384];
 static u32 __AXCommandListPosition;
 static u16* __AXClWrite;
 static u32 __AXCommandListCycles;
-static u32 __AXCompressor;
 u32 __AXClMode;
 
 u32 __AXGetCommandListCycles(void)
@@ -55,14 +54,11 @@ void __AXNextFrame(void* sbuffer, void* buffer)
         __AXCommandListCycles += 0x546;
         break;
     case 1:
+    case 4:
         __AXWriteToCommandList(0x11);
         __AXWriteToCommandList((u16)((u32)sbuffer >> 0x10));
         __AXWriteToCommandList((u32)sbuffer);
         __AXCommandListCycles += 0x5E6;
-        break;
-    case 2:
-        break;
-    default:
         break;
     }
 
@@ -72,76 +68,36 @@ void __AXNextFrame(void* sbuffer, void* buffer)
     __AXWriteToCommandList((u16)data);
     __AXWriteToCommandList(3);
 
-    if (__AXClMode == 2)
+    __AXGetAuxAInput(&data);
+    if (data != 0)
     {
-        __AXGetAuxAInput(&data);
-        if (data != 0)
-        {
-            __AXWriteToCommandList(0x13);
-            __AXWriteToCommandList(data >> 0x10);
-            __AXWriteToCommandList((u16)data);
-            __AXGetAuxAInputDpl2(&data);
-            __AXWriteToCommandList(data >> 0x10);
-            __AXWriteToCommandList((u16)data);
-            __AXGetAuxAOutput(&data);
-            __AXWriteToCommandList(data >> 0x10);
-            __AXWriteToCommandList((u16)data);
-            __AXGetAuxAOutputDpl2R(&data);
-            __AXWriteToCommandList(data >> 0x10);
-            __AXWriteToCommandList((u16)data);
-            __AXGetAuxAOutputDpl2Ls(&data);
-            __AXWriteToCommandList(data >> 0x10);
-            __AXWriteToCommandList((u16)data);
-            __AXGetAuxAOutputDpl2Rs(&data);
-            __AXWriteToCommandList(data >> 0x10);
-            __AXWriteToCommandList((u16)data);
-            __AXCommandListCycles += 0xDED;
-        }
-        __AXWriteToCommandList(0x10);
-        __AXGetAuxBForDPL2(&data);
-        __AXWriteToCommandList(data >> 0x10);
+        __AXWriteToCommandList(4);
+        __AXWriteToCommandList((u16)(data >> 0x10));
         __AXWriteToCommandList((u16)data);
-        __AXGetAuxBOutputDPL2(&data);
-        __AXWriteToCommandList(data >> 0x10);
+        __AXGetAuxAOutput(&data);
+        __AXWriteToCommandList((u16)(data >> 0x10));
         __AXWriteToCommandList((u16)data);
         __AXCommandListCycles += 0xDED;
     }
-    else
-    {
-        __AXGetAuxAInput(&data);
 
-        if (data != 0)
+    __AXGetAuxBInput(&data);
+    if (data != 0)
+    {
+        if (__AXClMode == 4)
         {
-            __AXWriteToCommandList(4);
-            __AXWriteToCommandList((u16)(data >> 0x10));
-            __AXWriteToCommandList((u16)data);
-            __AXGetAuxAOutput(&data);
-            __AXWriteToCommandList((u16)(data >> 0x10));
-            __AXWriteToCommandList((u16)data);
+            __AXWriteToCommandList(0x10);
             __AXCommandListCycles += 0xDED;
         }
-
-        __AXGetAuxBInput(&data);
-        if (data != 0)
+        else
         {
             __AXWriteToCommandList(5);
             __AXCommandListCycles += 0xDED;
-            __AXWriteToCommandList((u16)(data >> 0x10));
-            __AXWriteToCommandList((u16)data);
-            __AXGetAuxBOutput(&data);
-            __AXWriteToCommandList((u16)(data >> 0x10));
-            __AXWriteToCommandList((u16)data);
         }
-    }
-
-    if (__AXCompressor)
-    {
-        __AXWriteToCommandList(0x12);
-        __AXWriteToCommandList(0x8000);
-        __AXWriteToCommandList(0xA);
-        __AXWriteToCommandList((u32)__AXCompressorTable >> 0x10);
-        __AXWriteToCommandList((u32)__AXCompressorTable);
-        __AXCommandListCycles += 0xBB8;
+        __AXWriteToCommandList((u16)(data >> 0x10));
+        __AXWriteToCommandList((u16)data);
+        __AXGetAuxBOutput(&data);
+        __AXWriteToCommandList((u16)(data >> 0x10));
+        __AXWriteToCommandList((u16)data);
     }
 
     __AXWriteToCommandList(0xE);
@@ -163,7 +119,6 @@ void __AXClInit(void)
     __AXClMode = 0;
     __AXCommandListPosition = 0;
     __AXClWrite = (void*)&__AXCommandList;
-    __AXCompressor = 1;
 }
 
 void __AXClQuit(void)
