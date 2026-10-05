@@ -109,6 +109,28 @@ char* strcat(char* dst, const char* src) {
     return dst;
 }
 
+char* strncat(char* dst, const char* src, size_t n) {
+    const unsigned char* p = (unsigned char*)src - 1;
+    unsigned char* q = (unsigned char*)dst - 1;
+
+    while (*++q) {
+    }
+
+    q--;
+    n++;
+
+    while (--n) {
+        if (!(*++q = *++p)) {
+            q--;
+            break;
+        }
+    }
+
+    *++q = 0;
+
+    return dst;
+}
+
 int strcmp(const char* str1, const char* str2) {
     register unsigned char* left = (unsigned char*)str1;
     register unsigned char* right = (unsigned char*)str2;
