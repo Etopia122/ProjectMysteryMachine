@@ -41,8 +41,8 @@ void OSInitAlarm(void)
 
 void OSCreateAlarm(OSAlarm* alarm)
 {
+    // This older version does not clear the tag.
     alarm->handler = 0;
-    alarm->tag = 0;
 }
 
 static void InsertAlarm(OSAlarm* alarm, OSTime fire, OSAlarmHandler handler)
@@ -220,7 +220,6 @@ static asm void DecrementerExceptionHandler(register __OSException exception,
     // clang-format off
 	nofralloc 
 	OS_EXCEPTION_SAVE_GPRS(context)
-	stwu r1, -8(r1)
 	b DecrementerExceptionCallback
     // clang-format on
 }

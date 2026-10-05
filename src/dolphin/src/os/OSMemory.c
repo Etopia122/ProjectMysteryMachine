@@ -170,6 +170,17 @@ void __OSInitMemoryProtection()
     simulatedSize = *(u32*)(OSPhysicalToCached(0x00F0));
     enabled = OSDisableInterrupts();
 
+    // This older version sets up the memory size first and does not
+    // invalidate the upper 24 MB.
+    if (simulatedSize <= 0x1800000)
+    {
+        RealMode((u32)&Config24MB);
+    }
+    else if (simulatedSize <= 0x3000000)
+    {
+        RealMode((u32)&Config48MB);
+    }
+
     __MEMRegs[16] = 0;
     __MEMRegs[8] = 0xFF;
 
@@ -185,17 +196,7 @@ void __OSInitMemoryProtection()
     if (*(u32*)(OSPhysicalToCached(0x00F0)) < *(u32*)(OSPhysicalToCached(0x0028)) &&
         *(u32*)(OSPhysicalToCached(0x00F0)) == 0x1800000)
     {
-        DCInvalidateRange((void*)0x81800000, 0x1800000);
         __MEMRegs[20] = 2;
-    }
-
-    if (simulatedSize <= 0x1800000)
-    {
-        RealMode((u32)&Config24MB);
-    }
-    else if (simulatedSize <= 0x3000000)
-    {
-        RealMode((u32)&Config48MB);
     }
 
     __OSUnmaskInterrupts(OS_INTERRUPTMASK_MEM_ADDRESS);

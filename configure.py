@@ -613,9 +613,9 @@ config.libs = [
     DolphinLib(
         "bfbb_os",
         [
-            Object(NonMatching, "dolphin/src/os/OSAlarm.c"),
+            Object(Matching, "dolphin/src/os/OSAlarm.c"),
             Object(Matching, "dolphin/src/os/OSArena.c"),
-            Object(NonMatching, "dolphin/src/os/OSMemory.c"),
+            Object(Matching, "dolphin/src/os/OSMemory.c"),
         ],
     ),
     # Dolphin SDK units from zeldaret/tww (CC0) whose code matches ours.

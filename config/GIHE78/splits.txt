@@ -1075,7 +1075,7 @@ dolphin/mtx/mtx.c:
 	.sdata2     start:0x80262758 end:0x80262784
 
 dolphin/src/os/OSAlarm.c:
-	.text       start:0x80103CC0 end:0x80104340
+	.text       start:0x80103C68 end:0x8010438C
 	.sbss       start:0x8025F450 end:0x8025F458
 
 dolphin/src/os/OSAlloc.c:
@@ -1113,7 +1113,7 @@ dolphin/os/OSLink.c:
 	.text       start:0x80106150 end:0x80106168
 
 dolphin/src/os/OSMemory.c:
-	.text       start:0x80106168 end:0x80106328
+	.text       start:0x80106168 end:0x80106448
 	.data       start:0x801CD718 end:0x801CD728
 
 dolphin/os/OSMutex.c:
