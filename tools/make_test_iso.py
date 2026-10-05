@@ -6,7 +6,8 @@
 # usage: python tools/make_test_iso.py [--no-build] [--autoplay script.txt] [out.iso]
 #
 # --autoplay compiles scripted controller input into iPad.cpp (test builds
-# only) and writes build/test/Scooby-auto.iso instead. Script lines:
+# only) and writes build/autoplay/Scooby-AUTOPLAY-do-not-play.iso instead, kept
+# out of build/test so it is never mistaken for the playable image.
 #   <frame> <frames> <BUTTONS joined by +> [stickX stickY]   (# comments)
 # e.g. "600 5 START" or "900 120 - 0 80" (stick up, no buttons).
 #
@@ -108,10 +109,11 @@ def main():
         write_autoplay(autoplay)
         os.environ["SCOOB_AUTOPLAY"] = "1"
         if not args:
-            args = [os.path.join(TEST_DIR, "Scooby-auto.iso")]
+            args = [os.path.join(ROOT, "build", "autoplay", "Scooby-AUTOPLAY-do-not-play.iso")]
     if "--no-build" not in sys.argv:
         build_source_dol(dol)
     iso = args[0] if args else os.path.join(TEST_DIR, "Scooby-src.iso")
+    os.makedirs(os.path.dirname(os.path.abspath(iso)), exist_ok=True)
     if not os.path.exists(iso) or os.path.getsize(iso) != os.path.getsize(ISO_IN):
         print("copying", ISO_IN, "->", iso)
         shutil.copyfile(ISO_IN, iso)
