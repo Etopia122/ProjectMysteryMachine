@@ -1083,10 +1083,12 @@ void xAnimTableAddTransition(xAnimTable* table, xAnimTransition* tran, char* sou
     unsigned int i;
     unsigned char* buffer = giAnimScratch;
     xAnimState** stateList = (xAnimState**)(giAnimScratch + 0x400);
-    unsigned int allocCount = 0;
-    unsigned int stateCount = 0;
+    unsigned int allocCount;
+    unsigned int stateCount;
     xAnimTransitionList* tlist;
 
+    stateCount = 0;
+    allocCount = 0;
     char* stateName = xStrTokBuffer(source, " ,\t\n\r", buffer);
     while (stateName != NULL)
     {
