@@ -3421,11 +3421,17 @@ static inline float VSUP_yaw(_xVec3 dir);
 static inline void VSUP_wtadjust(float* wts, signed int cnt, float arbref);
 static inline signed int VSUP_choose(signed int* list, float* wts, signed int cnt);
 static inline float VSUP_ent_AOI(st_zEntVillain* vil, _zEnt* ent, signed int* qdrant);
+static inline float VSUP_ent_facedot(st_zEntVillain* vil, _zEnt* ent);
+static inline signed int VSUP_ent_inLOS_timz(st_zEntVillain* vil, _zEnt* ent, signed int prev, float rand);
+static inline signed int VSUP_ent_inLOS(st_zEntVillain* vil, _zEnt* ent, signed int prev, float rand);
+static inline _xVec3* VUTIL_mdlpos(st_zEntVillain* vil);
+static inline float VUTIL_sqrt(float x);
+static inline signed int VSUP_ent_inFOV(st_zEntVillain* vil, _zEnt* ent);
 static inline void VSUP_ang_toXZDir(float angle, _xVec3* dir);
+static inline _xVec3 VUTIL_ctrOf(_xEnt* ent);
+static inline _xVec3 VUTIL_posOf(_xEnt* ent);
 static inline float VSUP_dir_toPos(_zEnt* ent, _xVec3 pos, _xVec3* dir);
 static inline float VSUP_ds2_toPos(_zEnt* ent, _xVec3 pos);
-static inline _xVec3 VUTIL_posOf(_xEnt* ent);
-static inline _xVec3 VUTIL_ctrOf(_xEnt* ent);
 static inline void VOUT_steer(st_zEntVillain* vil);
 static inline float VOUT_ds2_arrive(st_zEntVillain* vil, _xMat4x3** mat);
 static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp);
@@ -3442,6 +3448,8 @@ static inline void VANM_playRand3(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_N
 static inline void VANM_play5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e);
 static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
 static inline en_NPC_SOUND VSND_typeFromHash(st_zEntVillain* vil, unsigned int aid_snd);
+static inline signed int VSND_isPlaying(st_zEntVillain* vil, signed int channel);
+static inline float VUTIL_jitter(float tym);
 static unsigned int VSND_goPlay(st_zEntVillain* vil, en_NPC_SOUND sndEvent, unsigned int sndExplicit, signed int flg_vsnd, float dist);
 static signed int VSND_procQueue(st_zEntVillain* vil, float dt);
 static inline signed int VSND_addQueueEntry(st_zEntVillain* vil, en_NPC_SOUND sndEvent, signed int flg_vsnd, float radius, float delay, float repeatDelay, signed int repeatCount, unsigned int useThisSound);
@@ -3533,10 +3541,6 @@ static void VIRM_initVilDflt(st_zEntVillain* vil);
 static inline signed int VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe);
 static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float chance);
 static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame);
-static inline _xVec3* VUTIL_mdlpos(st_zEntVillain* vil);
-static inline float VUTIL_sqrt(float x);
-static inline signed int VUTIL_heroInFov(st_zEntVillain* vil);
-static inline signed int VUTIL_heroInSight(st_zEntVillain* vil, signed int lastknown);
 static void zVIL_precalc(st_zEntVillain* vil, signed int flags);
 static inline void VTMR_tick(st_zEntVillain* vil, signed int idx, float dt);
 static void zVIL_upd_timers(st_zEntVillain* vil, float dt);
@@ -6235,7 +6239,7 @@ static inline void VILN_std_awarePick(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goa
 static inline void VILN_std_awareTymr(st_zEntVillain* vil, signed int idx)
 {
     float tym = vil->vilcfg.tymref_list[idx];
-    vil->tmr_list[idx] = 0.25f * (iurand() - 0.5f) * tym + tym;
+    vil->tmr_list[idx] = VUTIL_jitter(tym);
 }
 
 static inline void VILN_std_awareGuardOrIdle(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp)
@@ -7775,7 +7779,7 @@ static inline void VILN_std_flagsAll(st_zEntVillain* vil)
 static inline void VILN_std_tymrRand(st_zEntVillain* vil, signed int idx)
 {
     float tym = vil->vilcfg.tymref_list[idx];
-    vil->tmr_list[idx] = 0.25f * (iurand() - 0.5f) * tym + tym;
+    vil->tmr_list[idx] = VUTIL_jitter(tym);
 }
 
 static inline void VILN_std_enterGoal(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal)
@@ -8477,7 +8481,7 @@ static signed int VILN_shark_aware(st_zEntVillain* vil, _xScene* scn, float dt, 
             vil->anim_loopmult = 0.97f;
             vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)4, (en_ZVIL_GOAL_SPOT)2);
             tym = vil->vilcfg.tymref_list[0];
-            vil->tmr_list[0] = 0.25f * (iurand() - 0.5f) * tym + tym;
+            vil->tmr_list[0] = VUTIL_jitter(tym);
         }
         break;
     case 32:
@@ -9065,7 +9069,7 @@ static signed int VILN_gang_aware(st_zEntVillain* vil, _xScene* scn, float dt, s
     case 12:
     {
         float tym = vil->vilcfg.tymref_list[8];
-        vil->tmr_list[8] = 0.25f * (iurand() - 0.5f) * tym + tym;
+        vil->tmr_list[8] = VUTIL_jitter(tym);
         if (!(vil->allow & 0x400) && !vil->sfx_curTalk)
         {
             xSceneID2Name(globals.sceneCur, vil->id);
@@ -9130,7 +9134,7 @@ static inline void VILN_gangIdle(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* 
     if (vil->tmr_list[8] <= 0.0f && (pc->flg_plyr & 1) && (pc->flg_plyr & 8))
     {
         float tym = vil->vilcfg.tymref_list[8];
-        vil->tmr_list[8] = 0.25f * (iurand() - 0.5f) * tym + tym;
+        vil->tmr_list[8] = VUTIL_jitter(tym);
         if (VSND_select_sound(vil, (en_NPC_SOUND)0x30))
         {
             VILN_tran(resp, 0xC, 0);
@@ -9359,9 +9363,9 @@ static signed int VILN_gang_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
 
             VILN_enterGoal(vil, (en_BEHAVIOUR_GOAL)4);
             tym = vil->vilcfg.tymref_list[0];
-            vil->tmr_list[0] = 0.25f * (iurand() - 0.5f) * tym + tym;
+            vil->tmr_list[0] = VUTIL_jitter(tym);
             tym = vil->vilcfg.tymref_list[8];
-            vil->tmr_list[8] = 0.25f * (iurand() - 0.5f) * tym + tym;
+            vil->tmr_list[8] = VUTIL_jitter(tym);
             break;
         }
         break;
@@ -9378,7 +9382,7 @@ static signed int VILN_gang_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
 
             VILN_enterGoal(vil, (en_BEHAVIOUR_GOAL)12);
             tym = vil->vilcfg.tymref_list[0];
-            vil->tmr_list[0] = 0.25f * (iurand() - 0.5f) * tym + tym;
+            vil->tmr_list[0] = VUTIL_jitter(tym);
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 0.5f;
             sfx = stimctxt->talkSFX;
             if (sfx == (zSFX*)-1)
@@ -10558,7 +10562,7 @@ static signed int VILN_BBK_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
 
             VILN_enterGoal(vil, (en_BEHAVIOUR_GOAL)27);
             tym = vil->vilcfg.tymref_list[22];
-            vil->tmr_list[22] = 0.25f * (iurand() - 0.5f) * tym + tym;
+            vil->tmr_list[22] = VUTIL_jitter(tym);
             vil->hitpts--;
             VEFX_zapTheKnight(vil, 0);
             vil->allow &= ~8;
@@ -11529,7 +11533,7 @@ static signed int VILN_BRB_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
             vil->anim_loopmult = 0.97f;
             vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)2);
             tym = vil->vilcfg.tymref_list[0];
-            vil->tmr_list[0] = 0.25f * (iurand() - 0.5f) * tym + tym;
+            vil->tmr_list[0] = VUTIL_jitter(tym);
         }
         break;
     }
@@ -12438,13 +12442,13 @@ static inline signed int VILN_BMM_teleport(st_zEntVillain* vil, st_STIMULUS_CONT
         found = 1;
         vil->need_navpt = 0;
         tym = vil->vilcfg.tymref_list[3];
-        vil->tmr_list[3] = 0.25f * (iurand() - 0.5f) * tym + tym;
+        vil->tmr_list[3] = VUTIL_jitter(tym);
     }
     else
     {
         vil->need_navpt = 1;
         tym = vil->vilcfg.tymref_list[3];
-        vil->tmr_list[3] = 0.25f * (iurand() - 0.5f) * tym + tym;
+        vil->tmr_list[3] = VUTIL_jitter(tym);
     }
     if (found)
     {
@@ -12937,7 +12941,7 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
 static inline void VILN_BMM_tymrRand(st_zEntVillain* vil, signed int idx)
 {
     float tym = vil->vilcfg.tymref_list[idx];
-    vil->tmr_list[idx] = 0.25f * (iurand() - 0.5f) * tym + tym;
+    vil->tmr_list[idx] = VUTIL_jitter(tym);
 }
 
 static inline void VILN_BMM_enterGoal(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, signed int spot)
@@ -13295,6 +13299,8 @@ static inline signed int VILN_flagsFromTable(st_zEntVillain* vil, en_ZVIL_FLAG_G
     case ZVIL_FGRP_VULN:
         flg = g_npcTable[vil->asset->subtype].abl_vuln;
         break;
+    case (en_ZVIL_FLAG_GROUPS)11:
+        break;
     }
     return flg;
 }
@@ -13308,18 +13314,7 @@ static signed int zVIL_elcb_event(xBase* from, xBase* to, unsigned int toEvent, 
     vil->vhf->sysevent(vil, from, toEvent, toParam, toParamWidget, &stimctxt);
     if (stimctxt.stim)
     {
-        st_STIMULUS_CONTEXT_DATA resp = {};
-
-        if (!vil->standby || vil->tmr_list[ZVIL_TDUR_STDBY] <= 0.0f)
-        {
-            resp = stimctxt;
-            resp.stim = (en_NPC_STIMULUS)0;
-            vil->vhf->stimulus(vil, &stimctxt, &resp);
-            if (resp.stim)
-            {
-                zVIL_trangoal(vil, &resp, globals.update_dt);
-            }
-        }
+        zVIL_input_stim(vil, &stimctxt);
     }
     return 1;
 }
@@ -13511,8 +13506,20 @@ static inline signed int VOUT_patrol_move(st_zEntVillain* vil)
 
 static inline signed int VOUT_chkdo_patrolArrived(st_zEntVillain* vil)
 {
-    _xMat4x3* mat;
-    float dist = VOUT_ds2_arrive(vil, &mat);
+    _xVec3 entpos = {};
+    float dist = VSUP_ds2_toPos(vil, vil->pos_moveto);
+    _xMat4x3* mat = (_xMat4x3*)vil->model->Mat;
+
+    entpos = mat->pos;
+    if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
+    {
+        float dy = vil->pos_moveto.y - entpos.y;
+        dy = dy * dy;
+        if (!(dist > dy))
+        {
+            dist = dy;
+        }
+    }
 
     if (dist > g_npcTable[vil->asset->subtype].ds2_atpos)
     {
@@ -13586,8 +13593,20 @@ static inline signed int VOUT_follow_move(st_zEntVillain* vil)
 
 static inline signed int VOUT_chkdo_followArrived(st_zEntVillain* vil)
 {
-    _xMat4x3* mat;
-    float dist = VOUT_ds2_arrive(vil, &mat);
+    _xVec3 entpos = {};
+    float dist = VSUP_ds2_toPos(vil, vil->pos_moveto);
+    _xMat4x3* mat = (_xMat4x3*)vil->model->Mat;
+
+    entpos = mat->pos;
+    if ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400))
+    {
+        float dy = vil->pos_moveto.y - entpos.y;
+        dy = dy * dy;
+        if (!(dist > dy))
+        {
+            dist = dy;
+        }
+    }
 
     if (dist > vil->ds2_goto_keepaway + g_npcTable[vil->asset->subtype].ds2_atpos)
     {
@@ -14050,8 +14069,7 @@ static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force)
     _zMovePoint* mvpt = NULL;
     signed int idx_far = -1;
     float unused_a[12] = {};
-    float unused_b[12] = {};
-    signed int unused_c[4] = {};
+    float unused_b[20] = {};
     float ds2_plyr[12] = {};
     float ds2_vil[12] = {};
     _xVec3 pos_ref = {};
@@ -14151,7 +14169,7 @@ static void zVIL_apply_vilcfg(st_zEntVillain* vil, st_ZVIL_CONFIG_REFERENCE* vil
 
     if (vflags & 1)
     {
-        allow = 1;
+        allow |= 1;
     }
     if (vflags & 2)
     {
@@ -14374,7 +14392,7 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
         else if (!(pc->plyr_mvinf & 0xFF00))
         {
             float tym = vil->vilcfg.tymref_list[ZVIL_TWIN_IGNORESNEAK];
-            vil->tmr_list[ZVIL_TWIN_IGNORESNEAK] = 0.25f * (iurand() - 0.5f) * tym + tym;
+            vil->tmr_list[ZVIL_TWIN_IGNORESNEAK] = VUTIL_jitter(tym);
         }
         else if (!(vil->tmr_list[ZVIL_TWIN_IGNORESNEAK] <= 0.0f))
         {
@@ -14439,7 +14457,7 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
                         pc->flg_plyr |= 1;
                     }
                     {
-                        if (VUTIL_heroInFov(vil))
+                        if (VSUP_ent_inFOV(vil, &globals.player.ent))
                         {
                             pc->flg_plyr |= 4;
                         }
@@ -14447,7 +14465,7 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
                         {
                             pc->flg_plyr |= 8;
                         }
-                        else if (VUTIL_heroInSight(vil, old_los))
+                        else if (VSUP_ent_inLOS(vil, &globals.player.ent, old_los, 0.1f))
                         {
                             pc->flg_plyr |= 8;
                         }
@@ -14473,7 +14491,7 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
             if (!(pc->flg_plyr & 1))
             {
                 {
-                        if (VUTIL_heroInFov(vil))
+                        if (VSUP_ent_inFOV(vil, &globals.player.ent))
                         {
                             pc->flg_plyr |= 4;
                         }
@@ -14481,7 +14499,7 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
                         {
                             pc->flg_plyr |= 8;
                         }
-                        else if (VUTIL_heroInSight(vil, old_los))
+                        else if (VSUP_ent_inLOS(vil, &globals.player.ent, old_los, 0.1f))
                         {
                             pc->flg_plyr |= 8;
                         }
@@ -14535,59 +14553,6 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
         }
     }
     pc->flg_status |= 0x80000000;
-}
-
-static inline signed int VUTIL_heroInSight(st_zEntVillain* vil, signed int lastknown)
-{
-    _xRay3 ray = {};
-    _xVec3 pos_eye = {};
-    float dst_max;
-
-    if (!xUtil_yesno(0.1f))
-    {
-        return lastknown;
-    }
-
-    pos_eye = *xBoundCenter(&vil->bound);
-    ray.min_t = 0.001f + vil->bound.sph.r;
-    xVec3Sub(&ray.dir, xBoundCenter(&globals.player.ent.bound), &pos_eye);
-    ray.max_t = xVec3Normalize(&ray.dir, &ray.dir);
-    dst_max = VUTIL_sqrt(vil->ds2_detect);
-    if (dst_max < ray.max_t)
-    {
-        ray.max_t = VUTIL_sqrt(vil->ds2_detect);
-    }
-    ray.origin.x = ray.dir.x * ray.min_t + pos_eye.x;
-    ray.origin.y = ray.dir.y * ray.min_t + pos_eye.y;
-    ray.origin.z = ray.dir.z * ray.min_t + pos_eye.z;
-    ray.flags = 0x800;
-    return xRayHitsSceneFast(&ray, globals.sceneCur) == 0;
-}
-
-static inline signed int VUTIL_heroInFov(st_zEntVillain* vil)
-{
-    signed int infov = 0;
-    float ang = VSUP_dir_toPos(vil, VUTIL_ctrOf(&globals.player.ent), NULL);
-
-    if (vil->fov_detect <= 0.0f)
-    {
-        infov = 0;
-    }
-    else if ((float)__fabs(vil->frame->rot.angle - ang) < 0.5f * vil->fov_detect)
-    {
-        infov = 1;
-    }
-    return infov;
-}
-
-static inline float VUTIL_sqrt(float x)
-{
-    return xsqrt(x);
-}
-
-static inline _xVec3* VUTIL_mdlpos(st_zEntVillain* vil)
-{
-    return &((_xMat4x3*)vil->model->Mat)->pos;
 }
 
 static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
@@ -14952,20 +14917,11 @@ static inline signed int VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos
 static void VIRM_initVilDflt(st_zEntVillain* vil)
 {
     _xVec3 vec_push = {};
-    _xVec3 dir_VtoP = {};
-    _xVec3 dir_face = {};
-    float yaw;
     float dot;
     signed int dmg;
     st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
 
-    VSUP_dir_toPos(vil, VUTIL_ctrOf(&globals.player.ent), &dir_VtoP);
-
-    yaw = vil->frame->rot.angle;
-    dir_face.x = isin(yaw);
-    dir_face.y = 0.0f;
-    dir_face.z = icos(yaw);
-    dot = xVec3Dot(&dir_VtoP, &dir_face);
+    dot = VSUP_ent_facedot(vil, &globals.player.ent);
     if (0.2f > dot)
     {
         dot = 0.2f;
@@ -19525,17 +19481,16 @@ static unsigned int VSND_goPlay(st_zEntVillain* vil, en_NPC_SOUND sndEvent, unsi
 
     if (flg_vsnd & 0x8000)
     {
-        if (iSndIsPlaying(0, (unsigned int)vil + 1))
+        if (VSND_isPlaying(vil, 1))
         {
-            float tymref = vil->vilcfg.tymref_list[ZVIL_TTIL_NEXTVOICE];
-            vil->tmr_list[ZVIL_TTIL_NEXTVOICE] = 0.25f * (iurand() - 0.5f) * tymref + tymref;
+            vil->tmr_list[ZVIL_TTIL_NEXTVOICE] = VUTIL_jitter(vil->vilcfg.tymref_list[ZVIL_TTIL_NEXTVOICE]);
             return 0;
         }
     }
 
     if (flg_vsnd & 0x800)
     {
-        if (iSndIsPlaying(0, (unsigned int)vil + 3))
+        if (VSND_isPlaying(vil, 3))
         {
             return 0;
         }
@@ -19578,6 +19533,17 @@ static unsigned int VSND_goPlay(st_zEntVillain* vil, en_NPC_SOUND sndEvent, unsi
     }
 
     return xsid;
+}
+
+static inline float VUTIL_jitter(float tym)
+{
+    float rnd = 0.25f * (iurand() - 0.5f);
+    return rnd * tym + tym;
+}
+
+static inline signed int VSND_isPlaying(st_zEntVillain* vil, signed int channel)
+{
+    return iSndIsPlaying(0, (unsigned int)vil + channel);
 }
 
 // Movement helpers shared by the calcmove handlers (out-of-line on PS2,
@@ -20086,6 +20052,9 @@ static inline float VOUT_ds2_arrive(st_zEntVillain* vil, _xMat4x3** mat)
     return dist;
 }
 
+// Entity position / bound centre by value.
+
+
 static inline void VOUT_steer(st_zEntVillain* vil)
 {
     vil->ang_moveto = VSUP_dir_toPos(vil, vil->pos_moveto, &vil->dir_moveto);
@@ -20097,23 +20066,6 @@ static inline void VOUT_steer(st_zEntVillain* vil)
     vil->domove |= 1;
     vil->domove |= 0xA;
     vil->domove |= 0x80000000;
-}
-
-static inline _xVec3 VUTIL_ctrOf(_xEnt* ent)
-{
-    _xVec3 ctr = {};
-
-    ctr = *xBoundCenter(&ent->bound);
-    return ctr;
-}
-
-// Entity position / bound centre by value.
-static inline _xVec3 VUTIL_posOf(_xEnt* ent)
-{
-    _xVec3 pos = {};
-
-    pos = ((_xMat4x3*)ent->model->Mat)->pos;
-    return pos;
 }
 
 static inline float VSUP_ds2_toPos(_zEnt* ent, _xVec3 pos)
@@ -20139,10 +20091,99 @@ static inline float VSUP_dir_toPos(_zEnt* ent, _xVec3 pos, _xVec3* dir)
     return ang;
 }
 
+static inline _xVec3 VUTIL_posOf(_xEnt* ent)
+{
+    _xVec3 pos = {};
+
+    pos.x = ((_xMat4x3*)ent->model->Mat)->pos.x;
+    pos.z = ((_xMat4x3*)ent->model->Mat)->pos.z;
+    return pos;
+}
+
+static inline _xVec3 VUTIL_ctrOf(_xEnt* ent)
+{
+    _xVec3 ctr = {};
+
+    ctr = *xBoundCenter(&ent->bound);
+    return ctr;
+}
+
 static inline void VSUP_ang_toXZDir(float angle, _xVec3* dir)
 {
     dir->x = sin(angle);
     dir->z = cos(angle);
+}
+
+static inline signed int VSUP_ent_inFOV(st_zEntVillain* vil, _zEnt* ent)
+{
+    signed int result = 0;
+    float ang = VSUP_dir_toPos(vil, VUTIL_ctrOf(ent), NULL);
+
+    if (vil->fov_detect <= 0.0f)
+    {
+        result = 0;
+    }
+    else if ((float)__fabs(vil->frame->rot.angle - ang) < 0.5f * vil->fov_detect)
+    {
+        result = 1;
+    }
+    return result;
+}
+
+static inline float VUTIL_sqrt(float x)
+{
+    return xsqrt(x);
+}
+
+static inline _xVec3* VUTIL_mdlpos(st_zEntVillain* vil)
+{
+    return &((_xMat4x3*)vil->model->Mat)->pos;
+}
+
+static inline signed int VSUP_ent_inLOS(st_zEntVillain* vil, _zEnt* ent, signed int prev, float rand)
+{
+    return VSUP_ent_inLOS_timz(vil, ent, prev, rand);
+}
+
+static inline signed int VSUP_ent_inLOS_timz(st_zEntVillain* vil, _zEnt* ent, signed int prev, float rand)
+{
+    _xRay3 r = {};
+    _xVec3 mypos = {};
+    float dst_max;
+
+    if (!xUtil_yesno(rand))
+    {
+        return prev;
+    }
+
+    mypos = *xBoundCenter(&vil->bound);
+    r.min_t = 0.001f + vil->bound.sph.r;
+    xVec3Sub(&r.dir, xBoundCenter(&ent->bound), &mypos);
+    r.max_t = xVec3Normalize(&r.dir, &r.dir);
+    dst_max = VUTIL_sqrt(vil->ds2_detect);
+    if (dst_max < r.max_t)
+    {
+        r.max_t = VUTIL_sqrt(vil->ds2_detect);
+    }
+    r.origin.x = r.dir.x * r.min_t + mypos.x;
+    r.origin.y = r.dir.y * r.min_t + mypos.y;
+    r.origin.z = r.dir.z * r.min_t + mypos.z;
+    r.flags = 0x800;
+    return xRayHitsSceneFast(&r, globals.sceneCur) == 0;
+}
+
+static inline float VSUP_ent_facedot(st_zEntVillain* vil, _zEnt* ent)
+{
+    _xVec3 dir_VtoE = {};
+    _xVec3 dir_face = {};
+    float yaw;
+
+    VSUP_dir_toPos(vil, VUTIL_ctrOf(ent), &dir_VtoE);
+    yaw = vil->frame->rot.angle;
+    dir_face.x = sin(yaw);
+    dir_face.y = 0.0f;
+    dir_face.z = cos(yaw);
+    return xVec3Dot(&dir_VtoE, &dir_face);
 }
 
 // Angle of interest: where ent is relative to the villain's facing, and in
