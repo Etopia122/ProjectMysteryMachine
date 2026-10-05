@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-void GXInitLightAttn(GXLightObj* obj, f32 a0, f32 a1, f32 a2, f32 k0, f32 k1, f32 k2);
+void GXInitLightAttnA(GXLightObj* obj, f32 a0, f32 a1, f32 a2);
 void GXInitLightSpot(GXLightObj* obj, f32 cutoff, GXSpotFn spot_fn);
 void GXInitLightDistAttn(GXLightObj* obj, f32 dist, f32 brightness, GXDistAttnFn dist_fn);
 void GXInitLightPos(GXLightObj* obj, f32 x, f32 y, f32 z);
