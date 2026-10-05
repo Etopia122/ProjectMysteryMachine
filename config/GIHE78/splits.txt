@@ -1014,7 +1014,9 @@ dolphin/src/ax/AXCL.c:
 	.sbss       start:0x8025F328 end:0x8025F338
 
 dolphin/src/ax/AXOut.c:
-	.text       start:0x800F6C8C end:0x800F6CF0
+	.text       start:0x800F6A9C end:0x800F715C
+	.bss        start:0x80245FE0 end:0x8024A800
+	.sbss       start:0x8025F338 end:0x8025F358
 
 dolphin/src/ax/AXSPB.c:
 	.text       start:0x800F715C end:0x800F7624

@@ -4,23 +4,20 @@
 
 #include "ax/__ax.h"
 
-static s16 __AXOutBuffer[3][320];
+// Older AXOut: double-buffered output, no AI-DMA frame counter or buffer mode.
+static s16 __AXOutBuffer[2][320];
 static s32 __AXOutSBuffer[160];
-static u16 __AXDramImage[8192];
+static AXPROFILE __AXLocalProfile;
 static DSPTaskInfo __AXDSPTask;
-AXPROFILE __AXLocalProfile;
+static u16 __AXDramImage[8192];
 
 volatile static u32 __AXOutFrame;
-volatile static u32 __AXAiDmaFrame;
 volatile static u32 __AXOutDspReady;
 volatile static OSTime __AXOsTime;
 static void (*__AXUserFrameCallback)();
 volatile static int __AXDSPInitFlag;
 static int __AXDSPDoneFlag;
-
 static volatile u32 __AXDebugSteppingMode;
-static OSThreadQueue __AXOutThreadQueue;
-static u32 __AXOutputBufferMode;
 
 // prototypes
 static void __AXDSPInitCallback(void* task);
@@ -64,16 +61,8 @@ void __AXOutNewFrame(u32 lessDspCycles)
     __AXLocalProfile.userCallbackEnd = OSGetTime();
     __AXNextFrame(__AXOutSBuffer, &__AXOutBuffer[__AXOutFrame][0]);
     __AXOutFrame += 1;
-
-    if (__AXOutputBufferMode == 1)
-    {
-        __AXOutFrame %= 3;
-    }
-    else
-    {
-        __AXOutFrame &= 1;
-        AIInitDMA((u32)&__AXOutBuffer[__AXOutFrame][0], 0x280);
-    }
+    __AXOutFrame &= 1;
+    AIInitDMA((u32)&__AXOutBuffer[__AXOutFrame][0], 0x280);
 
     __AXLocalProfile.axFrameEnd = OSGetTime();
     __AXLocalProfile.axNumVoices = __AXGetNumVoices();
@@ -112,13 +101,6 @@ void __AXOutAiCallback(void)
         __AXOutDspReady = 2;
         DSPAssertTask(&__AXDSPTask);
     }
-
-    if (__AXOutputBufferMode == 1)
-    {
-        AIInitDMA((u32)__AXOutBuffer[__AXAiDmaFrame], 0x280);
-        __AXAiDmaFrame++;
-        __AXAiDmaFrame %= 3;
-    }
 }
 
 static void __AXDSPInitCallback(void* task)
@@ -140,7 +122,6 @@ static void __AXDSPResumeCallback(void* task)
 static void __AXDSPDoneCallback(void* task)
 {
     __AXDSPDoneFlag = 1;
-    OSWakeupThread(&__AXOutThreadQueue);
 }
 
 void __AXOutInitDSP(void)
@@ -161,7 +142,6 @@ void __AXOutInitDSP(void)
     __AXDSPInitFlag = 0;
     __AXDSPDoneFlag = 0;
 
-    OSInitThreadQueue(&__AXOutThreadQueue);
     if (DSPCheckInit() == 0)
     {
         DSPInit();
@@ -186,16 +166,10 @@ void __AXOutInitDSP(void)
 
 void __AXOutInit(void)
 {
-#ifdef DEBUG
-    OSReport("Initializing AXOut code module\n");
-#endif
-
-    __AXOutputBufferMode = 0;
     __AXOutFrame = 0;
-    __AXAiDmaFrame = 0;
     __AXDebugSteppingMode = 0;
 
-    BUFFER_MEMSET(__AXOutBuffer, 0x1E0);
+    BUFFER_MEMSET(__AXOutBuffer, 0x140);
     DCFlushRange(__AXOutBuffer, sizeof(__AXOutBuffer));
 
     BUFFER_MEMSET(__AXOutSBuffer, 0xA0);
@@ -203,44 +177,26 @@ void __AXOutInit(void)
 
     __AXOutInitDSP();
     AIRegisterDMACallback(__AXOutAiCallback);
-
-    if (__AXOutputBufferMode == 1)
-    {
-        __AXNextFrame(__AXOutSBuffer, &__AXOutBuffer[2][0]);
-    }
-    else
-    {
-        __AXNextFrame(__AXOutSBuffer, &__AXOutBuffer[1][0]);
-    }
+    __AXNextFrame(__AXOutSBuffer, &__AXOutBuffer[1][0]);
 
     __AXOutDspReady = 1;
     __AXUserFrameCallback = NULL;
-
-    if (__AXOutputBufferMode == 1)
-    {
-        AIInitDMA((u32)&__AXOutBuffer[__AXAiDmaFrame][0], sizeof(__AXOutBuffer[0]));
-        __AXAiDmaFrame++;
-        __AXAiDmaFrame &= 1;
-    }
-    else
-    {
-        AIInitDMA((u32)&__AXOutBuffer[__AXOutFrame][0], sizeof(__AXOutBuffer[0]));
-    }
-
+    AIInitDMA((u32)&__AXOutBuffer[__AXOutFrame][0], sizeof(__AXOutBuffer[0]));
     AIStartDMA();
 }
 
 void __AXOutQuit(void)
 {
     BOOL old;
-#ifdef DEBUG
-    OSReport("Shutting down AXOut code module\n");
-#endif
+
     old = OSDisableInterrupts();
     __AXUserFrameCallback = NULL;
-    DSPCancelTask(&__AXDSPTask);
-    OSSleepThread(&__AXOutThreadQueue);
     AIStopDMA();
+    DSPHalt();
+    while (DSPGetDMAStatus())
+    {
+    }
+    DSPReset();
     OSRestoreInterrupts(old);
 }
 
