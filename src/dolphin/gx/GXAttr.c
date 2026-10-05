@@ -135,61 +135,56 @@ void GXSetVtxDescv(GXVtxDescList* list) {
     gx->dirtyState |= GX_DIRTY_VCD;
 }
 
+
 void __GXSetVCD(void) {
+    static u8 tbl1[] = {0, 4, 1, 2};
+    static u8 tbl2[] = {0, 8, 1, 2};
+    static u8 tbl3[] = {0, 12, 1, 2};
+    u32 vlim;
+    u32 vcdLoReg;
+    u32 vcdHiReg;
+    s32 compCnt;  // unused in this revision
+    u8 padding[8];  // matches the original stack frame
+
     GX_CP_LOAD_REG(GX_CP_REG_VCD_LO, gx->vcdLo);
     GX_CP_LOAD_REG(GX_CP_REG_VCD_HI, gx->vcdHi);
 
     __GXXfVtxSpecs();
-}
 
-void __GXCalculateVLim(void) {
-    static u8 tbl1[] = {0, 4, 1, 2};
-    static u8 tbl2[] = {0, 8, 1, 2};
-    static u8 tbl3[] = {0, 12, 1, 2};
+    if (gx->vNum != 0) {
+        vcdLoReg = gx->vcdLo;
+        vcdHiReg = gx->vcdHi;
 
-    u32 vlim;
-    u32 vcdLoReg;
-    u32 vcdHiReg;
-    s32 compCnt;
 
-    if (gx->vNum == 0) {
-        return;
+        vlim = GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_POSMTXIDX_ST, GX_CP_VCD_LO_POSMTXIDX_END);
+        vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX0MTXIDX_ST, GX_CP_VCD_LO_TEX0MTXIDX_END);
+        vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX1MTXIDX_ST, GX_CP_VCD_LO_TEX1MTXIDX_END);
+        vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX2MTXIDX_ST, GX_CP_VCD_LO_TEX2MTXIDX_END);
+        vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX3MTXIDX_ST, GX_CP_VCD_LO_TEX3MTXIDX_END);
+        vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX4MTXIDX_ST, GX_CP_VCD_LO_TEX4MTXIDX_END);
+        vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX5MTXIDX_ST, GX_CP_VCD_LO_TEX5MTXIDX_END);
+        vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX6MTXIDX_ST, GX_CP_VCD_LO_TEX6MTXIDX_END);
+        vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX7MTXIDX_ST, GX_CP_VCD_LO_TEX7MTXIDX_END);
+
+        vlim += tbl3[GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_POS_ST, GX_CP_VCD_LO_POS_END)];
+        vlim += tbl3[GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_NRM_ST, GX_CP_VCD_LO_NRM_END)] *
+                (gx->hasBiNrms * 2 + 1);
+        vlim += tbl1[GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_CLRDIF_ST, GX_CP_VCD_LO_CLRDIF_END)];
+        vlim += tbl1[GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_CLRSPEC_ST, GX_CP_VCD_LO_CLRSPEC_END)];
+
+        vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX0COORD_ST, GX_CP_VCD_HI_TEX0COORD_END)];
+        vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX1COORD_ST, GX_CP_VCD_HI_TEX1COORD_END)];
+        vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX2COORD_ST, GX_CP_VCD_HI_TEX2COORD_END)];
+        vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX3COORD_ST, GX_CP_VCD_HI_TEX3COORD_END)];
+        vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX4COORD_ST, GX_CP_VCD_HI_TEX4COORD_END)];
+        vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX5COORD_ST, GX_CP_VCD_HI_TEX5COORD_END)];
+        vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX6COORD_ST, GX_CP_VCD_HI_TEX6COORD_END)];
+        vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX7COORD_ST, GX_CP_VCD_HI_TEX7COORD_END)];
+
+        gx->vLim = vlim;
     }
-
-    vcdLoReg = gx->vcdLo;
-    vcdHiReg = gx->vcdHi;
-
-    // GXCompCnt bit of normal parameters
-    compCnt = gx->vatA[GX_VTXFMT0];
-    compCnt = (compCnt & 0x200) >> 9;
-
-    vlim = GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_POSMTXIDX_ST, GX_CP_VCD_LO_POSMTXIDX_END);
-    vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX0MTXIDX_ST, GX_CP_VCD_LO_TEX0MTXIDX_END);
-    vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX1MTXIDX_ST, GX_CP_VCD_LO_TEX1MTXIDX_END);
-    vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX2MTXIDX_ST, GX_CP_VCD_LO_TEX2MTXIDX_END);
-    vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX3MTXIDX_ST, GX_CP_VCD_LO_TEX3MTXIDX_END);
-    vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX4MTXIDX_ST, GX_CP_VCD_LO_TEX4MTXIDX_END);
-    vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX5MTXIDX_ST, GX_CP_VCD_LO_TEX5MTXIDX_END);
-    vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX6MTXIDX_ST, GX_CP_VCD_LO_TEX6MTXIDX_END);
-    vlim += GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_TEX7MTXIDX_ST, GX_CP_VCD_LO_TEX7MTXIDX_END);
-
-    vlim += tbl3[GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_POS_ST, GX_CP_VCD_LO_POS_END)];
-    vlim += tbl3[GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_NRM_ST, GX_CP_VCD_LO_NRM_END)] *
-            (compCnt == GX_NRM_NBT ? 3 : 1);
-    vlim += tbl1[GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_CLRDIF_ST, GX_CP_VCD_LO_CLRDIF_END)];
-    vlim += tbl1[GX_GET_REG(vcdLoReg, GX_CP_VCD_LO_CLRSPEC_ST, GX_CP_VCD_LO_CLRSPEC_END)];
-
-    vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX0COORD_ST, GX_CP_VCD_HI_TEX0COORD_END)];
-    vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX1COORD_ST, GX_CP_VCD_HI_TEX1COORD_END)];
-    vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX2COORD_ST, GX_CP_VCD_HI_TEX2COORD_END)];
-    vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX3COORD_ST, GX_CP_VCD_HI_TEX3COORD_END)];
-    vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX4COORD_ST, GX_CP_VCD_HI_TEX4COORD_END)];
-    vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX5COORD_ST, GX_CP_VCD_HI_TEX5COORD_END)];
-    vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX6COORD_ST, GX_CP_VCD_HI_TEX6COORD_END)];
-    vlim += tbl2[GX_GET_REG(vcdHiReg, GX_CP_VCD_HI_TEX7COORD_ST, GX_CP_VCD_HI_TEX7COORD_END)];
-
-    gx->vLim = vlim;
 }
+
 
 void GXGetVtxDesc(GXAttr attr, GXAttrType* type) {
     u32 cpType;
@@ -582,4 +577,26 @@ void GXSetNumTexGens(u8 nTexGens) {
     SET_REG_FIELD(gx->genMode, 4, 0, nTexGens);
     GX_WRITE_XF_REG(0x3F, nTexGens);
     gx->dirtyState |= GX_DIRTY_GEN_MODE;
+}
+
+// This SDK revision keeps GXSetMisc here, after GXSetNumTexGens.
+void GXSetMisc(GXMiscToken token, u32 val) {
+    switch (token) {
+    case GX_MT_NULL:
+        break;
+
+    case GX_MT_XF_FLUSH:
+        gx->vNum = val;
+        gx->vNumNot = !gx->vNum;
+        gx->bpSentNot = GX_TRUE;
+
+        if (gx->vNum) {
+            gx->dirtyState |= GX_DIRTY_VCD;
+        }
+        break;
+
+    case GX_MT_DL_SAVE_CONTEXT:
+        gx->dlSaveContext = (val != 0);
+        break;
+    }
 }

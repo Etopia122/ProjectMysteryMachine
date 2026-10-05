@@ -8,27 +8,6 @@
 static void GXTokenInterruptHandler(__OSInterrupt interrupt, OSContext* context);
 static void GXFinishInterruptHandler(__OSInterrupt interrupt, OSContext* pContext);
 
-void GXSetMisc(GXMiscToken token, u32 val) {
-    switch (token) {
-    case GX_MT_NULL:
-        break;
-
-    case GX_MT_XF_FLUSH:
-        gx->vNum = val;
-        gx->vNumNot = !gx->vNum;
-        gx->bpSentNot = GX_TRUE;
-
-        if (gx->vNum) {
-            gx->dirtyState |= GX_DIRTY_VCD;
-        }
-        break;
-
-    case GX_MT_DL_SAVE_CONTEXT:
-        gx->dlSaveContext = (val != 0);
-        break;
-    }
-}
-
 void GXFlush(void) {
     if (gx->dirtyState) {
         __GXSetDirtyState();
