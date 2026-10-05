@@ -443,13 +443,14 @@ void zEntPickup_Setup(_zEntPickup* p)
 
 void zEntPickup_Setup()
 {
+    xBase* b;
     zScene* sc = globals.sceneCur;
     unsigned int i;
     unsigned int j;
 
     for (i = 0; i < sc->num_base; i++)
     {
-        xBase* b = sc->base[i];
+        b = sc->base[i];
         if (b == NULL)
         {
             continue;
@@ -519,8 +520,9 @@ void zEntPickup_Setup()
 
     for (i = 0; i < 4; i++)
     {
-        sKeyShake[i].shake_timer = 0.0f;
-        sKeyShake[i].ui = NULL;
+        _tagKeyShake* ks = &sKeyShake[i];
+        ks->shake_timer = 0.0f;
+        ks->ui = NULL;
     }
     sKeyCounterEnabledBeforeGive = 0;
 }
@@ -624,8 +626,8 @@ signed int zPickup_Give(_zEntPickup* ent, zAssetPickup* p, unsigned short value)
         }
         break;
     case 2:
-        globals.player.SpecialReceived = p->pickupIndex;
         globals.player.Inv_Specials |= 1 << p->pickupIndex;
+        globals.player.SpecialReceived = p->pickupIndex;
         break;
     case 3:
     {
@@ -1248,8 +1250,9 @@ void zEntPickup_Reset(_zEntPickup* ent)
     zEntPickup_hideSnackGateInfo(ent);
     for (signed int i = 0; i < 4; i++)
     {
-        sKeyShake[i].shake_timer = 0.0f;
-        sKeyShake[i].ui = NULL;
+        _tagKeyShake* ks = &sKeyShake[i];
+        ks->shake_timer = 0.0f;
+        ks->ui = NULL;
     }
     sKeyCounterEnabledBeforeGive = 0;
 }
