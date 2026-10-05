@@ -3481,6 +3481,8 @@ static inline signed int VPAR_emit_headbutt(float dt, st_zEntVillain_ParEmitReco
 static inline signed int VUTIL_tagpos(st_zEntVillain* ent, signed int idx, _xVec3* pos);
 static void VPAR_emit_partype(st_zEntVillain* ent, en_VPAR_EMITTER_ROLE emittype, float dt);
 static void VPAR_readyize_emitters();
+static inline _tagLightning* VEFX_zapper_type_A(_xVec3* from, _xVec3* to, float dur);
+static inline _tagLightning* VEFX_zapper_type_B(_xVec3* from, _xVec3* to, float dur);
 static void VEFX_zapTheKnight(st_zEntVillain* vil, signed int cleanup);
 static void VEFX_mm_zapper(st_zEntVillain* vil, signed int cleanup);
 static void VEFX_hologram(st_zEntVillain* vil, float dt);
@@ -3492,7 +3494,6 @@ static void VWEP_rbs_throw(st_REDBEARD_SWORD* rbs);
 static void VWEP_rbs_bupdate(_xEnt* ent_rbs, _xVec3* pos);
 static inline xModelInstance* VWEP_rbs_animmodel(st_zEntVillain* vil);
 static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil);
-static inline void VPRJ_BMM_flaskhurt(zEntProjectile* prj, float dt, _zParEmitter* emitter);
 static inline void VPRJ_BMM_blackflask(zEntProjectile* prj, float dt);
 static inline void VPRJ_BMM_greenflask(zEntProjectile* prj, float dt);
 static inline void VPRJ_BMM_redflask(zEntProjectile* prj, float dt);
@@ -3524,11 +3525,11 @@ static void VPRJ_BBK_bupdate(_xEnt* ent, _xVec3* pos);
 static inline void VPRJ_startup();
 static signed int VWEP_lobInitMMFlask(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static signed int VWEP_lobInitRBSword(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
-static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos);
 static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static signed int VWEP_lobInitBKAxe(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off);
+static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos);
 static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT event, void* ctxt);
 static signed int VWEP_lobActivatePRJ(zEntProjectile* prj, st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static zEntProjectile* VWEP_lobReservePRJ(st_zEntVillain* vil);
@@ -15639,7 +15640,7 @@ static signed int VWEP_lobActivatePRJ(zEntProjectile* prj, st_zEntVillain* vil, 
                                       _xVec3* vec_spin, float arcness, float heavy)
 {
     // Unidentified zeroed locals of the original (only their templates remain).
-    float unused_pad[14] = {};
+    float unused_pad[11] = {};
     signed int rc = 0;
 
     if (!prj)
@@ -15755,6 +15756,20 @@ static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT e
     return rc;
 }
 
+static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos)
+{
+    _xVec3 vec_tmp = {};
+
+    if (!VUTIL_tagpos(vil, 6, pos))
+    {
+        xSceneID2Name(globals.sceneCur, vil->id);
+        *pos = *xBoundCenter(&vil->bound);
+        xVec3SMul(&vec_tmp, &((_xMat4x3*)vil->model->Mat)->at, 0.5f);
+        vec_tmp.y += 0.5f;
+        xVec3AddTo(pos, &vec_tmp);
+    }
+}
+
 static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off)
 {
     _xVec3 pos = {};
@@ -15837,10 +15852,10 @@ static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec
 static signed int VWEP_lobInitBKAxe(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
                                     float arcness, float heavy)
 {
-    _xVec3 ang_yaw = {};
-    _xVec3 delta = {};
     _xVec3 ang_flip = { 0.0f, 0.0f, 1.5707964f };
     _xMat3x3 mat_rot = {};
+    _xVec3 delta = {};
+    _xVec3 ang_yaw = {};
     zEntProjectile* prj = vil->prj_reserved;
     st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
     _xMat4x3* frame;
@@ -15895,20 +15910,6 @@ static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xV
     quake->rad_shock = vil->dst_extend;
     quake->tym_shock = vil->spd_extend;
     return 1;
-}
-
-static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos)
-{
-    _xVec3 vec_tmp = {};
-
-    if (!VUTIL_tagpos(vil, 6, pos))
-    {
-        xSceneID2Name(globals.sceneCur, vil->id);
-        *pos = *xBoundCenter(&vil->bound);
-        xVec3SMul(&vec_tmp, &((_xMat4x3*)vil->model->Mat)->at, 0.5f);
-        vec_tmp.y += 0.5f;
-        xVec3AddTo(pos, &vec_tmp);
-    }
 }
 
 static signed int VWEP_lobInitRBSword(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
@@ -16017,6 +16018,10 @@ static inline void VPRJ_startup()
     st_ZPRJ_CATEGORY_PROPS pr_bgg = { 0x30000031, 0x03, 0x3F, 0x3F, 0, 0 };
     st_ZPRJ_CATEGORY_PROPS pr_brb = { 0x3D, 0x03, 0x14, 0x3F, 0, 0 };
     st_ZPRJ_CATEGORY_PROPS pr_bmm = { 0x3000003D, 0x03, 0x3F, 0x3F, 0, 0 };
+    // Unreferenced in the original as well (only the templates remain).
+    _xVec3 unused_spin_a = { 0.0f, 0.0f, 1.5707964f };
+    _xVec3 unused_spin_b = { 0.0f, 0.0f, 1.5707964f };
+    _xVec3 unused_spin_c = {};
 
     zEntProjectile_addCat(ZPRJ_CAT_BKAXE, &fn_bbk);
     zEntProjectile_addProps(ZPRJ_CAT_BKAXE, &pr_bbk);
@@ -16243,63 +16248,18 @@ static void VPRJ_zapTheAxe(zEntProjectile* prj, signed int cleanup)
     pos = &((_xMat4x3*)prj->model->Mat)->pos;
     loca = *pos;
     loca.y += 50.0f;
-    {
-        _tagLightningAdd add = {};
-        add.start = pos;
-        add.end = &loca;
-        add.time = axfx->tym_zapdur;
-        add.total_points = 0x10;
-        add.thickness = 0.25f;
-        add.r = 0xFF;
-        add.g = 0xFF;
-        add.b = 0xFF;
-        add.rand_radius = 5.0f;
-        add.flags = 0x34;
-        axfx->strk[0] = zLightningAdd(&add);
-    }
-    {
-        _tagLightningAdd add = {};
-        add.start = &((_xMat4x3*)prj->model->Mat)->pos;
-        add.end = &loca;
-        add.time = axfx->tym_zapdur;
-        add.total_points = 0x10;
-        add.thickness = 0.16f;
-        add.r = 0x50;
-        add.g = 0x50;
-        add.b = 0xFF;
-        add.rand_radius = 3.0f;
-        add.setup_degrees = 90.0f * iurand() + 20.0f;
-        add.move_degrees = 360.0f * iurand() + 180.0f;
-        if (irand() & 1)
-        {
-            add.move_degrees = -add.move_degrees;
-        }
-        add.flags = 0x3C;
-        add.rot_radius = 0.5f;
-        axfx->strk[1] = zLightningAdd(&add);
-    }
+    axfx->strk[0] = VEFX_zapper_type_B(pos, &loca, axfx->tym_zapdur);
+    axfx->strk[1] = VEFX_zapper_type_A(&((_xMat4x3*)prj->model->Mat)->pos, &loca, axfx->tym_zapdur);
 
     from = ((_xMat4x3*)prj->model->Mat)->pos;
     from.y += 1.0f;
     for (i = 2; i <= 4; i++)
     {
-        _tagLightningAdd add = {};
-
         loca = ((_xMat4x3*)prj->model->Mat)->pos;
         loca.x += axfx->rad_zap * (2.0f * (iurand() - 0.5f));
         loca.z += axfx->rad_zap * (2.0f * (iurand() - 0.5f));
         loca.y -= axfx->dst_zapdrop;
-        add.start = &from;
-        add.end = &loca;
-        add.time = axfx->tym_zapdur;
-        add.total_points = 0x10;
-        add.thickness = 0.25f;
-        add.r = 0xFF;
-        add.g = 0xFF;
-        add.b = 0xFF;
-        add.rand_radius = 5.0f;
-        add.flags = 0x34;
-        axfx->strk[i] = zLightningAdd(&add);
+        axfx->strk[i] = VEFX_zapper_type_B(&from, &loca, axfx->tym_zapdur);
     }
 }
 
@@ -16616,6 +16576,9 @@ static void VPRJ_BRB_detach(zEntProjectile* prj)
 
 static signed int VPRJ_BRB_logix(zEntProjectile* prj, float dt)
 {
+    // Unreferenced in the original as well (only the templates remain).
+    _xVec3 unused_a = {};
+    _xVec3 unused_b = {};
     st_ZPRJ_CAT_ARROW* arrow = &prj->cat_data.arrow;
     _xEntCollis* collis;
 
@@ -16874,6 +16837,8 @@ static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, zScene* scn, _xE
 
 static signed int VPRJ_BMM_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event)
 {
+    // Unreferenced in the original as well (only the template remains).
+    _xVec3 unused = {};
     st_zEntVillain* vil = (st_zEntVillain*)prj->owner;
 
     switch (event)
@@ -16901,24 +16866,9 @@ static signed int VPRJ_BMM_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event
         break;
     }
     case ZPRJ_EVNT_HITPLYR:
-    {
-        st_STIMULUS_CONTEXT_DATA stimctxt = {};
-        st_STIMULUS_CONTEXT_DATA resp = {};
-
-        stimctxt.stim = (en_NPC_STIMULUS)0x19;
-        if (!vil->standby || vil->tmr_list[ZVIL_TDUR_STDBY] <= 0.0f)
-        {
-            resp = stimctxt;
-            resp.stim = (en_NPC_STIMULUS)0;
-            vil->vhf->stimulus(vil, &stimctxt, &resp);
-            if (resp.stim)
-            {
-                zVIL_trangoal(vil, &resp, globals.update_dt);
-            }
-        }
+        VUTIL_stimulate(vil, (en_NPC_STIMULUS)0x19);
         VPRJ_prjsound(vil, prj, VSND_TYP_PRJ_EXPLODE);
         break;
-    }
     case ZPRJ_EVNT_TRANSTATE:
     case ZPRJ_EVNT_DEATH:
         if (prj->state != 2)
@@ -16984,20 +16934,30 @@ static inline void VPRJ_prjsound(st_zEntVillain* vil, zEntProjectile* prj, en_NP
 
 static inline void VPRJ_BMM_redflask(zEntProjectile* prj, float dt)
 {
-    VPRJ_BMM_flaskhurt(prj, dt, sEmitMMRedFlask);
+    _xCollis colrec = {};
+    float rad_oldbnd;
+    st_ZVMM_FLASK_DATA* flask = (st_ZVMM_FLASK_DATA*)prj->xtradata;
+    _zParEmitterCustomSettings pecust;
+
+    if (flask->tym_aftermath < 0.1f)
+    {
+        return;
+    }
+    rad_oldbnd = prj->bound.sph.r;
+    prj->bound.sph.r = (prj->tmr_curstate / flask->tym_aftermath) * flask->rad_aftermath;
+    xBoundHitsBound(&prj->bound, &globals.player.ent.bound, &colrec);
+    if (colrec.flags & 1)
+    {
+        zEntPlayer_Damage(prj, 1);
+        prj->SendEvent(ZPRJ_EVNT_HITPLYR);
+    }
+    prj->bound.sph.r = rad_oldbnd;
+    pecust.custom_flags = 0x20;
+    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
+    zParEmitterEmitCustom(sEmitMMRedFlask, dt, &pecust);
 }
 
 static inline void VPRJ_BMM_greenflask(zEntProjectile* prj, float dt)
-{
-    VPRJ_BMM_flaskhurt(prj, dt, sEmitMMGreenFlask);
-}
-
-static inline void VPRJ_BMM_blackflask(zEntProjectile* prj, float dt)
-{
-    VPRJ_BMM_flaskhurt(prj, dt, sEmitMMBlackFlask);
-}
-
-static inline void VPRJ_BMM_flaskhurt(zEntProjectile* prj, float dt, _zParEmitter* emitter)
 {
     _xCollis colrec = {};
     float rad_oldbnd;
@@ -17019,7 +16979,32 @@ static inline void VPRJ_BMM_flaskhurt(zEntProjectile* prj, float dt, _zParEmitte
     prj->bound.sph.r = rad_oldbnd;
     pecust.custom_flags = 0x20;
     pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
-    zParEmitterEmitCustom(emitter, dt, &pecust);
+    zParEmitterEmitCustom(sEmitMMGreenFlask, dt, &pecust);
+}
+
+static inline void VPRJ_BMM_blackflask(zEntProjectile* prj, float dt)
+{
+    _xCollis colrec = {};
+    float rad_oldbnd;
+    st_ZVMM_FLASK_DATA* flask = (st_ZVMM_FLASK_DATA*)prj->xtradata;
+    _zParEmitterCustomSettings pecust;
+
+    if (flask->tym_aftermath < 0.1f)
+    {
+        return;
+    }
+    rad_oldbnd = prj->bound.sph.r;
+    prj->bound.sph.r = (prj->tmr_curstate / flask->tym_aftermath) * flask->rad_aftermath;
+    xBoundHitsBound(&prj->bound, &globals.player.ent.bound, &colrec);
+    if (colrec.flags & 1)
+    {
+        zEntPlayer_Damage(prj, 1);
+        prj->SendEvent(ZPRJ_EVNT_HITPLYR);
+    }
+    prj->bound.sph.r = rad_oldbnd;
+    pecust.custom_flags = 0x20;
+    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
+    zParEmitterEmitCustom(sEmitMMBlackFlask, dt, &pecust);
 }
 
 static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil)
@@ -17027,7 +17012,7 @@ static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil)
     unsigned int aid;
     signed int i;
     _xVec3 vec_pos = {};
-    _xMat4x3 mat;
+    _xMat4x3 mat = {};
 
     if (rbs->flg_stat & 1)
     {
@@ -17492,6 +17477,47 @@ static void VEFX_zapTheKnight(st_zEntVillain* vil, signed int cleanup)
     add.flags = 0x3C;
     add.rot_radius = 0.5f;
     g_bk_lytstrk[1] = zLightningAdd(&add);
+}
+
+static inline _tagLightning* VEFX_zapper_type_B(_xVec3* from, _xVec3* to, float dur)
+{
+    _tagLightningAdd add = {};
+
+    add.start = from;
+    add.end = to;
+    add.time = dur;
+    add.total_points = 0x10;
+    add.thickness = 0.25f;
+    add.r = 0xFF;
+    add.g = 0xFF;
+    add.b = 0xFF;
+    add.rand_radius = 5.0f;
+    add.flags = 0x34;
+    return zLightningAdd(&add);
+}
+
+static inline _tagLightning* VEFX_zapper_type_A(_xVec3* from, _xVec3* to, float dur)
+{
+    _tagLightningAdd add = {};
+
+    add.start = from;
+    add.end = to;
+    add.time = dur;
+    add.total_points = 0x10;
+    add.thickness = 0.16f;
+    add.r = 0x50;
+    add.g = 0x50;
+    add.b = 0xFF;
+    add.rand_radius = 3.0f;
+    add.setup_degrees = 90.0f * iurand() + 20.0f;
+    add.move_degrees = 360.0f * iurand() + 180.0f;
+    if (irand() & 1)
+    {
+        add.move_degrees = -add.move_degrees;
+    }
+    add.flags = 0x3C;
+    add.rot_radius = 0.5f;
+    return zLightningAdd(&add);
 }
 
 static void VPAR_readyize_emitters()
