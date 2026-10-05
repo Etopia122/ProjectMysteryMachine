@@ -124,8 +124,10 @@ void xPartitionReset()
 #pragma auto_inline on
 signed int xPartitionGetTrueIdx(_tagPartition* part, signed int x, signed int y, signed int z)
 {
-    signed int tx = part->total_x;
-    return y * (tx * part->total_z) + tx * z + x;
+    signed int idx = y * (part->total_x * part->total_z);
+    idx += part->total_x * z;
+    idx += x;
+    return idx;
 }
 #pragma auto_inline off
 
