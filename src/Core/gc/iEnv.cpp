@@ -13,11 +13,10 @@ RpWorld* RpWorldRemoveCamera(RpWorld* world, RwCamera* camera);
 signed int RwRenderStateSet(signed int state, void* value);
 // TODO: unidentified RenderWare world function; stores the vector at world+0x68
 void fn_80151CA4(RpWorld* world, RwV3d* v);
-// TODO: unidentified GameCube render state functions (fn_80101D64 is called
-// with the same kind of flag)
-void fn_80101C6C(signed int enable);
-void fn_80101CAC(signed int enable);
-void fn_80101D64(signed int enable);
+// GX render state setters (Dolphin SDK).
+void GXSetColorUpdate(signed int enable);
+void GXSetAlphaUpdate(signed int enable);
+void GXSetZCompLoc(signed int enable);
 // TODO: misnamed RenderWare GameCube function (mode, optional state block)
 void _rwDlTextureRasterFlush(signed int mode, volatile void* data);
 void GXSetAlphaCompare(signed int comp0, unsigned char ref0, signed int op, signed int comp1,
@@ -171,7 +170,7 @@ extern "C" void fn_8000A138()
             {
                 rwgcn1::_rwDlTextureRasterFlush(4);
                 GXSetAlphaCompare(6, 0, 0, 3, sEnvFXAlpha);
-                fn_80101D64(0);
+                GXSetZCompLoc(0);
             }
             else
             {
@@ -204,12 +203,12 @@ extern "C" void fn_8000A080(unsigned int mode)
 {
     if (mode == -1)
     {
-        fn_80101C6C(0);
-        fn_80101CAC(0);
+        GXSetColorUpdate(0);
+        GXSetAlphaUpdate(0);
     }
     else if (mode == 0)
     {
-        fn_80101C6C(1);
-        fn_80101CAC(1);
+        GXSetColorUpdate(1);
+        GXSetAlphaUpdate(1);
     }
 }

@@ -1,9 +1,14 @@
 #include "dolphin/gx/GXPixel.h"
 #include "dolphin/gx/GX.h"
 
+#define GX_SET_REG_RLWIMI(reg, x, st, end) ((reg) = ((reg) & ~(((1 << ((end) - (st) + 1)) - 1) << (31 - (end)))) | (((u32)(x) << (31 - (end))) & (((1 << ((end) - (st) + 1)) - 1) << (31 - (end)))))
+
+// Older GXSetFog: perspective fog only (no orthographic type bit).
 void GXSetFog(GXFogType type, f32 startz, f32 endz, f32 nearz, f32 farz, GXColor color) {
     f32 a, c;
     u32 a_bits, c_bits;
+    f32 tmpA, tmpB, tmpC;
+    u32 expB, magB, shiftB;
 
     u32 fogColorReg = 0;
     u32 fogParamReg0 = 0;
@@ -11,72 +16,58 @@ void GXSetFog(GXFogType type, f32 startz, f32 endz, f32 nearz, f32 farz, GXColor
     u32 fogParamReg2 = 0;
     u32 fogParamReg3 = 0;
 
-    u32 fsel = type & 7;
-    BOOL isOrtho = (type >> 3) & 1;
-    u32 col;
-
-    if (isOrtho) {
-        if (farz == nearz || endz == startz) {
-            a = 0.0f;
-            c = 0.0f;
-        } else {
-            a = (1.0f / (endz - startz)) * (farz - nearz);
-            c = (1.0f / (endz - startz)) * (startz - nearz);
-        }
+    if (farz == nearz || endz == startz) {
+        tmpA = 0.0f;
+        tmpB = 0.5f;
+        tmpC = 0.0f;
     } else {
-        f32 tmpA, tmpB, tmpC;
-        u32 expB, magB, shiftB;
-
-        if (farz == nearz || endz == startz) {
-            tmpA = 0.0f;
-            tmpB = 0.5f;
-            tmpC = 0.0f;
-        } else {
-            tmpA = (farz * nearz) / ((farz - nearz) * (endz - startz));
-            tmpB = farz / (farz - nearz);
-            tmpC = startz / (endz - startz);
-        }
-
-        expB = 0;
-        while (tmpB > 1.0) {
-            tmpB /= 2.0f;
-            expB++;
-        }
-        while (tmpB > 0.0f && tmpB < 0.5) {
-            tmpB *= 2.0f;
-            expB--;
-        }
-
-        a = tmpA / (1 << (expB + 1));
-        magB = 8388638.0f * tmpB;
-        shiftB = expB + 1;
-        c = tmpC;
-
-        GX_SET_REG(fogParamReg1, magB, GX_BP_FOGPARAM1_B_MAG_ST, GX_BP_FOGPARAM1_B_MAG_END);
-        GX_SET_REG(fogParamReg2, shiftB, GX_BP_FOGPARAM2_B_SHIFT_ST, GX_BP_FOGPARAM2_B_SHIFT_END);
-
-        GX_SET_REG(fogParamReg1, GX_BP_REG_FOGPARAM1, 0, 7);
-        GX_SET_REG(fogParamReg2, GX_BP_REG_FOGPARAM2, 0, 7);
+        tmpA = (farz * nearz) / ((farz - nearz) * (endz - startz));
+        tmpB = farz / (farz - nearz);
+        tmpC = startz / (endz - startz);
     }
+
+    expB = 0;
+    while (tmpB > 1.0) {
+        tmpB /= 2.0f;
+        expB++;
+    }
+    while (tmpB > 0.0f && tmpB < 0.5) {
+        tmpB *= 2.0f;
+        expB--;
+    }
+
+    a = tmpA / (1 << expB + 1);
+    magB = 8388638.0f * tmpB;
+    shiftB = expB + 1;
+    c = tmpC;
+
+    GX_SET_REG(fogParamReg1, magB, 8, 31);
+    GX_SET_REG(fogParamReg2, shiftB, 27, 31);
+
+    GX_SET_REG(fogParamReg1, 0xEF, 0, 7);
+    GX_SET_REG(fogParamReg2, 0xF0, 0, 7);
 
     a_bits = *(u32*)&a;
     c_bits = *(u32*)&c;
 
-    GX_SET_REG(fogParamReg0, a_bits >> 12, GX_BP_FOGPARAM0_A_MANT_ST, GX_BP_FOGPARAM0_A_MANT_END);
-    GX_SET_REG(fogParamReg0, a_bits >> 23, GX_BP_FOGPARAM0_A_EXP_ST, GX_BP_FOGPARAM0_A_EXP_END);
-    GX_SET_REG(fogParamReg0, a_bits >> 31, GX_BP_FOGPARAM0_A_SIGN_ST, GX_BP_FOGPARAM0_A_SIGN_END);
-    GX_SET_REG(fogParamReg0, GX_BP_REG_FOGPARAM0, 0, 7);
+    GX_SET_REG_RLWIMI(fogParamReg0, a_bits >> 12, 21, 31);
+    GX_SET_REG_RLWIMI(fogParamReg0, a_bits >> 23, 13, 20);
+    GX_SET_REG_RLWIMI(fogParamReg0, a_bits >> 31, 12, 12);
 
-    GX_SET_REG(fogParamReg3, c_bits >> 12, GX_BP_FOGPARAM3_C_MANT_ST, GX_BP_FOGPARAM3_C_MANT_END);
-    GX_SET_REG(fogParamReg3, c_bits >> 23, GX_BP_FOGPARAM3_C_EXP_ST, GX_BP_FOGPARAM3_C_EXP_END);
-    GX_SET_REG(fogParamReg3, c_bits >> 31, GX_BP_FOGPARAM3_C_SIGN_ST, GX_BP_FOGPARAM3_C_SIGN_END);
-    GX_SET_REG(fogParamReg3, isOrtho, GX_BP_FOGPARAM3_PROJ_ST, GX_BP_FOGPARAM3_PROJ_END);
-    GX_SET_REG(fogParamReg3, fsel, GX_BP_FOGPARAM3_FSEL_ST, GX_BP_FOGPARAM3_FSEL_END);
-    GX_SET_REG(fogParamReg3, GX_BP_REG_FOGPARAM3, 0, 7);
+    GX_SET_REG_RLWIMI(fogParamReg0, 0xEE, 0, 7);
 
-    col = *(u32*)&color;
-    GX_SET_REG(fogColorReg, col >> 8, GX_BP_FOGCOLOR_RGB_ST, GX_BP_FOGCOLOR_RGB_END);
-    GX_SET_REG(fogColorReg, GX_BP_REG_FOGCOLOR, 0, 7);
+    GX_SET_REG_RLWIMI(fogParamReg3, c_bits >> 12, 21, 31);
+    GX_SET_REG_RLWIMI(fogParamReg3, c_bits >> 23, 13, 20);
+    GX_SET_REG_RLWIMI(fogParamReg3, c_bits >> 31, 12, 12);
+
+    GX_SET_REG(fogParamReg3, type, 8, 10);
+
+    GX_SET_REG_RLWIMI(fogParamReg3, 0xF1, 0, 7);
+
+    GX_SET_REG(fogColorReg, color.b, 8 + 16, 31);
+    GX_SET_REG(fogColorReg, color.g, (8 + 8), (31 - 8));
+    GX_SET_REG(fogColorReg, color.r, (8 + 0), (31 - 16));
+    GX_SET_REG(fogColorReg, 0xF2, 0, 7);
 
     GX_BP_LOAD_REG(fogParamReg0);
     GX_BP_LOAD_REG(fogParamReg1);
@@ -115,49 +106,34 @@ void GXSetFogRangeAdj(GXBool enable, u16 center, GXFogAdjTable* table) {
 
 void GXSetBlendMode(GXBlendMode type, GXBlendFactor src_factor, GXBlendFactor dst_factor,
                     GXLogicOp op) {
-    u32 blendModeReg = gx->cmode0;
-    GX_SET_REG(blendModeReg, type == GX_BM_SUBTRACT, GX_BP_BLENDMODE_SUBTRACT_ST,
-               GX_BP_BLENDMODE_SUBTRACT_END);
-    GX_SET_REG(blendModeReg, type, GX_BP_BLENDMODE_ENABLE_ST, GX_BP_BLENDMODE_ENABLE_END);
-    GX_SET_REG(blendModeReg, type == GX_BM_LOGIC, GX_BP_BLENDMODE_LOGIC_OP_ST,
-               GX_BP_BLENDMODE_LOGIC_OP_END);
-    GX_SET_REG(blendModeReg, op, GX_BP_BLENDMODE_LOGICMODE_ST, GX_BP_BLENDMODE_LOGICMODE_END);
-    GX_SET_REG(blendModeReg, src_factor, GX_BP_BLENDMODE_SRCFACTOR_ST,
-               GX_BP_BLENDMODE_SRCFACTOR_END);
-    GX_SET_REG(blendModeReg, dst_factor, GX_BP_BLENDMODE_DSTFACTOR_ST,
-               GX_BP_BLENDMODE_DSTFACTOR_END);
-
-    GX_BP_LOAD_REG(blendModeReg);
-    gx->cmode0 = blendModeReg;
-
-    gx->bpSentNot = FALSE;
+    SET_REG_FIELD(gx->cmode0, 1, 0, (type == GX_BM_BLEND || type == GX_BM_SUBTRACT));
+    SET_REG_FIELD(gx->cmode0, 1, 11, (type == GX_BM_SUBTRACT));
+    SET_REG_FIELD(gx->cmode0, 1, 1, (type == GX_BM_LOGIC));
+    SET_REG_FIELD(gx->cmode0, 4, 12, op);
+    SET_REG_FIELD(gx->cmode0, 3, 8, src_factor);
+    SET_REG_FIELD(gx->cmode0, 3, 5, dst_factor);
+    SET_REG_FIELD(gx->cmode0, 8, 24, 0x41);
+    GX_BP_LOAD_REG(gx->cmode0);
+    gx->bpSentNot = GX_FALSE;
 }
 
 void GXSetColorUpdate(GXBool updateEnable) {
-    u32 blendModeReg = gx->cmode0;
-    GX_SET_REG(blendModeReg, updateEnable, GX_BP_BLENDMODE_COLOR_UPDATE_ST,
-               GX_BP_BLENDMODE_COLOR_UPDATE_END);
-    GX_BP_LOAD_REG(blendModeReg);
-    gx->cmode0 = blendModeReg;
+    SET_REG_FIELD(gx->cmode0, 1, 3, updateEnable);
+    GX_BP_LOAD_REG(gx->cmode0);
     gx->bpSentNot = GX_FALSE;
 }
 
 void GXSetAlphaUpdate(GXBool updateEnable) {
-    u32 blendModeReg = gx->cmode0;
-    GX_SET_REG(blendModeReg, updateEnable, GX_BP_BLENDMODE_ALPHA_UPDATE_ST,
-               GX_BP_BLENDMODE_ALPHA_UPDATE_END);
-    GX_BP_LOAD_REG(blendModeReg);
-    gx->cmode0 = blendModeReg;
+    SET_REG_FIELD(gx->cmode0, 1, 4, updateEnable);
+    GX_BP_LOAD_REG(gx->cmode0);
     gx->bpSentNot = GX_FALSE;
 }
 
 void GXSetZMode(GXBool compareEnable, GXCompare func, GXBool updateEnable) {
-    u32 zModeReg = gx->zmode;
-    GX_SET_REG(zModeReg, compareEnable, GX_BP_ZMODE_TEST_ENABLE_ST, GX_BP_ZMODE_TEST_ENABLE_END);
-    GX_SET_REG(zModeReg, func, GX_BP_ZMODE_COMPARE_ST, GX_BP_ZMODE_COMPARE_END);
-    GX_SET_REG(zModeReg, updateEnable, GX_BP_ZMODE_UPDATE_ENABLE_ST, GX_BP_ZMODE_UPDATE_ENABLE_END);
-    GX_BP_LOAD_REG(zModeReg);
-    gx->zmode = zModeReg;
+    SET_REG_FIELD(gx->zmode, 1, 0, compareEnable);
+    SET_REG_FIELD(gx->zmode, 3, 1, func);
+    SET_REG_FIELD(gx->zmode, 1, 4, updateEnable);
+    GX_BP_LOAD_REG(gx->zmode);
     gx->bpSentNot = GX_FALSE;
 }
 
@@ -188,9 +164,8 @@ void GXSetPixelFmt(GXPixelFmt pixelFmt, GXZFmt16 zFmt) {
     }
 
     if (p2f[pixelFmt] == GX_PF_Y8) {
-        GX_SET_REG(gx->cmode1, pixelFmt - GX_PF_Y8, GX_BP_DSTALPHA_YUV_FMT_ST,
-                   GX_BP_DSTALPHA_YUV_FMT_END);
-        GX_SET_REG(gx->cmode1, GX_BP_REG_DSTALPHA, 0, 7);
+        SET_REG_FIELD(gx->cmode1, 2, 9, (pixelFmt - GX_PF_Y8) & 3);
+        SET_REG_FIELD(gx->cmode1, 8, 24, GX_BP_REG_DSTALPHA);
         GX_BP_LOAD_REG(gx->cmode1);
     }
 
@@ -198,19 +173,15 @@ void GXSetPixelFmt(GXPixelFmt pixelFmt, GXZFmt16 zFmt) {
 }
 
 void GXSetDither(GXBool dither) {
-    u32 blendModeReg = gx->cmode0;
-    GX_SET_REG(blendModeReg, dither, GX_BP_BLENDMODE_DITHER_ST, GX_BP_BLENDMODE_DITHER_END);
-    GX_BP_LOAD_REG(blendModeReg);
-    gx->cmode0 = blendModeReg;
+    SET_REG_FIELD(gx->cmode0, 1, 2, dither);
+    GX_BP_LOAD_REG(gx->cmode0);
     gx->bpSentNot = GX_FALSE;
 }
 
 void GXSetDstAlpha(GXBool enable, u8 alpha) {
-    u32 dstAlpha = gx->cmode1;
-    GX_SET_REG(dstAlpha, alpha, GX_BP_DSTALPHA_ALPHA_ST, GX_BP_DSTALPHA_ALPHA_END);
-    GX_SET_REG(dstAlpha, enable, GX_BP_DSTALPHA_ENABLE_ST, GX_BP_DSTALPHA_ENABLE_END);
-    GX_BP_LOAD_REG(dstAlpha);
-    gx->cmode1 = dstAlpha;
+    SET_REG_FIELD(gx->cmode1, 8, 0, alpha);
+    SET_REG_FIELD(gx->cmode1, 1, 8, enable);
+    GX_BP_LOAD_REG(gx->cmode1);
     gx->bpSentNot = GX_FALSE;
 }
 
