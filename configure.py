@@ -701,6 +701,16 @@ config.libs = [
         ],
     },
     {
+        "lib": "tww_ai",
+        "mw_version": "GC/1.2.5n",
+        "cflags": cflags_tww_dolphin,
+        "progress_category": "sdk",
+        "objects": [
+            Object(Matching, "dolphin/ai/ai.c"),
+            Object(Matching, "dolphin/ar/arq.c"),
+        ],
+    },
+    {
         "lib": "tww_card",
         "mw_version": "GC/1.2.5n",
         "cflags": cflags_tww_dolphin,

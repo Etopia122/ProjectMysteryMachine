@@ -3,14 +3,13 @@
 #include "dolphin/ai/ai.h"
 #include "dolphin/dsp.h"
 
-const char* __AIVersion = "<< Dolphin SDK - AI\trelease build: Sep  5 2002 05:34:25 (0x2301) >>";
+// This older SDK library has no version string (and does not register one).
 
 static AISCallback __AIS_Callback;
 static AIDCallback __AID_Callback;
 static u8* __CallbackStack;
 static u8* __OldStack;
 static BOOL __AI_init_flag;
-static BOOL __AID_Active;
 static OSTime bound_32KHz;
 static OSTime bound_48KHz;
 static OSTime min_wait;
@@ -50,6 +49,10 @@ void AIInitDMA(u32 start_addr, u32 length) {
 
 void AIStartDMA(void) {
     __DSPRegs[27] = __DSPRegs[27] | 0x8000;
+}
+
+void AIStopDMA(void) {
+    __DSPRegs[27] &= ~0x8000;
 }
 
 void AIResetStreamSampleCount(void) {
@@ -180,7 +183,6 @@ u8 AIGetStreamVolRight(void) {
 
 void AIInit(u8* stack) {
     if (__AI_init_flag != TRUE) {
-        OSRegisterVersion(__AIVersion);
 
         bound_32KHz = OSNanosecondsToTicks(31524);
         bound_48KHz = OSNanosecondsToTicks(42024);
@@ -232,14 +234,12 @@ static void __AIDHandler(__OSInterrupt interrupt, OSContext* context) {
     __DSPRegs[5] = tmp;
     OSClearContext(&exceptionContext);
     OSSetCurrentContext(&exceptionContext);
-    if (__AID_Callback && !__AID_Active) {
-        __AID_Active = TRUE;
+    if (__AID_Callback) {
         if (__CallbackStack) {
             __AICallbackStackSwitch(__AID_Callback);
         } else {
             __AID_Callback();
         }
-        __AID_Active = FALSE;
     }
     OSClearContext(&exceptionContext);
     OSSetCurrentContext(context);

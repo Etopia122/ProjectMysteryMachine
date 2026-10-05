@@ -2,12 +2,14 @@
 #include "dolphin/ar/ar.h"
 #include "dolphin/ar/arq.h"
 
-const char* __ARQVersion = "<< Dolphin SDK - ARQ\trelease build: Sep  5 2002 05:34:29 (0x2301) >>";
+// This older SDK library has no version string (and does not register one).
 
 static ARQRequest* __ARQRequestQueueHi;
 static ARQRequest* __ARQRequestTailHi;
 static ARQRequest* __ARQRequestQueueLo;
 static ARQRequest* __ARQRequestTailLo;
+static ARQRequest* __ARQRequestQueueTemp;
+static ARQRequest* __ARQRequestTailTemp;
 static ARQRequest* __ARQRequestPendingHi;
 static ARQRequest* __ARQRequestPendingLo;
 static ARQCallback __ARQCallbackHi;
@@ -76,7 +78,6 @@ void __ARQInterruptServiceRoutine() {
 
 void ARQInit(void) {
     if (__ARQ_init_flag != TRUE) {
-        OSRegisterVersion(__ARQVersion);
 
         __ARQRequestQueueHi = __ARQRequestQueueLo = NULL;
         __ARQChunkSize = 0x1000;
@@ -134,6 +135,80 @@ void ARQPostRequest(ARQRequest* request, u32 owner, u32 type, u32 priority, u32 
         if ( __ARQRequestPendingHi == 0) {
             __ARQServiceQueueLo();
         }
+    }
+
+    OSRestoreInterrupts(level);
+}
+
+// ARQRemoveRequest and ARQFlushQueue: BFBB's, plus this version's clearing of the
+// pending low-priority request.
+void ARQRemoveRequest(ARQRequest* request)
+{
+    ARQRequest* thisRequest;
+    BOOL level;
+
+    level = OSDisableInterrupts();
+    __ARQRequestQueueTemp = NULL;
+    __ARQRequestTailTemp = NULL;
+    for (thisRequest = __ARQRequestQueueHi; thisRequest; thisRequest = thisRequest->next)
+    {
+        if (thisRequest != request)
+        {
+            if (!__ARQRequestQueueTemp)
+            {
+                __ARQRequestQueueTemp = thisRequest;
+                __ARQRequestTailTemp = thisRequest;
+            }
+            else
+            {
+                __ARQRequestTailTemp->next = thisRequest;
+                __ARQRequestTailTemp = thisRequest;
+            }
+        }
+    }
+
+    __ARQRequestQueueHi = __ARQRequestQueueTemp;
+    __ARQRequestTailHi = __ARQRequestTailTemp;
+    __ARQRequestQueueTemp = NULL;
+    __ARQRequestTailTemp = NULL;
+    for (thisRequest = __ARQRequestQueueLo; thisRequest; thisRequest = thisRequest->next)
+    {
+        if (thisRequest != request)
+        {
+            if (!__ARQRequestQueueTemp)
+            {
+                __ARQRequestQueueTemp = thisRequest;
+                __ARQRequestTailTemp = thisRequest;
+            }
+            else
+            {
+                __ARQRequestTailTemp->next = thisRequest;
+                __ARQRequestTailTemp = thisRequest;
+            }
+        }
+    }
+
+    __ARQRequestQueueLo = __ARQRequestQueueTemp;
+    __ARQRequestTailLo = __ARQRequestTailTemp;
+    if (__ARQRequestPendingLo && __ARQRequestPendingLo == request && __ARQCallbackLo == NULL)
+    {
+        __ARQRequestPendingLo = NULL;
+    }
+    OSRestoreInterrupts(level);
+}
+
+void ARQFlushQueue(void)
+{
+    BOOL level;
+
+    level = OSDisableInterrupts();
+    __ARQRequestQueueHi = NULL;
+    __ARQRequestTailHi = NULL;
+    __ARQRequestQueueLo = NULL;
+    __ARQRequestTailLo = NULL;
+    if (!__ARQCallbackLo)
+    {
+        __ARQRequestPendingLo = NULL;
     }
 
     OSRestoreInterrupts(level);

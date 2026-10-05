@@ -984,8 +984,16 @@ dolphin/src/OdemuExi2/DebuggerDriver.c:
 	.sdata      start:0x8025E618 end:0x8025E620
 	.sbss       start:0x8025F248 end:0x8025F260
 
+dolphin/ai/ai.c:
+	.text       start:0x800F439C end:0x800F4C5C
+	.sbss       start:0x8025F260 end:0x8025F2A0
+
 dolphin/src/amcstubs/AmcExi2Stubs.c:
 	.text       start:0x800F4C5C end:0x800F4C8C
+
+dolphin/ar/arq.c:
+	.text       start:0x800F58E4 end:0x800F5DD0
+	.sbss       start:0x8025F2C0 end:0x8025F2F0
 
 dolphin/src/ax/AXAlloc.c:
 	.text       start:0x800F5ED0 end:0x800F630C
