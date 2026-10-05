@@ -1122,6 +1122,12 @@ dolphin/src/os/OSTime.c:
 dolphin/os/__ppc_eabi_init.cpp:
 	.text       start:0x80108A84 end:0x80108B18
 
+dolphin/si/SIBios.c:
+	.text       start:0x80108B18 end:0x8010A1F8
+	.data       start:0x801CD788 end:0x801CD858
+	.bss        start:0x8025BCA0 end:0x8025BEA0
+	.sbss       start:0x8025F4D0 end:0x8025F4DC
+
 dolphin/src/si/SISamplingRate.c:
 	.text       start:0x8010A1F8 end:0x8010A300
 	.data       start:0x801CD858 end:0x801CD8F0

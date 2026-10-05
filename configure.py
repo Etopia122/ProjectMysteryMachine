@@ -690,6 +690,15 @@ config.libs = [
         ],
     },
     {
+        "lib": "tww_si",
+        "mw_version": "GC/1.2.5n",
+        "cflags": cflags_tww_dolphin,
+        "progress_category": "sdk",
+        "objects": [
+            Object(Matching, "dolphin/si/SIBios.c"),
+        ],
+    },
+    {
         "lib": "tww_card",
         "mw_version": "GC/1.2.5n",
         "cflags": cflags_tww_dolphin,

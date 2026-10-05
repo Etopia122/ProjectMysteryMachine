@@ -3,7 +3,7 @@
 
 #define ROUND(n, a) (((u32)(n) + (a)-1) & ~((a)-1))
 
-const char* __SIVersion = "<< Dolphin SDK - SI\trelease build: Sep  5 2002 05:33:08 (0x2301) >>";
+// This older SI library has no version string (and SIInit does not register one).
 
 static SIControl Si = {
     /* chan */       -1,
@@ -267,7 +267,6 @@ BOOL SIUnregisterPollingHandler(__OSInterruptHandler handler) {
 }
 
 void SIInit(void) {
-    OSRegisterVersion(__SIVersion);
 
     Packet[0].chan = Packet[1].chan = Packet[2].chan = Packet[3].chan = -1;
     Si.poll = 0;
