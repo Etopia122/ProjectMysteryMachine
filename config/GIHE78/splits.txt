@@ -839,7 +839,7 @@ PowerPC_EABI_Support/Runtime/Src/global_destructor_chain.c:
 	.sbss       start:0x8025F218 end:0x8025F21C
 
 PowerPC_EABI_Support/Runtime/Src/runtime.c:
-	.text       start:0x800E57BC end:0x800E5DCC
+	.text       start:0x800E57BC end:0x800E5F4C
 	.rodata     start:0x801A7D90 end:0x801A7DA8
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/abort_exit.c:

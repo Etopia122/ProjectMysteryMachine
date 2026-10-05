@@ -768,7 +768,7 @@ config.libs = [
         "objects": [
             Object(Matching, "PowerPC_EABI_Support/Runtime/Src/__va_arg.c"),
             Object(Matching, "PowerPC_EABI_Support/Runtime/Src/global_destructor_chain.c"),
-            Object(NonMatching, "PowerPC_EABI_Support/Runtime/Src/runtime.c"),
+            Object(Matching, "PowerPC_EABI_Support/Runtime/Src/runtime.c"),
         ],
     },
     {
