@@ -19,6 +19,8 @@ static GXBreakPtCallback BreakPointCB;
 
 static u32 __GXOverflowCount;
 
+static void* __GXCurrentBP;
+
 static void GXOverflowHandler() {
     __GXOverflowCount += 1;
     __GXWriteFifoIntEnable(0, 1);
@@ -126,7 +128,7 @@ void GXSetCPUFifo(GXFifoObj* fifo) {
         GX_SET_PI_REG(5, reg);
     }
 
-    PPCSync();
+    __sync();
 
     OSRestoreInterrupts(interrupts);
 }
@@ -153,7 +155,7 @@ void GXSetGPFifo(GXFifoObj* fifo) {
     GX_SET_CP_REG(21, (fifo->high_wtrmark) >> 16);
     GX_SET_CP_REG(23, (fifo->low_wtrmark) >> 16);
 
-    PPCSync();
+    __sync();
 
     if (CPUFifo == GPFifo) {
         CPGPLinked = 1;
@@ -225,12 +227,63 @@ u32 GXGetFifoSize(GXFifoObj* fifo) {
     return fifo->size;
 }
 
+void GXGetFifoPtrs(GXFifoObj* fifo, void** readPtr, void** writePtr) {
+    if (fifo == CPUFifo) {
+        fifo->write_ptr = OSPhysicalToCached(__piReg[5] & 0xFBFFFFFF);
+    }
+
+    if (fifo == GPFifo) {
+        {
+            u32 temp = __cpReg[29] << 16;
+            temp |= __cpReg[28];
+            fifo->read_ptr = OSPhysicalToCached(temp);
+        }
+        {
+            u32 temp = __cpReg[25] << 16;
+            temp |= __cpReg[24];
+            fifo->rw_dst = temp;
+        }
+    } else {
+        fifo->rw_dst = (u8*)fifo->write_ptr - (u8*)fifo->read_ptr;
+        if (fifo->rw_dst < 0) {
+            fifo->rw_dst += fifo->size;
+        }
+    }
+
+    *readPtr = fifo->read_ptr;
+    *writePtr = fifo->write_ptr;
+}
+
 GXBreakPtCallback GXSetBreakPtCallback(GXBreakPtCallback cb) {
     GXBreakPtCallback oldCallback = BreakPointCB;
     int interrupts = OSDisableInterrupts();
     BreakPointCB = cb;
     OSRestoreInterrupts(interrupts);
     return oldCallback;
+}
+
+void GXEnableBreakPt(void* break_pt) {
+    BOOL enabled = OSDisableInterrupts();
+
+    __GXFifoReadDisable();
+    __cpReg[30] = (u32)break_pt;
+    __cpReg[31] = ((u32)break_pt >> 16) & 0x3FFF;
+    SET_REG_FIELD(gx->cpEnable, 1, 1, 1);
+    SET_REG_FIELD(gx->cpEnable, 1, 5, 1);
+    __cpReg[1] = gx->cpEnable;
+    __GXCurrentBP = break_pt;
+    __GXFifoReadEnable();
+    OSRestoreInterrupts(enabled);
+}
+
+void GXDisableBreakPt(void) {
+    BOOL enabled = OSDisableInterrupts();
+
+    SET_REG_FIELD(gx->cpEnable, 1, 1, 0);
+    SET_REG_FIELD(gx->cpEnable, 1, 5, 0);
+    __cpReg[1] = gx->cpEnable;
+    __GXCurrentBP = NULL;
+    OSRestoreInterrupts(enabled);
 }
 
 void __GXFifoInit(void) {
@@ -278,10 +331,6 @@ void __GXCleanGPFifo(void) {
     void* tempPtr;       // r29
 
     gpFifo = GXGetGPFifo();
-    if (!gpFifo) {
-        return;
-    }
-
     cpuFifo = GXGetCPUFifo();
     tempPtr = gpFifo->base;
 
