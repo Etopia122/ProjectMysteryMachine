@@ -1016,6 +1016,17 @@ dolphin/src/ax/AXSPB.c:
 	.bss        start:0x8024A800 end:0x8024A840
 	.sbss       start:0x8025F358 end:0x8025F380
 
+dolphin/src/ax/AXVPB.c:
+	.text       start:0x800F7624 end:0x800F8734
+	.data       start:0x801CABD0 end:0x801CAC80
+	.bss        start:0x8024A840 end:0x8025A640
+	.sbss       start:0x8025F380 end:0x8025F390
+	.sdata2     start:0x80262680 end:0x80262688
+
+dolphin/src/ax/DSPCode.c:
+	.data       start:0x801CAC80 end:0x801CC660
+	.sdata      start:0x8025E620 end:0x8025E628
+
 dolphin/src/ax/AXProf.c:
 	.text       start:0x800F8734 end:0x800F877C
 	.sbss       start:0x8025F390 end:0x8025F3A0

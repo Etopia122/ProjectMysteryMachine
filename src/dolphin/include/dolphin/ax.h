@@ -138,8 +138,7 @@ typedef struct _AXPB
     /* 0x7E */ AXPBADPCM adpcm;
     /* 0xA6 */ AXPBSRC src;
     /* 0xB4 */ AXPBADPCMLOOP adpcmLoop;
-    /* 0xBA */ AXPBLPF lpf;
-    /* 0xC2 */ u16 pad[25];
+    /* 0xBA */ u16 pad[3];
 } AXPB;
 
 typedef struct _AXVPB
@@ -231,7 +230,7 @@ typedef struct AX_AUX_DATA_DPL2
 
 typedef void (*AXCallback)();
 
-#define AX_DSP_SLAVE_LENGTH 3936
+#define AX_DSP_SLAVE_LENGTH 3312
 #define AX_MAX_VOICES 64
 
 #define AX_SRC_TYPE_NONE 0

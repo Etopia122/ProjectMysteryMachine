@@ -577,7 +577,7 @@ config.libs = [
     DolphinLib(
         "ax",
         [
-            Object(NonMatching, "dolphin/src/ax/AXSPB.c"),
+            Object(Matching, "dolphin/src/ax/AXSPB.c"),
         ],
     ),
     DolphinLib(
@@ -594,6 +594,8 @@ config.libs = [
             Object(Matching, "dolphin/src/ax/AXAlloc.c"),
             Object(NonMatching, "dolphin/src/ax/AXCL.c"),
             Object(NonMatching, "dolphin/src/ax/AXOut.c"),
+            Object(Matching, "dolphin/src/ax/AXVPB.c"),
+            Object(Matching, "dolphin/src/ax/DSPCode.c"),
             Object(Matching, "dolphin/src/ax/AXProf.c"),
         ],
     ),
