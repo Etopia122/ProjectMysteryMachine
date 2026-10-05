@@ -19,10 +19,11 @@ ASM BOOL OSDisableInterrupts(void) {
     rlwinm r4, r3, 0, 17, 15
     mtmsr r4
 
-    entry __RAS_OSDisableInterrupts_end
-
     // Return old interrupt status
     rlwinm r3, r3, 17, 31, 31
+
+    // This older version ends the restartable sequence after the rlwinm.
+    entry __RAS_OSDisableInterrupts_end
     blr
     // clang-format on
 #endif
@@ -432,7 +433,6 @@ static ASM void ExternalInterruptHandler(__REGISTER __OSInterrupt type, __REGIST
     mfspr r0, GQR7
     stw r0, context->gqr[7]
 
-    stwu r1, -8(r1)
     b __OSDispatchInterrupt
     // clang-format on
 #endif

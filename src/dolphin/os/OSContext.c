@@ -286,11 +286,11 @@ ASM void OSLoadContext(__REGISTER OSContext* context) {
     lwz r6, OSContext.srr0(context)
     addi r5, r4, __RAS_OSDisableInterrupts_begin@l
     cmplw r6, r5
-    ble srr0_not_in_disableintr
+    blt srr0_not_in_disableintr
     lis r4, __RAS_OSDisableInterrupts_end@ha
     addi r0, r4, __RAS_OSDisableInterrupts_end@l
     cmplw r6, r0
-    bge srr0_not_in_disableintr
+    bgt srr0_not_in_disableintr
     stw r5, OSContext.srr0(context)
         
 srr0_not_in_disableintr:
