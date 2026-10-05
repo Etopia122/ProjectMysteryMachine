@@ -1174,7 +1174,7 @@ dolphin/pad/Pad.c:
 	.sbss       start:0x8025F538 end:0x8025F560
 
 dolphin/dvd/dvdlow.c:
-	.text       start:0x8010DD78 end:0x8010E898
+	.text       start:0x8010DA44 end:0x8010E898
 	.bss        start:0x8025C038 end:0x8025C108
 	.sdata      start:0x8025E6D0 end:0x8025E6D4
 	.sbss       start:0x8025F560 end:0x8025F5A8
