@@ -498,6 +498,7 @@ config.libs = [
             Object(Matching, "Game/zEntSimpleObj.cpp"),
             Object(Matching, "Game/zEntTrigger.cpp", extra_cflags=["-bool on"]),
             Object(Equivalent, "Game/zEntVillain.cpp"),
+            Object(Matching, "Game/zEntVillainHolo.cpp"),
             Object(Matching, "Game/zEnv.cpp"),
             Object(Equivalent, "Game/zFeet.cpp"),
             Object(Matching, "Game/zFog.cpp"),
