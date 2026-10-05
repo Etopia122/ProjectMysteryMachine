@@ -571,6 +571,7 @@ config.libs = [
     DolphinLib(
         "dsp",
         [
+            Object(Matching, "dolphin/src/dsp/dsp.c"),
             Object(Matching, "dolphin/src/dsp/dsp_task.c"),
         ],
     ),

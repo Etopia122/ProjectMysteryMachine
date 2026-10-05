@@ -1046,6 +1046,11 @@ dolphin/db/db.c:
 	.data       start:0x801CC660 end:0x801CC678
 	.sbss       start:0x8025F3A0 end:0x8025F3A8
 
+dolphin/src/dsp/dsp.c:
+	.text       start:0x800F8910 end:0x800F8C3C
+	.data       start:0x801CC678 end:0x801CC6B0
+	.sbss       start:0x8025F3A8 end:0x8025F3B0
+
 dolphin/src/dsp/dsp_task.c:
 	.text       start:0x800F8C3C end:0x800F94C0
 	.data       start:0x801CC6B0 end:0x801CC7F0
