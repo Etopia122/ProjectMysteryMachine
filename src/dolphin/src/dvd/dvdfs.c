@@ -144,7 +144,7 @@ s32 DVDConvertPathToEntrynum(const char* pathPtr)
             if (illegal)
             {
                 OSPanic(
-                    __FILE__, 383,
+                    __FILE__, 376,
                     "DVDConvertEntrynumToPath(possibly DVDOpen or DVDChangeDir or DVDOpenDir): "
                     "specified directory or file (%s) doesn't match standard 8.3 format. This is a "
                     "temporary restriction and will be removed soon\n",
@@ -315,13 +315,13 @@ BOOL DVDReadAsyncPrio(DVDFileInfo* fileInfo, void* addr, s32 length, s32 offset,
 {
     if (!((0 <= offset) && (offset < fileInfo->length)))
     {
-#line 746
+#line 739
         OSHalt("DVDReadAsync(): specified area is out of the file  ");
     }
 
     if (!((0 <= offset + length) && (offset + length < fileInfo->length + DVD_MIN_TRANSFER_SIZE)))
     {
-#line 752
+#line 745
         OSHalt("DVDReadAsync(): specified area is out of the file  ");
     }
 
@@ -356,13 +356,13 @@ s32 DVDReadPrio(DVDFileInfo* fileInfo, void* addr, s32 length, s32 offset, s32 p
 
     if (!((0 <= offset) && (offset < fileInfo->length)))
     {
-#line 816
+#line 809
         OSHalt("DVDRead(): specified area is out of the file  ");
     }
 
     if (!((0 <= offset + length) && (offset + length < fileInfo->length + DVD_MIN_TRANSFER_SIZE)))
     {
-#line 822
+#line 815
         OSHalt("DVDRead(): specified area is out of the file  ");
     }
 
@@ -415,7 +415,7 @@ BOOL DVDSeekAsyncPrio(DVDFileInfo* fileInfo, s32 offset, DVDCallback callback, s
 {
     if (!((0 <= offset) && (offset < fileInfo->length)))
     {
-        OSPanic(__FILE__, 0x387, "DVDSeek(): offset is out of the file  ");
+        OSPanic(__FILE__, 0x380, "DVDSeek(): offset is out of the file  ");
     }
 
     fileInfo->callback = callback;
