@@ -3,7 +3,7 @@
 #include "dolphin/ar/arq.h"
 #include "dolphin/dsp.h"
 
-const char* __ARVersion = "<< Dolphin SDK - AR\trelease build: Sep  5 2002 05:34:27 (0x2301) >>";
+// This older SDK library has no version string (and does not register one).
 
 static void (*__AR_Callback)();
 static u32 __AR_Size;
@@ -76,7 +76,6 @@ u32 ARInit(u32* stack_index_addr, u32 num_entries) {
         return 0x4000;
     }
 
-    OSRegisterVersion(__ARVersion);
 
     old = OSDisableInterrupts();
     __AR_Callback = NULL;
