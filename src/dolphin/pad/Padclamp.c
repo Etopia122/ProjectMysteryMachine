@@ -1,29 +1,34 @@
 #include "dolphin/pad/Pad.h"
 
-static const PADClampRegion ClampRegion = {
+// This older PAD library has no stick radii (no ClampCircle), and its table
+// is plain small data.
+typedef struct PADClampRegionOld {
+    u8 minTrigger;
+    u8 maxTrigger;
+    s8 minStick;
+    s8 maxStick;
+    s8 xyStick;
+    s8 minSubstick;
+    s8 maxSubstick;
+    s8 xySubstick;
+} PADClampRegionOld;
+
+static PADClampRegionOld ClampRegion = {
     // Triggers
     30,
     180,
-
     // Left stick
     15,
     72,
     40,
-
     // Right stick
     15,
     59,
     31,
-
-    // Stick radii
-    56,
-    44,
 };
 
 // prototypes
 static void ClampStick(s8* px, s8* py, s8 max, s8 xy, s8 min);
-static void ClampCircle(s8* px, s8* py, s8 radius, s8 min);
-static void ClampTrigger(u8* trigger, u8 min, u8 max);
 
 static void ClampStick(s8* px, s8* py, s8 max, s8 xy, s8 min) {
     int x = *px;
@@ -80,17 +85,6 @@ static void ClampStick(s8* px, s8* py, s8 max, s8 xy, s8 min) {
     *py = (s8)(signY * y);
 }
 
-static void ClampTrigger(u8* trigger, u8 min, u8 max) {
-    if (*trigger <= min) {
-        *trigger = 0;
-    } else {
-        if (max < *trigger) {
-            *trigger = max;
-        }
-        *trigger -= min;
-    }
-}
-
 void PADClamp(PADStatus * status) {
     int i;
 
@@ -98,8 +92,22 @@ void PADClamp(PADStatus * status) {
         if (status->err == PAD_ERR_NONE) {
             ClampStick(&status->stickX, &status->stickY, ClampRegion.maxStick, ClampRegion.xyStick, ClampRegion.minStick);
             ClampStick(&status->substickX, &status->substickY, ClampRegion.maxSubstick, ClampRegion.xySubstick, ClampRegion.minSubstick);
-            ClampTrigger(&status->triggerLeft, ClampRegion.minTrigger, ClampRegion.maxTrigger);
-            ClampTrigger(&status->triggerRight, ClampRegion.minTrigger, ClampRegion.maxTrigger);
+            if (status->triggerLeft <= ClampRegion.minTrigger) {
+                status->triggerLeft = 0;
+            } else {
+                if (ClampRegion.maxTrigger < status->triggerLeft) {
+                    status->triggerLeft = ClampRegion.maxTrigger;
+                }
+                status->triggerLeft -= ClampRegion.minTrigger;
+            }
+            if (status->triggerRight <= ClampRegion.minTrigger) {
+                status->triggerRight = 0;
+            } else {
+                if (ClampRegion.maxTrigger < status->triggerRight) {
+                    status->triggerRight = ClampRegion.maxTrigger;
+                }
+                status->triggerRight -= ClampRegion.minTrigger;
+            }
         }
     }
 }

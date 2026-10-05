@@ -690,7 +690,7 @@ config.libs = [
         "cflags": cflags_tww_dolphin,
         "progress_category": "sdk",
         "objects": [
-            Object(NonMatching, "dolphin/pad/Padclamp.c"),
+            Object(Matching, "dolphin/pad/Padclamp.c"),
             Object(Matching, "dolphin/pad/Pad.c"),
         ],
     },
