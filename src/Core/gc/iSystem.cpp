@@ -402,7 +402,7 @@ void fn_80015EA0(signed int addr, signed int size);
 void fn_80015DE8(void* ptr);
 signed int fn_80015A70(const char* mode);
 
-extern unsigned char lbl_801CC910[]; // GXNtsc480IntDf
+extern "C" unsigned char GXNtsc480IntDf[];
 extern DeviceConfig lbl_801FE3B8;    // deviceConfig
 extern unsigned char lbl_801FE3C4[]; // sVideoMode
 extern char* lbl_801AD940[12];       // month names
@@ -546,7 +546,7 @@ static signed int RenderWareInit();
 // iSystemInit
 extern "C" void fn_80016218()
 {
-    lbl_801FE3B8.renderMode = lbl_801CC910;
+    lbl_801FE3B8.renderMode = GXNtsc480IntDf;
     lbl_801FE3B8.unk4 = 0;
     lbl_801FE3B8.unk8 = 0x40000;
     fn_800FD94C(1, 8);
