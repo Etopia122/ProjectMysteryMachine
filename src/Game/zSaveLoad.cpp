@@ -486,9 +486,9 @@ signed int zSaveLoad_CardCheckSpaceSingle_doCheck(st_XSAVEGAME_DATA* xsgdata, si
                                                   signed int checkGames, signed int* gameFull)
 {
     signed int badEncode = 0;
-    signed int needed = 0;
     signed int avail = 0;
     signed int files = 0;
+    signed int needed = 0;
     signed int needFile = 0;
     signed int bytes = 0;
     signed int rc;
@@ -625,22 +625,22 @@ signed int zSaveLoad_CardCheck(signed int cardNumber, signed int mode)
                 retry = 1;
                 break;
             }
-        }
 
-        if (retry == 0)
-        {
-            if (fn_80041310(cardNumber, 0) != 0)
+            if (retry == 0)
             {
-                retry = 0;
-            }
-            else
-            {
-                zSaveLoad_CardPrompt(mode);
-                if (promptSel == 2 || promptSel == 4)
+                if (fn_80041310(cardNumber, 0) != 0)
                 {
-                    return 2;
+                    retry = 0;
                 }
-                retry = 1;
+                else
+                {
+                    zSaveLoad_CardPrompt(mode);
+                    if (promptSel == 2 || promptSel == 4)
+                    {
+                        return 2;
+                    }
+                    retry = 1;
+                }
             }
         }
     } while (retry != 0);
@@ -980,6 +980,26 @@ static inline signed int zSaveLoad_CardCheckGamesSingle(signed int cardNumber)
     return rc;
 }
 
+static inline signed int zSaveLoad_CardPromptGames(signed int mode)
+{
+    signed int i = 0x15;
+    if (mode == 1)
+    {
+        i = 0;
+    }
+    zSaveLoad_UIEvent(i, 0x5F);
+    zSaveLoad_UIEvent(1, 0x5F);
+    zSaveLoad_UIEvent(0x12, 0x5E);
+    promptSel = -1;
+    while (promptSel == -1)
+    {
+        zSaveLoad_Tick();
+        zSaveLoad_pollCheck(3);
+    }
+    zSaveLoad_UIEvent(0x12, 0x5F);
+    return promptSel;
+}
+
 signed int zSaveLoad_CardCheckGames(signed int cardNumber, signed int mode)
 {
     while (zSaveLoad_CardCheckGamesSingle(cardNumber) != 1)
@@ -991,21 +1011,7 @@ signed int zSaveLoad_CardCheckGames(signed int cardNumber, signed int mode)
             return result;
         }
 
-        signed int i = 0x15;
-        if (mode == 1)
-        {
-            i = 0;
-        }
-        zSaveLoad_UIEvent(i, 0x5F);
-        zSaveLoad_UIEvent(1, 0x5F);
-        zSaveLoad_UIEvent(0x12, 0x5E);
-        promptSel = -1;
-        while (promptSel == -1)
-        {
-            zSaveLoad_Tick();
-            zSaveLoad_pollCheck(3);
-        }
-        zSaveLoad_UIEvent(0x12, 0x5F);
+        zSaveLoad_CardPromptGames(mode);
         if (promptSel == 2 || promptSel == 4)
         {
             return 2;
@@ -1190,7 +1196,8 @@ signed int zSaveLoad_CardPick(signed int mode)
             done = zSaveLoad_CardCheckFormatted(currentCard, mode);
             switch (done)
             {
-            case -1:
+            case 5:
+            case 6:
                 done = 0;
                 promptSel = -1;
                 continue;
@@ -1199,8 +1206,7 @@ signed int zSaveLoad_CardPick(signed int mode)
                 currentCard = -1;
                 promptSel = -1;
                 continue;
-            case 5:
-            case 6:
+            case -1:
                 done = 0;
                 promptSel = -1;
                 continue;
@@ -1211,7 +1217,8 @@ signed int zSaveLoad_CardPick(signed int mode)
             done = zSaveLoad_CardCheckValid(currentCard, mode, 1);
             switch (done)
             {
-            case -1:
+            case 5:
+            case 6:
                 done = 0;
                 promptSel = -1;
                 continue;
@@ -1223,8 +1230,7 @@ signed int zSaveLoad_CardPick(signed int mode)
                     currentGame = -1;
                 }
                 break;
-            case 5:
-            case 6:
+            case -1:
                 done = 0;
                 promptSel = -1;
                 continue;
@@ -1758,14 +1764,14 @@ unsigned int zSaveLoad_LoadLoop()
             {
             case 0:
                 break;
-            case 1:
-                state = 9;
-                break;
             case 2:
             case 4:
             case 5:
             case 6:
                 state = 1;
+                break;
+            case 1:
+                state = 9;
                 break;
             case -1:
                 fn_80041CE8(1, currentCard, currentCard);
@@ -1844,14 +1850,14 @@ unsigned int zSaveLoad_SaveLoop()
             {
             case 0:
                 break;
-            case 1:
-                state = 10;
-                break;
             case 2:
             case 4:
             case 5:
             case 6:
                 state = 1;
+                break;
+            case 1:
+                state = 10;
                 break;
             case -1:
                 fn_80041CE8(1, currentCard, currentCard);
