@@ -1119,6 +1119,7 @@ dolphin/gx/GXDisplayList.c:
 
 dolphin/gx/GXTransform.c:
 	.text       start:0x80102210 end:0x801028E0
+	.sdata2     start:0x80262750 end:0x80262768
 
 dolphin/gx/GXPerf.c:
 	.text       start:0x801028E0 end:0x80103188

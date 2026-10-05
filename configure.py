@@ -746,7 +746,7 @@ config.libs = [
             Object(Matching, "dolphin/gx/GXTev.c"),
             Object(NonMatching, "dolphin/gx/GXPixel.c"),
             Object(Matching, "dolphin/gx/GXDisplayList.c"),
-            Object(NonMatching, "dolphin/gx/GXTransform.c", extra_cflags=["-fp_contract off"]),
+            Object(Matching, "dolphin/gx/GXTransform.c", extra_cflags=["-fp_contract off"]),
             Object(Matching, "dolphin/gx/GXPerf.c"),
         ],
     },

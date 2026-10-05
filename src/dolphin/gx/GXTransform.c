@@ -2,344 +2,290 @@
 #include "dolphin/gx/GX.h"
 #include "dolphin/gx/GXInit.h"
 
-static void Copy6Floats(__REGISTER f32 src[6], __REGISTER f32 dst[6]) {
-    __REGISTER f32 ps_0, ps_1, ps_2;
+// Older SDK revision: no GXProject/GXGetViewportv/GXGetScissor, viewport
+// computed directly in GXSetViewportJitter, and no z scale/offset.
 
-    // clang-format off
-#ifdef __MWERKS__
-    asm {
-        psq_l  ps_0,  0(src), 0, 0
-        psq_l  ps_1,  8(src), 0, 0
-        psq_l  ps_2, 16(src), 0, 0
-        psq_st ps_0,  0(dst), 0, 0
-        psq_st ps_1,  8(dst), 0, 0
-        psq_st ps_2, 16(dst), 0, 0
-    }
-#endif
-    // clang-format on
+void __GXSetRange(f32 nearz, f32 fgSideX);
+
+// The original file had an unused static helper here that pooled 0.5f ahead of
+// GXGetProjectionv's int->float constant. It is never emitted, but it keeps the
+// .sdata2 constant order (0.5, conversion double, 342, 2^24-1) matching.
+static f32 __GXHalf(f32 x) {
+    return x * 0.5f;
 }
 
-static void WriteProjPS(const __REGISTER f32 src[6], __REGISTER volatile void* dst) {
-    __REGISTER f32 ps_0, ps_1, ps_2;
-
-    // clang-format off
-#ifdef __MWERKS__
-    asm {
-        psq_l  ps_0,  0(src), 0, 0
-        psq_l  ps_1,  8(src), 0, 0
-        psq_l  ps_2, 16(src), 0, 0
-        psq_st ps_0,  0(dst), 0, 0
-        psq_st ps_1,  0(dst), 0, 0
-        psq_st ps_2,  0(dst), 0, 0
-    }
-#endif
-    // clang-format on
-}
-
-void GXProject(f32 model_x, f32 model_y, f32 model_z, Mtx model_mtx, f32* proj_mtx, f32* viewpoint,
-               f32* screen_x, f32* screen_y, f32* screen_z) {
-    f32 sp10[3];
-    f32 var_f30;
-    f32 var_f29;
-    f32 var_f28;
-    f32 var_f31;
-
-    sp10[0] = (model_mtx[0][0] * model_x) + (model_mtx[0][1] * model_y) +
-              (model_mtx[0][2] * model_z) + model_mtx[0][3];
-    sp10[1] = (model_mtx[1][0] * model_x) + (model_mtx[1][1] * model_y) +
-              (model_mtx[1][2] * model_z) + model_mtx[1][3];
-    sp10[2] = (model_mtx[2][0] * model_x) + (model_mtx[2][1] * model_y) +
-              (model_mtx[2][2] * model_z) + model_mtx[2][3];
-
-    if (proj_mtx[0] == 0.0f) {
-        var_f30 = (sp10[0] * proj_mtx[1]) + (sp10[2] * proj_mtx[2]);
-        var_f29 = (sp10[1] * proj_mtx[3]) + (sp10[2] * proj_mtx[4]);
-        var_f28 = proj_mtx[6] + (sp10[2] * proj_mtx[5]);
-        var_f31 = 1.0f / -sp10[2];
-    } else {
-        var_f30 = proj_mtx[2] + (sp10[0] * proj_mtx[1]);
-        var_f29 = proj_mtx[4] + (sp10[1] * proj_mtx[3]);
-        var_f28 = proj_mtx[6] + (sp10[2] * proj_mtx[5]);
-        var_f31 = 1.0f;
-    }
-
-    *screen_x = (viewpoint[2] / 2) + (viewpoint[0] + (var_f31 * (var_f30 * viewpoint[2] / 2)));
-    *screen_y = (viewpoint[3] / 2) + (viewpoint[1] + (var_f31 * (-var_f29 * viewpoint[3] / 2)));
-    *screen_z = viewpoint[5] + (var_f31 * (var_f28 * (viewpoint[5] - viewpoint[4])));
-}
-
-void GXSetProjection(const Mtx44 proj, GXProjectionType type) {
-    volatile void* fifo;
-    u32 reg;
+void GXSetProjection(const Mtx44 mtx, GXProjectionType type) {
     gx->projType = type;
 
-    gx->projMtx[0] = proj[0][0];
-    gx->projMtx[2] = proj[1][1];
-    gx->projMtx[4] = proj[2][2];
-    gx->projMtx[5] = proj[2][3];
+    gx->projMtx[0] = mtx[0][0];
+    gx->projMtx[2] = mtx[1][1];
+    gx->projMtx[4] = mtx[2][2];
+    gx->projMtx[5] = mtx[2][3];
 
     if (type == GX_ORTHOGRAPHIC) {
-        gx->projMtx[1] = proj[0][3];
-        gx->projMtx[3] = proj[1][3];
+        gx->projMtx[1] = mtx[0][3];
+        gx->projMtx[3] = mtx[1][3];
     } else {
-        gx->projMtx[1] = proj[0][2];
-        gx->projMtx[3] = proj[1][2];
+        gx->projMtx[1] = mtx[0][2];
+        gx->projMtx[3] = mtx[1][2];
     }
 
-
-    reg = 0x00061020;
-    GX_WRITE_U8(0x10);
-    GX_WRITE_U32(reg);
-    GX_WRITE_XF_REG_F(32, gx->projMtx[0]);
-    GX_WRITE_XF_REG_F(33, gx->projMtx[1]);
-    GX_WRITE_XF_REG_F(34, gx->projMtx[2]);
-    GX_WRITE_XF_REG_F(35, gx->projMtx[3]);
-    GX_WRITE_XF_REG_F(36, gx->projMtx[4]);
-    GX_WRITE_XF_REG_F(37, gx->projMtx[5]);
-    GX_WRITE_XF_REG_2(38, gx->projType);
+    GXFIFO.u8 = 0x10;
+    GXFIFO.u32 = 0x00061020;
+    GXFIFO.f32 = gx->projMtx[0];
+    GXFIFO.f32 = gx->projMtx[1];
+    GXFIFO.f32 = gx->projMtx[2];
+    GXFIFO.f32 = gx->projMtx[3];
+    GXFIFO.f32 = gx->projMtx[4];
+    GXFIFO.f32 = gx->projMtx[5];
+    GXFIFO.u32 = gx->projType;
 
     gx->bpSentNot = GX_TRUE;
 }
 
-void GXSetProjectionv(f32* proj) {
-    gx->projType = proj[0];
-    gx->projMtx[0] = proj[1];
-    gx->projMtx[1] = proj[2];
-    gx->projMtx[2] = proj[3];
-    gx->projMtx[3] = proj[4];
-    gx->projMtx[4] = proj[5];
-    gx->projMtx[5] = proj[6];
+void GXSetProjectionv(f32* ptr) {
+    gx->projType = ptr[0];
+    gx->projMtx[0] = ptr[1];
+    gx->projMtx[1] = ptr[2];
+    gx->projMtx[2] = ptr[3];
+    gx->projMtx[3] = ptr[4];
+    gx->projMtx[4] = ptr[5];
+    gx->projMtx[5] = ptr[6];
 
+    GXFIFO.u8 = 0x10;
+    GXFIFO.u32 = 0x00061020;
+    GXFIFO.f32 = gx->projMtx[0];
+    GXFIFO.f32 = gx->projMtx[1];
+    GXFIFO.f32 = gx->projMtx[2];
+    GXFIFO.f32 = gx->projMtx[3];
+    GXFIFO.f32 = gx->projMtx[4];
+    GXFIFO.f32 = gx->projMtx[5];
+    GXFIFO.u32 = gx->projType;
 
-    GX_WRITE_U8(0x10);
-    GX_WRITE_U32(0x00061020);
-    GX_WRITE_XF_REG_F(32, gx->projMtx[0]);
-    GX_WRITE_XF_REG_F(33, gx->projMtx[1]);
-    GX_WRITE_XF_REG_F(34, gx->projMtx[2]);
-    GX_WRITE_XF_REG_F(35, gx->projMtx[3]);
-    GX_WRITE_XF_REG_F(36, gx->projMtx[4]);
-    GX_WRITE_XF_REG_F(37, gx->projMtx[5]);
-    GX_WRITE_XF_REG_2(38, gx->projType);
     gx->bpSentNot = GX_TRUE;
 }
 
-void GXGetProjectionv(f32* proj) {
-    proj[0] = gx->projType;
-    proj[1] = gx->projMtx[0];
-    proj[2] = gx->projMtx[1];
-    proj[3] = gx->projMtx[2];
-    proj[4] = gx->projMtx[3];
-    proj[5] = gx->projMtx[4];
-    proj[6] = gx->projMtx[5];
+void GXGetProjectionv(f32* ptr) {
+    ptr[0] = gx->projType;
+    ptr[1] = gx->projMtx[0];
+    ptr[2] = gx->projMtx[1];
+    ptr[3] = gx->projMtx[2];
+    ptr[4] = gx->projMtx[3];
+    ptr[5] = gx->projMtx[4];
+    ptr[6] = gx->projMtx[5];
 }
 
-static void WriteMTXPS4x3(__REGISTER volatile void* dst, __REGISTER const Mtx src) {
-    __REGISTER f32 ps_0, ps_1, ps_2, ps_3, ps_4, ps_5;
-
+static asm void WriteMTXPS4x3(const __REGISTER Mtx src, __REGISTER volatile void* dst) {
     // clang-format off
-#ifdef __MWERKS__
-    asm {
-        psq_l  ps_0,  0(src), 0, 0
-        psq_l  ps_1,  8(src), 0, 0
-        psq_l  ps_2, 16(src), 0, 0
-        psq_l  ps_3, 24(src), 0, 0
-        psq_l  ps_4, 32(src), 0, 0
-        psq_l  ps_5, 40(src), 0, 0
+    nofralloc
+    psq_l  f0,  0(src), 0, 0
+    psq_l  f1,  8(src), 0, 0
+    psq_l  f2, 16(src), 0, 0
+    psq_l  f3, 24(src), 0, 0
+    psq_l  f4, 32(src), 0, 0
+    psq_l  f5, 40(src), 0, 0
+    psq_st f0, 0(dst),  0, 0
+    psq_st f1, 0(dst),  0, 0
+    psq_st f2, 0(dst),  0, 0
+    psq_st f3, 0(dst),  0, 0
+    psq_st f4, 0(dst),  0, 0
+    psq_st f5, 0(dst),  0, 0
+    blr
+    // clang-format on
+}
 
-        psq_st ps_0, 0(dst),  0, 0
-        psq_st ps_1, 0(dst),  0, 0
-        psq_st ps_2, 0(dst),  0, 0
-        psq_st ps_3, 0(dst),  0, 0
-        psq_st ps_4, 0(dst),  0, 0
-        psq_st ps_5, 0(dst),  0, 0
-    }
-#endif
+static asm void WriteMTXPS3x3from3x4(const __REGISTER Mtx src, __REGISTER volatile void* dst) {
+    // clang-format off
+    nofralloc
+    psq_l  f0,  0(src), 0, 0
+    lfs    f1,  8(src)
+    psq_l  f2, 16(src), 0, 0
+    lfs    f3, 24(src)
+    psq_l  f4, 32(src), 0, 0
+    lfs    f5, 40(src)
+    psq_st f0, 0(dst),  0, 0
+    stfs   f1, 0(dst)
+    psq_st f2, 0(dst),  0, 0
+    stfs   f3, 0(dst)
+    psq_st f4, 0(dst),  0, 0
+    stfs   f5, 0(dst)
+    blr
+    // clang-format on
+}
+
+static asm void WriteMTXPS4x2(const __REGISTER Mtx src, __REGISTER volatile void* dst) {
+    // clang-format off
+    nofralloc
+    psq_l  f0,  0(src), 0, 0
+    psq_l  f1,  8(src), 0, 0
+    psq_l  f2, 16(src), 0, 0
+    psq_l  f3, 24(src), 0, 0
+    psq_st f0, 0(dst),  0, 0
+    psq_st f1, 0(dst),  0, 0
+    psq_st f2, 0(dst),  0, 0
+    psq_st f3, 0(dst),  0, 0
+    blr
     // clang-format on
 }
 
 void GXLoadPosMtxImm(Mtx mtx, u32 id) {
-    GX_XF_LOAD_REGS(4 * 3 - 1, id * 4 + GX_XF_MEM_POSMTX);
-    WriteMTXPS4x3(&GXFIFO, mtx);
-}
+    u32 reg;
+    u32 addr;
 
-static void WriteMTXPS3x3(__REGISTER volatile void* dst, __REGISTER const Mtx src) {
-    __REGISTER f32 ps_0, ps_1, ps_2, ps_3, ps_4, ps_5;
+    addr = id * 4;
+    reg = addr | ((12 - 1) << 16);
 
-    // clang-format off
-#ifdef __MWERKS__
-    asm {
-        psq_l  ps_0,  0(src), 0, 0
-        lfs    ps_1,  8(src)
-        psq_l  ps_2, 16(src), 0, 0
-        lfs    ps_3, 24(src)
-        psq_l  ps_4, 32(src), 0, 0
-        lfs    ps_5, 40(src)
-
-        psq_st ps_0, 0(dst),  0, 0
-        stfs   ps_1, 0(dst)
-        psq_st ps_2, 0(dst),  0, 0
-        stfs   ps_3, 0(dst)
-        psq_st ps_4, 0(dst),  0, 0
-        stfs   ps_5, 0(dst)
-    }
-#endif
-    // clang-format on
+    GXFIFO.u8 = 0x10;
+    GXFIFO.u32 = reg;
+    WriteMTXPS4x3(mtx, &GXFIFO);
 }
 
 void GXLoadNrmMtxImm(Mtx mtx, u32 id) {
-    GX_XF_LOAD_REGS(3 * 3 - 1, id * 3 + GX_XF_MEM_NRMMTX);
-    WriteMTXPS3x3(&GXFIFO, mtx);
+    u32 reg;
+    u32 addr;
+
+    addr = id * 3 + 0x400;
+    reg = addr | ((9 - 1) << 16);
+
+    GXFIFO.u8 = 0x10;
+    GXFIFO.u32 = reg;
+    WriteMTXPS3x3from3x4(mtx, &GXFIFO);
 }
 
 void GXSetCurrentMtx(u32 id) {
-    GX_SET_REG(gx->matIdxA, id, GX_XF_MTXIDX0_GEOM_ST, GX_XF_MTXIDX0_GEOM_END);
+    SET_REG_FIELD(gx->matIdxA, 6, 0, id);
     __GXSetMatrixIndex(GX_VA_PNMTXIDX);
 }
 
-static void WriteMTXPS4x2(__REGISTER volatile void* dst, __REGISTER const Mtx src) {
-    __REGISTER f32 ps_0, ps_1, ps_2, ps_3;
-
-    // clang-format off
-#ifdef __MWERKS__
-    asm {
-        psq_l  ps_0,  0(src), 0, 0
-        psq_l  ps_1,  8(src), 0, 0
-        psq_l  ps_2, 16(src), 0, 0
-        psq_l  ps_3, 24(src), 0, 0
-
-        psq_st ps_0, 0(dst),  0, 0
-        psq_st ps_1, 0(dst),  0, 0
-        psq_st ps_2, 0(dst),  0, 0
-        psq_st ps_3, 0(dst),  0, 0
-    }
-#endif
-    // clang-format on
-}
-
 void GXLoadTexMtxImm(const Mtx mtx, u32 id, GXTexMtxType type) {
-    u32 addr;
-    u32 num;
     u32 reg;
+    u32 addr;
+    u32 count;
 
-    // Matrix address in XF memory
-    addr = id >= GX_PTTEXMTX0 ? (id - GX_PTTEXMTX0) * 4 + GX_XF_MEM_DUALTEXMTX :
-                                id * 4 + (u64)GX_XF_MEM_POSMTX;
+    if (id >= GX_PTTEXMTX0) {
+        addr = (id - GX_PTTEXMTX0) * 4 + 0x500;
+    } else {
+        addr = id * 4;
+    }
 
-    // Number of elements in matrix
-    num = type == GX_MTX2x4 ? (u64)(2 * 4) : 3 * 4;
+    if (type == GX_MTX2x4) {
+        count = 8;
+    } else {
+        count = 12;
+    }
 
-    reg = addr | (num - 1) << 16;
+    reg = addr | ((count - 1) << 16);
 
-    GX_XF_LOAD_REG_HDR(reg);
+    GXFIFO.u8 = 0x10;
+    GXFIFO.u32 = reg;
 
     if (type == GX_MTX3x4) {
-        WriteMTXPS4x3(&GXFIFO, mtx);
+        WriteMTXPS4x3(mtx, &GXFIFO);
     } else {
-        WriteMTXPS4x2(&GXFIFO, mtx);
+        WriteMTXPS4x2(mtx, &GXFIFO);
     }
 }
 
-void __GXSetViewport(void) {
-    f32 a, b, c, d, e, f;
-    f32 near, far;
+void GXSetViewportJitter(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz, u32 field) {
+    f32 sx, sy, sz, ox, oy, oz;
+    f32 zmin, zmax;
 
-    a = gx->vpWd / 2;
-    b = -gx->vpHt / 2;
-    d = gx->vpLeft + (gx->vpWd / 2) + 342.0f;
-    e = gx->vpTop + (gx->vpHt / 2) + 342.0f;
+    if (field == 0) {
+        top -= 0.5f;
+    }
 
-    near = gx->vpNearz * gx->zScale;
-    far = gx->vpFarz * gx->zScale;
+    sx = wd / 2.0f;
+    sy = -ht / 2.0f;
+    ox = 342.0f + (left + (wd / 2.0f));
+    oy = 342.0f + (top + (ht / 2.0f));
+    zmin = 1.6777215e7f * nearz;
+    zmax = 1.6777215e7f * farz;
+    sz = zmax - zmin;
+    oz = zmax;
 
-    c = far - near;
-    f = far + gx->zOffset;
-
-    GX_XF_LOAD_REGS(5, GX_XF_REG_SCALEX);
-    GXFIFO.f32 = a;
-    GXFIFO.f32 = b;
-    GXFIFO.f32 = c;
-    GXFIFO.f32 = d;
-    GXFIFO.f32 = e;
-    GXFIFO.f32 = f;
-}
-
-void GXSetViewport(f32 left, f32 top, f32 width, f32 height, f32 nearZ, f32 farZ) {
     gx->vpLeft = left;
     gx->vpTop = top;
-    gx->vpWd = width;
-    gx->vpHt = height;
-    gx->vpNearz = nearZ;
-    gx->vpFarz = farZ;
-    __GXSetViewport();
+    gx->vpWd = wd;
+    gx->vpHt = ht;
+    gx->vpNearz = nearz;
+    gx->vpFarz = farz;
+
+    if (gx->fgRange) {
+        __GXSetRange(nearz, gx->fgSideX);
+    }
+
+    GXFIFO.u8 = 0x10;
+    GXFIFO.u32 = 0x0005101A;
+    GXFIFO.f32 = sx;
+    GXFIFO.f32 = sy;
+    GXFIFO.f32 = sz;
+    GXFIFO.f32 = ox;
+    GXFIFO.f32 = oy;
+    GXFIFO.f32 = oz;
+
     gx->bpSentNot = GX_TRUE;
 }
 
-void GXGetViewportv(f32* p) {
-    Copy6Floats(&gx->vpLeft, p);
+void GXSetViewport(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz) {
+    GXSetViewportJitter(left, top, wd, ht, nearz, farz, 1);
 }
 
-void GXSetScissor(u32 left, u32 top, u32 width, u32 height) {
-    u32 y1, x1, y2, x2;
-    u32 reg;
+void GXSetScissor(u32 left, u32 top, u32 wd, u32 ht) {
+    u32 tp, lf, bm, rt;
 
-    y1 = top + 342;
-    x1 = left + 342;
+    tp = top + 342;
+    lf = left + 342;
+    bm = tp + ht - 1;
+    rt = lf + wd - 1;
 
-    GX_SET_REG(gx->suScis0, y1, GX_BP_SCISSORTL_TOP_ST, GX_BP_SCISSORTL_TOP_END);
-    GX_SET_REG(gx->suScis0, x1, GX_BP_SCISSORTL_LEFT_ST, GX_BP_SCISSORTL_LEFT_END);
+    SET_REG_FIELD(gx->suScis0, 11, 0, tp);
+    SET_REG_FIELD(gx->suScis0, 11, 12, lf);
+    SET_REG_FIELD(gx->suScis1, 11, 0, bm);
+    SET_REG_FIELD(gx->suScis1, 11, 12, rt);
 
-    y2 = y1 + height - 1;
-    x2 = (x1 + width) - 1;
-
-    GX_SET_REG(gx->suScis1, y2, GX_BP_SCISSORBR_BOT_ST, GX_BP_SCISSORBR_BOT_END);
-    GX_SET_REG(gx->suScis1, x2, GX_BP_SCISSORBR_RIGHT_ST, GX_BP_SCISSORBR_RIGHT_END);
-
-    GX_BP_LOAD_REG(gx->suScis0);
-    GX_BP_LOAD_REG(gx->suScis1);
-    gx->bpSentNot = FALSE;
+    GX_WRITE_RAS_REG(gx->suScis0);
+    GX_WRITE_RAS_REG(gx->suScis1);
+    gx->bpSentNot = GX_FALSE;
 }
 
-void GXGetScissor(u32* left, u32* top, u32* width, u32* height) {
-    u32 y1 = (gx->suScis0 & 0x0007FF) >> 0;
-    u32 x1 = (gx->suScis0 & 0x7FF000) >> 12;
-    u32 y2 = (gx->suScis1 & 0x0007FF) >> 0;
-    u32 x2 = (gx->suScis1 & 0x7FF000) >> 12;
+void GXSetScissorBoxOffset(s32 x_off, s32 y_off) {
+    u32 reg = 0;
+    u32 hx;
+    u32 hy;
 
-    *left = x1 - 0x156;
-    *top = y1 - 0x156;
-    *width = (x2 - x1) + 1;
-    *height = (y2 - y1) + 1;
-}
+    hx = (u32)(x_off + 342) >> 1;
+    hy = (u32)(y_off + 342) >> 1;
 
-void GXSetScissorBoxOffset(s32 x, s32 y) {
-    u32 cmd = 0;
-    u32 x1;
-    u32 y1;
+    SET_REG_FIELD(reg, 10, 0, hx);
+    SET_REG_FIELD(reg, 10, 10, hy);
+    SET_REG_FIELD(reg, 8, 24, 0x59);
 
-    x1 = (u32)(x + 342) / 2;
-    y1 = (u32)(y + 342) / 2;
-    GX_SET_REG(cmd, x1, GX_BP_SCISSOROFS_OX_ST, GX_BP_SCISSOROFS_OX_END);
-    GX_SET_REG(cmd, y1, GX_BP_SCISSOROFS_OY_ST, GX_BP_SCISSOROFS_OY_END);
-
-    GX_SET_REG(cmd, GX_BP_REG_SCISSOROFFSET, 0, 7);
-
-    GX_BP_LOAD_REG(cmd);
+    GX_WRITE_RAS_REG(reg);
     gx->bpSentNot = GX_FALSE;
 }
 
 void GXSetClipMode(GXClipMode mode) {
-    GX_XF_LOAD_REG(GX_XF_REG_CLIPDISABLE, mode);
+    GXFIFO.u8 = 0x10;
+    GXFIFO.u32 = 0x1005;
+    GXFIFO.u32 = mode;
     gx->bpSentNot = GX_TRUE;
 }
 
 void __GXSetMatrixIndex(GXAttr index) {
-    // Tex4 and after is stored in XF MatrixIndex1
     if (index < GX_VA_TEX4MTXIDX) {
-        GX_CP_LOAD_REG(GX_CP_REG_MTXIDXA, gx->matIdxA);
-        GX_XF_LOAD_REG(GX_XF_REG_MATRIXINDEX0, gx->matIdxA);
+        GXFIFO.u8 = 0x8;
+        GXFIFO.u8 = 0x30;
+        GXFIFO.u32 = gx->matIdxA;
+        GXFIFO.u8 = 0x10;
+        GXFIFO.u32 = 0x1018;
+        GXFIFO.u32 = gx->matIdxA;
     } else {
-        GX_CP_LOAD_REG(GX_CP_REG_MTXIDXB, gx->matIdxB);
-        GX_XF_LOAD_REG(GX_XF_REG_MATRIXINDEX1, gx->matIdxB);
+        GXFIFO.u8 = 0x8;
+        GXFIFO.u8 = 0x40;
+        GXFIFO.u32 = gx->matIdxB;
+        GXFIFO.u8 = 0x10;
+        GXFIFO.u32 = 0x1019;
+        GXFIFO.u32 = gx->matIdxB;
     }
 
     gx->bpSentNot = GX_TRUE;
