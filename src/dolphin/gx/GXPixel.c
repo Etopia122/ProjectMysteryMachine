@@ -41,33 +41,35 @@ void GXSetFog(GXFogType type, f32 startz, f32 endz, f32 nearz, f32 farz, GXColor
     shiftB = expB + 1;
     c = tmpC;
 
-    GX_SET_REG(fogParamReg1, magB, 8, 31);
-    GX_SET_REG(fogParamReg2, shiftB, 27, 31);
+    fogParamReg1 = 0;
+    SET_REG_FIELD(fogParamReg1, 24, 0, magB);
+    SET_REG_FIELD(fogParamReg1, 8, 24, 0xEF);
 
-    GX_SET_REG(fogParamReg1, 0xEF, 0, 7);
-    GX_SET_REG(fogParamReg2, 0xF0, 0, 7);
+    fogParamReg2 = 0;
+    SET_REG_FIELD(fogParamReg2, 24, 0, shiftB);
+    SET_REG_FIELD(fogParamReg2, 8, 24, 0xF0);
 
     a_bits = *(u32*)&a;
     c_bits = *(u32*)&c;
 
-    GX_SET_REG_RLWIMI(fogParamReg0, a_bits >> 12, 21, 31);
-    GX_SET_REG_RLWIMI(fogParamReg0, a_bits >> 23, 13, 20);
-    GX_SET_REG_RLWIMI(fogParamReg0, a_bits >> 31, 12, 12);
+    fogParamReg0 = 0;
+    SET_REG_FIELD(fogParamReg0, 11, 0, (a_bits >> 12) & 0x7FF);
+    SET_REG_FIELD(fogParamReg0, 8, 11, (a_bits >> 23) & 0xFF);
+    SET_REG_FIELD(fogParamReg0, 1, 19, (a_bits >> 31));
+    SET_REG_FIELD(fogParamReg0, 8, 24, 0xEE);
 
-    GX_SET_REG_RLWIMI(fogParamReg0, 0xEE, 0, 7);
+    fogParamReg3 = 0;
+    SET_REG_FIELD(fogParamReg3, 11, 0, (c_bits >> 12) & 0x7FF);
+    SET_REG_FIELD(fogParamReg3, 8, 11, (c_bits >> 23) & 0xFF);
+    SET_REG_FIELD(fogParamReg3, 1, 19, (c_bits >> 31));
+    SET_REG_FIELD(fogParamReg3, 3, 21, type);
+    SET_REG_FIELD(fogParamReg3, 8, 24, 0xF1);
 
-    GX_SET_REG_RLWIMI(fogParamReg3, c_bits >> 12, 21, 31);
-    GX_SET_REG_RLWIMI(fogParamReg3, c_bits >> 23, 13, 20);
-    GX_SET_REG_RLWIMI(fogParamReg3, c_bits >> 31, 12, 12);
-
-    GX_SET_REG(fogParamReg3, type, 8, 10);
-
-    GX_SET_REG_RLWIMI(fogParamReg3, 0xF1, 0, 7);
-
-    GX_SET_REG(fogColorReg, color.b, 8 + 16, 31);
-    GX_SET_REG(fogColorReg, color.g, (8 + 8), (31 - 8));
-    GX_SET_REG(fogColorReg, color.r, (8 + 0), (31 - 16));
-    GX_SET_REG(fogColorReg, 0xF2, 0, 7);
+    fogColorReg = 0;
+    SET_REG_FIELD(fogColorReg, 8, 0, color.b);
+    SET_REG_FIELD(fogColorReg, 8, 8, color.g);
+    SET_REG_FIELD(fogColorReg, 8, 16, color.r);
+    SET_REG_FIELD(fogColorReg, 8, 24, 0xF2);
 
     GX_BP_LOAD_REG(fogParamReg0);
     GX_BP_LOAD_REG(fogParamReg1);
