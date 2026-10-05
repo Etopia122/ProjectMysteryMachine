@@ -729,6 +729,7 @@ config.libs = [
         "progress_category": "sdk",
         "objects": [
             Object(Matching, "dolphin/ai/ai.c"),
+            Object(Matching, "dolphin/ar/ar.c"),
             Object(Matching, "dolphin/ar/arq.c"),
         ],
     },

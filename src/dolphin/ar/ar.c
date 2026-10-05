@@ -68,6 +68,20 @@ u32 ARAlloc(u32 length) {
     return tmp;
 }
 
+u32 ARFree(u32* length) {
+    BOOL old;
+
+    old = OSDisableInterrupts();
+    __AR_BlockLength--;
+    if (length) {
+        *length = *__AR_BlockLength;
+    }
+    __AR_StackPointer -= *__AR_BlockLength;
+    __AR_FreeBlocks++;
+    OSRestoreInterrupts(old);
+    return __AR_StackPointer;
+}
+
 u32 ARInit(u32* stack_index_addr, u32 num_entries) {
     BOOL old;
     u16 refresh;
@@ -119,7 +133,7 @@ static void __ARHandler(__OSInterrupt exception, OSContext* context) {
     OSSetCurrentContext(context);
 }
 
-void __ARClearInterrupt(void) {
+static inline void __ARClearInterrupt(void) {
     u16 tmp;
 
     tmp = __DSPRegs[5];
@@ -127,11 +141,11 @@ void __ARClearInterrupt(void) {
     __DSPRegs[5] = (tmp);
 }
 
-static void __ARWaitForDMA(void) {
+static inline void __ARWaitForDMA(void) {
     while (__DSPRegs[5] & 0x200);
 }
 
-static void __ARWriteDMA(u32 mmem_addr, u32 aram_addr, u32 length) {
+static inline void __ARWriteDMA(u32 mmem_addr, u32 aram_addr, u32 length) {
 	// Main mem address
 	__DSPRegs[DSP_ARAM_DMA_MM_HI] = (u16)((__DSPRegs[DSP_ARAM_DMA_MM_HI] & ~0x03ff) | (u16)(mmem_addr >> 16));
 	__DSPRegs[DSP_ARAM_DMA_MM_LO] = (u16)((__DSPRegs[DSP_ARAM_DMA_MM_LO] & ~0xffe0) | (u16)(mmem_addr & 0xffff));
@@ -150,7 +164,7 @@ static void __ARWriteDMA(u32 mmem_addr, u32 aram_addr, u32 length) {
     __ARClearInterrupt();
 }
 
-static void __ARReadDMA(u32 mmem_addr, u32 aram_addr, u32 length) {
+static inline void __ARReadDMA(u32 mmem_addr, u32 aram_addr, u32 length) {
 	// Main mem address
 	__DSPRegs[DSP_ARAM_DMA_MM_HI] = (u16)((__DSPRegs[DSP_ARAM_DMA_MM_HI] & ~0x03ff) | (u16)(mmem_addr >> 16));
 	__DSPRegs[DSP_ARAM_DMA_MM_LO] = (u16)((__DSPRegs[DSP_ARAM_DMA_MM_LO] & ~0xffe0) | (u16)(mmem_addr & 0xffff));
@@ -169,42 +183,28 @@ static void __ARReadDMA(u32 mmem_addr, u32 aram_addr, u32 length) {
     __ARClearInterrupt();
 }
 
+// Older SDK size probe: dummy data goes to every mirror candidate first, then
+// the test pattern to offset 0 is read back through each candidate.
 static void __ARChecksize(void) {
-    u8 test_data_pad[63];
-    u8 dummy_data_pad[63];
-    u8 buffer_pad[63];
-    u8 save_pad_1[63];
-    u8 save_pad_2[63];
-    u8 save_pad_3[63];
-    u8 save_pad_4[63];
-    u8 save_pad_5[63];
+    u8 test_data_pad[0x20 + 31];
+    u8 dummy_data_pad[0x20 + 31];
+    u8 buffer_pad[0x20 + 31];
     u32* test_data;
     u32* dummy_data;
     u32* buffer;
-    u32* save1;
-    u32* save2;
-    u32* save3;
-    u32* save4;
-    u32* save5;
     u16 ARAM_mode = 0;
     u32 ARAM_size = 0;
     u32 i;
 
-    do {} while(!(__DSPRegs[11] & 1));
+    while (!(__DSPRegs[11] & 1));
 
     ARAM_mode = 3;
     ARAM_size = __AR_InternalSize = 0x1000000;
-    __DSPRegs[9] = ((__DSPRegs[9] & 0xFFFFFFC0) | 3) | 0x20;
+    __DSPRegs[9] = (u16)((__DSPRegs[9] & ~(0x00000007 | 0x00000038)) | 0x20 | 2 | 1);
 
     test_data = (u32*)(OSRoundUp32B((u32)(test_data_pad)));
     dummy_data = (u32*)(OSRoundUp32B((u32)(dummy_data_pad)));
     buffer = (u32*)(OSRoundUp32B((u32)(buffer_pad)));
-
-    save1 = (u32*)(OSRoundUp32B((u32)(save_pad_1)));
-    save2 = (u32*)(OSRoundUp32B((u32)(save_pad_2)));
-    save3 = (u32*)(OSRoundUp32B((u32)(save_pad_3)));
-    save4 = (u32*)(OSRoundUp32B((u32)(save_pad_4)));
-    save5 = (u32*)(OSRoundUp32B((u32)(save_pad_5)));
 
     for (i = 0; i < 8; i++) {
         *(test_data + i) = 0xDEADBEEF;
@@ -216,123 +216,69 @@ static void __ARChecksize(void) {
 
     __AR_ExpansionSize = 0;
 
-    DCInvalidateRange((void*)save1, 0x20);
-    __ARReadDMA((u32)save1, ARAM_size + 0, 0x20);
-    PPCSync();
-
-    __ARWriteDMA((u32)test_data, ARAM_size + 0x0000000, 0x20);
+    __ARWriteDMA((u32)dummy_data, ARAM_size + 0x0000000, 0x20);
+    __ARWriteDMA((u32)dummy_data, ARAM_size + 0x0200000, 0x20);
+    __ARWriteDMA((u32)dummy_data, ARAM_size + 0x1000000, 0x20);
+    __ARWriteDMA((u32)dummy_data, ARAM_size + 0x0000200, 0x20);
+    __ARWriteDMA((u32)dummy_data, ARAM_size + 0x0400000, 0x20);
 
     memset((void*)buffer, 0, 0x20);
     DCFlushRange((void*)buffer, 0x20);
 
+    __ARWriteDMA((u32)test_data, ARAM_size + 0x0000000, 0x20);
+    DCInvalidateRange((void*)buffer, 0x20);
     __ARReadDMA((u32)buffer, ARAM_size + 0x0000000, 0x20);
     PPCSync();
 
     if (buffer[0] == test_data[0]) {
-        DCInvalidateRange((void*)save2, 0x20);
-        __ARReadDMA((u32)save2, ARAM_size + 0x0200000, 0x20);
-        PPCSync();
-
-        DCInvalidateRange((void*)save3, 0x20);
-        __ARReadDMA((u32)save3, ARAM_size + 0x1000000, 0x20);
-        PPCSync();
-
-        DCInvalidateRange((void*)save4, 0x20);
-        __ARReadDMA((u32)save4, ARAM_size + 0x0000200, 0x20);
-        PPCSync();
-
-        DCInvalidateRange((void*)save5, 0x20);
-        __ARReadDMA((u32)save5, ARAM_size + 0x0400000, 0x20);
-        PPCSync();
-
-        __ARWriteDMA((u32)dummy_data, ARAM_size + 0x0200000, 0x20);
-        __ARWriteDMA((u32)test_data, ARAM_size + 0x0000000, 0x20);
-
         memset((void*)buffer, 0, 0x20);
         DCFlushRange((void*)buffer, 0x20);
-
         __ARReadDMA((u32)buffer, ARAM_size + 0x0200000, 0x20);
         PPCSync();
 
         if (buffer[0] == test_data[0]) {
-            __ARWriteDMA((u32)save1, ARAM_size + 0x0000000, 0x20);
-
+            __AR_ExpansionSize = 0x0200000;
             ARAM_mode |= 0 << 1;
             ARAM_size += 0x0200000;
-            __AR_ExpansionSize = 0x0200000;
         } else {
-            __ARWriteDMA((u32)dummy_data, ARAM_size + 0x1000000, 0x20);
-            __ARWriteDMA((u32)test_data, ARAM_size + 0x0000000, 0x20);
-
             memset((void*)buffer, 0, 0x20);
             DCFlushRange((void*)buffer, 0x20);
-
             __ARReadDMA((u32)buffer, ARAM_size + 0x1000000, 0x20);
             PPCSync();
 
             if (buffer[0] == test_data[0]) {
-                __ARWriteDMA((u32)save1, ARAM_size + 0x0000000, 0x20);
-                __ARWriteDMA((u32)save2, ARAM_size + 0x0200000, 0x20);
-
+                __AR_ExpansionSize = 0x0400000;
                 ARAM_mode |= 4 << 1;
                 ARAM_size += 0x0400000;
-                __AR_ExpansionSize = 0x0400000;
             } else {
-                __ARWriteDMA((u32)dummy_data, ARAM_size + 0x0000200, 0x20);
-                __ARWriteDMA((u32)test_data, ARAM_size + 0x0000000, 0x20);
-
                 memset((void*)buffer, 0, 0x20);
                 DCFlushRange((void*)buffer, 0x20);
-
                 __ARReadDMA((u32)buffer, ARAM_size + 0x0000200, 0x20);
                 PPCSync();
 
                 if (buffer[0] == test_data[0]) {
-                    __ARWriteDMA((u32)save1, ARAM_size + 0x0000000, 0x20);
-                    __ARWriteDMA((u32)save2, ARAM_size + 0x0200000, 0x20);
-                    __ARWriteDMA((u32)save3, ARAM_size + 0x1000000, 0x20);
-
+                    __AR_ExpansionSize = 0x0800000;
                     ARAM_mode |= 8 << 1;
                     ARAM_size += 0x0800000;
-                    __AR_ExpansionSize = 0x0800000;
                 } else {
-                    __ARWriteDMA((u32)dummy_data, ARAM_size + 0x0400000, 0x20);
-
-                    __ARWriteDMA((u32)test_data, ARAM_size + 0x0000000, 0x20);
-
                     memset((void*)buffer, 0, 0x20);
                     DCFlushRange((void*)buffer, 0x20);
-
                     __ARReadDMA((u32)buffer, ARAM_size + 0x0400000, 0x20);
                     PPCSync();
 
                     if (buffer[0] == test_data[0]) {
-                        __ARWriteDMA((u32)save1, ARAM_size + 0x0000000, 0x20);
-                        __ARWriteDMA((u32)save2, ARAM_size + 0x0200000, 0x20);
-                        __ARWriteDMA((u32)save3, ARAM_size + 0x1000000, 0x20);
-                        __ARWriteDMA((u32)save4, ARAM_size + 0x0000200, 0x20);
-
+                        __AR_ExpansionSize = 0x1000000;
                         ARAM_mode |= 12 << 1;
                         ARAM_size += 0x1000000;
-                        __AR_ExpansionSize = 0x1000000;
                     } else {
-                        __ARWriteDMA((u32)save1, ARAM_size + 0x0000000, 0x20);
-                        __ARWriteDMA((u32)save2, ARAM_size + 0x0200000, 0x20);
-                        __ARWriteDMA((u32)save3, ARAM_size + 0x1000000, 0x20);
-                        __ARWriteDMA((u32)save4, ARAM_size + 0x0000200, 0x20);
-                        __ARWriteDMA((u32)save5, ARAM_size + 0x0400000, 0x20);
-
+                        __AR_ExpansionSize = 0x2000000;
                         ARAM_mode |= 16 << 1;
                         ARAM_size += 0x2000000;
-                        __AR_ExpansionSize = 0x2000000;
                     }
                 }
             }
         }
 
-#if DEBUG
-        OSReport("__ARChecksize(): ARAM Expansion present.\n");
-#endif
         __DSPRegs[9] = (u16)((__DSPRegs[9] & ~(0x07 | 0x38)) | ARAM_mode);
     }
 

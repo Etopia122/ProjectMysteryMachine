@@ -991,6 +991,10 @@ dolphin/ai/ai.c:
 dolphin/src/amcstubs/AmcExi2Stubs.c:
 	.text       start:0x800F4C5C end:0x800F4C8C
 
+dolphin/ar/ar.c:
+	.text       start:0x800F4C8C end:0x800F58E4
+	.sbss       start:0x8025F2A0 end:0x8025F2C0
+
 dolphin/ar/arq.c:
 	.text       start:0x800F58E4 end:0x800F5DD0
 	.sbss       start:0x8025F2C0 end:0x8025F2F0
