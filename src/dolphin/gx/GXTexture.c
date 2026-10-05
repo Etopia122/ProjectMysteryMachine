@@ -110,7 +110,6 @@ void GXInitTexObj(GXTexObj* obj, void* imagePtr, u16 width, u16 height, GXTexFmt
                   GXTexWrapMode sWrap, GXTexWrapMode tWrap, GXBool useMIPmap) {
     u32 imageBase;
     u16 a, b;
-    u32 c, d;
 
     GXTexObj* internal = (GXTexObj*)obj;
     memset(internal, 0, sizeof(*internal));
@@ -140,7 +139,7 @@ void GXInitTexObj(GXTexObj* obj, void* imagePtr, u16 width, u16 height, GXTexFmt
     GX_SET_REG(internal->texture_size, height - 1, 12, 21);
 
     GX_SET_REG(internal->texture_size, format & 0xf, 8, 11);
-    imageBase = (u32)imagePtr >> 5;
+    imageBase = ((u32)imagePtr & 0x3FFFFFFF) >> 5;
     GX_SET_REG(internal->texture_address, imageBase, 11, 31);
 
     switch (format & 0xf) {
@@ -263,6 +262,29 @@ GXTexFmt GXGetTexObjFmt(const GXTexObj* obj) {
     return obj->texture_format;
 }
 
+f32 GXGetTexObjLODBias(const GXTexObj* obj) {
+    s16 tmp;
+
+    // This revision stores the bias as sign and magnitude.
+    tmp = (obj->texture_filter >> 9) & 0xFF;
+    if (tmp & 0x80) {
+        tmp = -(tmp & 0x7F);
+    }
+    return 32.0f * tmp;  // sic: this SDK revision scales by 32 instead of 1/32
+}
+
+GXBool GXGetTexObjBiasClamp(const GXTexObj* obj) {
+    return (u32)((obj->texture_filter >> 21) & 1);
+}
+
+GXBool GXGetTexObjEdgeLOD(const GXTexObj* obj) {
+    return !((obj->texture_filter >> 8) & 1);
+}
+
+GXAnisotropy GXGetTexObjMaxAniso(const GXTexObj* obj) {
+    return (obj->texture_filter >> 19) & 3;
+}
+
 GXTexWrapMode GXGetTexObjWrapS(GXTexObj* obj) {
     return obj->texture_filter & 0x3;
 }
@@ -276,7 +298,6 @@ u32 GXGetTexObjTlut(GXTexObj* obj) {
 }
 
 void GXLoadTexObjPreLoaded(GXTexObj* obj, GXTexRegion* region, GXTexMapID map) {
-    u8 stackManipulation[0x18];
 
     GXTexObj* internalObj = (GXTexObj*)obj;
     GXTexRegion* internalRegion = (GXTexRegion*)region;
@@ -323,7 +344,7 @@ void GXInitTlutObj(GXTlutObj* obj, void* table, GXTlutFmt format, u16 numEntries
     internal->format = 0;
 
     GX_SET_REG(internal->format, format, 20, 21);
-    GX_SET_REG(internal->address, (u32)table >> 5, 11, 31);
+    GX_SET_REG(internal->address, ((u32)table & 0x3FFFFFFF) >> 5, 11, 31);
     GX_SET_REG(internal->address, 100, 0, 7);
 
     internal->numEntries = numEntries;
@@ -342,7 +363,7 @@ void GXLoadTlut(GXTlutObj* obj, u32 tlut_name) {
     __GXFlushTextureState();
 
     reg = ret->unk0;
-    GX_SET_REG(internal->format, reg, 22, 31);
+    internal->format = (internal->format & ~0x3FF) | (reg & 0x3FF);
 
     ret->tlutObj = *internal;
 }
@@ -404,6 +425,62 @@ void GXInitTlutRegion(GXTlutRegion* region, u32 memAddr, GXTlutSize tlutSize) {
     GX_SET_REG(internal->unk0, 0x65, 0, 7);
 }
 
+
+void GXInvalidateTexRegion(GXTexRegion* region) {
+    s32 wle;
+    s32 hle;
+    s32 wlo;
+    s32 hlo;
+    s32 count;
+    u32 reg0;
+    u32 reg1;
+    GXTexRegion* r = region;
+
+    wle = GET_REG_FIELD(r->unk0, 3, 15) - 1;
+    hle = GET_REG_FIELD(r->unk0, 3, 18) - 1;
+    wlo = GET_REG_FIELD(r->unk4, 3, 15) - 1;
+    hlo = GET_REG_FIELD(r->unk4, 3, 18) - 1;
+    if (wle < 0) {
+        wle = 0;
+    }
+    if (hle < 0) {
+        hle = 0;
+    }
+    if (wlo < 0) {
+        wlo = 0;
+    }
+    if (hlo < 0) {
+        hlo = 0;
+    }
+    count = wle + hle;
+    if (r->unkC) {
+        count = wlo + hlo - 2 + count;
+    }
+
+    reg0 = 0;
+    SET_REG_FIELD(reg0, 9, 0, GET_REG_FIELD(r->unk0, 9, 6));
+    SET_REG_FIELD(reg0, 4, 9, count);
+    SET_REG_FIELD(reg0, 8, 24, 0x66);
+
+    if (wlo != 0) {
+        count = wlo + hlo;
+        if (r->unkC) {
+            count = wle + hle - 2 + count;
+        }
+        reg1 = 0;
+        SET_REG_FIELD(reg1, 9, 0, GET_REG_FIELD(r->unk4, 9, 6));
+        SET_REG_FIELD(reg1, 4, 9, count);
+        SET_REG_FIELD(reg1, 8, 24, 0x66);
+    }
+
+    __GXFlushTextureState();
+    GX_WRITE_RAS_REG(reg0);
+    if (wlo != 0) {
+        GX_WRITE_RAS_REG(reg1);
+    }
+    __GXFlushTextureState();
+}
+
 void GXInvalidateTexAll(void) {
     __GXFlushTextureState();
     GXFIFO.u8 = 0x61;
@@ -426,11 +503,19 @@ GXTlutRegionCallback GXSetTlutRegionCallback(GXTlutRegionCallback callback) {
 }
 
 void GXSetTexCoordScaleManually(GXTexCoordID coord, GXBool enable, u16 s_scale, u16 t_scale) {
-    /* Nonmatching */
+    gx->tcsManEnab = (gx->tcsManEnab & ~(1 << coord)) | (enable << coord);
+
+    if (enable) {
+        GX_SET_REG(gx->suTs0[coord], (u16)(s_scale - 1), 16, 31);
+        GX_SET_REG(gx->suTs1[coord], (u16)(t_scale - 1), 16, 31);
+        GX_BP_LOAD_REG(gx->suTs0[coord]);
+        GX_BP_LOAD_REG(gx->suTs1[coord]);
+        gx->bpSentNot = GX_FALSE;
+    }
 }
 
 void __SetSURegs(u32 texImgIndex, u32 setUpRegIndex) {
-    u16 a1, a2;
+    u32 a1, a2;
     GXBool b, c;
 
     a1 = GX_GET_REG(gx->tImage0[texImgIndex], 22, 31);
