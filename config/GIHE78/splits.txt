@@ -1103,6 +1103,7 @@ dolphin/gx/GXBump.c:
 
 dolphin/gx/GXTev.c:
 	.text       start:0x80100EF4 end:0x801018B8
+	.data       start:0x801CCC48 end:0x801CCC70
 
 dolphin/gx/GXPixel.c:
 	.text       start:0x801018B8 end:0x80102000

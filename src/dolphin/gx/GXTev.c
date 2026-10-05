@@ -2,145 +2,104 @@
 #include "dolphin/gx/GX.h"
 
 /* ############################################################################################## */
-static u32 TEVCOpTableST0[] = {
-    0xC008F8AF,  // modulate
-    0xC008A89F,  // decal
-    0xC008AC8F,  // blend
-    0xC008FFF8,  // replace
-    0xC008FFFA,  // passclr
-};
 
-static u32 TEVCOpTableST1[] = {
-    0xC008F80F,  // modulate
-    0xC008089F,  // decal
-    0xC0080C8F,  // blend
-    0xC008FFF8,  // replace
-    0xC008FFF0,  // passclr
-};
+void GXSetTevOp(GXTevStageID id, GXTevMode mode) {
+    GXTevColorArg carg = GX_CC_RASC;
+    GXTevAlphaArg aarg = GX_CA_RASA;
 
-static u32 TEVAOpTableST0[] = {
-    0xC108F2F0,  // modulate
-    0xC108FFD0,  // decal
-    0xC108F2F0,  // blend
-    0xC108FFC0,  // replace
-    0xC108FFD0,  // passclr
-};
-
-static u32 TEVAOpTableST1[] = {
-    0xC108F070,  // modulate
-    0xC108FF80,  // decal
-    0xC108F070,  // blend
-    0xC108FFC0,  // replace
-    0xC108FF80,  // passclr
-};
-
-void GXSetTevOp(GXTevStageID stage, GXTevMode mode) {
-    u32* color;
-    u32* alpha;
-    u32 tevReg;
-
-    if (stage == GX_TEVSTAGE0) {
-        color = &TEVCOpTableST0[mode];
-        alpha = &TEVAOpTableST0[mode];
-    } else {
-        color = &TEVCOpTableST1[mode];
-        alpha = &TEVAOpTableST1[mode];
+    if (id != GX_TEVSTAGE0) {
+        carg = GX_CC_CPREV;
+        aarg = GX_CA_APREV;
     }
 
-    tevReg = gx->tevc[stage];
-    tevReg = (*color & ~0xFF000000) | (tevReg & 0xFF000000);
+    switch (mode) {
+    case GX_MODULATE:
+        GXSetTevColorIn(id, GX_CC_ZERO, GX_CC_TEXC, carg, GX_CC_ZERO);
+        GXSetTevAlphaIn(id, GX_CA_ZERO, GX_CA_TEXA, aarg, GX_CA_ZERO);
+        break;
+    case GX_DECAL:
+        GXSetTevColorIn(id, carg, GX_CC_TEXC, GX_CC_TEXA, GX_CC_ZERO);
+        GXSetTevAlphaIn(id, GX_CA_ZERO, GX_CA_ZERO, GX_CA_ZERO, aarg);
+        break;
+    case GX_BLEND:
+        GXSetTevColorIn(id, carg, GX_CC_ONE, GX_CC_TEXC, GX_CC_ZERO);
+        GXSetTevAlphaIn(id, GX_CA_ZERO, GX_CA_TEXA, aarg, GX_CA_ZERO);
+        break;
+    case GX_REPLACE:
+        GXSetTevColorIn(id, GX_CC_ZERO, GX_CC_ZERO, GX_CC_ZERO, GX_CC_TEXC);
+        GXSetTevAlphaIn(id, GX_CA_ZERO, GX_CA_ZERO, GX_CA_ZERO, GX_CA_TEXA);
+        break;
+    case GX_PASSCLR:
+        GXSetTevColorIn(id, GX_CC_ZERO, GX_CC_ZERO, GX_CC_ZERO, carg);
+        GXSetTevAlphaIn(id, GX_CA_ZERO, GX_CA_ZERO, GX_CA_ZERO, aarg);
+        break;
+    }
 
-    GX_WRITE_RAS_REG(tevReg);
-
-    gx->tevc[stage] = tevReg;
-
-    tevReg = gx->teva[stage];
-    tevReg = (*alpha & ~0xFF00000F) | (tevReg & 0xFF00000F);
-
-    GX_WRITE_RAS_REG(tevReg);
-
-    gx->teva[stage] = tevReg;
-
-    gx->bpSentNot = GX_FALSE;
+    GXSetTevColorOp(id, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
+    GXSetTevAlphaOp(id, GX_TEV_ADD, GX_TB_ZERO, GX_CS_SCALE_1, GX_TRUE, GX_TEVPREV);
 }
 
 void GXSetTevColorIn(GXTevStageID stage, GXTevColorArg a, GXTevColorArg b, GXTevColorArg c,
                      GXTevColorArg d) {
-    u32 tevReg;
+    u32* tevReg = &gx->tevc[stage];
 
-    tevReg = gx->tevc[stage];
+    SET_REG_FIELD(*tevReg, 4, 12, a);
+    SET_REG_FIELD(*tevReg, 4, 8, b);
+    SET_REG_FIELD(*tevReg, 4, 4, c);
+    SET_REG_FIELD(*tevReg, 4, 0, d);
 
-    SET_REG_FIELD(tevReg, 4, 12, 2);
-    SET_REG_FIELD(tevReg, 4, 8, 2);
-    SET_REG_FIELD(tevReg, 4, 4, 2);
-    SET_REG_FIELD(tevReg, 4, 0, 2);
-
-    GX_WRITE_RAS_REG(tevReg);
-
-    gx->tevc[stage] = tevReg;
+    GX_BP_LOAD_REG(*tevReg);
     gx->bpSentNot = GX_FALSE;
 }
 
 void GXSetTevAlphaIn(GXTevStageID stage, GXTevAlphaArg a, GXTevAlphaArg b, GXTevAlphaArg c,
                      GXTevAlphaArg d) {
-    u32 tevReg;
+    u32* tevReg = &gx->teva[stage];
 
-    tevReg = gx->teva[stage];
+    SET_REG_FIELD(*tevReg, 3, 13, a);
+    SET_REG_FIELD(*tevReg, 3, 10, b);
+    SET_REG_FIELD(*tevReg, 3, 7, c);
+    SET_REG_FIELD(*tevReg, 3, 4, d);
 
-    SET_REG_FIELD(tevReg, 3, 13, 2);
-    SET_REG_FIELD(tevReg, 3, 10, 2);
-    SET_REG_FIELD(tevReg, 3, 7, 2);
-    SET_REG_FIELD(tevReg, 3, 4, 2);
-
-    GX_WRITE_RAS_REG(tevReg);
-
-    gx->teva[stage] = tevReg;
+    GX_BP_LOAD_REG(*tevReg);
     gx->bpSentNot = GX_FALSE;
 }
 
-void GXSetTevColorOp(GXTevStageID stage, GXTevOp op, GXTevBias bias, GXTevScale scale,
-                     GXBool doClamp, GXTevRegID outReg) {
-    u32 tevReg;
+void GXSetTevColorOp(GXTevStageID stage, GXTevOp op, GXTevBias bias, GXTevScale scale, GXBool clamp,
+                     GXTevRegID out_reg) {
+    u32* tevReg = &gx->tevc[stage];
 
-    tevReg = gx->tevc[stage];
-    SET_REG_FIELD(tevReg, 1, 18, 2);
-
+    SET_REG_FIELD(*tevReg, 1, 18, op & 1);
     if (op <= GX_TEV_SUB) {
-        SET_REG_FIELD(tevReg, 2, 20, 2);
-        SET_REG_FIELD(tevReg, 2, 16, 2);
+        SET_REG_FIELD(*tevReg, 2, 20, scale);
+        SET_REG_FIELD(*tevReg, 2, 16, bias);
     } else {
-        SET_REG_FIELD(tevReg, 2, 20, 2);
-        SET_REG_FIELD(tevReg, 2, 16, 2);
+        SET_REG_FIELD(*tevReg, 2, 20, (op >> 1) & 3);
+        SET_REG_FIELD(*tevReg, 2, 16, 3);
     }
+    SET_REG_FIELD(*tevReg, 1, 19, clamp);
+    SET_REG_FIELD(*tevReg, 2, 22, out_reg);
 
-    SET_REG_FIELD(tevReg, 1, 19, 2);
-    SET_REG_FIELD(tevReg, 2, 22, 2);
-
-    GX_WRITE_RAS_REG(tevReg);
-    gx->tevc[stage] = tevReg;
+    GX_BP_LOAD_REG(*tevReg);
     gx->bpSentNot = GX_FALSE;
 }
 
-void GXSetTevAlphaOp(GXTevStageID stage, GXTevOp op, GXTevBias bias, GXTevScale scale,
-                     GXBool doClamp, GXTevRegID outReg) {
-    u32 tevReg;
+void GXSetTevAlphaOp(GXTevStageID stage, GXTevOp op, GXTevBias bias, GXTevScale scale, GXBool clamp,
+                     GXTevRegID out_reg) {
+    u32* tevReg = &gx->teva[stage];
 
-    tevReg = gx->teva[stage];
-    SET_REG_FIELD(tevReg, 1, 18, 2);
-
+    SET_REG_FIELD(*tevReg, 1, 18, op & 1);
     if (op <= GX_TEV_SUB) {
-        SET_REG_FIELD(tevReg, 2, 20, 2);
-        SET_REG_FIELD(tevReg, 2, 16, 2);
+        SET_REG_FIELD(*tevReg, 2, 20, scale);
+        SET_REG_FIELD(*tevReg, 2, 16, bias);
     } else {
-        SET_REG_FIELD(tevReg, 2, 20, 2);
-        SET_REG_FIELD(tevReg, 2, 16, 2);
+        SET_REG_FIELD(*tevReg, 2, 20, (op >> 1) & 3);
+        SET_REG_FIELD(*tevReg, 2, 16, 3);
     }
+    SET_REG_FIELD(*tevReg, 1, 19, clamp);
+    SET_REG_FIELD(*tevReg, 2, 22, out_reg);
 
-    SET_REG_FIELD(tevReg, 1, 19, 2);
-    SET_REG_FIELD(tevReg, 2, 22, 2);
-
-    GX_WRITE_RAS_REG(tevReg);
-    gx->teva[stage] = tevReg;
+    GX_BP_LOAD_REG(*tevReg);
     gx->bpSentNot = GX_FALSE;
 }
 
@@ -162,43 +121,46 @@ void GXSetTevColor(GXTevRegID reg, GXColor color) {
     gx->bpSentNot = GX_FALSE;
 }
 
-void GXSetTevColorS10(GXTevRegID reg, GXColorS10 color) {
-    u32 col = *(u32*)&color;
-    u32 col1 = ((u32*)&color)[1];
-    u32 ra = (0xE0 + reg * 2) << 24;
-    u32 bg = (0xE1 + reg * 2) << 24;
+void GXSetTevColorS10(GXTevRegID id, GXColorS10 color) {
+    u32 regRA;
+    u32 regBG;
 
-    GX_SET_REG(ra, col >> 16, 21, 31);
-    GX_SET_REG(bg, col1 >> 16, 21, 31);
-    GX_SET_REG(bg, col & 0x7FF, 9, 19);
-    GX_SET_REG(ra, col1 & 0x7FF, 9, 19);
+    regRA = 0;
+    SET_REG_FIELD(regRA, 11, 0, color.r & 0x7FF);
+    SET_REG_FIELD(regRA, 11, 12, color.a & 0x7FF);
+    SET_REG_FIELD(regRA, 8, 24, 224 + id * 2);
 
-    GX_BP_LOAD_REG(ra);
-    GX_BP_LOAD_REG(bg);
-    GX_BP_LOAD_REG(bg);
-    GX_BP_LOAD_REG(bg);
+    regBG = 0;
+    SET_REG_FIELD(regBG, 11, 0, color.b & 0x7FF);
+    SET_REG_FIELD(regBG, 11, 12, color.g & 0x7FF);
+    SET_REG_FIELD(regBG, 8, 24, 225 + id * 2);
+
+    GX_BP_LOAD_REG(regRA);
+    GX_BP_LOAD_REG(regBG);
+    GX_BP_LOAD_REG(regBG);
+    GX_BP_LOAD_REG(regBG);
 
     gx->bpSentNot = GX_FALSE;
 }
 
 void GXSetTevKColor(GXTevKColorID id, GXColor color) {
-    u32 col = *(u32*)&color;
-    u32 ra;
-    u32 bg;
+    u32 regRA;
+    u32 regBG;
 
-    ra = (0xE0 + id * 2) << 24;
-    GX_SET_REG(ra, col >> 24, 24, 31);
-    GX_SET_REG(ra, col & 0xFF, 12, 19);
-    GX_SET_REG(ra, 8, 8, 11);
+    regRA = 0;
+    SET_REG_FIELD(regRA, 8, 0, color.r);
+    SET_REG_FIELD(regRA, 8, 12, color.a);
+    SET_REG_FIELD(regRA, 4, 20, 8);
+    SET_REG_FIELD(regRA, 8, 24, 224 + id * 2);
 
-    bg = (0xE1 + id * 2) << 24;
-    GX_SET_REG(bg, col >> 8, 24, 31);
-    GX_SET_REG(bg, col >> 16, 12, 19);
-    GX_SET_REG(bg, 8, 8, 11);
+    regBG = 0;
+    SET_REG_FIELD(regBG, 8, 0, color.b);
+    SET_REG_FIELD(regBG, 8, 12, color.g);
+    SET_REG_FIELD(regBG, 4, 20, 8);
+    SET_REG_FIELD(regBG, 8, 24, 225 + id * 2);
 
-    GX_BP_LOAD_REG(ra);
-    GX_BP_LOAD_REG(bg);
-
+    GX_BP_LOAD_REG(regRA);
+    GX_BP_LOAD_REG(regBG);
     gx->bpSentNot = GX_FALSE;
 }
 
@@ -264,16 +226,18 @@ void GXSetTevSwapModeTable(GXTevSwapSel table, GXTevColorChan red, GXTevColorCha
 }
 
 void GXSetAlphaCompare(GXCompare comp0, u8 ref0, GXAlphaOp op, GXCompare comp1, u8 ref1) {
-    u32 reg = 0xF3000000;
+    u32 reg;
 
-    GX_SET_REG(reg, ref0, 24, 31);
-    GX_SET_REG(reg, ref1, 16, 23);
-    GX_SET_REG(reg, comp0, 13, 15);
-    GX_SET_REG(reg, comp1, 10, 12);
-    GX_SET_REG(reg, op, 8, 9);
+    reg = 0;
+
+    SET_REG_FIELD(reg, 8, 0, ref0);
+    SET_REG_FIELD(reg, 8, 8, ref1);
+    SET_REG_FIELD(reg, 3, 16, comp0);
+    SET_REG_FIELD(reg, 3, 19, comp1);
+    SET_REG_FIELD(reg, 2, 22, op);
+    SET_REG_FIELD(reg, 8, 24, 0xF3);
 
     GX_BP_LOAD_REG(reg);
-
     gx->bpSentNot = GX_FALSE;
 }
 
