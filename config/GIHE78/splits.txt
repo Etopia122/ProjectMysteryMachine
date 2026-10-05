@@ -1092,6 +1092,10 @@ dolphin/src/os/OSAudioSystem.c:
 	.text       start:0x801046BC end:0x80104950
 	.data       start:0x801CCF40 end:0x801CCFC0
 
+dolphin/os/OSCache.c:
+	.text       start:0x80104950 end:0x80104D9C
+	.data       start:0x801CCFC0 end:0x801CD1F0
+
 dolphin/os/OSContext.c:
 	.text       start:0x801051A8 end:0x80105548
 	.data       start:0x801CD1F0 end:0x801CD3C8

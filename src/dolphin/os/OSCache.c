@@ -26,8 +26,11 @@ ASM void DCInvalidateRange(__REGISTER void* start, __REGISTER u32 nBytes) {
     cmplwi nBytes, 0
     blelr
 
-    clrlwi r5, start, 0x1B
-    add nBytes, nBytes, r5
+    // This older version rounds up by a whole block when start is unaligned.
+    clrlwi. r5, start, 0x1B
+    beq aligned
+    addi nBytes, nBytes, 0x20
+aligned:
     addi nBytes, nBytes, 0x1F
     srwi nBytes, nBytes, 5
     mtctr nBytes
@@ -50,8 +53,11 @@ ASM void DCFlushRange(__REGISTER void* start, __REGISTER u32 nBytes) {
     cmplwi nBytes, 0
     blelr
 
-    clrlwi r5, start, 0x1B
-    add nBytes, nBytes, r5
+    // This older version rounds up by a whole block when start is unaligned.
+    clrlwi. r5, start, 0x1B
+    beq aligned
+    addi nBytes, nBytes, 0x20
+aligned:
     addi nBytes, nBytes, 0x1F
     srwi nBytes, nBytes, 5
     mtctr nBytes
@@ -75,8 +81,11 @@ ASM void DCStoreRange(__REGISTER void* start, __REGISTER u32 nBytes) {
     cmplwi nBytes, 0
     blelr
 
-    clrlwi r5, start, 0x1B
-    add nBytes, nBytes, r5
+    // This older version rounds up by a whole block when start is unaligned.
+    clrlwi. r5, start, 0x1B
+    beq aligned
+    addi nBytes, nBytes, 0x20
+aligned:
     addi nBytes, nBytes, 0x1F
     srwi nBytes, nBytes, 5
     mtctr nBytes
@@ -100,8 +109,11 @@ ASM void DCFlushRangeNoSync(__REGISTER void* start, __REGISTER u32 nBytes) {
     cmplwi nBytes, 0
     blelr
 
-    clrlwi r5, start, 0x1B
-    add nBytes, nBytes, r5
+    // This older version rounds up by a whole block when start is unaligned.
+    clrlwi. r5, start, 0x1B
+    beq aligned
+    addi nBytes, nBytes, 0x20
+aligned:
     addi nBytes, nBytes, 0x1F
     srwi nBytes, nBytes, 5
     mtctr nBytes
@@ -124,8 +136,11 @@ ASM void DCStoreRangeNoSync(__REGISTER void* start, __REGISTER u32 nBytes) {
     cmplwi nBytes, 0
     blelr
 
-    clrlwi r5, start, 0x1B
-    add nBytes, nBytes, r5
+    // This older version rounds up by a whole block when start is unaligned.
+    clrlwi. r5, start, 0x1B
+    beq aligned
+    addi nBytes, nBytes, 0x20
+aligned:
     addi nBytes, nBytes, 0x1F
     srwi nBytes, nBytes, 5
     mtctr nBytes
@@ -148,8 +163,11 @@ ASM void DCZeroRange(__REGISTER void* start, __REGISTER u32 nBytes) {
     cmplwi nBytes, 0
     blelr
 
-    clrlwi r5, start, 0x1B
-    add nBytes, nBytes, r5
+    // This older version rounds up by a whole block when start is unaligned.
+    clrlwi. r5, start, 0x1B
+    beq aligned
+    addi nBytes, nBytes, 0x20
+aligned:
     addi nBytes, nBytes, 0x1F
     srwi nBytes, nBytes, 5
     mtctr nBytes
@@ -172,8 +190,11 @@ ASM void ICInvalidateRange(__REGISTER void* start, __REGISTER u32 nBytes) {
     cmplwi nBytes, 0
     blelr
 
-    clrlwi r5, start, 0x1B
-    add nBytes, nBytes, r5
+    // This older version rounds up by a whole block when start is unaligned.
+    clrlwi. r5, start, 0x1B
+    beq aligned
+    addi nBytes, nBytes, 0x20
+aligned:
     addi nBytes, nBytes, 0x1F
     srwi nBytes, nBytes, 5
     mtctr nBytes
