@@ -4,7 +4,7 @@
 
 extern u16 __OSWirelessPadFixMode AT_ADDRESS(OS_BASE_CACHED | 0x30E0);
 
-const char* __PADVersion = "<< Dolphin SDK - PAD\trelease build: Sep  5 2002 05:34:02 (0x2301) >>";
+// This older PAD library has no version string (and PADInit does not register one).
 
 #define PAD_ALL                                                                                                        \
     (                      \
@@ -351,8 +351,6 @@ BOOL PADInit() {
     if (Initialized) {
         return 1;
     }
-    
-    OSRegisterVersion(__PADVersion);
 
     if (__PADSpec)
         PADSetSpec(__PADSpec);

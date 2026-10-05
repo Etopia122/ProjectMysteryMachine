@@ -686,6 +686,7 @@ config.libs = [
         "progress_category": "sdk",
         "objects": [
             Object(NonMatching, "dolphin/pad/Padclamp.c"),
+            Object(Matching, "dolphin/pad/Pad.c"),
         ],
     },
     {
