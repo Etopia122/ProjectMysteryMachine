@@ -151,9 +151,8 @@ extern vu16* __memReg;
 #define GX_SET_PI_REG(offset, val)  (*(vu32*)((vu32*)(__piReg) + (offset)) = val)
 
 inline void GXSetWasteFlags() {
-    GXData* data = gx;
-    data->dirtyState |= GX_DIRTY_SU_TEX | GX_DIRTY_BP_MASK;
-    data->bpSentNot = 0;
+    gx->dirtyState |= GX_DIRTY_SU_TEX | GX_DIRTY_BP_MASK;
+    gx->bpSentNot = 0;
 }
 
 static inline void set_x2(u16 value)
