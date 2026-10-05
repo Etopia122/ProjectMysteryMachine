@@ -1056,6 +1056,10 @@ dolphin/src/dsp/dsp_task.c:
 	.data       start:0x801CC6B0 end:0x801CC7F0
 	.sbss       start:0x8025F3B0 end:0x8025F3C8
 
+dolphin/exi/EXIBios.c:
+	.text       start:0x800F94C0 end:0x800FAD8C
+	.bss        start:0x8025A640 end:0x8025A700
+
 dolphin/exi/EXIUart.c:
 	.text       start:0x800FAD8C end:0x800FAFFC
 	.sbss       start:0x8025F3C8 end:0x8025F3D8

@@ -630,6 +630,7 @@ config.libs = [
         "cflags": [*cflags_tww_base],
         "progress_category": "sdk",
         "objects": [
+            Object(Matching, "dolphin/exi/EXIBios.c", extra_cflags=['-O4,p']),
             Object(Matching, "dolphin/exi/EXIUart.c", extra_cflags=['-O4,p']),
         ],
     },

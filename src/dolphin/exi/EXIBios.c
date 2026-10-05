@@ -63,7 +63,7 @@ static void SetExiInterruptMask(s32 chan, EXIControl* exi) {
     }
 }
 
-static void CompleteTransfer(s32 chan) {
+static inline void CompleteTransfer(s32 chan) {
     EXIControl* exi;
     u8* buf;
     u32 data;
@@ -251,7 +251,7 @@ EXICallback EXISetExiCallback(s32 chan, EXICallback exiCallback) {
     return prev;
 }
 
-void EXIProbeReset() {
+static inline void EXIProbeReset() {
     __gUnknown800030C0[0] = __gUnknown800030C0[1] = 0;
     Ecb[0].idTime = Ecb[1].idTime = 0;
     __EXIProbe(0);
@@ -329,7 +329,7 @@ s32 EXIProbeEx(s32 chan) {
     return -1;
 }
 
-static int __EXIAttach(s32 chan, EXICallback extCallback) {
+static inline int __EXIAttach(s32 chan, EXICallback extCallback) {
     EXIControl* exi;
     BOOL enabled;
 
@@ -390,50 +390,12 @@ int EXIDetach(s32 chan) {
     }
 
     exi->state &= ~STATE_ATTACHED;
-    __OSMaskInterrupts(0x500000U >> (chan * 3));
+    __OSMaskInterrupts(0x700000U >> (chan * 3));
 
     OSRestoreInterrupts(enabled);
     return 1;
 }
 
-int EXISelectSD(s32 chan, u32 dev, u32 freq) {
-    EXIControl* exi;
-    u32 cpr;
-    BOOL enabled;
-
-    exi = &Ecb[chan];
-
-    ASSERTLINE(908, 0 <= chan && chan < MAX_CHAN);
-    ASSERTLINE(909, chan == 0 && dev < MAX_DEV || dev == 0);
-    ASSERTLINE(910, freq < MAX_FREQ);
-    ASSERTLINE(911, !(exi->state & STATE_SELECTED));
-
-    enabled = OSDisableInterrupts();
-    if ((exi->state & STATE_SELECTED) || ((chan != 2) && (((dev == 0) && !(exi->state & STATE_ATTACHED) && (EXIProbe(chan) == 0)) || !(exi->state & STATE_LOCKED) || (exi->dev != dev)))) {
-        OSRestoreInterrupts(enabled);
-        return 0;
-    }
-
-    exi->state |= STATE_SELECTED;
-    cpr = __EXIRegs[(chan * 5)];
-    cpr &= 0x405;
-    cpr |= freq * 0x10;
-    __EXIRegs[(chan * 5)] = cpr;
-
-    if (exi->state & STATE_ATTACHED) {
-        switch (chan) {
-        case 0:
-            __OSMaskInterrupts(0x100000U);
-            break;
-        case 1:
-            __OSMaskInterrupts(0x20000U);
-            break;
-        }
-    }
-
-    OSRestoreInterrupts(enabled);
-    return 1;
-}
 
 int EXISelect(s32 chan, u32 dev, u32 freq) {
     EXIControl* exi;
@@ -573,7 +535,8 @@ static void EXTIntrruptHandler(__OSInterrupt interrupt, OSContext* context) {
     chan = (interrupt - 11) / 3;
 
     ASSERTLINE(1147, 0 <= chan && chan < 2);
-    __OSMaskInterrupts(0x500000U >> (chan * 3));
+    __OSMaskInterrupts(0x700000U >> (chan * 3));
+    __EXIRegs[chan * 5] = 0;
     exi = &Ecb[chan];
     callback = exi->extCallback;
     exi->state &= ~STATE_ATTACHED;
@@ -591,7 +554,6 @@ static void EXTIntrruptHandler(__OSInterrupt interrupt, OSContext* context) {
 }
 
 void EXIInit() {
-    OSRegisterVersion(__EXIVersion);
     __OSMaskInterrupts(0x7F8000U);
     __EXIRegs[0] = 0;
     __EXIRegs[5] = 0;
@@ -753,76 +715,4 @@ s32 EXIGetID(s32 chan, u32 dev, u32* id) {
     return 1;
 }
 
-s32 EXIGetType(s32 chan, u32 dev, u32* type) {
-    u32 _type;
-    s32 probe;
 
-    probe = EXIGetID(chan, dev, &_type);
-
-    if (!probe) {
-        return probe;
-    }
-
-    switch (_type & ~0xFF) {
-    case 0x04020300:
-    case EXI_ETHER:
-    case 0x04020100:
-    case 0x04060000:
-        *type = (_type & ~0xFF);
-        return probe;
-    default:
-        switch (_type & ~0xFFFF) {
-        case 0x00000000:
-            if (!(_type & 0x3803)) {
-                switch (_type & 0xFC) {
-                case EXI_MEMORY_CARD_59:
-                case EXI_MEMORY_CARD_123:
-                case EXI_MEMORY_CARD_251:
-                case EXI_MEMORY_CARD_507:
-                case EXI_MEMORY_CARD_1019:
-                case EXI_MEMORY_CARD_2043:
-                    *type = _type & 0xFC;
-                    return probe;    
-                }
-            }
-            break;
-        case EXI_IS_VIEWER:
-            *type = EXI_IS_VIEWER;
-            return probe;                
-        }
-
-        *type = _type;
-        return probe;
-    }
-}
-
-char* EXIGetTypeString(u32 type) {
-    switch (type) {
-    case EXI_MEMORY_CARD_59:
-        return "Memory Card 59";
-    case EXI_MEMORY_CARD_123:
-        return "Memory Card 123";
-    case EXI_MEMORY_CARD_251:
-        return "Memory Card 251";
-    case EXI_MEMORY_CARD_507:
-        return "Memory Card 507";
-    case EXI_USB_ADAPTER:
-        return "USB Adapter";
-    case 0x80000020:
-    case 0x80000080:
-    case 0x80000040:
-    case 0x80000008:
-    case 0x80000010:
-    case 0x80000004:
-        return "Net Card";
-    case EXI_ETHER_VIEWER:
-        return "Artist Ether";
-    case 0x4020100:
-    case 0x4020300:
-    case EXI_ETHER:
-    case EXI_STREAM_HANGER:
-        return "Stream Hanger";
-    case EXI_IS_VIEWER:
-        return "IS Viewer";
-    }
-}
