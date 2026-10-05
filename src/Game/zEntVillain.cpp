@@ -3497,6 +3497,7 @@ static inline void VPRJ_BMM_blackflask(zEntProjectile* prj, float dt);
 static inline void VPRJ_BMM_greenflask(zEntProjectile* prj, float dt);
 static inline void VPRJ_BMM_redflask(zEntProjectile* prj, float dt);
 static inline void VPRJ_prjsound(st_zEntVillain* vil, zEntProjectile* prj, en_NPC_SOUND snd);
+static inline en_ZVMM_FLASK_TYPE VPRJ_BMM_select_flasktype(st_zEntVillain* vil);
 static signed int VPRJ_BMM_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event);
 static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, zScene* scn, _xEntFrame* frame);
 static void VPRJ_BMM_detach(zEntProjectile* prj);
@@ -15466,6 +15467,13 @@ static signed int VWEP_swipe(st_zEntVillain* vil)
 
 static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* pos_tgt)
 {
+    // The original carries a second, unused set of the same locals.
+    _xVec3 unused_ext = {};
+    _xVec3 unused_emit = {};
+    _xVec3 unused_alt = {};
+    _xVec3 unused_tgt = {};
+    _xMat3x3 unused_rot = {};
+    _xVec3 unused_vec = {};
     _xVec3 dir_ext = {};
     _xVec3 pos_emit = {};
     _xVec3 pos_alt = {};
@@ -15602,46 +15610,9 @@ static zEntProjectile* VWEP_lobReservePRJ(st_zEntVillain* vil)
         prefer = ZPRJ_CAT_RBSWORD;
         break;
     case eEntVillainBossMastermind:
-    {
-        en_ZVMM_FLASK_TYPE flasks[3] = { MAST_FLSK_SMOG, MAST_FLSK_ACID, MAST_FLSK_FIRE };
         prefer = ZPRJ_CAT_MMFLASK;
-        switch (vil->hitpts)
-        {
-        case 4:
-            typ_flask = MAST_FLSK_SMOG;
-            break;
-        case 3:
-            typ_flask = MAST_FLSK_ACID;
-            break;
-        case 2:
-            typ_flask = MAST_FLSK_FIRE;
-            break;
-        case 1:
-        {
-            signed int idx = 0;
-            signed int i;
-            float r = iurand();
-            float lo;
-            float hi = 0.0f;
-            for (i = 0; i < 3; i++)
-            {
-                lo = hi;
-                hi += 0.33333334f;
-                if (r >= lo && r <= hi)
-                {
-                    idx = i;
-                    break;
-                }
-            }
-            typ_flask = flasks[idx];
-            break;
-        }
-        default:
-            typ_flask = MAST_FLSK_SMOG;
-            break;
-        }
+        typ_flask = VPRJ_BMM_select_flasktype(vil);
         break;
-    }
     default:
         xSceneID2Name(globals.sceneCur, vil->id);
         prefer = ZPRJ_CAT_ARROW;
@@ -15667,6 +15638,8 @@ static zEntProjectile* VWEP_lobReservePRJ(st_zEntVillain* vil)
 static signed int VWEP_lobActivatePRJ(zEntProjectile* prj, st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off,
                                       _xVec3* vec_spin, float arcness, float heavy)
 {
+    // Unidentified zeroed locals of the original (only their templates remain).
+    float unused_pad[14] = {};
     signed int rc = 0;
 
     if (!prj)
@@ -15786,6 +15759,7 @@ static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt,
 {
     _xVec3 pos = {};
     ST_CAT_AIMDATA aiminf = {};
+    _xVec3 tmp_vec = {};
     zEntProjectile* prj = vil->prj_reserved;
 
     prj->ColDelaySet(0.4f, 1);
@@ -15796,7 +15770,8 @@ static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt,
     aiminf.arrow.pos_src = pos;
     if (vec_off)
     {
-        xVec3Add(&aiminf.arrow.pos_tgt, pos_tgt, vec_off);
+        xVec3Add(&tmp_vec, pos_tgt, vec_off);
+        aiminf.arrow.pos_tgt = tmp_vec;
     }
     else
     {
@@ -15810,7 +15785,7 @@ static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec
 {
     signed int retval = 1;
     _xVec3 pos = {};
-    ST_CAT_AIMDATA aiminf = {};
+    ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
     _xVec3 vec_tmp = {};
     zEntProjectile* prj = vil->prj_reserved;
     _xMat4x3* mat;
@@ -15909,27 +15884,10 @@ static signed int VWEP_lobInitBKAxe(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3
 static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
                                        float arcness, float heavy)
 {
-    _xVec3 pos = {};
-    ST_CAT_AIMDATA aiminf = {};
     zEntProjectile* prj = vil->prj_reserved;
     st_BGG_QUAKEBALL* quake = (st_BGG_QUAKEBALL*)prj->xtradata;
 
-    prj->ColDelaySet(0.4f, 1);
-    VWEP_lobLaunchPos(vil, &pos);
-
-    aiminf.spd_base = vil->spd_lob;
-    aiminf.dir_base = ((_xMat4x3*)vil->model->Mat)->at;
-    aiminf.grav.pos_src = pos;
-    if (vec_off)
-    {
-        xVec3Add(&aiminf.grav.pos_tgt, pos_tgt, vec_off);
-    }
-    else
-    {
-        aiminf.grav.pos_tgt = *pos_tgt;
-    }
-    prj->AimAtTarget(&aiminf, 1);
-
+    VWEP_lobInitArrow(vil, pos_tgt, vec_off);
     prj->cat_data.gravball.acc_gravity = (heavy <= 0.0f) ? 1.5f : heavy;
     quake->rad_build = vil->dst_lob;
     quake->spd_flight = (vil->spd_lob > 0.2f) ? vil->spd_lob : 0.2f;
@@ -16970,6 +16928,49 @@ static signed int VPRJ_BMM_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event
         break;
     }
     return 1;
+}
+
+static inline en_ZVMM_FLASK_TYPE VPRJ_BMM_select_flasktype(st_zEntVillain* vil)
+{
+    en_ZVMM_FLASK_TYPE flasks[3] = { MAST_FLSK_SMOG, MAST_FLSK_ACID, MAST_FLSK_FIRE };
+    en_ZVMM_FLASK_TYPE typ = MAST_FLSK_SMOG;
+
+    switch (vil->hitpts)
+    {
+    case 4:
+        typ = MAST_FLSK_SMOG;
+        break;
+    case 3:
+        typ = MAST_FLSK_ACID;
+        break;
+    case 2:
+        typ = MAST_FLSK_FIRE;
+        break;
+    case 1:
+    {
+        signed int idx = 0;
+        signed int i;
+        float r = iurand();
+        float lo;
+        float hi = 0.0f;
+        for (i = 0; i < 3; i++)
+        {
+            lo = hi;
+            hi += 0.33333334f;
+            if (r >= lo && r <= hi)
+            {
+                idx = i;
+                break;
+            }
+        }
+        typ = flasks[idx];
+        break;
+    }
+    default:
+        typ = MAST_FLSK_SMOG;
+        break;
+    }
+    return typ;
 }
 
 static inline void VPRJ_prjsound(st_zEntVillain* vil, zEntProjectile* prj, en_NPC_SOUND snd)
