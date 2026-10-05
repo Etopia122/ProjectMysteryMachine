@@ -17793,6 +17793,7 @@ static xAnimTable* VANM_mktable_BK()
     xAnimTransition* tran;
     signed int i;
     char* names[32] = {};
+    xAnimTransition* deftran[147] = {}; // unreferenced in the original as well
 
     table = xAnimTableNew("Villain_BlackKnight", NULL);
     xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
@@ -17910,6 +17911,7 @@ static xAnimTable* VANM_mktable_GG()
     xAnimTransition* tran;
     signed int i;
     char* names[32] = {};
+    xAnimTransition* deftran[147] = {}; // unreferenced in the original as well
 
     table = xAnimTableNew("Villain_GreenGhost", NULL);
     xAnimTableNewState(table, "Idle", 0x10, 1, 1.0f, NULL, NULL, 0.0f, NULL);
@@ -17987,6 +17989,7 @@ static xAnimTable* VANM_mktable_RB()
     xAnimTransition* tran;
     signed int i;
     char* names[32] = {};
+    xAnimTransition* deftran[147] = {}; // unreferenced in the original as well
 
     table = xAnimTableNew("Villain_RedBeard", NULL);
     xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
@@ -18106,6 +18109,7 @@ static xAnimTable* VANM_mktable_MM()
     xAnimTransition* tran;
     signed int i;
     char* names[32] = {};
+    xAnimTransition* deftran[147] = {}; // unreferenced in the original as well
 
     table = xAnimTableNew("Villain_MasterMind", NULL);
     xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
@@ -18294,6 +18298,15 @@ static xAnimTable* VANM_mktable_MM()
 
 static xAnimTable* VANM_mktable_SHARK()
 {
+    // Templates of the original's simple/sham/shark tables (unreferenced).
+    char* unused_names0[32] = {};
+    xAnimTransition* unused_tran0[147] = {};
+    char* unused_names1[32] = {};
+    xAnimTransition* unused_tran1[147] = {};
+    char* unused_names2[32] = {};
+    xAnimTransition* unused_tran2[147] = {};
+    char* unused_names3[32] = {};
+    xAnimTransition* unused_tran3[147] = {};
     xAnimTable* table;
     xAnimTransition* tran;
     signed int i;
