@@ -6626,9 +6626,9 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 break;
             case 10:                                /* switch 4 */
                 if ((stimctxt->widge != NULL) && (vil->abl_move & 0x100)) {
-                    temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1) == 0;
+                    temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1);
                     vil->tmr_list[24] = -1.0f;
-                    if (temp_cr0_eq == 0) {
+                    if (temp_cr0_eq) {
                         VILN_tran(resp, 6, 3);
                     } else {
                         VILN_tran(resp, 8, 3);
@@ -8429,12 +8429,10 @@ static signed int VILN_shark_sysevent(st_zEntVillain* vil, xBase* from, unsigned
 
 static signed int VILN_shark_notice(st_zEntVillain* vil, en_ZVIL_NOTICE note, st_STIMULUS_CONTEXT_DATA* resp)
 {
-    RpAtomic* atomic = vil->model->Data;
-
     // Widen the culling spheres so the shark is never culled.
-    *(float*)((char*)atomic + 0x38) = 10.0f;
-    *(float*)((char*)atomic + 0x28) = 10.0f;
-    *(float*)(*(char**)(*(char**)((char*)atomic + 0x18) + 0x68) + 0x10) = 10.0f;
+    *(float*)((char*)vil->model->Data + 0x38) = 10.0f;
+    *(float*)((char*)vil->model->Data + 0x28) = 10.0f;
+    *(float*)(*(char**)(*(char**)((char*)vil->model->Data + 0x18) + 0x68) + 0x10) = 10.0f;
     return VILN_cmn_notice(vil, note, resp);
 }
 
@@ -9523,8 +9521,10 @@ static signed int VILN_gang_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
 static signed int VILN_gang_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot)
 {
 
-    if (goal >= 0) {
+    {
         switch (goal) {                       /* switch 1 */
+        case 0:
+            break;
         case 1:                                     /* switch 1 */
             VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
@@ -9750,6 +9750,8 @@ static signed int VILN_sham_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
     temp_r5 = stimctxt->stim;
     g_pgol = (en_BEHAVIOUR_GOAL)temp_r3;
     switch (temp_r3) {                              /* switch 1 */
+    case -1:
+        break;
     case 0:                                         /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r5;
         switch (temp_r5) {                          /* switch 2; irregular */
@@ -9781,8 +9783,12 @@ static signed int VILN_sham_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
     case 8:                                         /* switch 1 */
     case 23:                                        /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r5;
-        if ((unsigned int)temp_r5 <= 0x26U) {
+        {
             switch (temp_r5) {                      /* switch 4 */
+            case 38:
+                break;
+            case 0:
+                break;
             case 34:                                /* switch 4 */
                 vil->hitpts = 0;
                 VILN_tran(resp, 0x20, 7);
@@ -9823,9 +9829,9 @@ static signed int VILN_sham_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
                 break;
             case 10:                                /* switch 4 */
                 if ((stimctxt->widge != NULL) && (vil->abl_move & 0x100)) {
-                    temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1) == 0;
+                    temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1);
                     vil->tmr_list[24] = -1.0f;
-                    if (temp_cr0_eq == 0) {
+                    if (temp_cr0_eq) {
                         VILN_tran(resp, 6, 3);
                     } else {
                         VILN_tran(resp, 8, 3);
@@ -10024,8 +10030,10 @@ static signed int VILN_sham_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
 static signed int VILN_sham_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot)
 {
 
-    if (goal >= 0) {
+    {
         switch (goal) {
+        case 0:
+            break;
         case 1:
             VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
@@ -10120,10 +10128,14 @@ static signed int VILN_BBK_notice(st_zEntVillain* vil, en_ZVIL_NOTICE note, st_S
     {
         while (minst)
         {
-            if (idx == 0)
+            switch (idx)
             {
+            case 0:
                 minst->Flags |= 1;
                 minst->Flags |= 2;
+                break;
+            case 1:
+                break;
             }
             minst = minst->Next;
             idx++;
@@ -10307,6 +10319,8 @@ static signed int VILN_BBK_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     temp_r5 = stimctxt->stim;
     g_pgol = (en_BEHAVIOUR_GOAL)temp_r3;
     switch (temp_r3) {                              /* switch 1 */
+    case -1:
+        break;
     case 0:                                         /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r5;
         switch (temp_r5) {                          /* switch 2; irregular */
@@ -10341,8 +10355,10 @@ static signed int VILN_BBK_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     case 21:                                        /* switch 1 */
     case 23:                                        /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r5;
-        if ((unsigned int)temp_r5 <= 0x26U) {
+        {
             switch (temp_r5) {                      /* switch 4 */
+            case 0:
+                break;
             case 34:                                /* switch 4 */
                 vil->hitpts = 0;
                 VILN_tran(resp, 0x20, 7);
@@ -10391,9 +10407,9 @@ static signed int VILN_BBK_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 break;
             case 10:                                /* switch 4 */
                 if ((stimctxt->widge != NULL) && (vil->abl_move & 0x100)) {
-                    temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1) == 0;
+                    temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1);
                     vil->tmr_list[24] = -1.0f;
-                    if (temp_cr0_eq == 0) {
+                    if (temp_cr0_eq) {
                         VILN_tran(resp, 6, 0);
                     } else {
                         VILN_tran(resp, 8, 0);
@@ -10607,8 +10623,10 @@ static signed int VILN_BBK_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA
 static signed int VILN_BBK_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot)
 {
 
-    if (goal >= 0) {
+    {
         switch (goal) {                       /* switch 1 */
+        case 0:
+            break;
         case 1:                                     /* switch 1 */
             VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
@@ -10926,6 +10944,8 @@ static signed int VILN_BGG_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     temp_r5 = stimctxt->stim;
     g_pgol = (en_BEHAVIOUR_GOAL)temp_r3;
     switch (temp_r3) {                              /* switch 1 */
+    case -1:
+        break;
     case 0:                                         /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r5;
         switch (temp_r5) {                          /* switch 2; irregular */
@@ -10960,8 +10980,10 @@ static signed int VILN_BGG_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     case 22:                                        /* switch 1 */
     case 23:                                        /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r5;
-        if ((unsigned int)temp_r5 <= 0x26U) {
+        {
             switch (temp_r5) {                      /* switch 4 */
+            case 0:
+                break;
             case 34:                                /* switch 4 */
                 vil->hitpts = 0;
                 VILN_tran(resp, 0x20, 7);
@@ -11010,9 +11032,9 @@ static signed int VILN_BGG_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 break;
             case 10:                                /* switch 4 */
                 if ((stimctxt->widge != NULL) && (vil->abl_move & 0x100)) {
-                    temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1) == 0;
+                    temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1);
                     vil->tmr_list[24] = -1.0f;
-                    if (temp_cr0_eq == 0) {
+                    if (temp_cr0_eq) {
                         VILN_tran(resp, 6, 3);
                     } else {
                         VILN_tran(resp, 8, 3);
@@ -11294,8 +11316,10 @@ static signed int VILN_BGG_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA
 static signed int VILN_BGG_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot)
 {
 
-    if (goal >= 0) {
+    {
         switch (goal) {                       /* switch 1 */
+        case 0:
+            break;
         case 1:                                     /* switch 1 */
             VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
@@ -11433,7 +11457,7 @@ static signed int VILN_BRB_notice(st_zEntVillain* vil, en_ZVIL_NOTICE note, st_S
                 minst->Flags |= 4;
                 break;
             case 1:
-                minst->Flags &= ~0x20;
+                minst->Flags &= 0xFFDF;
                 minst->Flags |= 8;
                 minst->Flags |= 1;
                 minst->Flags |= 2;
@@ -11596,6 +11620,8 @@ static signed int VILN_BRB_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     temp_r5 = stimctxt->stim;
     g_pgol = (en_BEHAVIOUR_GOAL)temp_r3;
     switch (temp_r3) {                              /* switch 1 */
+    case -1:
+        break;
     case 0:                                         /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r5;
         switch (temp_r5) {                          /* switch 2; irregular */
@@ -11630,8 +11656,10 @@ static signed int VILN_BRB_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     case 22:                                        /* switch 1 */
     case 23:                                        /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r5;
-        if ((unsigned int)temp_r5 <= 0x26U) {
+        {
             switch (temp_r5) {                      /* switch 4 */
+            case 0:
+                break;
             case 34:                                /* switch 4 */
                 vil->hitpts = 0;
                 VILN_tran(resp, 0x20, 7);
@@ -11685,9 +11713,9 @@ static signed int VILN_BRB_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 break;
             case 10:                                /* switch 4 */
                 if ((stimctxt->widge != NULL) && (vil->abl_move & 0x100)) {
-                    temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1) == 0;
+                    temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1);
                     vil->tmr_list[24] = -1.0f;
-                    if (temp_cr0_eq == 0) {
+                    if (temp_cr0_eq) {
                         VILN_tran(resp, 6, 0);
                     } else {
                         VILN_tran(resp, 8, 0);
@@ -11934,8 +11962,10 @@ static signed int VILN_BRB_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA
 static signed int VILN_BRB_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot)
 {
 
-    if (goal >= 0) {
+    {
         switch (goal) {                       /* switch 1 */
+        case 0:
+            break;
         case 1:                                     /* switch 1 */
             VANM_playLoop(vil, (en_NPC_ANIMSTATES)0x1);
             break;
@@ -12075,17 +12105,32 @@ static signed int VILN_BMM_notice(st_zEntVillain* vil, en_ZVIL_NOTICE note, st_S
     {
         while (minst)
         {
-            if (idx >= 0 && idx < 2)
+            switch (idx)
             {
+            case 0:
+            case 1:
                 minst->Flags |= 1;
                 minst->Flags |= 2;
                 minst->Flags |= 4;
-            }
-            else if (idx >= 2 && idx < 8)
-            {
-                minst->Flags &= ~1;
-                minst->Flags &= ~2;
-                minst->Flags &= ~4;
+                break;
+            case 2:
+            case 3:
+                minst->Flags &= 0xFFFE;
+                minst->Flags &= 0xFFFD;
+                minst->Flags &= 0xFFFB;
+                break;
+            case 4:
+            case 5:
+                minst->Flags &= 0xFFFE;
+                minst->Flags &= 0xFFFD;
+                minst->Flags &= 0xFFFB;
+                break;
+            case 6:
+            case 7:
+                minst->Flags &= 0xFFFE;
+                minst->Flags &= 0xFFFD;
+                minst->Flags &= 0xFFFB;
+                break;
             }
             minst = minst->Next;
             idx++;
@@ -13075,8 +13120,9 @@ static signed int VILN_BMM_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal,
 {
 
     signed int alt;
-    alt = ((vil->allow >> 2) & 1) | ((vil->allow >> 4) & 1);
-    if (goal >= 0) {
+    alt = (vil->allow & 4) ? 1 : 0;
+    alt |= (vil->allow & 0x10) ? 1 : 0;
+    {
         switch (goal) {                       /* switch 1 */
         case 0:                                     /* switch 1 */
         case 1:                                     /* switch 1 */
@@ -13218,7 +13264,7 @@ static inline signed int VILN_cmn_notice(st_zEntVillain* vil, en_ZVIL_NOTICE not
         for (i = 0; i < 12; i++)
         {
             _xVec3* v = &vil->vilcfg.pos_verts[i];
-            if (v->x * v->x + v->y * v->y + v->z * v->z != 0.0f)
+            if (v->x * v->x + v->y * v->y + v->z * v->z)
             {
                 iModelTagSetup(&vil->tag_vert[i], vil->model->Data, v->x, v->y, v->z);
                 vil->flg_vert |= 1 << i;
@@ -13235,6 +13281,9 @@ static inline signed int VILN_cmn_notice(st_zEntVillain* vil, en_ZVIL_NOTICE not
         {
             zVIL_precalc(vil, 0xF);
         }
+        break;
+    case 2:
+    case 3:
         break;
     }
     return 1;

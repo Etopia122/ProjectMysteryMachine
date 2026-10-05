@@ -724,7 +724,7 @@ _zParEmitterCustomSettings g_info;
 extern zPlayerSituation sPlayerInfo[37];
 
 
-#define SND_INVALID 0xFFFEFFFF
+#define SND_INVALID 0xFFFFFFFF
 
 void zEntPlayer_InitCutsceneModelHack();
 static unsigned int zEntPlayer_SNDSkidCB(unsigned int, xAnimActiveEffect*, xAnimSingle*, void*);
