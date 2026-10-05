@@ -1185,6 +1185,7 @@ void PKR_updateLayerAssets(st_PACKER_LTOC_NODE* laynode)
 {
     signed int i;
     st_PACKER_ATOC_NODE* tmpass = 0;
+    st_PACKER_ATOC_NODE* ass;
 
     for (i = 0; i < laynode->assref.cnt; i++)
     {
@@ -1201,17 +1202,17 @@ void PKR_updateLayerAssets(st_PACKER_LTOC_NODE* laynode)
         signed int lay_hip_pos = tmpass->d_off;
         for (i = 0; i < laynode->assref.cnt; i++)
         {
-            st_PACKER_ATOC_NODE* tmpass = (st_PACKER_ATOC_NODE*)laynode->assref.list[i];
-            if (!(tmpass->loadflag & 0x100000))
+            ass = (st_PACKER_ATOC_NODE*)laynode->assref.list[i];
+            if (!(ass->loadflag & 0x100000))
             {
-                if (tmpass->loadflag & 0x200000)
+                if (ass->loadflag & 0x200000)
                 {
-                    tmpass->memloc = 0;
+                    ass->memloc = 0;
                 }
                 else
                 {
-                    tmpass->memloc = laynode->laymem + (tmpass->d_off - lay_hip_pos);
-                    tmpass->loadflag |= 0x80000;
+                    ass->memloc = laynode->laymem + (ass->d_off - lay_hip_pos);
+                    ass->loadflag |= 0x80000;
                 }
             }
         }
