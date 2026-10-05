@@ -3441,7 +3441,7 @@ static inline void VOUT_steer(st_zEntVillain* vil);
 static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp);
 static void VBON_drop_bonusItem(st_zEntVillain* vil);
 static inline void VBON_setup_bonusTable();
-static inline signed int VSND_findProps(en_NPC_SOUND sndEvent, st_NPC_SOUND_PROPERTIES** sprop_caller);
+static inline st_NPC_SOUND_PROPERTIES* VSND_findProps(en_NPC_SOUND sndEvent, st_NPC_SOUND_PROPERTIES** sprop_caller);
 static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent);
 static inline void VANM_playRand5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d, en_NPC_ANIMSTATES e);
 static inline void VANM_playRand4(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_NPC_ANIMSTATES b, en_NPC_ANIMSTATES c, en_NPC_ANIMSTATES d);
@@ -8723,17 +8723,25 @@ static signed int VILN_shagM_aware(st_zEntVillain* vil, _xScene* scn, float dt, 
 static signed int VILN_shagM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt,
                                       st_STIMULUS_CONTEXT_DATA* resp)
 {
+    signed int goal = vil->goal;
     en_NPC_STIMULUS stim = stimctxt->stim;
 
-    g_pgol = vil->goal;
-    switch (vil->goal)
+    g_pgol = (en_BEHAVIOUR_GOAL)goal;
+    switch (goal)
     {
+    case -1:
+        break;
     case 0:
     case 1:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_MAKEREADY)
+        switch (stim)
         {
+        case 5:
+        case 0:
+            break;
+        case 2:
             VILN_tran(resp, 2, 1);
+            break;
         }
         break;
     case 2:
@@ -8748,6 +8756,8 @@ static signed int VILN_shagM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_D
         g_pstm = stim;
         switch (stim)
         {
+        case 0:
+            break;
         case ZVIL_STIM_KILLSELF:
             vil->hitpts = 0;
             VILN_tran(resp, 0x20, 7);
@@ -9150,17 +9160,36 @@ static inline void VILN_gangIdle(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* 
 static signed int VILN_gang_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt,
                                      st_STIMULUS_CONTEXT_DATA* resp)
 {
+    signed int goal = vil->goal;
     en_NPC_STIMULUS stim = stimctxt->stim;
 
-    g_pgol = vil->goal;
-    switch (vil->goal)
+    g_pgol = (en_BEHAVIOUR_GOAL)goal;
+    switch (goal)
     {
+    case -1:
+        break;
     case 0:
+        g_pstm = stim;
+        switch (stim)
+        {
+        case 5:
+        case 0:
+            break;
+        case 2:
+            VILN_tran(resp, 2, 1);
+            break;
+        }
+        break;
     case 1:
         g_pstm = stim;
-        if (stim == ZVIL_STIM_MAKEREADY)
+        switch (stim)
         {
+        case 5:
+        case 0:
+            break;
+        case 2:
             VILN_tran(resp, 2, 1);
+            break;
         }
         break;
     case 2:
@@ -9176,6 +9205,8 @@ static signed int VILN_gang_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
         g_pstm = stim;
         switch (stim)
         {
+        case 0:
+            break;
         case ZVIL_STIM_KILLSELF:
             vil->hitpts = 0;
             VILN_tran(resp, 0x20, 7);
@@ -9263,7 +9294,11 @@ static signed int VILN_gang_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
             }
             break;
         case ZVIL_STIM_STOPPATROL:
+            VILN_tran(resp, 4, 3);
+            break;
         case ZVIL_STIM_STARTGUARD:
+            VILN_tran(resp, 4, 3);
+            break;
         case ZVIL_STIM_STOPGUARD:
             VILN_tran(resp, 4, 3);
             break;
@@ -9286,18 +9321,15 @@ static inline void VSND_startTalk(st_zEntVillain* vil, zSFX* sfx)
         {
             signed int flg;
             signed int i;
-            unsigned int aid;
 
-            VSND_findProps((en_NPC_SOUND)0x2E, &sprop);
-            flg = sprop->flg_vsnd;
+            flg = VSND_findProps((en_NPC_SOUND)0x2E, &sprop)->flg_vsnd;
             for (i = 0; i < 4; i++)
             {
                 vil->snd_queue[i].sndEvent = (en_NPC_SOUND)-1;
                 vil->snd_queue[i].sndDirect = 0;
             }
-            aid = *(unsigned int*)(*(char**)((char*)sfx + 0x10) + 0x10);
             VSND_addQueueEntry(vil, (en_NPC_SOUND)0x8000, flg, g_npcTable[vil->asset->subtype].dst_noisy,
-                               sprop->tym_delayStart, -1.0f, 0, aid);
+                               sprop->tym_delayStart, -1.0f, 0, *(unsigned int*)(*(char**)((char*)sfx + 0x10) + 0x10));
         }
     }
 }
@@ -19489,8 +19521,7 @@ static inline void VSND_cue(st_zEntVillain* vil, en_NPC_SOUND sndEvent)
     float delay;
     float radius;
 
-    VSND_findProps(sndEvent, &sprop);
-    flg_vsnd = sprop->flg_vsnd;
+    flg_vsnd = VSND_findProps(sndEvent, &sprop)->flg_vsnd;
     if (sndEvent != VSND_TYP_HOLOFADE)
     {
         flg_vsnd &= 0x0FFFFFFF;
@@ -19507,11 +19538,10 @@ static void VSND_play(st_zEntVillain* vil, en_NPC_SOUND sndEvent)
 {
     st_NPC_SOUND_PROPERTIES* sprop = NULL;
     signed int flg_vsnd;
-    float delay;
     float radius;
+    float delay;
 
-    VSND_findProps(sndEvent, &sprop);
-    flg_vsnd = sprop->flg_vsnd;
+    flg_vsnd = VSND_findProps(sndEvent, &sprop)->flg_vsnd;
     if (sndEvent != VSND_TYP_HOLOFADE)
     {
         flg_vsnd &= 0x0FFFFFFF;
@@ -19538,7 +19568,14 @@ static inline signed int VSND_addQueueEntry(st_zEntVillain* vil, en_NPC_SOUND sn
         if (que->sndEvent == VSND_TYP_BOGUS)
         {
             memset(que, 0, sizeof(st_NPC_SOUND_QUEUE));
-            que->sndEvent = sndEvent;
+            if (useThisSound)
+            {
+                que->sndEvent = (en_NPC_SOUND)0x8000;
+            }
+            else
+            {
+                que->sndEvent = sndEvent;
+            }
             que->sndDirect = useThisSound;
             que->flg_frolic = flg_vsnd;
             que->tmr_delay = delay;
@@ -19862,7 +19899,7 @@ static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent
     return da_aid_of_sound;
 }
 
-static inline signed int VSND_findProps(en_NPC_SOUND sndEvent, st_NPC_SOUND_PROPERTIES** sprop_caller)
+static inline st_NPC_SOUND_PROPERTIES* VSND_findProps(en_NPC_SOUND sndEvent, st_NPC_SOUND_PROPERTIES** sprop_caller)
 {
     st_NPC_SOUND_PROPERTIES* sprop = g_sndProps;
 
@@ -19878,7 +19915,7 @@ static inline signed int VSND_findProps(en_NPC_SOUND sndEvent, st_NPC_SOUND_PROP
     {
         *sprop_caller = sprop;
     }
-    return sprop->sndEvent != VSND_LISTEND;
+    return sprop;
 }
 
 static inline void VBON_setup_bonusTable()
