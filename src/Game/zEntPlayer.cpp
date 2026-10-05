@@ -4364,7 +4364,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
     {
         _xCollis bbc;
         bbc.flags = 0;
-        _xBox bbox = *(_xBox*)((char*)globals.sceneCur->env->geom->world + 0x4C);
+        _xBox bbox = *(_xBox*)((char*)globals.sceneCur->env->geom->world + 0x50);
         bbox.upper.y += 10.0f;
         xSphereHitsBox(&ent->bound.sph, &bbox, &bbc);
         if (!(bbc.flags & 0x11))
