@@ -3808,7 +3808,11 @@ signed int zEntVillain_Startup()
 
 signed int zEntVillain_Shutdown()
 {
-    return --g_npcinit;
+    if (--g_npcinit != 0)
+    {
+        return g_npcinit;
+    }
+    return g_npcinit;
 }
 
 signed int zEntVillain_scenePrepare()
@@ -6407,7 +6411,7 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             stimctxt->res_gods = 2;
             if (vil->goal == 0x19) {
                 temp_f31 = vil->vilcfg.tymref_list[14];
-                vil->tmr_list[14] = (0.25f * (iurand() - 0.5f) * temp_f31) + temp_f31;
+                vil->tmr_list[14] = VUTIL_jitter(temp_f31);
                 vil->tmr_list[0] = (3.0f * (0.25f * (iurand() - 0.5f))) + 3.0f;
             }
             break;
@@ -6415,7 +6419,7 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             stimctxt->res_gods = 2;
             if (vil->goal == 0x1A) {
                 temp_f31_2 = vil->vilcfg.tymref_list[13];
-                vil->tmr_list[13] = (0.25f * (iurand() - 0.5f) * temp_f31_2) + temp_f31_2;
+                vil->tmr_list[13] = VUTIL_jitter(temp_f31_2);
                 vil->tmr_list[0] = (3.0f * (0.25f * (iurand() - 0.5f))) + 3.0f;
             }
             break;
@@ -6787,7 +6791,7 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                     }
                     if (!(globals.player.Inv_Specials & 0x800)) {
                         temp_f31_4 = vil->vilcfg.tymref_list[12];
-                        vil->tmr_list[12] = (0.25f * (iurand() - 0.5f) * temp_f31_4) + temp_f31_4;
+                        vil->tmr_list[12] = VUTIL_jitter(temp_f31_4);
                     } else {
                         temp_r0_4 = vil->hitpts - 1;
                         vil->hitpts = temp_r0_4;
@@ -6795,7 +6799,7 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                             VILN_tran(resp, 0x20, 7);
                         } else {
                             temp_f31_5 = vil->vilcfg.tymref_list[12];
-                            vil->tmr_list[12] = (0.25f * (iurand() - 0.5f) * temp_f31_5) + temp_f31_5;
+                            vil->tmr_list[12] = VUTIL_jitter(temp_f31_5);
                         }
                     }
                 }
@@ -6812,7 +6816,7 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                         vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x18, (en_ZVIL_GOAL_SPOT)1);
                         temp_f31_6 = vil->vilcfg.tymref_list[12];
                         var_f2 = -1.0f;
-                        vil->tmr_list[12] = (0.25f * (iurand() - 0.5f) * temp_f31_6) + temp_f31_6;
+                        vil->tmr_list[12] = VUTIL_jitter(temp_f31_6);
                         vil->tmr_list[4] = vil->tmr_list[12];
                         temp_f0_5 = -1.0f + vil->tmr_list[4];
                         if (temp_f0_5 < -1.0f) {
@@ -6829,7 +6833,7 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             case 30:                                /* switch 11 */
                 if (vil->abl_vuln & 0x40000) {
                     temp_f31_7 = vil->vilcfg.tymref_list[12];
-                    vil->tmr_list[12] = (0.25f * (iurand() - 0.5f) * temp_f31_7) + temp_f31_7;
+                    vil->tmr_list[12] = VUTIL_jitter(temp_f31_7);
                     temp_f1_3 = stimctxt->off_goto;
                     if (temp_f1_3 > 0.0f) {
                         var_f0 = 1.5f;
@@ -10458,8 +10462,15 @@ static signed int VILN_BBK_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         goal = vil->goal;
     }
 
-    if (goal == 0x20)
+    switch (goal)
     {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+        rc = VILN_std_trangoal(vil, stimctxt, dt);
+        break;
+    case 0x20:
         rc = VILN_std_trangoal(vil, stimctxt, dt);
         if (stim == ZVIL_STIM_ENTERGOAL)
         {
@@ -10469,10 +10480,7 @@ static signed int VILN_BBK_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         {
             VEFX_zapTheKnight(vil, 1);
         }
-    }
-    else if (goal >= 0 && goal < 4)
-    {
-        rc = VILN_std_trangoal(vil, stimctxt, dt);
+        break;
     }
 
     g_pgol = goal;
@@ -11070,10 +11078,6 @@ static signed int VILN_BGG_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
 
 static signed int VILN_BGG_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt)
 {
-    _xVec3 vec14 = {};
-    float sp10;
-    float sp8;
-    float spC;
     signed int temp_r0;
     signed int temp_r29;
     zEntProjectile* temp_r29_2;
@@ -11093,11 +11097,19 @@ static signed int VILN_BGG_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     } else {
         var_r28 = vil->goal;
     }
-    if (var_r28 == 0x20 || (var_r28 >= 0 && var_r28 < 4)) {
+    switch (var_r28) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 32:
         var_r31 = VILN_std_trangoal(vil, stimctxt, dt);
+        break;
     }
     g_pgol = (en_BEHAVIOUR_GOAL)var_r28;
     switch (var_r28) {                              /* switch 1 */
+    case -1:
+        break;
     case 4:                                         /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r29;
         switch (temp_r29) {                         /* switch 2; irregular */
@@ -11158,13 +11170,9 @@ static signed int VILN_BGG_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             VWEP_lobActivatePRJ(temp_r29_2, vil, xBoundCenter(&globals.player.ent.bound), NULL, &vil->vec_lobSpin, vil->fac_lobarc, vil->fac_lobheavy);
             vil->tmr_list[21] = -1.0f;
             VCFG_getParm(&vil->vilcfg, (en_NPC_INI_PARAMETERS) 0xC, &vil->cnt_lobSalvo);
-            temp_r3 = vil->cnt_lobSalvo;
-            var_r0 = 1;
-            if (temp_r3 >= 1) {
-                var_r0 = temp_r3;
-            }
-            vil->cnt_lobSalvo = var_r0;
-            vil->cnt_lobSalvo = var_r0;
+            temp_r3 = (vil->cnt_lobSalvo >= 1) ? vil->cnt_lobSalvo : 1;
+            vil->cnt_lobSalvo = temp_r3;
+            vil->cnt_lobSalvo = temp_r3;
             break;
         case 3:                                     /* switch 5 */
             if (vil->allow & 8) {
@@ -11220,15 +11228,13 @@ static signed int VILN_BGG_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 vil->pos_vortex.y = temp_r3_4->y;
                 vil->pos_vortex.z = temp_r3_4->z;
                 vil->pos_vortex.y = vil->frame->mat.pos.y;
+                _xVec3 vec14 = {};
                 temp_r5 = (_xMat4x3*)vil->model->Mat;
                 vec14.x = temp_r5->pos.x - vil->pos_vortex.x;
                 vec14.y = temp_r5->pos.y - vil->pos_vortex.y;
                 vec14.z = temp_r5->pos.z - vil->pos_vortex.z;
                 vil->rad_spiral = xVec3Normalize(&vec14, &vec14);
-                sp8 = vec14.x;
-                sp10 = vec14.z;
-                spC = vec14.y;
-                vil->ang_spiral = xAngleClamp(atan2(sp8, sp10));
+                vil->ang_spiral = VSUP_yaw(vec14);
             }
             break;
         }
@@ -11767,11 +11773,19 @@ static signed int VILN_BRB_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     } else {
         var_r28 = vil->goal;
     }
-    if (var_r28 == 0x20 || (var_r28 >= 0 && var_r28 < 4)) {
+    switch (var_r28) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 32:
         var_r31 = VILN_std_trangoal(vil, stimctxt, dt);
+        break;
     }
     g_pgol = (en_BEHAVIOUR_GOAL)var_r28;
     switch (var_r28) {                              /* switch 1 */
+    case -1:
+        break;
     case 4:                                         /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r29;
         switch (temp_r29) {                         /* switch 2; irregular */
@@ -11829,22 +11843,16 @@ static signed int VILN_BRB_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->anim_loopmult = 0.97f;
             vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x16, (en_ZVIL_GOAL_SPOT)0);
             vil->goodattack = 0;
-            var_f1 = -1.0f;
-            vil->tmr_list[18] = 5.0f;
+                        vil->tmr_list[18] = 5.0f;
             vil->tmr_list[4] = vil->tmr_list[18];
             temp_f0 = -1.0f + vil->tmr_list[4];
-            if (temp_f0 < -1.0f) {
-
-            } else {
-                var_f1 = temp_f0;
-            }
-            vil->tmr_list[4] = var_f1;
+            vil->tmr_list[4] = (temp_f0 < -1.0f) ? -1.0f : temp_f0;
             VWEP_rbs_throw(&g_rbsword[0]);
             break;
         case 3:                                     /* switch 5 */
             vil->goodattack = 0;
             temp_f31 = vil->vilcfg.tymref_list[20];
-            vil->tmr_list[20] = (0.25f * (iurand() - 0.5f) * temp_f31) + temp_f31;
+            vil->tmr_list[20] = VUTIL_jitter(temp_f31);
             if (vil->allow & 8) {
                 zEntEvent((xBase *) vil, (xBase *) vil, 0xB1U);
             }
@@ -11878,7 +11886,7 @@ static signed int VILN_BRB_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             break;
         case 4:                                     /* switch 7 */
             temp_f31_2 = vil->vilcfg.tymref_list[22];
-            vil->tmr_list[22] = (0.25f * (iurand() - 0.5f) * temp_f31_2) + temp_f31_2;
+            vil->tmr_list[22] = VUTIL_jitter(temp_f31_2);
             temp_r0 = vil->hitpts;
             switch (temp_r0) {                      /* switch 8; irregular */
             case 4:                                 /* switch 8 */
@@ -12672,13 +12680,19 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     {
         goal = vil->goal;
     }
-    if (goal == 0x20 || (goal >= 0 && goal < 4))
+    switch (goal)
     {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 0x20:
         rc = VILN_std_trangoal(vil, stimctxt, dt);
         if (goal == 0x20 && stim == ZVIL_STIM_ENTERGOAL)
         {
             VSND_cue(vil, (en_NPC_SOUND)0x41);
         }
+        break;
     }
 
     g_pgol = goal;
@@ -13541,10 +13555,7 @@ static inline signed int VOUT_chkdo_patrolArrived(st_zEntVillain* vil)
     {
         float dy = vil->pos_moveto.y - entpos.y;
         dy = dy * dy;
-        if (!(dist > dy))
-        {
-            dist = dy;
-        }
+        dist = (dist > dy) ? dist : dy;
     }
 
     if (dist > g_npcTable[vil->asset->subtype].ds2_atpos)
@@ -13629,10 +13640,7 @@ static inline signed int VOUT_chkdo_followArrived(st_zEntVillain* vil)
     {
         float dy = vil->pos_moveto.y - entpos.y;
         dy = dy * dy;
-        if (!(dist > dy))
-        {
-            dist = dy;
-        }
+        dist = (dist > dy) ? dist : dy;
     }
 
     if (dist > vil->ds2_goto_keepaway + g_npcTable[vil->asset->subtype].ds2_atpos)
@@ -18057,8 +18065,8 @@ static xAnimTable* VANM_mktable_RB()
     xAnimTableNewTransition(table, "RB_Turn", "RB_IdleWind", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
     xAnimTableNewTransition(table, "RB_Chase", "RB_Walk", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
     xAnimTableNewTransition(table, "RB_Walk", "RB_Chase", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.2f, NULL);
-    names[1] = "RB_Turn";
     names[0] = "RB_IdleWind";
+    names[1] = "RB_Turn";
     names[2] = "RB_React";
     names[3] = "RB_TauntFeel";
     names[4] = "RB_TauntThroat";
@@ -18453,8 +18461,8 @@ static xAnimTable* VANM_mktable_GANG()
     xAnimTransition* tran;
     signed int i;
     char* names[32] = {};
-    xAnimTransition* tr90[147] = {};
     xAnimTransition* tr2DC[147] = {};
+    xAnimTransition* tr90[147] = {};
 
     table = xAnimTableNew("Villain_Gang", NULL);
     xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
@@ -18619,8 +18627,8 @@ static xAnimTable* VANM_mktable_STD()
     xAnimTransition* tran;
     signed int i;
     char* names[32] = {};
-    xAnimTransition* tr90[147] = {};
     xAnimTransition* tr2DC[147] = {};
+    xAnimTransition* tr90[147] = {};
 
     table = xAnimTableNew("Villain_Standard", NULL);
     xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
@@ -18827,8 +18835,8 @@ static xAnimTable* VANM_mktable_STD()
         xAnimTableAddTransition(table, tr2DC[32], names[i]);
         xAnimTableAddTransition(table, tr2DC[33], names[i]);
     }
-    names[1] = "Attack_1";
     names[0] = "Attack";
+    names[1] = "Attack_1";
     names[2] = "Attack_2";
     for (i = 0; i < 3; i++)
     {
@@ -18986,8 +18994,6 @@ static xAnimTable* VANM_mktable_STD()
     xAnimTableAddTransition(table, tr2DC[38], "Gummed");
     xAnimTableAddTransition(table, tr2DC[39], "Gummed");
     xAnimTableAddTransition(table, tr2DC[40], "Gummed");
-    names[22] = "Combo_1";
-    names[26] = "Dazed_Recovery";
     names[0] = "Move";
     names[1] = "Chase";
     names[2] = "Hear_Start";
@@ -19010,9 +19016,11 @@ static xAnimTable* VANM_mktable_STD()
     names[19] = "Extend_Attack_Loop";
     names[20] = "Extend_Combo";
     names[21] = "Combo";
+    names[22] = "Combo_1";
     names[23] = "Combo_2";
     names[24] = "Dazed";
     names[25] = "Dazed_Begin";
+    names[26] = "Dazed_Recovery";
     names[27] = "Bored";
     for (i = 0; i < 28; i++)
     {
@@ -19070,8 +19078,8 @@ static xAnimTable* VANM_mktable_STD()
             xAnimTableNewTransition(table, g_animname[i], "Death_From_Above", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 2, 0, 0.1f, NULL);
         }
     }
-    names[1] = "Death_From_Dazed";
     names[0] = "Death";
+    names[1] = "Death_From_Dazed";
     names[2] = "Death_From_Above";
     for (i = 0; i < 3; i++)
     {
