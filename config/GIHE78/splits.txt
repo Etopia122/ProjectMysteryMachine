@@ -1018,7 +1018,7 @@ dolphin/src/ax/AXProf.c:
 	.sbss       start:0x8025F390 end:0x8025F3A0
 
 dolphin/base/PPCArch.c:
-	.text       start:0x800F877C end:0x800F87E0
+	.text       start:0x800F877C end:0x800F8824
 
 dolphin/db/db.c:
 	.text       start:0x800F8824 end:0x800F8910

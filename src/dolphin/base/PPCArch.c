@@ -95,6 +95,13 @@ ASM void PPCMthid2(__REGISTER u32 newhid2) {
     blr
 }
 
+ASM u32 PPCMfwpar(void) {
+    nofralloc
+    sync
+    mfspr r3, WPAR
+    blr
+}
+
 ASM void PPCMtwpar(__REGISTER u32 newwpar) {
     nofralloc
     mtspr WPAR, newwpar

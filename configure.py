@@ -634,7 +634,7 @@ config.libs = [
         "cflags": cflags_tww_dolphin,
         "progress_category": "sdk",
         "objects": [
-            Object(NonMatching, "dolphin/base/PPCArch.c"),
+            Object(Matching, "dolphin/base/PPCArch.c"),
         ],
     },
     {
