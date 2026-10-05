@@ -995,6 +995,9 @@ dolphin/ar/arq.c:
 	.text       start:0x800F58E4 end:0x800F5DD0
 	.sbss       start:0x8025F2C0 end:0x8025F2F0
 
+dolphin/src/ax/AX.c:
+	.text       start:0x800F5DD0 end:0x800F5E38
+
 dolphin/src/ax/AXAlloc.c:
 	.text       start:0x800F5E38 end:0x800F630C
 	.bss        start:0x80242BD0 end:0x80242CD0

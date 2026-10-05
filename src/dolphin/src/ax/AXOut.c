@@ -184,13 +184,13 @@ void __AXOutInitDSP(void)
         }                                                                                          \
     }
 
-void __AXOutInit(u32 outputBufferMode)
+void __AXOutInit(void)
 {
 #ifdef DEBUG
     OSReport("Initializing AXOut code module\n");
 #endif
 
-    __AXOutputBufferMode = outputBufferMode;
+    __AXOutputBufferMode = 0;
     __AXOutFrame = 0;
     __AXAiDmaFrame = 0;
     __AXDebugSteppingMode = 0;
