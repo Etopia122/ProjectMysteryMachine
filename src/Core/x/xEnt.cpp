@@ -502,7 +502,10 @@ void xEntLoad(_xEnt* ent, xSerial* s)
     {
         ent->flags |= 1;
     }
-    ent->flags &= 0xFE;
+    else
+    {
+        ent->flags &= 0xFE;
+    }
 }
 
 void xEntReset(_xEnt* ent)
