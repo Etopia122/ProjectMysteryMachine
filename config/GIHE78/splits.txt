@@ -1003,6 +1003,11 @@ dolphin/src/ax/AXAlloc.c:
 	.bss        start:0x80242BD0 end:0x80242CD0
 	.sbss       start:0x8025F2F0 end:0x8025F2F4
 
+dolphin/src/ax/AXAux.c:
+	.text       start:0x800F630C end:0x800F6628
+	.bss        start:0x80242CE0 end:0x802459E0
+	.sbss       start:0x8025F2F8 end:0x8025F328
+
 dolphin/src/ax/AXCL.c:
 	.text       start:0x800F6628 end:0x800F666C
 	.bss        start:0x802459E0 end:0x80245FE0
