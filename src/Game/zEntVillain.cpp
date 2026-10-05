@@ -3751,8 +3751,8 @@ xAnimTable* zEntVillain_AnimTable_MasterMind();
 xAnimTable* zEntVillain_AnimTable_RedBeard();
 xAnimTable* zEntVillain_AnimTable_GreenGhost();
 xAnimTable* zEntVillain_AnimTable_BlackKnight();
-void zEntVillain_sceneFinish();
-void zEntVillain_scenePrepare();
+signed int zEntVillain_sceneFinish();
+signed int zEntVillain_scenePrepare();
 signed int zEntVillain_Shutdown();
 signed int zEntVillain_Startup();
 
@@ -3800,7 +3800,7 @@ signed int zEntVillain_Shutdown()
     return --g_npcinit;
 }
 
-void zEntVillain_scenePrepare()
+signed int zEntVillain_scenePrepare()
 {
     if (g_npcpool && g_npccnt > 0)
     {
@@ -3813,9 +3813,10 @@ void zEntVillain_scenePrepare()
     memset(g_emitpool, 0, 0x400);
     g_emitnext = 0;
     g_emitready = 0;
+    return 1;
 }
 
-void zEntVillain_sceneFinish()
+signed int zEntVillain_sceneFinish()
 {
     if (g_npcpool && g_npccnt > 0)
     {
@@ -3823,6 +3824,7 @@ void zEntVillain_sceneFinish()
     }
     g_npccnt = 0;
     g_npcpool = NULL;
+    return g_npcinit;
 }
 
 xAnimTable* zEntVillain_AnimTable_BlackKnight()
@@ -4220,12 +4222,13 @@ void zEntVillain_Load(st_zEntVillain* vil, xSerial* s)
 
 void zEntVillain_BonusRender()
 {
-    signed int i;
     signed int cnt = g_npccnt;
+    st_zEntVillain* vil;
+    signed int i;
 
     for (i = 0; i < cnt; i++)
     {
-        st_zEntVillain* vil = &g_npcpool[i];
+        vil = &g_npcpool[i];
 
         if (vil->goal == ZVIL_GOAL_GUMMED)
         {
@@ -13402,11 +13405,9 @@ static inline void VUTIL_resetctx(st_STIMULUS_CONTEXT_DATA* ctx)
 static void zVIL_elcb_bupdate(_xEnt* xe, _xVec3* pos_bound)
 {
     st_zEntVillain* vil = (st_zEntVillain*)xe;
-    st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
     _xVec3 vec_off = {};
 
-    npcinfo = &g_npcTable[vil->asset->subtype];
-    vec_off = npcinfo->vec_bndoff;
+    vec_off = *(&g_npcTable[vil->asset->subtype].vec_bndoff + 0);
     xMat3x3RMulVec(&vec_off, (_xMat3x3*)vil->model->Mat, &vec_off);
     xVec3Add(&vil->bound.sph.center, &vec_off, pos_bound);
     vil->bound.sph.r = g_npcTable[vil->asset->subtype].rad_bound;
@@ -13415,8 +13416,7 @@ static void zVIL_elcb_bupdate(_xEnt* xe, _xVec3* pos_bound)
     vil->bound2.sph.r = g_npcTable[vil->asset->subtype].rad_bound2;
     if (vil->bound2.sph.r > 0.0f)
     {
-        npcinfo = &g_npcTable[vil->asset->subtype];
-        vec_off = npcinfo->vec_bnd2off;
+        vec_off = *(&g_npcTable[vil->asset->subtype].vec_bnd2off + 0);
         xMat3x3RMulVec(&vec_off, (_xMat3x3*)vil->model->Mat, &vec_off);
         xVec3Add(&vil->bound2.sph.center, &vec_off, pos_bound);
     }
@@ -16020,8 +16020,22 @@ static signed int VWEP_lobInitMMFlask(st_zEntVillain* vil, _xVec3* pos_tgt, _xVe
     flask->hyt_aftermath = vil->wid_extend;
     flask->tym_aftermath = vil->wid_extend;
     flask->rad_aftermath = vil->wid_extend;
-    flask->arcness = (arcness <= 0.0f) ? 1.0f : arcness;
-    flask->heavy = (heavy <= 0.0f) ? 1.5f : heavy;
+    if (arcness <= 0.0f)
+    {
+        flask->arcness = 1.0f;
+    }
+    else
+    {
+        flask->arcness = arcness;
+    }
+    if (heavy <= 0.0f)
+    {
+        flask->heavy = 1.5f;
+    }
+    else
+    {
+        flask->heavy = heavy;
+    }
     return 1;
 }
 
@@ -16071,7 +16085,7 @@ static signed int VPRJ_BBK_attach(zEntProjectile* prj)
     prj->cat_data.idx_cdat = 2;
     prj->OrientSet(0);
     prj->ColDelaySet(50.0f, 1);
-    prj->tym_maxlife = (prj->tym_maxlife < 30.0f) ? 30.0f : prj->tym_maxlife;
+    prj->tym_maxlife = VIL_MAX(30.0f, prj->tym_maxlife);
     for (i = 0; i < 10; i++)
     {
         st_BKAXE_DATA* axfx = &g_axfxpool[i];
@@ -17174,8 +17188,8 @@ static inline void VWEP_rbs_flight(st_REDBEARD_SWORD* rbs, float dt)
 
 static void VWEP_rbs_chkCollide(st_REDBEARD_SWORD* rbs, float dt)
 {
-    signed int i;
     _xEnt* tgt;
+    signed int i;
     _xCollis colrec = {};
 
     xEntBeginCollide(rbs, globals.sceneCur, dt);
@@ -19748,8 +19762,8 @@ static inline void VBON_setup_bonusTable()
 
 static void VBON_drop_bonusItem(st_zEntVillain* vil)
 {
-    signed int skip_distchk = 0;
     signed int overlap = 0;
+    signed int skip_distchk = 0;
     _xVec3 vec_tmp = {};
     signed int i;
     st_NPC_BONUS* bon;
