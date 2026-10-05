@@ -8353,8 +8353,8 @@ static inline signed int VANM_inDmgWindow(st_zEntVillain* vil)
 {
     xAnimSingle* single = VANM_single(vil);
     float tym = single ? single->Time : 0.0f;
-    float beg = -1.0f;
     float end = -2.0f;
+    float beg = -1.0f;
 
     VCFG_getParm(&vil->vilcfg, ZVIL_PARM_DMG_BEGTIME, &beg);
     VCFG_getParm(&vil->vilcfg, ZVIL_PARM_DMG_ENDTIME, &end);
@@ -10193,18 +10193,22 @@ static signed int VILN_BBK_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
     case 4:
     {
         float yaw = vil->frame->rot.angle;
-        float da = yaw - vil->precalc.ang_VtoP;
-        da = (da < 0.0f) ? -da : da;
 
-        vil->anim_loopmult = 0.97f;
-        vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)((da <= 0.2f) ? 0 : 0xC));
+        if ((float)__fabs(yaw - vil->precalc.ang_VtoP) <= 0.2f)
+        {
+            vil->anim_loopmult = 0.97f;
+            vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)0);
+        }
+        else
+        {
+            vil->anim_loopmult = 0.97f;
+            vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)0xC);
+        }
         if (vil->tmr_list[ZVIL_TDUR_LOBRELOAD] <= 0.0f)
         {
             if (vil->vhf->query(vil, ZVIL_Q_CANATTACK))
             {
-                da = yaw - vil->precalc.ang_VtoP;
-                da = (da < 0.0f) ? -da : da;
-                if (!(da <= 0.4f))
+                if (!((float)__fabs(yaw - vil->precalc.ang_VtoP) <= 0.4f))
                 {
                     break;
                 }
