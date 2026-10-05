@@ -1157,6 +1157,12 @@ dolphin/src/si/SISamplingRate.c:
 	.data       start:0x801CD858 end:0x801CD8F0
 	.sbss       start:0x8025F4E0 end:0x8025F4E8
 
+dolphin/vi/vi.c:
+	.text       start:0x8010A300 end:0x8010BD44
+	.data       start:0x801CD8F0 end:0x801CDBB8
+	.bss        start:0x8025BEA0 end:0x8025BFE8
+	.sbss       start:0x8025F4E8 end:0x8025F538
+
 dolphin/pad/Padclamp.c:
 	.text       start:0x8010BD44 end:0x8010BE74
 
