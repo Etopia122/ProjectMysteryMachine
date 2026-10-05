@@ -3875,6 +3875,13 @@ xAnimTable* zEntPlayer_LampshadeAnimTable()
     return table;
 }
 
+// Stand-in for a function the linker strips; it keeps "PARSYS_SD_" between
+// zEntPlayer_Init's and zEntPlayer_LampshadeAnimTable's literals.
+void zEntPlayerParSysDeadStripped(char* name)
+{
+    strcpy(name, "PARSYS_SD_");
+}
+
 void zEntPlayer_Init(_xEnt* ent, p2EntAsset* asset)
 {
     zEntInit((_zEnt*)ent, asset, 'PLYR');

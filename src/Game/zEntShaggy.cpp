@@ -2273,7 +2273,7 @@ signed int Shaggy0_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
 // 0.365f between Shaggy2_StateChange's and Shaggy1_EventCB's literals.
 unsigned int zEntShaggyTimeDeadStripped(float t)
 {
-    fn_80015EAC("Time = %f\n", -4.0f * t);
+    fn_80015EAC("ModlTime = %f\n", -4.0f * t);
     return t > 0.365f;
 }
 
@@ -2858,6 +2858,7 @@ void Shaggy5_WitchTransitions(xAnimTable* table)
 xAnimTable* zEntShaggy_Anim5()
 {
     xAnimTable* table;
+    xAnimTransition* tran;
 
     table = xAnimTableNew("Shaggy5", NULL);
     xAnimTableNewState(table, "Idle", 0x10, 0, 1.0f, NULL, NULL, 0.0f, NULL);
@@ -2896,7 +2897,8 @@ xAnimTable* zEntShaggy_Anim5()
     xAnimTableNewTransition(table, "Move_walk Move_sneak Move_run Move_hungry Idle Idle2 Idle3 Idle_hungry Idle_hungry2 Idle_garg Idle_garg2 Idle_garg3 ", "Idle_scared", Shaggy5_IdleTran, Shaggy1_IdleResetCB, 0, 1, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
     xAnimTableNewTransition(table, "Move_walk Move_sneak Move_run Move_hungry Idle Idle2 Idle3 Idle_scared Idle_scared2 Idle_scared3 Idle_garg Idle_garg2 Idle_garg3 ", "Idle_hungry", Shaggy5_IdleTran, Shaggy1_IdleResetCB, 0, 2, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
     xAnimTableNewTransition(table, "Move_walk Move_sneak Move_run Move_hungry Idle Idle2 Idle3 Idle_scared Idle_scared2 Idle_scared3 Idle_hungry Idle_hungry2 ", "Idle_garg", Shaggy5_IdleTran, Shaggy1_IdleResetCB, 0, 3, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
-    xAnimTableAddTransition(table, xAnimTableNewTransition(table, "Idle Idle2 Idle3 Idle_scared Idle_scared2 Idle_scared3 Idle_hungry Idle_hungry2 Idle_garg Idle_garg2 Idle_garg3 ", "Idle_witch", Shaggy5_WitchAttached, NULL, 0, 0, 0.0f, 0.0f, 1, 0, 0.15f, NULL), "Move_walk Move_sneak Move_run Move_turn Fire_hit");
+    tran = xAnimTableNewTransition(table, "Idle Idle2 Idle3 Idle_scared Idle_scared2 Idle_scared3 Idle_hungry Idle_hungry2 Idle_garg Idle_garg2 Idle_garg3 ", "Idle_witch", Shaggy5_WitchAttached, NULL, 0, 0, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, tran, "Move_walk Move_sneak Move_run Move_turn Fire_hit");
     xAnimTableNewTransition(table, "Idle_witch", "Chimney_intro", Shaggy5_WitchDropped, NULL, 0, 0, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
     xAnimTableNewTransition(table, "Idle Idle2 Idle3 Idle_scared Idle_scared2 Idle_scared3 Idle_hungry Idle_hungry2 Idle_garg Idle_garg2 Idle_garg3 Move_walk Move_sneak Move_run Move_hungry ", "Eat_tomove", Shaggy5_Action, Shaggy5_EatMoveCB, 0, 1, 0.0f, 0.0f, 2, 0, 0.15f, NULL);
     xAnimTableNewTransition(table, "Eat_tomove", "Move_hungry", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
@@ -2943,7 +2945,8 @@ xAnimTable* zEntShaggy_Anim5()
     xAnimTableNewTransition(table, "Move_run", "Fire_hit", Shaggy5_GargRunPick, Shaggy1_IdleResetCB, 0, 0x7B, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
     xAnimTableNewTransition(table, "Fire_hit", "Move_run", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 1, 0, 0.15f, NULL);
     xAnimTableNewTransition(table, "Idle Idle2 Idle3 Idle_scared Idle_scared2 Idle_scared3 Idle_hungry Idle_hungry2 Idle_garg Idle_garg2 Idle_garg3 Move_walk Move_sneak Move_run", "React_scare", Shaggy1_ScareReact, NULL, 0, 0, 0.0f, 0.0f, 0xB, 0, 0.15f, NULL);
-    xAnimTableAddTransition(table, xAnimTableNewTransition(table, "Idle Idle2 Idle3 Idle_scared Idle_scared2 Idle_scared3 Idle_hungry Idle_hungry2 Idle_garg Idle_garg2 Idle_garg3 Move_walk Move_sneak Move_run Move_hungry React_scare", "React_death", Shaggy1_DeathReact, NULL, 0, 0, 0.0f, 0.0f, 0xC, 0, 0.15f, NULL), "Chimney_intro Fire_hit Eat_tomove Eat_tostop Eat_loop");
+    tran = xAnimTableNewTransition(table, "Idle Idle2 Idle3 Idle_scared Idle_scared2 Idle_scared3 Idle_hungry Idle_hungry2 Idle_garg Idle_garg2 Idle_garg3 Move_walk Move_sneak Move_run Move_hungry React_scare", "React_death", Shaggy1_DeathReact, NULL, 0, 0, 0.0f, 0.0f, 0xC, 0, 0.15f, NULL);
+    xAnimTableAddTransition(table, tran, "Chimney_intro Fire_hit Eat_tomove Eat_tostop Eat_loop");
     return table;
 }
 
