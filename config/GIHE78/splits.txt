@@ -877,7 +877,7 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/misc_io.c:
 	.text       start:0x800EB0D0 end:0x800EB0E0
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/printf.c:
-	.text       start:0x800EB390 end:0x800ED118
+	.text       start:0x800EB0F8 end:0x800ED118
 	.rodata     start:0x801A7F20 end:0x801A7F48
 	.data       start:0x801CA848 end:0x801CAA74
 	.sdata      start:0x8025E5D0 end:0x8025E5D8

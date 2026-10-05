@@ -1193,6 +1193,22 @@ int printf(const char* format, ...) {
     return res;
 }
 
+int fprintf(FILE* file, const char* format, ...) {
+    int res;
+
+    if (fwide(file, -1) >= 0) {
+        return -1;
+    }
+
+    {
+        va_list args;
+        va_start(args, format);
+        res = __pformatter(&__FileWrite, (void*)file, format, args);
+    }
+
+    return res;
+}
+
 int vprintf(const char* format, va_list arg) {
     int ret;
 
@@ -1218,6 +1234,10 @@ int vsnprintf(char* s, size_t n, const char* format, va_list arg) {
     }
 
     return end;
+}
+
+int vsprintf(char* s, const char* format, va_list arg) {
+    return vsnprintf(s, 0xFFFFFFFF, format, arg);
 }
 
 int snprintf(char* s, size_t n, const char* format, ...) {
