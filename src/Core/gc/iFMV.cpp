@@ -167,7 +167,7 @@ void PSMTXIdentity(float m[3][4]);
 // TODO: unidentified GX/RenderWare functions (pixel format, projection, ortho matrix)
 void fn_80101DA4(signed int pix_fmt, signed int z_fmt);
 void fn_80102210(float mtx[4][4], signed int type);
-void fn_80103280(float m[4][4], float t, float b, float l, float r, float n, float f);
+void C_MTXOrtho(float m[4][4], float t, float b, float l, float r, float n, float f);
 // TODO: unidentified iSystem/xTRC functions
 void fn_80014A34(signed int);
 void fn_800167F0();
@@ -286,7 +286,7 @@ static void DrawFrame(float x, float y, float sx, float sy)
         fn_80101DA4(0, 0);
     }
     GXSetDispCopyGamma(0);
-    fn_80103280(mtx, 0.0f, 480.0f, 0.0f, 640.0f, 0.0f, 10000.0f);
+    C_MTXOrtho(mtx, 0.0f, 480.0f, 0.0f, 640.0f, 0.0f, 10000.0f);
     fn_80102210(mtx, 1);
     PSMTXIdentity(idt);
     GXLoadPosMtxImm(idt, 0);

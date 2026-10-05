@@ -573,6 +573,7 @@ config.libs = [
         [
             Object(Matching, "dolphin/src/dsp/dsp.c"),
             Object(Matching, "dolphin/src/dsp/dsp_task.c"),
+            Object(Matching, "dolphin/src/odenotstub/odenotstub.c"),
         ],
     ),
     DolphinLib(
@@ -679,6 +680,7 @@ config.libs = [
         "progress_category": "sdk",
         "objects": [
             Object(NonMatching, "dolphin/mtx/mtx.c"),
+            Object(Matching, "dolphin/mtx/mtx44.c"),
         ],
     },
     {

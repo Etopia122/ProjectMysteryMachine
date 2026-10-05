@@ -4,6 +4,8 @@
 #include <dolphin/os/OS.h>
 #include <math.h>
 
+// C_MTXFrustum and C_MTXPerspective are not linked into this game.
+#if 0
 void C_MTXFrustum(Mtx44 m, f32 t, f32 b, f32 l, f32 r, f32 n, f32 f) {
     f32 tmp;
 
@@ -62,6 +64,7 @@ void C_MTXPerspective(Mtx44 m, f32 fovY, f32 aspect, f32 n, f32 f) {
     m[3][2] = -1;
     m[3][3] = 0;
 }
+#endif
 
 void C_MTXOrtho(Mtx44 m, f32 t, f32 b, f32 l, f32 r, f32 n, f32 f) {
     f32 tmp;

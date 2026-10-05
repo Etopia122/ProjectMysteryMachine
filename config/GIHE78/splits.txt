@@ -1102,7 +1102,14 @@ dolphin/gx/GXPerf.c:
 dolphin/mtx/mtx.c:
 	.text       start:0x80103188 end:0x80103280
 	.sdata      start:0x8025E680 end:0x8025E688
-	.sdata2     start:0x80262758 end:0x80262784
+	.sdata2     start:0x80262768 end:0x80262770
+
+dolphin/mtx/mtx44.c:
+	.text       start:0x80103280 end:0x80103318
+	.sdata2     start:0x80262770 end:0x80262780
+
+dolphin/src/odenotstub/odenotstub.c:
+	.text       start:0x80103318 end:0x80103320
 
 dolphin/src/os/OSAlarm.c:
 	.text       start:0x80103C68 end:0x8010438C
