@@ -126,7 +126,7 @@ void GXInitLightDir(GXLightObj* obj, f32 x, f32 y, f32 z) {
 }
 
 void GXInitLightColor(GXLightObj* obj, GXColor color) {
-    *(u32*)&obj->color = *(u32*)&color;
+    *(u32*)&obj->color = ((u32)color.r << 24) | ((u32)color.g << 16) | ((u32)color.b << 8) | color.a;
 }
 
 static inline void PushLight(const __REGISTER GXLightObj* lt_obj, __REGISTER void* dest) {
@@ -161,101 +161,167 @@ static inline void PushLight(const __REGISTER GXLightObj* lt_obj, __REGISTER voi
 void GXLoadLightObjImm(GXLightObj* obj, GXLightID light) {
     u32 addr;
     u32 idx;
-    GXLightObj* pObj = (GXLightObj*)obj;
 
-    idx = 31 - __cntlzw(light);
-    idx &= 7;
+    switch (light) {
+    case GX_LIGHT0:
+        idx = 0;
+        break;
+    case GX_LIGHT1:
+        idx = 1;
+        break;
+    case GX_LIGHT2:
+        idx = 2;
+        break;
+    case GX_LIGHT3:
+        idx = 3;
+        break;
+    case GX_LIGHT4:
+        idx = 4;
+        break;
+    case GX_LIGHT5:
+        idx = 5;
+        break;
+    case GX_LIGHT6:
+        idx = 6;
+        break;
+    case GX_LIGHT7:
+        idx = 7;
+        break;
+    default:
+        idx = 0;
+        break;
+    }
 
     addr = 0x600 + idx * 0x10;
 
-    GX_XF_LOAD_REG_HDR(addr | (0x10 - 1) << 16);
+    GXFIFO.u8 = 0x10;
+    GXFIFO.u32 = addr | (0x10 - 1) << 16;
 
-    PushLight(pObj, (void*)GXFIFO_ADDR);
+    GXFIFO.u32 = 0;
+    GXFIFO.u32 = 0;
+    GXFIFO.u32 = 0;
+    GXFIFO.u32 = *(u32*)&obj->color;
+    GXFIFO.f32 = obj->a0;
+    GXFIFO.f32 = obj->a1;
+    GXFIFO.f32 = obj->a2;
+    GXFIFO.f32 = obj->k0;
+    GXFIFO.f32 = obj->k1;
+    GXFIFO.f32 = obj->k2;
+    GXFIFO.f32 = obj->posX;
+    GXFIFO.f32 = obj->posY;
+    GXFIFO.f32 = obj->posZ;
+    GXFIFO.f32 = obj->dirX;
+    GXFIFO.f32 = obj->dirY;
+    GXFIFO.f32 = obj->dirZ;
+
     gx->bpSentNot = 1;
 }
 
-void GXSetChanAmbColor(GXChannelID channel, GXColor color) {
+void GXSetChanAmbColor(GXChannelID chan, GXColor color) {
     u32 reg;
     u32 colorID;
-    u8 alpha;
 
-    switch (channel) {
+    switch (chan) {
     case GX_COLOR0:
         reg = gx->ambColor[GX_COLOR0];
-        reg = GX_SET_TRUNC(reg, GXCOLOR_AS_U32(color), 0, 23);
+        SET_REG_FIELD(reg, 24, 8, color.b);
+        SET_REG_FIELD(reg, 16, 16, color.g);
+        SET_REG_FIELD(reg, 8, 24, color.r);
         colorID = GX_COLOR0;
         break;
     case GX_COLOR1:
         reg = gx->ambColor[GX_COLOR1];
-        reg = GX_SET_TRUNC(reg, GXCOLOR_AS_U32(color), 0, 23);
+        SET_REG_FIELD(reg, 24, 8, color.b);
+        SET_REG_FIELD(reg, 16, 16, color.g);
+        SET_REG_FIELD(reg, 8, 24, color.r);
         colorID = GX_COLOR1;
         break;
     case GX_ALPHA0:
         reg = gx->ambColor[GX_COLOR0];
-        reg = GX_SET_TRUNC(reg, color.a, 24, 31);
+        GX_SET_REG(reg, color.a, 24, 31);
         colorID = GX_COLOR0;
         break;
     case GX_ALPHA1:
         reg = gx->ambColor[GX_COLOR1];
-        reg = GX_SET_TRUNC(reg, color.a, 24, 31);
+        GX_SET_REG(reg, color.a, 24, 31);
         colorID = GX_COLOR1;
         break;
     case GX_COLOR0A0:
-        reg = GXCOLOR_AS_U32(color);
+        reg = color.a;
+        SET_REG_FIELD(reg, 24, 8, color.b);
+        SET_REG_FIELD(reg, 16, 16, color.g);
+        SET_REG_FIELD(reg, 8, 24, color.r);
         colorID = GX_COLOR0;
         break;
     case GX_COLOR1A1:
-        reg = GXCOLOR_AS_U32(color);
+        reg = color.a;
+        SET_REG_FIELD(reg, 24, 8, color.b);
+        SET_REG_FIELD(reg, 16, 16, color.g);
+        SET_REG_FIELD(reg, 8, 24, color.r);
         colorID = GX_COLOR1;
         break;
     default:
         return;
     }
 
-    GX_XF_LOAD_REG(GX_XF_REG_AMBIENT0 + colorID, reg);
-    gx->bpSentNot = GX_TRUE;
+    GXFIFO.u8 = 0x10;
+    GXFIFO.u32 = 0x100a + colorID;
+    GXFIFO.u32 = reg;
+    gx->bpSentNot = 1;
     gx->ambColor[colorID] = reg;
 }
 
-void GXSetChanMatColor(GXChannelID channel, GXColor color) {
-    u32 reg = 0;
-    GXChannelID colorID;
+void GXSetChanMatColor(GXChannelID chan, GXColor color) {
+    u32 reg;
+    u32 colorID;
 
-    switch (channel) {
+    switch (chan) {
     case GX_COLOR0:
         reg = gx->matColor[GX_COLOR0];
-        reg = GX_SET_TRUNC(reg, GXCOLOR_AS_U32(color), 0, 23);
+        SET_REG_FIELD(reg, 24, 8, color.b);
+        SET_REG_FIELD(reg, 16, 16, color.g);
+        SET_REG_FIELD(reg, 8, 24, color.r);
         colorID = GX_COLOR0;
         break;
     case GX_COLOR1:
         reg = gx->matColor[GX_COLOR1];
-        reg = GX_SET_TRUNC(reg, GXCOLOR_AS_U32(color), 0, 23);
+        SET_REG_FIELD(reg, 24, 8, color.b);
+        SET_REG_FIELD(reg, 16, 16, color.g);
+        SET_REG_FIELD(reg, 8, 24, color.r);
         colorID = GX_COLOR1;
         break;
     case GX_ALPHA0:
         reg = gx->matColor[GX_COLOR0];
-        reg = GX_SET_TRUNC(reg, color.a, 24, 31);
+        GX_SET_REG(reg, color.a, 24, 31);
         colorID = GX_COLOR0;
         break;
     case GX_ALPHA1:
         reg = gx->matColor[GX_COLOR1];
-        reg = GX_SET_TRUNC(reg, color.a, 24, 31);
+        GX_SET_REG(reg, color.a, 24, 31);
         colorID = GX_COLOR1;
         break;
     case GX_COLOR0A0:
-        reg = GXCOLOR_AS_U32(color);
+        reg = color.a;
+        SET_REG_FIELD(reg, 24, 8, color.b);
+        SET_REG_FIELD(reg, 16, 16, color.g);
+        SET_REG_FIELD(reg, 8, 24, color.r);
         colorID = GX_COLOR0;
         break;
     case GX_COLOR1A1:
-        reg = GXCOLOR_AS_U32(color);
+        reg = color.a;
+        SET_REG_FIELD(reg, 24, 8, color.b);
+        SET_REG_FIELD(reg, 16, 16, color.g);
+        SET_REG_FIELD(reg, 8, 24, color.r);
         colorID = GX_COLOR1;
         break;
     default:
         return;
     }
 
-    GX_XF_LOAD_REG(GX_XF_REG_MATERIAL0 + colorID, reg);
-    gx->bpSentNot = GX_TRUE;
+    GXFIFO.u8 = 0x10;
+    GXFIFO.u32 = 0x100c + colorID;
+    GXFIFO.u32 = reg;
+    gx->bpSentNot = 1;
     gx->matColor[colorID] = reg;
 }
 
