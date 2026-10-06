@@ -466,17 +466,25 @@ void pc_gl_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
 void pc_events_pump();
 
 // Debug: PC_SHOT=<frame> saves build/pc/shot.bmp of that frame (and every 600 frames after).
+// PC_SHOT=<frame>,<step> saves build/pc/shot_<frame>.bmp every <step> frames instead.
 static void maybe_screenshot()
 {
     static int frame;
-    static int at = -2;
+    static int at = -2, step = 600;
+    static bool numbered;
     if (at == -2)
     {
         const char* e = getenv("PC_SHOT");
         at = e ? atoi(e) : -1;
+        const char* c = e ? strchr(e, ',') : NULL;
+        if (c && atoi(c + 1) > 0)
+        {
+            step = atoi(c + 1);
+            numbered = true;
+        }
     }
     frame++;
-    if (at < 0 || frame < at || (frame - at) % 600 != 0)
+    if (at < 0 || frame < at || (frame - at) % step != 0)
     {
         return;
     }
@@ -487,7 +495,16 @@ static void maybe_screenshot()
     {
         memcpy((unsigned char*)surf->pixels + y * surf->pitch, &px[(size_t)(s_winH - 1 - y) * s_winW * 4], (size_t)s_winW * 4);
     }
-    SDL_SaveBMP(surf, "build/pc/shot.bmp");
+    char name[64];
+    if (numbered)
+    {
+        snprintf(name, sizeof(name), "build/pc/shot_%d.bmp", frame);
+    }
+    else
+    {
+        snprintf(name, sizeof(name), "build/pc/shot.bmp");
+    }
+    SDL_SaveBMP(surf, name);
     SDL_FreeSurface(surf);
     pc_log("[gl] screenshot at frame %d", frame);
 }

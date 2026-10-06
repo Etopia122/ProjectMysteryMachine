@@ -874,6 +874,47 @@ static void atomic_plugin(RwStream* s, RwUInt32 id, RwUInt32 len, RwUInt32 ver, 
         RwStreamRead(s, b, 4);
         a->matfxEnabled = (RwInt32)rd32(b);
     }
+    else if (id == rwID_SKINPLUGIN && a->a.geometry && !pc_geometry(a->a.geometry)->skin && len >= 8)
+    {
+        // RenderWare 3.1 streams the skin with the atomic:
+        //   u32 numBones, u32 numVertices,
+        //   u32 boneIndices[numVertices] (4 packed bytes), float weights[numVertices][4],
+        //   per bone: u32 id, u32 index, u32 flags, RwMatrix skinToBone (64 bytes).
+        std::vector<RwUInt8> d(len);
+        RwStreamRead(s, d.data(), len);
+        RwInt32 nb = (RwInt32)rd32(&d[0]), nv = (RwInt32)rd32(&d[4]);
+        RpGeometry* g = a->a.geometry;
+        if (nv != g->numVertices || len < 8 + (size_t)nv * 20 + (size_t)nb * 76)
+        {
+            pc_log("[rw] atomic skin: unexpected layout (bones %d verts %d/%d len %u)", nb, nv, g->numVertices, len);
+            return;
+        }
+        PcSkin* sk = (PcSkin*)rwCalloc(1, sizeof(PcSkin));
+        sk->numBones = nb;
+        sk->maxWeights = 4;
+        size_t o = 8;
+        sk->indices = (RwUInt32*)rwMalloc((size_t)nv * 4);
+        memcpy(sk->indices, &d[o], (size_t)nv * 4);
+        o += (size_t)nv * 4;
+        sk->weights = (float*)rwMalloc((size_t)nv * 16);
+        for (RwInt32 i = 0; i < nv * 4; i++)
+        {
+            sk->weights[i] = rdf(&d[o + i * 4]);
+        }
+        o += (size_t)nv * 16;
+        sk->invMats = (RwMatrix*)rwCalloc(nb, sizeof(RwMatrix));
+        for (RwInt32 b = 0; b < nb; b++, o += 76)
+        {
+            const RwUInt8* m = &d[o + 12];
+            RwMatrix& M = sk->invMats[b];
+            M.right.x = rdf(m + 0), M.right.y = rdf(m + 4), M.right.z = rdf(m + 8);
+            M.up.x = rdf(m + 16), M.up.y = rdf(m + 20), M.up.z = rdf(m + 24);
+            M.at.x = rdf(m + 32), M.at.y = rdf(m + 36), M.at.z = rdf(m + 40);
+            M.pos.x = rdf(m + 48), M.pos.y = rdf(m + 52), M.pos.z = rdf(m + 56);
+            M.flags = 0;
+        }
+        pc_geometry(g)->skin = sk;
+    }
 }
 
 extern "C" {
@@ -1128,6 +1169,14 @@ void RtQuatSetupSlerpCache(RtQuat* from, RtQuat* to, RtQuatSlerpCache* c)
     }
     c->omega = acosf(d);
     c->nearlyZeroOm = c->omega < 0.0001f;
+    if (!c->nearlyZeroOm)
+    {
+        // Slerp evaluates raFrom * sin((1 - t) * omega) + raTo * sin(t * omega),
+        // so the endpoints are pre-divided by sin(omega).
+        float k = 1.0f / sinf(c->omega);
+        c->raFrom.imag.x *= k, c->raFrom.imag.y *= k, c->raFrom.imag.z *= k, c->raFrom.real *= k;
+        c->raTo.imag.x *= k, c->raTo.imag.y *= k, c->raTo.imag.z *= k, c->raTo.real *= k;
+    }
 }
 
 }
