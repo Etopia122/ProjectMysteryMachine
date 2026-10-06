@@ -1325,7 +1325,14 @@ static unsigned int zSceneInitFunc_Camera(zScene* s, zSceneObjectInstanceDesc* d
     signed int count = s->baseCount[desc->baseType];
     if (count)
     {
+#ifdef PC_PORT
+        // xCameraInit returns void; the GameCube code relied on the camera array
+        // being left in r3. Read it from the camera frame instead.
+        xCameraInit(&globals.camera, count);
+        _tagxCam* camBlock = globals.camera.cameras[0];
+#else
         _tagxCam* camBlock = xCameraInit(&globals.camera, count);
+#endif
         s->baseList[desc->baseType] = (xBase*)camBlock;
         for (signed int idx = 0; idx < count; idx++)
         {

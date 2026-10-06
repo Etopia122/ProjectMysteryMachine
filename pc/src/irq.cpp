@@ -18,7 +18,6 @@ static thread_local int s_disableDepth;
 static std::mutex s_queueLock;
 static std::condition_variable s_queueCv;
 static std::deque<std::function<void()> > s_queue;
-static std::thread s_thread;
 
 static void irq_thread()
 {
@@ -40,10 +39,11 @@ void pc_irq_post(std::function<void()> fn)
 {
     {
         std::lock_guard<std::mutex> lk(s_queueLock);
-        if (!s_thread.joinable())
+        static bool started;
+        if (!started)
         {
-            s_thread = std::thread(irq_thread);
-            s_thread.detach();
+            started = true;
+            std::thread(irq_thread).detach();
         }
         s_queue.push_back(fn);
     }
@@ -54,6 +54,11 @@ extern "C" {
 
 int OSDisableInterrupts()
 {
+    if (s_disableDepth > 64)
+    {
+        pc_log("[irq] OSDisableInterrupts nested %d deep without restore", s_disableDepth);
+        __builtin_trap();
+    }
     s_irqLock.lock();
     return s_disableDepth++ == 0;
 }

@@ -1,0 +1,788 @@
+// src/Core\x\xCamera.h
+class _tagp2CamStaticAsset
+{
+public:
+    unsigned int unused;
+};
+
+// src/Core\x\xCamera.h
+class _tagp2CamStaticFollowAsset
+{
+public:
+    float rubber_band;
+};
+
+// src/Core\x\xCamera.h
+class _tagxCamFollowAsset
+{
+public:
+    float rotation;
+    float distance;
+    float height;
+    float rubber_band;
+    float start_speed;
+    float end_speed;
+};
+
+// src/Core\x\xCamera.h
+class _tagxCamPathAsset
+{
+public:
+    unsigned int assetID;
+    float time_end;
+    float time_delay;
+};
+
+// src/Core\x\xCamera.h
+class _tagxCamShoulderAsset
+{
+public:
+    float distance;
+    float height;
+    float realign_speed;
+    float realign_delay;
+};
+
+// src/Core\gc\iSnd.cpp
+class iSndInfoAsset
+{
+public:
+    unsigned int nsounds;     // 0x0
+    unsigned int aramsize;    // 0x4
+    unsigned int nstreams;    // 0x8
+    sDSPADPCM entries[1];  // 0xC
+};
+
+// src/Core\x\xBase.h
+class p2BaseAsset
+{
+public:
+    unsigned int id;
+    unsigned char baseType;
+    unsigned char linkCount;
+    unsigned short baseFlags;
+};
+
+// src/Core\x\xEnt.h
+class p2EntAsset : public p2BaseAsset
+{
+public:
+    unsigned char flags;
+    unsigned char subtype;
+    unsigned char pflags;
+    unsigned char moreFlags;
+    unsigned int surfaceID;
+    _xVec3 ang;
+    _xVec3 pos;
+    _xVec3 scale;
+    float redMult;
+    float greenMult;
+    float blueMult;
+    float seeThru;
+    float seeThruSpeed;
+    unsigned int modelInfoID;
+    unsigned int animListID;
+};
+
+// src/Core\x\xEnt.cpp
+class p2EntAssetLike : public p2EntAsset
+{
+};
+
+// src/Game\zEntHangable.cpp
+class p2EntHangableAsset
+{
+public:
+    unsigned int flags; // 0x0
+    float pivotOffset;  // 0x4
+    float leverArm;     // 0x8
+    float gravity;      // 0xC
+    float accel;        // 0x10
+    float decay;        // 0x14
+    float grabDelay;    // 0x18
+    float stopDecel;    // 0x1C
+};
+
+// src/Core\x\xEntMotion.h
+class p2EntMotionAsset
+{
+public:
+    unsigned char type;   // 0x0
+    unsigned char pad;    // 0x1
+    unsigned short flags; // 0x2
+    union
+    {
+        p2EntMotionERData er;
+        p2EntMotionOrbitData orb;
+        p2EntMotionMPData mp;
+        p2EntMotionMechData mech;
+        p2EntMotionPenData pen;
+    }; // 0x4
+};
+
+// src/Game\zEntPlayer.cpp
+class p2EntTriggerAsset : public p2EntAsset
+{
+public:
+    _xVec3 p[4];       // 0x50
+    _xVec3 direction;  // 0x80
+    unsigned int flags; // 0x8C
+};
+
+// src/Game\zEntVillain.cpp
+class p2EntVillainAsset
+{
+public:
+    float activateRadius; // 0x0
+    float activateFOV; // 0x4
+    float detectHeight; // 0x8
+    float detectHeightOffset; // 0xC
+    float speedMovement; // 0x10
+    float speedPursue; // 0x14
+    float speedTurn; // 0x18
+    float pursuitRange; // 0x1C
+    unsigned short durDazedState; // 0x20
+    unsigned short durGloatState; // 0x22
+    unsigned short durGummedState; // 0x24
+    unsigned short durBubbleState; // 0x26
+    unsigned char hitpoints; // 0x28
+    unsigned char behaviorState; // 0x29
+    unsigned short pad; // 0x2A
+    unsigned int villFlags; // 0x2C
+    float lobSpeed; // 0x30
+    float lobDurReload; // 0x34
+    float lobRange; // 0x38
+    unsigned int lobSalvo; // 0x3C
+    unsigned int projectileTypeID; // 0x40
+    unsigned int mvptBullseyeID; // 0x44
+    float lobArcness; // 0x48
+    float lobHeavy; // 0x4C
+    float extenderRange; // 0x50
+    float extenderWidth; // 0x54
+    float extenderDuration; // 0x58
+    float extenderRate; // 0x5C
+    float extenderReloadTime; // 0x60
+    unsigned int movePointAssetID; // 0x64
+    unsigned int pathAssetID; // 0x68
+    signed int minPlayerPowerups; // 0x6C
+    signed int minGameDifficulty; // 0x70
+};
+
+// src/Game\zEnv.cpp
+class p2EnvAsset : public p2BaseAsset
+{
+public:
+    unsigned int bspAssetID;           // 0x8
+    unsigned int startCameraAssetID;   // 0xC
+    unsigned int climateFlags;         // 0x10
+    float climateStrengthMin;          // 0x14
+    float climateStrengthMax;          // 0x18
+    float padF1;                       // 0x1C
+    float padF2;                       // 0x20
+    float padF3;                       // 0x24
+    unsigned int bspCollisionAssetID;  // 0x28
+    unsigned int bspFXAssetID;         // 0x2C
+    unsigned int bspCameraAssetID;     // 0x30
+    unsigned int bspMapperID;          // 0x34
+    unsigned int bspMapperCollisionID; // 0x38
+    unsigned int bspMapperFXID;        // 0x3C
+};
+
+// src/Core\x\xBase.h
+class p2LinkAsset
+{
+public:
+    unsigned short srcEvent;
+    unsigned short dstEvent;
+    unsigned int dstAssetID;
+    float param[4];
+    unsigned int paramWidgetAssetID;
+    unsigned int chkAssetID;
+};
+
+// src/Core\x\xEnt.cpp
+class p2LinkAssetLike
+{
+public:
+    unsigned short srcEvent;   // 0x0
+    unsigned short dstEvent;   // 0x2
+    unsigned int dstAssetID;   // 0x4
+    unsigned char pad8[0x18];
+};
+
+// src/Game\zGame.cpp
+class p2MarkerAsset
+{
+public:
+    _xVec3 pos; // 0x0
+};
+
+// src/Core\x\xMovePoint.h
+class p2MovePointAsset : public p2BaseAsset
+{
+public:
+    _xVec3 pos;              // 0x8
+    unsigned short wt;       // 0x14
+    unsigned char on;        // 0x16
+    unsigned char bezIndex;  // 0x17
+    unsigned char flg_props; // 0x18
+    unsigned char pad;
+    unsigned short numPoints; // 0x1A
+    float delay;              // 0x1C
+};
+
+// src/Game\zPlatform.cpp
+class p2PlatformAsset
+{
+public:
+    unsigned char type;   // 0x0
+    unsigned char pad;    // 0x1
+    unsigned short flags; // 0x2
+    union
+    {
+        struct
+        {
+            float speed; // 0x4
+        } cb;
+        struct
+        {
+            float ba_delay;           // 0x4
+            unsigned int bustModelID; // 0x8
+            float reset_delay;        // 0xC
+        } ba;
+        struct
+        {
+            float jmph[3];            // 0x4
+            unsigned int animID[3];   // 0x10
+            _xVec3 jmpdir;            // 0x1C
+        } sb;
+        struct
+        {
+            float itilt;   // 0x4
+            float maxtilt; // 0x8
+            float invmass; // 0xC
+        } teet;
+    };
+};
+
+// src/Game\zEntSimpleObj.cpp
+class p2SimpleObjAsset
+{
+public:
+    float animSpeed;
+    unsigned int initAnimState;
+    unsigned char collType;
+    unsigned char flags;
+};
+
+// src/Core\x\xEnt.cpp
+class p2SurfaceAssetLike
+{
+public:
+    unsigned char pad0[0x28];
+    unsigned int texture; // 0x28
+};
+
+// src/Game\zAssetTypes.cpp
+class xAnimAssetEffect
+{
+public:
+    unsigned int StateID;      // 0x0
+    float StartTime;           // 0x4
+    float EndTime;             // 0x8
+    unsigned int Flags;        // 0xC
+    unsigned int EffectType;   // 0x10
+    unsigned int UserDataSize; // 0x14
+};
+
+// src/Game\zAssetTypes.cpp
+class xAnimAssetFile
+{
+public:
+    unsigned int FileFlags;       // 0x0
+    float Duration;               // 0x4
+    float TimeOffset;             // 0x8
+    unsigned short NumAnims[2];   // 0xC
+    void** RawData;               // 0x10
+    signed int Physics;           // 0x14
+    signed int StartPose;         // 0x18
+    signed int EndPose;           // 0x1C
+};
+
+// src/Game\zAssetTypes.cpp
+class xAnimAssetState
+{
+public:
+    unsigned int StateID;      // 0x0
+    unsigned int FileIndex;    // 0x4
+    unsigned int EffectCount;  // 0x8
+    unsigned int EffectOffset; // 0xC
+    float Speed;               // 0x10
+};
+
+// src/Game\zAssetTypes.cpp
+class xAnimAssetTable
+{
+public:
+    unsigned int Magic;         // 0x0
+    unsigned int NumRaw;        // 0x4
+    unsigned int NumFiles;      // 0x8
+    unsigned int NumStates;     // 0xC
+    unsigned int ConstructFunc; // 0x10
+};
+
+// src/Core\x\xCamera.h
+class xCamAsset : public p2BaseAsset
+{
+public:
+    _xVec3 pos; // 0x8
+    _xVec3 at; // 0x14
+    _xVec3 up; // 0x20
+    _xVec3 right; // 0x2C
+    _xVec3 view_offset; // 0x38
+    signed short offset_start_frames; // 0x44
+    signed short offset_end_frames; // 0x46
+    float fov; // 0x48
+    float trans_time; // 0x4C
+    _tagTransType trans_type; // 0x50
+    unsigned int flags; // 0x54
+    float fade_up; // 0x58
+    float fade_down; // 0x5C
+    union
+    {
+        _tagxCamFollowAsset cam_follow;
+        _tagxCamShoulderAsset cam_shoulder;
+        _tagp2CamStaticAsset cam_static;
+        _tagxCamPathAsset cam_path;
+        _tagp2CamStaticFollowAsset cam_staticFollow;
+    }; // 0x60
+    unsigned int valid_flags; // 0x78
+    unsigned int markerid[2]; // 0x7C
+    unsigned char cam_type; // 0x84
+    unsigned char pad[3];
+};
+
+// src/Game\zEnt.cpp
+class xModelAssetInfo
+{
+public:
+    unsigned int Magic;        // 0x0
+    unsigned int NumModelInst; // 0x4
+    unsigned int AnimTableID;  // 0x8
+};
+
+// src/Game\zEnt.cpp
+class xModelAssetInst
+{
+public:
+    unsigned int ModelID;   // 0x0
+    unsigned short Flags;   // 0x4
+    unsigned char Parent;   // 0x6
+    unsigned char Bone;     // 0x7
+    float RotPos[12];       // 0x8
+};
+
+// src/Game\zParSys.cpp
+class xParCmdAsset
+{
+public:
+    unsigned int type;     // 0x0
+    unsigned char enabled; // 0x4
+    unsigned char mode;    // 0x5
+    unsigned char pad[2];  // 0x6
+};
+
+// src/Core\gc\iParMgr.cpp
+class xParSysAsset
+{
+public:
+    unsigned char pad[0x10];
+    unsigned int texture; // 0x10
+};
+
+// src/Game\zAnimList.cpp
+class zAnimListAsset
+{
+public:
+    unsigned int ids[10];
+};
+
+// src/Game\zEnt.cpp
+class zAssetModelParam
+{
+public:
+    unsigned int HashID;      // 0x0
+    unsigned char WordLength; // 0x4
+    unsigned char String[3];  // 0x5
+};
+
+// src/Game\zEntPickup.cpp
+class zAssetPickup
+{
+public:
+    unsigned int pickupHash;    // 0x0
+    unsigned char pickupType;   // 0x4
+    unsigned char pickupIndex;  // 0x5
+    unsigned short pickupFlags; // 0x6
+    unsigned int quantity;      // 0x8
+    unsigned int modelID;       // 0xC
+    unsigned int animID;        // 0x10
+};
+
+// src/Game\zEntPickup.cpp
+class zAssetPickupTable
+{
+public:
+    unsigned int Magic; // 0x0
+    unsigned int Count; // 0x4
+    zAssetPickup entries[1]; // 0x8
+};
+
+// src/Game\zConditional.h
+class zCondAsset : public p2BaseAsset
+{
+public:
+    unsigned int constNum;
+    unsigned int expr1;
+    unsigned int op;
+};
+
+// src/Game\zCounter.h
+class zCounterAsset : public p2BaseAsset
+{
+public:
+    signed short count;
+};
+
+// src/Game\zCutsceneMgr.cpp
+class zCutsceneMgrAsset : public p2BaseAsset
+{
+public:
+    unsigned int cutsceneAssetID; // 0x8
+    unsigned int flags;           // 0xC
+    float interpSpeed;            // 0x10
+    float startTime[15];          // 0x14
+    float endTime[15];            // 0x50
+    unsigned int emitID[15];      // 0x8C
+};
+
+// src/Game\zEGenerator.cpp
+class zEGenAsset : public p2EntAsset
+{
+public:
+    _xVec3 src_dpos;           // 0x50
+    unsigned char damage_type; // 0x5C
+    unsigned char flags;       // 0x5D
+    float ontime;              // 0x60
+    unsigned int onAnimID;     // 0x64
+};
+
+// src/Game\zEntButton.cpp
+class zEntButtonAsset
+{
+public:
+    unsigned int actMethod;
+    signed int initButtonState;
+    signed int isReset;
+    signed int isSpringBB;
+    unsigned char buttonFlags;
+};
+
+// src/Game\zEntDestructObj.cpp
+class zEntDestructObjAsset
+{
+public:
+    float animSpeed;
+    unsigned int initAnimState;
+    unsigned int health;
+    unsigned int spawnItemID;
+    unsigned int dflags;
+    unsigned char collType;
+    unsigned char fxType;
+    unsigned char pad[2];
+    float blast_radius;
+    float blast_strength;
+};
+
+// src/Game\zEntPickup.cpp
+class zEntPickupAsset : public p2EntAsset
+{
+public:
+    unsigned int pickupHash;    // 0x50
+    unsigned short pickupFlags; // 0x54
+    unsigned short pickupValue; // 0x56
+};
+
+// src/Game\zFog.cpp
+class zFogAsset : public p2BaseAsset
+{
+public:
+    unsigned char bkgndColor[4];
+    unsigned char fogColor[4];
+    float fogDensity;
+    float fogStart;
+    float fogStop;
+    float transitionTime;
+    unsigned char fogType;
+    unsigned char padFog[3];
+};
+
+// src/Game\zGroup.cpp
+class zGroupAsset : public p2BaseAsset
+{
+public:
+    unsigned short itemCount;
+    unsigned short groupFlags;
+    // followed by itemCount item IDs (unsigned int)
+};
+
+// src/Game\zGust.cpp
+class zGustAsset : public p2BaseAsset
+{
+public:
+    unsigned int flags;    // 0x8
+    unsigned int volumeID; // 0xC
+    unsigned int effectID; // 0x10
+    _xVec3 vel;            // 0x14
+    float fade;            // 0x20
+    float partMod;         // 0x24
+};
+
+// src/Game\zLight.cpp
+class zLightAsset : public p2BaseAsset
+{
+public:
+    unsigned char lightType;   // 0x8
+    unsigned char lightEffect; // 0x9
+    unsigned char lightPad[2]; // 0xA
+    unsigned int lightFlags;   // 0xC
+    float lightColor[4];       // 0x10
+    _xVec3 lightDir;           // 0x20
+    float lightConeAngle;      // 0x2C
+    _xSphere lightSphere;      // 0x30
+    unsigned int attachID;     // 0x40
+};
+
+// src/Game\zLobMaster.cpp
+class zLobMasterAsset : public p2BaseAsset
+{
+public:
+    signed int lobMasterType;      // 0x8
+    unsigned int projectileTypeID; // 0xC
+    _xVec3 pos_launch;             // 0x10
+    _xVec3 rot_launch;             // 0x1C
+    float spd_launch;              // 0x28
+    float spd_randPct;             // 0x2C
+    _xVec3 scl_model;              // 0x30
+    signed int flg_enablers;       // 0x3C
+    float tym_maxlife;             // 0x40
+    float dst_maxdist;             // 0x44
+    unsigned int aid_mvptID;       // 0x48
+    signed int cnt_salvo;          // 0x4C
+    signed int cnt_ammo;           // 0x50
+    float fac_arccoeff;            // 0x54
+    signed int ang_debrisCone;     // 0x58
+    signed int numBounce;          // 0x5C
+    signed int typ_powerup;        // 0x60
+    float heavyFactor;             // 0x64
+    _xVec3 tumbleRotation;         // 0x68
+    float collideDelay;            // 0x74
+    float atRestPeriod;            // 0x78
+    unsigned int mode;             // 0x7C
+};
+
+// src/Game\zSurface.cpp
+class zMaterialMapAsset
+{
+public:
+    unsigned int id;
+    unsigned int count;
+};
+
+// src/Game\zParEmitter.h
+class zParEmitterAsset : public p2BaseAsset
+{
+public:
+    unsigned char emit_flags;      // 0x8
+    unsigned char emit_type;       // 0x9
+    unsigned char count;           // 0xA
+    unsigned char count_variation; // 0xB
+    float interval;                // 0xC
+    union
+    {
+        _tagEmitCircle e_circle;
+        _tagEmitSphere e_sphere;
+        _tagEmitRect e_rect;
+        _tagEmitLine e_line;
+        _tagEmitVolume e_volume;
+        _tagEmitOffsetPoint e_offsetp;
+    };                             // 0x10
+    unsigned int attachToID;       // 0x2C
+    unsigned int parSysID;         // 0x30
+    _xVec3 pos;                    // 0x34
+    _xVec3 vel;                    // 0x40
+    float vel_angle_variation;     // 0x4C
+    unsigned char color_birth[4];  // 0x50
+    unsigned char color_death[4];  // 0x54
+    float size_birth;              // 0x58
+    float size_birth_variation;    // 0x5C
+    float size_death;              // 0x60
+    float life;                    // 0x64
+    float life_variation;          // 0x68
+    unsigned char pad_emit[2];     // 0x6C
+    unsigned char cull_mode;       // 0x6E
+    float cull_dist_sqr;           // 0x70
+    unsigned char max_emit;        // 0x74
+};
+
+// src/Game\zParEmitter.cpp
+class zParSysAsset : public p2BaseAsset
+{
+public:
+    unsigned int type;                // 0x8
+    unsigned int parentParSysID;      // 0xC
+    unsigned int textureID;           // 0x10
+    unsigned char parFlags;           // 0x14
+    unsigned char priority;           // 0x15
+    unsigned short maxPar;            // 0x16
+    unsigned char renderFunc;         // 0x18
+    unsigned char renderSrcBlendMode; // 0x19
+    unsigned char renderDstBlendMode; // 0x1A
+    unsigned char cmdCount;           // 0x1B
+    unsigned int cmdSize;             // 0x1C
+};
+
+// src/Game\zGame.cpp
+class zPortalAsset : public p2BaseAsset
+{
+public:
+    unsigned int assetCameraID; // 0x8
+    unsigned int assetMarkerID; // 0xC
+    float ang;                  // 0x10
+    unsigned int sceneID;       // 0x14
+};
+
+// src/Game\zEntProjectile.h
+class zProjectileTypeAsset : public p2BaseAsset
+{
+public:
+    signed int efxType;           // 0x8
+    unsigned int modelID;         // 0xC
+    unsigned int animID;          // 0x10
+    unsigned int atRestModelID;   // 0x14
+    unsigned int atRestAnimID;    // 0x18
+    signed int destructEnabled;   // 0x1C
+    float destructTime;           // 0x20
+    float destructDist;           // 0x24
+    signed int oriented;          // 0x28
+    signed int extra_space[6];    // 0x2C
+};
+
+// src/Game\zSFX.cpp
+class zSFXAsset : public p2BaseAsset
+{
+public:
+    unsigned short flagsSFX;
+    unsigned short freq;
+    float freqm;
+    unsigned int soundAssetID;
+    unsigned int attachID;
+    unsigned char loopCount;
+    unsigned char priority;
+    unsigned char volume;
+    unsigned char pad;
+    _xVec3 pos;
+    float range;
+    float range_falloff;
+};
+
+// src/Game\zScript.cpp
+class zScriptAsset : public p2BaseAsset
+{
+public:
+    float scriptStartTime;
+    unsigned int eventCount;
+};
+
+// src/Game\zScript.cpp
+class zScriptEventAsset
+{
+public:
+    float time;
+    unsigned int widget;
+    unsigned int paramEvent;
+    float param[4];
+    unsigned int paramWidget;
+};
+
+// src/Game\zSurface.h
+class zSurfAsset : public p2BaseAsset
+{
+public:
+    unsigned char game_damage_type;  // 0x8
+    unsigned char game_sticky;       // 0x9
+    unsigned char game_damage_flags; // 0xA
+    unsigned char surf_type;         // 0xB
+    unsigned char phys_pad;          // 0xC
+    unsigned char sld_start;         // 0xD
+    unsigned char sld_stop;          // 0xE
+    unsigned char phys_flags;        // 0xF
+    float friction;                  // 0x10
+    zSurfMatFX matfx;                // 0x14
+    zSurfColorFX colorfx;            // 0x2C
+    unsigned int texture_anim_flags; // 0x34
+    zSurfTextureAnim texture_anim[2]; // 0x38
+    unsigned int uvfx_flags;         // 0x50
+    zSurfUVFX uvfx[2];               // 0x54
+    unsigned char on;                // 0xCC
+    unsigned char surf_pad[3];
+};
+
+// src/Game\zTimer.h
+class zTimerAsset : public p2BaseAsset
+{
+public:
+    float seconds;
+};
+
+// src/Game\zUI.h
+class zUIAsset : public p2EntAsset
+{
+public:
+    unsigned int uiFlags;   // 0x50
+    unsigned short dim[2];  // 0x54
+    unsigned int textureID; // 0x58
+    float uva[2];           // 0x5C
+    float uvb[2];           // 0x64
+    float uvc[2];           // 0x6C
+    float uvd[2];           // 0x74
+};
+
+// src/Game\zUI.h
+class zUIFontAsset : public zUIAsset
+{
+public:
+    unsigned short uiFontFlags;   // 0x7C
+    unsigned char mode;           // 0x7E
+    unsigned char fontID;         // 0x7F
+    unsigned int textAssetID;     // 0x80
+    unsigned char bcolor[4];      // 0x84
+    unsigned char color[4];       // 0x88
+    unsigned short inset[4];      // 0x8C
+    unsigned short space[2];      // 0x94
+    unsigned short cdim[2];       // 0x98
+};
+
+// src/Game\zGust.cpp
+class zVolumeAsset : public p2BaseAsset
+{
+public:
+    unsigned int flags; // 0x8
+    unsigned char boundType;
+    unsigned char boundPad[3];
+    _xBBox box;         // 0x10 (inside the bound's union)
+    unsigned char boundRest[0x38 - 0x4 - 0x24];
+    float rot;
+    float xpivot;
+    float zpivot;
+};

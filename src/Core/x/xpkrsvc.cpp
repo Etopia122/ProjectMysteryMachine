@@ -1220,8 +1220,20 @@ void PKR_updateLayerAssets(st_PACKER_LTOC_NODE* laynode)
 }
 
 // TODO: 98.1%. The readXForm test should branch over a "b end" (bne/b) instead of beq.
+#ifdef PC_PORT
+// Converts an asset's big-endian GameCube data to host order (pc/src/asset_swap.cpp).
+extern "C" void pc_swap_asset(unsigned int type, unsigned int aid, void* data, unsigned int size);
+#endif
+
 void PKR_xform_asset(st_PACKER_ATOC_NODE* assnode)
 {
+#ifdef PC_PORT
+    if (assnode->memloc && assnode->d_size > 0 && !(assnode->loadflag & 0x40000000))
+    {
+        pc_swap_asset(assnode->asstype, assnode->aid, assnode->memloc, (unsigned int)assnode->d_size);
+        assnode->loadflag |= 0x40000000; // swapped
+    }
+#endif
     if (!(assnode->infoflag & 4))
     {
         if (assnode->typeref == 0)

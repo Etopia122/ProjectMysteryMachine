@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "pc_platform.h"
+
 extern "C" {
 
 struct ARQRequest
@@ -72,12 +74,10 @@ unsigned long ARFree(unsigned long* length)
 unsigned long ARGetBaseAddress() { return ARAM_BASE; }
 unsigned long ARGetSize() { return ARAM_SIZE; }
 
-static ARQRequest* s_doneHead;
-static ARQRequest* s_doneTail;
-static int s_inCallbacks;
-
 void ARQInit() {}
 
+// The transfer happens immediately; completion is signalled as an interrupt,
+// so it can't run while the game has interrupts disabled (as on hardware).
 void ARQPostRequest(ARQRequest* task, unsigned long owner, unsigned long type, unsigned long priority,
                     unsigned long source, unsigned long dest, unsigned long length,
                     void (*callback)(unsigned long))
@@ -99,36 +99,10 @@ void ARQPostRequest(ARQRequest* task, unsigned long owner, unsigned long type, u
     {
         memcpy((void*)dest, aram(source), length);
     }
-
-    if (s_doneTail)
+    if (callback)
     {
-        s_doneTail->next = task;
+        pc_irq_post([task, callback]() { callback((unsigned long)task); });
     }
-    else
-    {
-        s_doneHead = task;
-    }
-    s_doneTail = task;
-
-    if (s_inCallbacks)
-    {
-        return;
-    }
-    s_inCallbacks = 1;
-    while (s_doneHead)
-    {
-        ARQRequest* t = s_doneHead;
-        s_doneHead = t->next;
-        if (!s_doneHead)
-        {
-            s_doneTail = NULL;
-        }
-        if (t->callback)
-        {
-            t->callback((unsigned long)t);
-        }
-    }
-    s_inCallbacks = 0;
 }
 
 void ARQRemoveRequest(ARQRequest* task) {}

@@ -315,667 +315,485 @@ _C_MTXOrtho:
     addl $4, %esp
     xorl %eax, %eax
     ret
-    .globl _DCInvalidateRange
-_DCInvalidateRange:
-    pushl $Lname45
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _DCStoreRange
-_DCStoreRange:
-    pushl $Lname46
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
     .globl _GXAbortFrame
 _GXAbortFrame:
-    pushl $Lname47
+    pushl $Lname45
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXBegin
 _GXBegin:
-    pushl $Lname48
+    pushl $Lname46
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXClearVtxDesc
 _GXClearVtxDesc:
-    pushl $Lname49
+    pushl $Lname47
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXDrawDone
 _GXDrawDone:
-    pushl $Lname50
+    pushl $Lname48
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXGetTexBufferSize
 _GXGetTexBufferSize:
-    pushl $Lname51
+    pushl $Lname49
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXInitTexObj
 _GXInitTexObj:
-    pushl $Lname52
+    pushl $Lname50
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXInitTexObjLOD
 _GXInitTexObjLOD:
-    pushl $Lname53
+    pushl $Lname51
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXInvalidateTexAll
 _GXInvalidateTexAll:
-    pushl $Lname54
+    pushl $Lname52
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXInvalidateVtxCache
 _GXInvalidateVtxCache:
-    pushl $Lname55
+    pushl $Lname53
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXLoadPosMtxImm
 _GXLoadPosMtxImm:
-    pushl $Lname56
+    pushl $Lname54
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXLoadTexObj
 _GXLoadTexObj:
-    pushl $Lname57
+    pushl $Lname55
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetAlphaCompare
 _GXSetAlphaCompare:
-    pushl $Lname59
+    pushl $Lname57
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetAlphaUpdate
 _GXSetAlphaUpdate:
-    pushl $Lname60
+    pushl $Lname58
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetBlendMode
 _GXSetBlendMode:
-    pushl $Lname61
+    pushl $Lname59
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetColorUpdate
 _GXSetColorUpdate:
-    pushl $Lname62
+    pushl $Lname60
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetCopyFilter
 _GXSetCopyFilter:
-    pushl $Lname63
+    pushl $Lname61
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetCullMode
 _GXSetCullMode:
-    pushl $Lname64
+    pushl $Lname62
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetDispCopyDst
 _GXSetDispCopyDst:
-    pushl $Lname65
+    pushl $Lname63
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetDispCopyGamma
 _GXSetDispCopyGamma:
-    pushl $Lname66
+    pushl $Lname64
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetDispCopySrc
 _GXSetDispCopySrc:
-    pushl $Lname67
+    pushl $Lname65
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetDispCopyYScale
 _GXSetDispCopyYScale:
-    pushl $Lname68
+    pushl $Lname66
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetMisc
 _GXSetMisc:
-    pushl $Lname69
+    pushl $Lname67
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetNumChans
 _GXSetNumChans:
-    pushl $Lname70
+    pushl $Lname68
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetNumTevStages
 _GXSetNumTevStages:
-    pushl $Lname71
+    pushl $Lname69
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetNumTexGens
 _GXSetNumTexGens:
-    pushl $Lname72
+    pushl $Lname70
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetPixelFmt
 _GXSetPixelFmt:
-    pushl $Lname73
+    pushl $Lname71
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetProjection
 _GXSetProjection:
-    pushl $Lname74
+    pushl $Lname72
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetScissor
 _GXSetScissor:
-    pushl $Lname75
+    pushl $Lname73
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetTevAlphaIn
 _GXSetTevAlphaIn:
-    pushl $Lname76
+    pushl $Lname74
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetTevOp
 _GXSetTevOp:
-    pushl $Lname77
+    pushl $Lname75
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetTevOrder
 _GXSetTevOrder:
-    pushl $Lname78
+    pushl $Lname76
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetTexCoordGen2
 _GXSetTexCoordGen2:
-    pushl $Lname79
+    pushl $Lname77
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetViewport
 _GXSetViewport:
-    pushl $Lname80
+    pushl $Lname78
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetViewportJitter
 _GXSetViewportJitter:
-    pushl $Lname81
+    pushl $Lname79
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetVtxAttrFmt
 _GXSetVtxAttrFmt:
-    pushl $Lname82
+    pushl $Lname80
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetVtxDesc
 _GXSetVtxDesc:
-    pushl $Lname83
+    pushl $Lname81
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _GXSetZCompLoc
 _GXSetZCompLoc:
-    pushl $Lname84
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _OSGetResetButtonState
-_OSGetResetButtonState:
-    pushl $Lname85
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _OSGetSoundMode
-_OSGetSoundMode:
-    pushl $Lname86
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _OSGetTime
-_OSGetTime:
-    pushl $Lname87
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _OSInit
-_OSInit:
-    pushl $Lname88
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _OSPanic
-_OSPanic:
-    pushl $Lname89
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _OSResetSystem
-_OSResetSystem:
-    pushl $Lname90
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _OSSetSoundMode
-_OSSetSoundMode:
-    pushl $Lname91
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _OSTicksToCalendarTime
-_OSTicksToCalendarTime:
-    pushl $Lname92
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _PADClamp
-_PADClamp:
-    pushl $Lname93
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _PADControlMotor
-_PADControlMotor:
-    pushl $Lname94
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _PADInit
-_PADInit:
-    pushl $Lname95
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _PADRead
-_PADRead:
-    pushl $Lname96
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _PADRecalibrate
-_PADRecalibrate:
-    pushl $Lname97
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _PADReset
-_PADReset:
-    pushl $Lname98
+    pushl $Lname82
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _PSMTXIdentity
 _PSMTXIdentity:
-    pushl $Lname99
+    pushl $Lname83
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _RADSetAudioMemory
 _RADSetAudioMemory:
-    pushl $Lname100
+    pushl $Lname84
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _RADSetMemory
 _RADSetMemory:
-    pushl $Lname101
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _VIFlush
-_VIFlush:
-    pushl $Lname102
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _VIGetNextField
-_VIGetNextField:
-    pushl $Lname103
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _VIGetRetraceCount
-_VIGetRetraceCount:
-    pushl $Lname104
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _VIInit
-_VIInit:
-    pushl $Lname105
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _VISetBlack
-_VISetBlack:
-    pushl $Lname106
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _VISetPreRetraceCallback
-_VISetPreRetraceCallback:
-    pushl $Lname107
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _VIWaitForRetrace
-_VIWaitForRetrace:
-    pushl $Lname108
+    pushl $Lname85
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __Z14xCutscene_InitPv
 __Z14xCutscene_InitPv:
-    pushl $Lname109
+    pushl $Lname86
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __Z15zFMVFileGetName8eFMVFile
 __Z15zFMVFileGetName8eFMVFile:
-    pushl $Lname110
+    pushl $Lname87
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __Z16iDebugScreenDumpv
 __Z16iDebugScreenDumpv:
-    pushl $Lname111
+    pushl $Lname88
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __Z17xCutscene_DestroyP9xCutscene
 __Z17xCutscene_DestroyP9xCutscene:
-    pushl $Lname112
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl __Z17xMorphSeqDurationP13xMorphSeqFile
-__Z17xMorphSeqDurationP13xMorphSeqFile:
-    pushl $Lname113
+    pushl $Lname89
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __Z8zFMVPlayPcjf
 __Z8zFMVPlayPcjf:
-    pushl $Lname114
+    pushl $Lname90
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl ___start
 ___start:
-    pushl $Lname115
+    pushl $Lname91
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __stack_addr
 __stack_addr:
-    pushl $Lname116
+    pushl $Lname92
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __stack_end
 __stack_end:
-    pushl $Lname117
+    pushl $Lname93
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_800056F8
 _fn_800056F8:
-    pushl $Lname118
+    pushl $Lname94
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80005AE8
 _fn_80005AE8:
-    pushl $Lname119
+    pushl $Lname95
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80005AFC
 _fn_80005AFC:
-    pushl $Lname120
+    pushl $Lname96
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80005B08
 _fn_80005B08:
-    pushl $Lname121
+    pushl $Lname97
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80005B58
 _fn_80005B58:
-    pushl $Lname122
+    pushl $Lname98
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80005C34
 _fn_80005C34:
-    pushl $Lname123
+    pushl $Lname99
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80005C54
 _fn_80005C54:
-    pushl $Lname124
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80007738
-_fn_80007738:
-    pushl $Lname125
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_800077C0
-_fn_800077C0:
-    pushl $Lname126
+    pushl $Lname100
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80021B1C
 _fn_80021B1C:
-    pushl $Lname127
+    pushl $Lname101
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80021B20
 _fn_80021B20:
-    pushl $Lname128
+    pushl $Lname102
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80029458
 _fn_80029458:
-    pushl $Lname129
+    pushl $Lname103
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_8002947C
 _fn_8002947C:
-    pushl $Lname130
+    pushl $Lname104
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_800294A0
 _fn_800294A0:
-    pushl $Lname131
+    pushl $Lname105
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_800294C4
 _fn_800294C4:
-    pushl $Lname132
+    pushl $Lname106
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80032D28
 _fn_80032D28:
-    pushl $Lname133
+    pushl $Lname107
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_800394B4
 _fn_800394B4:
-    pushl $Lname134
+    pushl $Lname108
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_800C751C
 _fn_800C751C:
-    pushl $Lname135
+    pushl $Lname109
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80135484
 _fn_80135484:
-    pushl $Lname136
+    pushl $Lname110
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_8013558C
 _fn_8013558C:
-    pushl $Lname137
+    pushl $Lname111
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80151CA4
 _fn_80151CA4:
-    pushl $Lname138
+    pushl $Lname112
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80178A3C
 _fn_80178A3C:
-    pushl $Lname139
+    pushl $Lname113
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _pc_gl_render_world
 _pc_gl_render_world:
-    pushl $Lname171
+    pushl $Lname137
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
@@ -1026,134 +844,100 @@ Lname41: .asciz "_CARDSetStatus"
 Lname42: .asciz "_CARDUnmount"
 Lname43: .asciz "_CARDWriteAsync"
 Lname44: .asciz "_C_MTXOrtho"
-Lname45: .asciz "_DCInvalidateRange"
-Lname46: .asciz "_DCStoreRange"
-Lname47: .asciz "_GXAbortFrame"
-Lname48: .asciz "_GXBegin"
-Lname49: .asciz "_GXClearVtxDesc"
-Lname50: .asciz "_GXDrawDone"
-Lname51: .asciz "_GXGetTexBufferSize"
-Lname52: .asciz "_GXInitTexObj"
-Lname53: .asciz "_GXInitTexObjLOD"
-Lname54: .asciz "_GXInvalidateTexAll"
-Lname55: .asciz "_GXInvalidateVtxCache"
-Lname56: .asciz "_GXLoadPosMtxImm"
-Lname57: .asciz "_GXLoadTexObj"
-Lname58: .asciz "_GXNtsc480IntDf"
-Lname59: .asciz "_GXSetAlphaCompare"
-Lname60: .asciz "_GXSetAlphaUpdate"
-Lname61: .asciz "_GXSetBlendMode"
-Lname62: .asciz "_GXSetColorUpdate"
-Lname63: .asciz "_GXSetCopyFilter"
-Lname64: .asciz "_GXSetCullMode"
-Lname65: .asciz "_GXSetDispCopyDst"
-Lname66: .asciz "_GXSetDispCopyGamma"
-Lname67: .asciz "_GXSetDispCopySrc"
-Lname68: .asciz "_GXSetDispCopyYScale"
-Lname69: .asciz "_GXSetMisc"
-Lname70: .asciz "_GXSetNumChans"
-Lname71: .asciz "_GXSetNumTevStages"
-Lname72: .asciz "_GXSetNumTexGens"
-Lname73: .asciz "_GXSetPixelFmt"
-Lname74: .asciz "_GXSetProjection"
-Lname75: .asciz "_GXSetScissor"
-Lname76: .asciz "_GXSetTevAlphaIn"
-Lname77: .asciz "_GXSetTevOp"
-Lname78: .asciz "_GXSetTevOrder"
-Lname79: .asciz "_GXSetTexCoordGen2"
-Lname80: .asciz "_GXSetViewport"
-Lname81: .asciz "_GXSetViewportJitter"
-Lname82: .asciz "_GXSetVtxAttrFmt"
-Lname83: .asciz "_GXSetVtxDesc"
-Lname84: .asciz "_GXSetZCompLoc"
-Lname85: .asciz "_OSGetResetButtonState"
-Lname86: .asciz "_OSGetSoundMode"
-Lname87: .asciz "_OSGetTime"
-Lname88: .asciz "_OSInit"
-Lname89: .asciz "_OSPanic"
-Lname90: .asciz "_OSResetSystem"
-Lname91: .asciz "_OSSetSoundMode"
-Lname92: .asciz "_OSTicksToCalendarTime"
-Lname93: .asciz "_PADClamp"
-Lname94: .asciz "_PADControlMotor"
-Lname95: .asciz "_PADInit"
-Lname96: .asciz "_PADRead"
-Lname97: .asciz "_PADRecalibrate"
-Lname98: .asciz "_PADReset"
-Lname99: .asciz "_PSMTXIdentity"
-Lname100: .asciz "_RADSetAudioMemory"
-Lname101: .asciz "_RADSetMemory"
-Lname102: .asciz "_VIFlush"
-Lname103: .asciz "_VIGetNextField"
-Lname104: .asciz "_VIGetRetraceCount"
-Lname105: .asciz "_VIInit"
-Lname106: .asciz "_VISetBlack"
-Lname107: .asciz "_VISetPreRetraceCallback"
-Lname108: .asciz "_VIWaitForRetrace"
-Lname109: .asciz "xCutscene_Init(void*)"
-Lname110: .asciz "zFMVFileGetName(eFMVFile)"
-Lname111: .asciz "iDebugScreenDump()"
-Lname112: .asciz "xCutscene_Destroy(xCutscene*)"
-Lname113: .asciz "xMorphSeqDuration(xMorphSeqFile*)"
-Lname114: .asciz "zFMVPlay(char*, unsigned int, float)"
-Lname115: .asciz "___start"
-Lname116: .asciz "__stack_addr"
-Lname117: .asciz "__stack_end"
-Lname118: .asciz "_fn_800056F8"
-Lname119: .asciz "_fn_80005AE8"
-Lname120: .asciz "_fn_80005AFC"
-Lname121: .asciz "_fn_80005B08"
-Lname122: .asciz "_fn_80005B58"
-Lname123: .asciz "_fn_80005C34"
-Lname124: .asciz "_fn_80005C54"
-Lname125: .asciz "_fn_80007738"
-Lname126: .asciz "_fn_800077C0"
-Lname127: .asciz "_fn_80021B1C"
-Lname128: .asciz "_fn_80021B20"
-Lname129: .asciz "_fn_80029458"
-Lname130: .asciz "_fn_8002947C"
-Lname131: .asciz "_fn_800294A0"
-Lname132: .asciz "_fn_800294C4"
-Lname133: .asciz "_fn_80032D28"
-Lname134: .asciz "_fn_800394B4"
-Lname135: .asciz "_fn_800C751C"
-Lname136: .asciz "_fn_80135484"
-Lname137: .asciz "_fn_8013558C"
-Lname138: .asciz "_fn_80151CA4"
-Lname139: .asciz "_fn_80178A3C"
-Lname140: .asciz "_gFXSurfaceFlags"
-Lname141: .asciz "_gFrameCount"
-Lname142: .asciz "_gScreenDump"
-Lname143: .asciz "_gVsyncCount"
-Lname144: .asciz "_g_BLACK"
-Lname145: .asciz "_g_NEON_GREEN"
-Lname146: .asciz "_g_NEON_RED"
-Lname147: .asciz "_g_PIMP_GOLD"
-Lname148: .asciz "_g_xSceneCur"
-Lname149: .asciz "_giAnimScratch"
-Lname150: .asciz "_globalCamera"
-Lname151: .asciz "_lastEnv"
-Lname152: .asciz "_lbl_801AD940"
-Lname153: .asciz "_lbl_801AD970"
-Lname154: .asciz "_lbl_801FE3B8"
-Lname155: .asciz "_lbl_801FE3C4"
-Lname156: .asciz "_lbl_801FE3D4"
-Lname157: .asciz "_lbl_8025E348"
-Lname158: .asciz "_lbl_8025E868"
-Lname159: .asciz "_lbl_8025E8A0"
-Lname160: .asciz "_lbl_8025E96C"
-Lname161: .asciz "_lbl_8025E970"
-Lname162: .asciz "_lbl_8025E974"
-Lname163: .asciz "_lbl_8025E978"
-Lname164: .asciz "_lbl_8025E97C"
-Lname165: .asciz "_lbl_8025E980"
-Lname166: .asciz "_lbl_8025E984"
-Lname167: .asciz "_lbl_8025E988"
-Lname168: .asciz "_lbl_8025EEC8"
-Lname169: .asciz "_lbl_8025F860"
-Lname170: .asciz "_lbl_8025F870"
-Lname171: .asciz "_pc_gl_render_world"
-Lname172: .asciz "_sBeginDrawFX"
+Lname45: .asciz "_GXAbortFrame"
+Lname46: .asciz "_GXBegin"
+Lname47: .asciz "_GXClearVtxDesc"
+Lname48: .asciz "_GXDrawDone"
+Lname49: .asciz "_GXGetTexBufferSize"
+Lname50: .asciz "_GXInitTexObj"
+Lname51: .asciz "_GXInitTexObjLOD"
+Lname52: .asciz "_GXInvalidateTexAll"
+Lname53: .asciz "_GXInvalidateVtxCache"
+Lname54: .asciz "_GXLoadPosMtxImm"
+Lname55: .asciz "_GXLoadTexObj"
+Lname56: .asciz "_GXNtsc480IntDf"
+Lname57: .asciz "_GXSetAlphaCompare"
+Lname58: .asciz "_GXSetAlphaUpdate"
+Lname59: .asciz "_GXSetBlendMode"
+Lname60: .asciz "_GXSetColorUpdate"
+Lname61: .asciz "_GXSetCopyFilter"
+Lname62: .asciz "_GXSetCullMode"
+Lname63: .asciz "_GXSetDispCopyDst"
+Lname64: .asciz "_GXSetDispCopyGamma"
+Lname65: .asciz "_GXSetDispCopySrc"
+Lname66: .asciz "_GXSetDispCopyYScale"
+Lname67: .asciz "_GXSetMisc"
+Lname68: .asciz "_GXSetNumChans"
+Lname69: .asciz "_GXSetNumTevStages"
+Lname70: .asciz "_GXSetNumTexGens"
+Lname71: .asciz "_GXSetPixelFmt"
+Lname72: .asciz "_GXSetProjection"
+Lname73: .asciz "_GXSetScissor"
+Lname74: .asciz "_GXSetTevAlphaIn"
+Lname75: .asciz "_GXSetTevOp"
+Lname76: .asciz "_GXSetTevOrder"
+Lname77: .asciz "_GXSetTexCoordGen2"
+Lname78: .asciz "_GXSetViewport"
+Lname79: .asciz "_GXSetViewportJitter"
+Lname80: .asciz "_GXSetVtxAttrFmt"
+Lname81: .asciz "_GXSetVtxDesc"
+Lname82: .asciz "_GXSetZCompLoc"
+Lname83: .asciz "_PSMTXIdentity"
+Lname84: .asciz "_RADSetAudioMemory"
+Lname85: .asciz "_RADSetMemory"
+Lname86: .asciz "xCutscene_Init(void*)"
+Lname87: .asciz "zFMVFileGetName(eFMVFile)"
+Lname88: .asciz "iDebugScreenDump()"
+Lname89: .asciz "xCutscene_Destroy(xCutscene*)"
+Lname90: .asciz "zFMVPlay(char*, unsigned int, float)"
+Lname91: .asciz "___start"
+Lname92: .asciz "__stack_addr"
+Lname93: .asciz "__stack_end"
+Lname94: .asciz "_fn_800056F8"
+Lname95: .asciz "_fn_80005AE8"
+Lname96: .asciz "_fn_80005AFC"
+Lname97: .asciz "_fn_80005B08"
+Lname98: .asciz "_fn_80005B58"
+Lname99: .asciz "_fn_80005C34"
+Lname100: .asciz "_fn_80005C54"
+Lname101: .asciz "_fn_80021B1C"
+Lname102: .asciz "_fn_80021B20"
+Lname103: .asciz "_fn_80029458"
+Lname104: .asciz "_fn_8002947C"
+Lname105: .asciz "_fn_800294A0"
+Lname106: .asciz "_fn_800294C4"
+Lname107: .asciz "_fn_80032D28"
+Lname108: .asciz "_fn_800394B4"
+Lname109: .asciz "_fn_800C751C"
+Lname110: .asciz "_fn_80135484"
+Lname111: .asciz "_fn_8013558C"
+Lname112: .asciz "_fn_80151CA4"
+Lname113: .asciz "_fn_80178A3C"
+Lname114: .asciz "_gFXSurfaceFlags"
+Lname115: .asciz "_gFrameCount"
+Lname116: .asciz "_gScreenDump"
+Lname117: .asciz "_gVsyncCount"
+Lname118: .asciz "_g_xSceneCur"
+Lname119: .asciz "_globalCamera"
+Lname120: .asciz "_lastEnv"
+Lname121: .asciz "_lbl_801FE3B8"
+Lname122: .asciz "_lbl_801FE3C4"
+Lname123: .asciz "_lbl_801FE3D4"
+Lname124: .asciz "_lbl_8025E348"
+Lname125: .asciz "_lbl_8025E868"
+Lname126: .asciz "_lbl_8025E8A0"
+Lname127: .asciz "_lbl_8025E96C"
+Lname128: .asciz "_lbl_8025E970"
+Lname129: .asciz "_lbl_8025E974"
+Lname130: .asciz "_lbl_8025E978"
+Lname131: .asciz "_lbl_8025E97C"
+Lname132: .asciz "_lbl_8025E980"
+Lname133: .asciz "_lbl_8025E984"
+Lname134: .asciz "_lbl_8025E988"
+Lname135: .asciz "_lbl_8025EEC8"
+Lname136: .asciz "_lbl_8025F860"
+Lname137: .asciz "_pc_gl_render_world"
+Lname138: .asciz "_sBeginDrawFX"
     .bss
     .globl _GXNtsc480IntDf
     .balign 32
@@ -1170,36 +954,15 @@ _gScreenDump: .space 256
     .globl _gVsyncCount
     .balign 32
 _gVsyncCount: .space 256
-    .globl _g_BLACK
-    .balign 32
-_g_BLACK: .space 256
-    .globl _g_NEON_GREEN
-    .balign 32
-_g_NEON_GREEN: .space 256
-    .globl _g_NEON_RED
-    .balign 32
-_g_NEON_RED: .space 256
-    .globl _g_PIMP_GOLD
-    .balign 32
-_g_PIMP_GOLD: .space 256
     .globl _g_xSceneCur
     .balign 32
 _g_xSceneCur: .space 256
-    .globl _giAnimScratch
-    .balign 32
-_giAnimScratch: .space 256
     .globl _globalCamera
     .balign 32
 _globalCamera: .space 256
     .globl _lastEnv
     .balign 32
 _lastEnv: .space 256
-    .globl _lbl_801AD940
-    .balign 32
-_lbl_801AD940: .space 256
-    .globl _lbl_801AD970
-    .balign 32
-_lbl_801AD970: .space 256
     .globl _lbl_801FE3B8
     .balign 32
 _lbl_801FE3B8: .space 256
@@ -1248,9 +1011,6 @@ _lbl_8025EEC8: .space 256
     .globl _lbl_8025F860
     .balign 32
 _lbl_8025F860: .space 256
-    .globl _lbl_8025F870
-    .balign 32
-_lbl_8025F870: .space 256
     .globl _sBeginDrawFX
     .balign 32
 _sBeginDrawFX: .space 256

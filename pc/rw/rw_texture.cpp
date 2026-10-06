@@ -208,6 +208,10 @@ void pc_gx_decode(int fmt, const RwUInt8* src, int w, int h, const RwUInt8* pal,
 // ---------------------------------------------------------------- rasters
 PcRaster* pc_raster(RwRaster* r) { return (PcRaster*)r; }
 
+// Offset of the platform raster extension, read by the game (_RwGameCubeRasterExtOffset).
+extern "C" RwInt32 lbl_8025F870;
+RwInt32 lbl_8025F870 = offsetof(PcRaster, ext);
+
 extern "C" {
 
 RwRaster* RwRasterCreate(RwInt32 width, RwInt32 height, RwInt32 depth, RwInt32 flags)
@@ -428,7 +432,10 @@ static RwTexture* read_texture_native(RwStream* s, RwUInt32 structLen)
         return NULL;
     }
 
-    RwRaster* r = RwRasterCreate(width, height, 32, rwRASTERTYPETEXTURE | (int)(rasterFormat & 0xFF00));
+    RwRaster* r = RwRasterCreate(width, height, depth, rwRASTERTYPETEXTURE | (int)(rasterFormat & 0xFF00));
+    // GameCube raster extension: the game checks the GX format at offset 0xC (iSystem TextureRead).
+    RwUInt32 fmt32 = (RwUInt32)gxFmt;
+    memcpy(pc_raster(r)->ext + 0xC, &fmt32, 4);
     pc_gx_decode(gxFmt, p, width, height, pal, tlutFmt, pc_raster(r)->rgba);
     pc_raster(r)->dirty = 1;
     pc_raster(r)->numLevels = numLevels;
