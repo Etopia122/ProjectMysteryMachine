@@ -26,7 +26,7 @@ typedef struct TRKExceptionStatus {
 
 typedef struct TRKStepStatus {
     BOOL active;                // 0x0
-    DSMessageStepOptions type;  // 0x4
+    u8 type;                    // 0x4 (byte in this TRK version)
     u32 count;                  // 0x8
     u32 rangeStart;             // 0xC
     u32 rangeEnd;               // 0x10
@@ -199,7 +199,7 @@ DSError TRKTargetAccessMemory(void* data, u32 start, size_t* length,
     return error;
 }
 
-DSError TRKTargetReadInstruction(void* data, u32 start) {
+static inline DSError TRKTargetReadInstruction(void* data, u32 start) {
     DSError error;
     size_t registersLength = 4;
 
@@ -399,7 +399,8 @@ void TRKPostInterruptEvent(void) {
         case 0xd00:
         case 0x700:
             registerSize = 4;
-            TRKTargetReadInstruction(&local_14, gTRKCPUState.Default.PC);
+            TRKTargetAccessMemory(&local_14, gTRKCPUState.Default.PC, &registerSize,
+                                  MEMACCESS_UserMemory, TRUE);
 
             if (local_14 == 0xfe00000) {
                 eventType = NUBEVENT_Support;
@@ -419,7 +420,8 @@ void TRKPostInterruptEvent(void) {
 
 DSError TRKTargetInterrupt(TRKEvent* event) {
     DSError error = DS_NoError;
-    switch (event->eventType) {
+    // TRKEvent is built by nubevent.c (compiled with -enum min): eventType is one byte.
+    switch (*(u8*)&event->eventType) {
     case NUBEVENT_Breakpoint:
     case NUBEVENT_Exception:
         if (TRKTargetCheckStep() == FALSE) {
@@ -439,38 +441,59 @@ u32* ConvertAddress(u32 addr) {
 }
 DSError TRKTargetAddStopInfo(TRKBuffer* b) {
     DSError error;
-    CommandReply reply;
-    int t;
+    u32 instruction;
+    s32 i;
 
-    memset(&reply, 0, 0x40);
-    reply._00 = 0x40;
-    reply.commandID.b = 0x90;
-    reply.replyError.r = gTRKCPUState.Default.PC;
-    TRKTargetReadInstruction(&t, gTRKCPUState.Default.PC);
+    error = TRKAppendBuffer1_ui32(b, gTRKCPUState.Default.PC);
+    if (error == DS_NoError) {
+        size_t length = 4;
 
-    reply._0C = t;
-    *(u32*)reply._10 = gTRKCPUState.Extended1.exceptionID & 0xFFFF;
-    error = TRKAppendBuffer_ui8(b, (u8*)&reply, 0x40);
+        error = TRKTargetAccessMemory(&instruction, gTRKCPUState.Default.PC, &length, MEMACCESS_UserMemory, TRUE);
+        if (error == DS_NoError && length != 4) {
+            error = DS_InvalidMemory;
+        }
+    }
+    if (error == DS_NoError) {
+        error = TRKAppendBuffer1_ui32(b, instruction);
+    }
+    if (error == DS_NoError) {
+        error = TRKAppendBuffer1_ui16(b, gTRKCPUState.Extended1.exceptionID);
+    }
+
+    // This TRK version sends only the low 16 bits of each register.
+    if (error == DS_NoError) {
+        for (i = 0; i < 32; i++) {
+            error = TRKAppendBuffer1_ui32(b, (u16)gTRKCPUState.Default.GPR[i]);
+        }
+        for (i = 0; i < 32; i++) {
+            error = TRKAppendBuffer1_ui64(b, (u16)gTRKCPUState.Float.FPR[i]);
+        }
+    }
+
     return error;
 }
 
-void TRKTargetAddExceptionInfo(TRKBuffer* b) {
-    size_t local_58;
-    u32 local_54;
-    CommandReply reply;
+DSError TRKTargetAddExceptionInfo(TRKBuffer* b) {
+    DSError error;
+    u32 instruction;
 
-    memset(&reply, 0, 0x40);
+    error = TRKAppendBuffer1_ui32(b, gTRKExceptionStatus.exceptionInfo.PC);
+    if (error == DS_NoError) {
+        size_t length = 4;
 
-    reply._00 = 0x40;
-    reply.commandID.b = 0x91;
-    reply.replyError.r = gTRKExceptionStatus.exceptionInfo.PC;
+        error = TRKTargetAccessMemory(&instruction, gTRKExceptionStatus.exceptionInfo.PC, &length, MEMACCESS_UserMemory, TRUE);
+        if (error == DS_NoError && length != 4) {
+            error = DS_InvalidMemory;
+        }
+    }
+    if (error == DS_NoError) {
+        error = TRKAppendBuffer1_ui32(b, instruction);
+    }
+    if (error == DS_NoError) {
+        error = TRKAppendBuffer1_ui16(b, gTRKExceptionStatus.exceptionInfo.exceptionID);
+    }
 
-    TRKTargetReadInstruction(&local_54, gTRKExceptionStatus.exceptionInfo.PC);
-
-    reply._0C = local_54;
-    *(u32*)reply._10 = gTRKExceptionStatus.exceptionInfo.exceptionID;
-
-    TRKAppendBuffer_ui8(b, (u8*)&reply, 0x40);
+    return error;
 }
 
 inline DSError TRKTargetEnableTrace(BOOL val) {
@@ -509,7 +532,6 @@ BOOL TRKTargetStepDone() {
 
 inline DSError TRKTargetDoStep() {
     gTRKStepStatus.active = TRUE;
-    MWTRACE(1, "TargetDoStep()\n");
     TRKTargetEnableTrace(TRUE);
 
     if (gTRKStepStatus.type == DSSTEP_IntoCount || gTRKStepStatus.type == DSSTEP_OverCount) {
@@ -540,8 +562,8 @@ DSError TRKTargetSingleStep(u32 count, BOOL stepOver) {
     if (stepOver) {
         error = DS_UnsupportedError;
     } else {
-        gTRKStepStatus.count = count;
         gTRKStepStatus.type = DSSTEP_IntoCount;
+        gTRKStepStatus.count = count;
         error = TRKTargetDoStep();
     }
 
