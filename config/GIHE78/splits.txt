@@ -1004,6 +1004,11 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/e_atan2
 	.text       start:0x800F0758 end:0x800F09E8
 	.sdata2     start:0x802622D0 end:0x80262328
 
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/e_exp.c:
+	.text       start:0x800F09E8 end:0x800F0C04
+	.rodata     start:0x801A8338 end:0x801A8368
+	.sdata2     start:0x80262328 end:0x802623A0
+
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/e_fmod.c:
 	.text       start:0x800F0C04 end:0x800F0F40
 	.rodata     start:0x801A8368 end:0x801A8378
@@ -1063,6 +1068,9 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/s_ldexp
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/s_modf.c:
 	.text       start:0x800F33FC end:0x800F34F8
 
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/s_nextafter.c:
+	.text       start:0x800F34F8 end:0x800F367C
+
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/s_sin.c:
 	.text       start:0x800F367C end:0x800F3754
 	.sdata2     start:0x80262670 end:0x80262678
@@ -1070,6 +1078,27 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/s_sin.c
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/s_tan.c:
 	.text       start:0x800F3754 end:0x800F37CC
 	.sdata2     start:0x80262678 end:0x80262680
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/w_acos.c:
+	.text       start:0x800F37CC end:0x800F37EC
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/w_asin.c:
+	.text       start:0x800F37EC end:0x800F380C
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/w_atan2.c:
+	.text       start:0x800F380C end:0x800F382C
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/w_exp.c:
+	.text       start:0x800F382C end:0x800F384C
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/w_fmod.c:
+	.text       start:0x800F384C end:0x800F386C
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Double_precision/w_pow.c:
+	.text       start:0x800F386C end:0x800F388C
+
+PowerPC_EABI_Support/MSL/MSL_C/PPC_EABI/Src/math_ppc.c:
+	.text       start:0x800F388C end:0x800F391C
 
 dolphin/src/OdemuExi2/DebuggerDriver.c:
 	.text       start:0x800F391C end:0x800F439C
