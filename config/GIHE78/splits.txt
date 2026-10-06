@@ -875,7 +875,7 @@ TRK_MINNOW_DOLPHIN/Os/dolphin/target_options.c:
 	.bss        start:0x80242790 end:0x80242798
 
 TRK_MINNOW_DOLPHIN/MetroTRK/Export/mslsupp.c:
-	.text       start:0x800E5534 end:0x800E56AC
+	.text       start:0x800E5078 end:0x800E56AC
 
 PowerPC_EABI_Support/Runtime/Src/__va_arg.c:
 	.text       start:0x800E56AC end:0x800E5774

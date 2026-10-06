@@ -8,9 +8,9 @@ extern "C" {
 #endif
 
 u32 TRKAccessFile(u32, u32, u32*, u8*);
-u32 TRKOpenFile(u32, u32, u32*, u8*);
+u32 TRKOpenFile(u32 command, const char* name, u8 mode, u32* handle);
 u32 TRKCloseFile(u32, u32);
-u32 TRKPositionFile(u32, u32, u32*, u8*);
+u32 TRKPositionFile(u32 command, u32 handle, u32* position, u8 mode);
 
 #ifdef __cplusplus
 }
