@@ -585,7 +585,7 @@ config.libs = [
     DolphinLib(
         "OdemuExi2",
         [
-            Object(NonMatching, "dolphin/src/OdemuExi2/DebuggerDriver.c"),
+            Object(Matching, "dolphin/src/OdemuExi2/DebuggerDriver.c", extra_cflags=["-inline on, deferred"]),
         ],
     ),
     # More Dolphin SDK units from bfbbdecomp/bfbb (CC0).
