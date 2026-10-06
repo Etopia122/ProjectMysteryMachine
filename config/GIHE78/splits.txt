@@ -812,6 +812,8 @@ TRK_MINNOW_DOLPHIN/Portable/msg.c:
 
 TRK_MINNOW_DOLPHIN/Portable/msgbuf.c:
 	.text       start:0x800DEBAC end:0x800DF5D8
+	.rodata     start:0x801A7CA0 end:0x801A7CC0
+	.bss        start:0x8023E600 end:0x8023FFB0
 
 TRK_MINNOW_DOLPHIN/Portable/serpoll.c:
 	.text       start:0x800DF5D8 end:0x800DF9A4

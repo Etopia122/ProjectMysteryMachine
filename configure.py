@@ -769,7 +769,7 @@ config.libs = [
             Object(Matching, "TRK_MINNOW_DOLPHIN/Portable/main_TRK.c"),
             Object(Matching, "TRK_MINNOW_DOLPHIN/MetroTRK/Export/mslsupp.c"),
             Object(NonMatching, "TRK_MINNOW_DOLPHIN/Portable/nubinit.c"),
-            Object(NonMatching, "TRK_MINNOW_DOLPHIN/Portable/msgbuf.c"),
+            Object(Matching, "TRK_MINNOW_DOLPHIN/Portable/msgbuf.c"),
             Object(NonMatching, "TRK_MINNOW_DOLPHIN/Portable/serpoll.c"),
             Object(NonMatching, "TRK_MINNOW_DOLPHIN/Portable/dispatch.c"),
             Object(NonMatching, "TRK_MINNOW_DOLPHIN/Portable/msghndlr.c"),

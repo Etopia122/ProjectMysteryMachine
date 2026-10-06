@@ -1,4 +1,4 @@
-fn_80003100 = .init:0x80003100; // type:function size:0x30
+TRK_memset = .init:0x80003100; // type:function size:0x30 scope:global
 TRK_memcpy = .init:0x80003130; // type:function size:0x24
 gTRKInterruptVectorTable = .init:0x80003154; // type:label scope:global
 fn_80005088 = .init:0x80005088; // type:function size:0x104
@@ -7687,7 +7687,7 @@ lbl_8023CFBC = .bss:0x8023CFBC; // type:object size:0x14 data:4byte
 __MIXChannel = .bss:0x8023CFD0; // type:object size:0x1600 data:4byte
 gTRKEventQueue = .bss:0x8023E5D0; // type:object size:0x28
 gTRKBigEndian = .bss:0x8023E5F8; // type:object size:0x4 scope:global data:4byte
-lbl_8023E600 = .bss:0x8023E600; // type:object size:0x19B0
+gTRKMsgBufs = .bss:0x8023E600; // type:object size:0x19B0 scope:global
 gTRKInputPendingPtr = .bss:0x8023FFB0; // type:object size:0x4 scope:global data:4byte
 lbl_8023FFB4 = .bss:0x8023FFB4; // type:object size:0x14 data:4byte
 lbl_8023FFC8 = .bss:0x8023FFC8; // type:object size:0x8 data:4byte
