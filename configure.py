@@ -644,6 +644,7 @@ config.libs = [
             Object(Matching, "dolphin/os/OSInterrupt.c"),
             Object(Matching, "dolphin/os/OSLink.c"),
             Object(Matching, "dolphin/os/OSMutex.c"),
+            Object(Matching, "dolphin/os/OSReboot.c"),
             Object(Matching, "dolphin/os/OSReset.c"),
             Object(Matching, "dolphin/os/OSRtc.c"),
             Object(Matching, "dolphin/os/OSSync.c"),

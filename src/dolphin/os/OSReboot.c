@@ -22,6 +22,24 @@ typedef struct _ApploaderHeader {
 
 ALIGN_DECL(32, static ApploaderHeader Header);
 
+#if defined(VERSION_GIHE78)
+#pragma peephole off
+
+#pragma dont_inline on
+static void Run(register u32 addr) {
+    OSDisableInterrupts();
+    ICFlashInvalidate();
+    // clang-format off
+    asm {
+        sync
+        isync
+        mtlr addr
+        blr
+    }
+    // clang-format on
+}
+#pragma dont_inline reset
+#else
 ASM static void Run(__REGISTER u32 addr) {
     nofralloc
 
@@ -30,10 +48,9 @@ ASM static void Run(__REGISTER u32 addr) {
     mtlr addr
     blr
 }
+#endif
 
-void ReadApploader(DVDCommandBlock* dvdCmd, void* addr, u32 offset, u32 numBytes);
-
-void ReadApploader(DVDCommandBlock* dvdCmd, void* addr, u32 offset, u32 numBytes) {
+static inline void ReadApploader(DVDCommandBlock* dvdCmd, void* addr, u32 offset, u32 numBytes) {
     /* Not sure if this inline is correct - might need to call other inlines */
     while (Prepared == FALSE) {
     }
@@ -105,8 +122,10 @@ void __OSReboot(u32 resetCode, u32 bootDol) {
     ReadApploader(&dvdCmd2, (void*)(OS_BOOTROM_ADDR), offset, numBytes);
 
     ICInvalidateRange((void*)(OS_BOOTROM_ADDR), numBytes);
+#if !defined(VERSION_GIHE78)
     OSDisableInterrupts();
     ICFlashInvalidate();
+#endif
     Run(OS_BOOTROM_ADDR);
 }
 
