@@ -775,6 +775,7 @@ config.libs = [
             Object(Matching, "TRK_MINNOW_DOLPHIN/Portable/msghndlr.c"),
             Object(NonMatching, "TRK_MINNOW_DOLPHIN/Portable/support.c"),
             Object(Matching, "TRK_MINNOW_DOLPHIN/ppc/Generic/targimpl.c"),
+            Object(Matching, "TRK_MINNOW_DOLPHIN/ppc/Export/targsupp.c"),
             Object(NonMatching, "TRK_MINNOW_DOLPHIN/Os/dolphin/dolphin_trk.c"),
             Object(Matching, "TRK_MINNOW_DOLPHIN/Os/dolphin/dolphin_trk_glue.c"),
             Object(Matching, "TRK_MINNOW_DOLPHIN/Portable/notify.c"),

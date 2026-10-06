@@ -851,6 +851,9 @@ TRK_MINNOW_DOLPHIN/ppc/Generic/targimpl.c:
 	.data       start:0x801CA1D8 end:0x801CA208
 	.bss        start:0x8023FFD8 end:0x80240558
 
+TRK_MINNOW_DOLPHIN/ppc/Export/targsupp.c:
+	.text       start:0x800E4660 end:0x800E4680
+
 TRK_MINNOW_DOLPHIN/Os/dolphin/dolphin_trk.c:
 	.text       start:0x800E4680 end:0x800E47C0
 
@@ -944,7 +947,7 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/mem_funcs.c:
 	.text       start:0x800EADF0 end:0x800EB0D0
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/misc_io.c:
-	.text       start:0x800EB0D0 end:0x800EB0E0
+	.text       start:0x800EB0D0 end:0x800EB0F8
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/printf.c:
 	.text       start:0x800EB0F8 end:0x800ED118
