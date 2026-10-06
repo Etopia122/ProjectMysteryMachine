@@ -7,7 +7,7 @@ char* strncpy(char* dst, const char* src, unsigned int n);
 void exit(int status);
 
 void fn_800167F0();
-void fn_80164200();
+void RwResourcesGetArenaSize();
 }
 
 enum en_READ_ASYNC_STATUS
@@ -1096,7 +1096,7 @@ static char* PKR_RWarenaAlloc(st_PACKER_READ_DATA* pr, signed int size)
     char* mem;
 
     fn_800167F0();
-    fn_80164200();
+    RwResourcesGetArenaSize();
     g_RWarena_resEntry =
         RwResourcesAllocateResEntry(pr, &g_RWarena_resOwner, size + 0x80, PKR_special_loadbuf_killed);
     if (g_RWarena_resEntry == 0)

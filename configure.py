@@ -746,6 +746,7 @@ config.libs = [
             Object(Matching, "rwsdk/src/baimmedi.c"),
             Object(NonMatching, "rwsdk/src/bamatrix.c"),
             Object(Matching, "rwsdk/src/bamemory.c"),
+            Object(Matching, "rwsdk/src/baresour.c"),
             Object(Matching, "rwsdk/src/batkreg.c"),
             Object(NonMatching, "rwsdk/src/bavector.c"),
             Object(Matching, "rwsdk/src/resheap.c"),

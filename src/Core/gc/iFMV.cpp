@@ -173,7 +173,7 @@ void fn_80014A34(signed int);
 void fn_800167F0();
 void fn_800443AC();
 unsigned int fn_800443F8();
-signed int fn_80164200();
+signed int RwResourcesGetArenaSize();
 extern RwModuleInfo lbl_8025F798; // resourcesModule
 extern unsigned char* RwEngineInstance;
 extern _tagxPad mPad;
@@ -441,7 +441,7 @@ static void PlayFMV(char* fname, unsigned int buttons, float time)
         return;
     }
     sResEntry = entry;
-    OSReport("RW resource arena size:  %d bytes\n", fn_80164200());
+    OSReport("RW resource arena size:  %d bytes\n", RwResourcesGetArenaSize());
     OSReport("RW rep entry:        %08X-%08X\n", (unsigned char*)entry + 0x18,
              (unsigned char*)entry + 0x3E0017);
     sWorkBase = (unsigned char*)entry + 0x18;

@@ -1465,6 +1465,10 @@ rwsdk/src/bamemory.c:
 	.text       start:0x8016351C end:0x80163B14
 	.sbss       start:0x8025F790 end:0x8025F798
 
+rwsdk/src/baresour.c:
+	.text       start:0x80163B14 end:0x80164374
+	.sbss       start:0x8025F798 end:0x8025F7A0
+
 rwsdk/src/batkbin.c:
 	.text       start:0x80164D48 end:0x801652F8
 

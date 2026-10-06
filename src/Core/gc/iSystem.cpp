@@ -39,7 +39,7 @@ extern unsigned int _stack_end[];
 // TODO: unidentified (stops the movie player before a reset)
 void GXAbortFrame();
 // TODO: unidentified (size of the RenderWare resource arena)
-signed int fn_80164200();
+signed int RwResourcesGetArenaSize();
 
 // TODO: unidentified iSystem/xTRC globals
 extern signed int lbl_8025E96C;       // last reset-button state
@@ -103,7 +103,7 @@ extern "C" void fn_80016898()
 // Fills the free RenderWare resource arena with a marker.
 extern "C" void fn_800167F0()
 {
-    signed int size = fn_80164200();
+    signed int size = RwResourcesGetArenaSize();
     RwResEntry* entry = RwResourcesAllocateResEntry(0, 0, size, 0);
 
     while (!entry && size > 0)
