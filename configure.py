@@ -739,6 +739,7 @@ config.libs = [
         "progress_category": "sdk",
         "objects": [
             Object(Matching, "rwsdk/src/batkbin.c"),
+            Object(Matching, "rwsdk/src/babinary.c"),
             Object(Matching, "rwsdk/src/batkreg.c"),
             Object(NonMatching, "rwsdk/src/bavector.c"),
             Object(Matching, "rwsdk/src/resheap.c"),
