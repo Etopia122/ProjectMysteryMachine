@@ -940,8 +940,8 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/string.c:
 	.text       start:0x800EE494 end:0x800EE7BC
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/strtoul.c:
-	.text       start:0x800EFD20 end:0x800F0098
-	.data       start:0x801CAB8C end:0x801CABD0
+	.text       start:0x800EF854 end:0x800F0098
+	.data       start:0x801CAB48 end:0x801CABD0
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Src/uart_console_io.c:
 	.text       start:0x800F0098 end:0x800F015C
