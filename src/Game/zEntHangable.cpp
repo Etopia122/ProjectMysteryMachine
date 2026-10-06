@@ -52,7 +52,7 @@ public:
     xAnimTable* Table;        // 0x10
 };
 
-void xVec3Normalize(_xVec3* o, _xVec3* v);
+float xVec3Normalize(_xVec3* o, _xVec3* v);
 void xMat3x3RotC(_xMat3x3* m, float _x, float _y, float _z, float t);
 void xMat3x3RMulVec(_xVec3* o, _xMat3x3* m, _xVec3* v);
 void xMat3x3GetEuler(_xMat3x3* m, _xVec3* a);

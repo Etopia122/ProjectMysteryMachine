@@ -379,7 +379,17 @@ RpWorld* RpWorldRemoveLight(RpWorld* w, RpLight* l)
     return w;
 }
 
+RpWorld* RpWorldSetSurfaceProperties(RpWorld* w, const RwSurfaceProperties* p)
+{
+    w->surfaceProps = *p;
+    return w;
+}
+
+}
+
 void pc_gl_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors);
+
+extern "C" {
 
 RpWorld* RpWorldRender(RpWorld* w)
 {

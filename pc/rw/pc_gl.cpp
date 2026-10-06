@@ -40,6 +40,10 @@ struct RenderStates
 };
 static RenderStates s_rs;
 
+// Debug statistics (PC_STATS=1): draws per frame, printed every 120 frames.
+static struct { int cams, atomics, atomicsDrawn, sectors, im2d, im3d, clears; } s_st;
+static bool stats_on() { static int on = -1; if (on < 0) on = getenv("PC_STATS") != NULL; return on; }
+
 SDL_Window* pc_window() { return s_window; }
 
 void pc_rw_device_open(void* displayID)
@@ -225,7 +229,28 @@ static void apply_states(bool alpha)
     {
         glDisable(GL_CULL_FACE);
     }
-    if (s_rs.fogEnable)
+    static const char* dbg = getenv("PC_DBG");
+    if (dbg && strstr(dbg, "notex"))
+    {
+        glDisable(GL_TEXTURE_2D);
+    }
+    if (dbg && strstr(dbg, "noat"))
+    {
+        glDisable(GL_ALPHA_TEST);
+    }
+    if (dbg && strstr(dbg, "nocull"))
+    {
+        glDisable(GL_CULL_FACE);
+    }
+    if (dbg && strstr(dbg, "nodepth"))
+    {
+        glDisable(GL_DEPTH_TEST);
+    }
+    if (dbg && strstr(dbg, "noblend"))
+    {
+        glDisable(GL_BLEND);
+    }
+    if (s_rs.fogEnable && !(dbg && strstr(dbg, "nofog")))
     {
         RwCamera* cam = rwGlobals()->curCamera;
         glEnable(GL_FOG);
@@ -374,6 +399,7 @@ void pc_gl_begin_camera(RwCamera* c)
         return;
     }
     s_cam = c;
+    s_st.cams++;
     set_viewport();
     load_projection(c);
     // View = inverse(camera LTM) with X flipped (RW's +X points left on screen).
@@ -385,6 +411,23 @@ void pc_gl_begin_camera(RwCamera* c)
     matrix16(&v, s_view);
     glMatrixMode(GL_MODELVIEW);
     glLoadMatrixf(s_view);
+    if (stats_on())
+    {
+        static int n;
+        if (n++ % 600 == 0)
+        {
+            RwFrame* f = (RwFrame*)c->object.object.parent;
+            const RwMatrix* m = f ? &f->ltm : NULL;
+            pc_log("[cam] proj %d vw %.3f %.3f off %.3f %.3f near %.3f far %.3f", c->projectionType, c->viewWindow.x,
+                   c->viewWindow.y, c->viewOffset.x, c->viewOffset.y, c->nearPlane, c->farPlane);
+            if (m)
+            {
+                pc_log("[cam] pos %.2f %.2f %.2f at %.2f %.2f %.2f up %.2f %.2f %.2f right %.2f %.2f %.2f", m->pos.x,
+                       m->pos.y, m->pos.z, m->at.x, m->at.y, m->at.z, m->up.x, m->up.y, m->up.z, m->right.x,
+                       m->right.y, m->right.z);
+            }
+        }
+    }
 }
 
 void pc_gl_end_camera(RwCamera* c) { s_cam = NULL; }
@@ -395,6 +438,7 @@ void pc_gl_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
     {
         return;
     }
+    s_st.clears++;
     set_viewport();
     GLbitfield bits = 0;
     if ((mode & rwCAMERACLEARIMAGE) && col)
@@ -455,26 +499,39 @@ void pc_gl_present()
         return;
     }
     maybe_screenshot();
+    if (stats_on())
+    {
+        static int frame;
+        if (++frame % 120 == 0)
+        {
+            pc_log("[stats] frame %d: cams %d atomics %d/%d sectors %d im2d %d im3d %d clears %d", frame, s_st.cams,
+                   s_st.atomicsDrawn, s_st.atomics, s_st.sectors, s_st.im2d, s_st.im3d, s_st.clears);
+        }
+        memset(&s_st, 0, sizeof(s_st));
+    }
     SDL_GL_SwapWindow(s_window);
     pc_events_pump();
 }
 
 // ---------------------------------------------------------------- lighting
-static void setup_lights(bool enable)
+// Lighting is done on the CPU with RenderWare's rules: per vertex,
+//   colour = prelit + materialColour * (ambient * ka + sum(lights) * kd)
+//   alpha  = prelit.alpha * materialAlpha
+// (fixed-function GL lighting can't add the prelit colour as well).
+static std::vector<float> s_light; // per-vertex accumulated direct light (rgb), or empty when unlit
+static float s_amb[3];              // accumulated ambient light
+
+static void light_vertices(RpGeometry* g, const RwMatrix* ltm, const RwV3d* pos, const RwV3d* nrm)
 {
     RpWorld* w = (RpWorld*)rwGlobals()->curWorld;
-    if (!enable || !w)
+    int nv = g->numVertices;
+    s_light.assign(nv * 3, 0.0f);
+    s_amb[0] = s_amb[1] = s_amb[2] = 0;
+    if (!w)
     {
-        glDisable(GL_LIGHTING);
         return;
     }
-    glEnable(GL_LIGHTING);
-    GLfloat amb[4] = { 0, 0, 0, 1 };
-    int n = 0;
     RwLinkList* lists[2] = { &w->directionalLightList, &w->lightList };
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadMatrixf(s_view);
     for (int li = 0; li < 2; li++)
     {
         RwLLLink* end = &lists[li]->link;
@@ -486,36 +543,71 @@ static void setup_lights(bool enable)
                 continue;
             }
             RwFrame* f = (RwFrame*)lt->object.object.parent;
-            if (lt->object.object.subType == rpLIGHTAMBIENT)
+            const RwRGBAReal& c = lt->color;
+            int type = lt->object.object.subType;
+            if (type == rpLIGHTAMBIENT)
             {
-                amb[0] += lt->color.red;
-                amb[1] += lt->color.green;
-                amb[2] += lt->color.blue;
+                s_amb[0] += c.red;
+                s_amb[1] += c.green;
+                s_amb[2] += c.blue;
+                continue;
             }
-            else if (lt->object.object.subType == rpLIGHTDIRECTIONAL && f && n < 8)
+            if (!f)
             {
-                GLenum L = GL_LIGHT0 + n++;
-                glEnable(L);
-                // RW directional lights shine along the frame's at vector.
-                GLfloat dir[4] = { -f->ltm.at.x, -f->ltm.at.y, -f->ltm.at.z, 0 };
-                GLfloat col[4] = { lt->color.red, lt->color.green, lt->color.blue, 1 };
-                GLfloat zero[4] = { 0, 0, 0, 1 };
-                glLightfv(L, GL_POSITION, dir);
-                glLightfv(L, GL_DIFFUSE, col);
-                glLightfv(L, GL_AMBIENT, zero);
-                glLightfv(L, GL_SPECULAR, zero);
+                continue;
+            }
+            const RwMatrix& lm = f->ltm;
+            for (int i = 0; i < nv; i++)
+            {
+                // World-space normal.
+                const RwV3d& n = nrm[i];
+                float nx = ltm->right.x * n.x + ltm->up.x * n.y + ltm->at.x * n.z;
+                float ny = ltm->right.y * n.x + ltm->up.y * n.y + ltm->at.y * n.z;
+                float nz = ltm->right.z * n.x + ltm->up.z * n.y + ltm->at.z * n.z;
+                float nl = sqrtf(nx * nx + ny * ny + nz * nz);
+                if (nl > 0)
+                {
+                    nx /= nl, ny /= nl, nz /= nl;
+                }
+                float k;
+                if (type == rpLIGHTDIRECTIONAL)
+                {
+                    // Directional lights shine along their frame's at vector.
+                    k = -(nx * lm.at.x + ny * lm.at.y + nz * lm.at.z);
+                }
+                else
+                {
+                    const RwV3d& p = pos[i];
+                    float wx = ltm->right.x * p.x + ltm->up.x * p.y + ltm->at.x * p.z + ltm->pos.x;
+                    float wy = ltm->right.y * p.x + ltm->up.y * p.y + ltm->at.y * p.z + ltm->pos.y;
+                    float wz = ltm->right.z * p.x + ltm->up.z * p.y + ltm->at.z * p.z + ltm->pos.z;
+                    float dx = lm.pos.x - wx, dy = lm.pos.y - wy, dz = lm.pos.z - wz;
+                    float d = sqrtf(dx * dx + dy * dy + dz * dz);
+                    if (d >= lt->radius || d <= 0)
+                    {
+                        continue;
+                    }
+                    dx /= d, dy /= d, dz /= d;
+                    k = (nx * dx + ny * dy + nz * dz) * (1.0f - d / lt->radius);
+                    if (type != rpLIGHTPOINT)
+                    {
+                        // Spot: outside the cone gets nothing.
+                        float cosA = -(dx * lm.at.x + dy * lm.at.y + dz * lm.at.z);
+                        if (-cosA > lt->minusCosAngle)
+                        {
+                            continue;
+                        }
+                    }
+                }
+                if (k > 0)
+                {
+                    s_light[i * 3] += c.red * k;
+                    s_light[i * 3 + 1] += c.green * k;
+                    s_light[i * 3 + 2] += c.blue * k;
+                }
             }
         }
     }
-    for (int i = n; i < 8; i++)
-    {
-        glDisable(GL_LIGHT0 + i);
-    }
-    glPopMatrix();
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-    glEnable(GL_NORMALIZE);
 }
 
 // ---------------------------------------------------------------- geometry
@@ -538,15 +630,39 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                 mc.red = mc.green = mc.blue = mc.alpha = 255;
             }
             bool alpha = mc.alpha < 255;
-            if (prelit)
+            bool lit = !s_light.empty();
+            if (prelit || lit)
             {
                 s_col.resize(nv);
+                float ka = m ? m->surfaceProps.ambient : 1.0f, kd = m ? m->surfaceProps.diffuse : 1.0f;
+                if (lit && m)
+                {
+                    // Lit geometry always takes the material colour.
+                    mc = m->color;
+                }
                 for (int k = 0; k < nv; k++)
                 {
-                    s_col[k].red = (RwUInt8)(prelit[k].red * mc.red / 255);
-                    s_col[k].green = (RwUInt8)(prelit[k].green * mc.green / 255);
-                    s_col[k].blue = (RwUInt8)(prelit[k].blue * mc.blue / 255);
-                    s_col[k].alpha = (RwUInt8)(prelit[k].alpha * mc.alpha / 255);
+                    float r, gr, b;
+                    if (lit)
+                    {
+                        r = (s_amb[0] * ka + s_light[k * 3] * kd) * mc.red;
+                        gr = (s_amb[1] * ka + s_light[k * 3 + 1] * kd) * mc.green;
+                        b = (s_amb[2] * ka + s_light[k * 3 + 2] * kd) * mc.blue;
+                        if (prelit)
+                        {
+                            r += prelit[k].red, gr += prelit[k].green, b += prelit[k].blue;
+                        }
+                    }
+                    else
+                    {
+                        r = prelit[k].red * mc.red / 255.0f;
+                        gr = prelit[k].green * mc.green / 255.0f;
+                        b = prelit[k].blue * mc.blue / 255.0f;
+                    }
+                    s_col[k].red = (RwUInt8)(r > 255 ? 255 : r);
+                    s_col[k].green = (RwUInt8)(gr > 255 ? 255 : gr);
+                    s_col[k].blue = (RwUInt8)(b > 255 ? 255 : b);
+                    s_col[k].alpha = (RwUInt8)((prelit ? prelit[k].alpha : 255) * mc.alpha / 255);
                     alpha |= s_col[k].alpha < 255;
                 }
                 glEnableClientState(GL_COLOR_ARRAY);
@@ -567,6 +683,12 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                 glDisable(GL_TEXTURE_2D);
             }
             apply_states(alpha || (t && t->raster));
+            static const char* dbg = getenv("PC_DBG");
+            if (dbg && strstr(dbg, "white"))
+            {
+                glDisableClientState(GL_COLOR_ARRAY);
+                glColor4ub(255, 255, 255, 255);
+            }
             glDrawElements(prim, (GLsizei)mesh[i].numIndices, GL_UNSIGNED_SHORT, mesh[i].indices);
         }
         return;
@@ -632,9 +754,29 @@ void pc_gl_render_atomic(RpAtomic* a)
 {
     RpGeometry* g = a->geometry;
     RwFrame* f = (RwFrame*)a->object.object.parent;
+    s_st.atomics++;
     if (!s_window || !g || !f || !g->morphTarget || !g->morphTarget->verts || g->numVertices <= 0)
     {
         return;
+    }
+    static const char* dbg = getenv("PC_DBG");
+    if (dbg && strstr(dbg, "noatomic"))
+    {
+        return;
+    }
+    s_st.atomicsDrawn++;
+    if (stats_on() && dbg && strstr(dbg, "atomlog"))
+    {
+        static int n;
+        if (n++ < 40)
+        {
+            pc_log("[atomic] %p verts %d flags %x pos %.1f %.1f %.1f prelit %p mesh %d mat0 %02x%02x%02x%02x", a,
+                   g->numVertices, g->flags, f->ltm.pos.x, f->ltm.pos.y, f->ltm.pos.z, g->preLitLum,
+                   g->mesh ? g->mesh->numMeshes : -1, g->matList.numMaterials ? g->matList.materials[0]->color.red : 0,
+                   g->matList.numMaterials ? g->matList.materials[0]->color.green : 0,
+                   g->matList.numMaterials ? g->matList.materials[0]->color.blue : 0,
+                   g->matList.numMaterials ? g->matList.materials[0]->color.alpha : 0);
+        }
     }
     float model[16];
     matrix16(&f->ltm, model);
@@ -678,10 +820,17 @@ void pc_gl_render_atomic(RpAtomic* a)
     {
         glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     }
-    setup_lights(nrm && (g->flags & rpGEOMETRYLIGHT));
+    if (nrm && (g->flags & rpGEOMETRYLIGHT))
+    {
+        light_vertices(g, &f->ltm, pos, nrm);
+    }
+    else
+    {
+        s_light.clear();
+    }
     draw_meshes(g->mesh, &g->matList, g->preLitLum, (g->flags & rpGEOMETRYMODULATEMATERIALCOLOR) != 0,
                 g->numVertices, g->triangles, g->numTriangles);
-    glDisable(GL_LIGHTING);
+    s_light.clear();
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     glMatrixMode(GL_MODELVIEW);
@@ -726,6 +875,20 @@ void pc_gl_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors)
         if (!s->numVertices || !s->mesh || !sector_visible(s))
         {
             continue;
+        }
+        s_st.sectors++;
+        if (stats_on() && s_st.sectors == 1)
+        {
+            static int n;
+            if (n++ % 600 == 0)
+            {
+                pc_log("[sector] verts %d bbox %.1f %.1f %.1f - %.1f %.1f %.1f v0 %.2f %.2f %.2f prelit %p (%02x%02x%02x%02x) tex %p",
+                       s->numVertices, s->boundingBox.inf.x, s->boundingBox.inf.y, s->boundingBox.inf.z,
+                       s->boundingBox.sup.x, s->boundingBox.sup.y, s->boundingBox.sup.z, s->vertices[0].x,
+                       s->vertices[0].y, s->vertices[0].z, s->preLitLum, s->preLitLum ? s->preLitLum[0].red : 0,
+                       s->preLitLum ? s->preLitLum[0].green : 0, s->preLitLum ? s->preLitLum[0].blue : 0,
+                       s->preLitLum ? s->preLitLum[0].alpha : 0, s->texCoords[0]);
+            }
         }
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(3, GL_FLOAT, 0, s->vertices);
@@ -815,6 +978,7 @@ RwInt32 RwIm2DRenderPrimitive(RwInt32 primType, RwIm2DVertex* v, RwInt32 n)
                primType, n, s_rs.raster, v[0].x, v[0].y, v[0].z, v[0].emissiveColor.red, v[0].emissiveColor.green,
                v[0].emissiveColor.blue, v[0].emissiveColor.alpha, v[0].u, v[0].v, n > 1 ? v[1].x : 0, n > 1 ? v[1].y : 0);
     }
+    s_st.im2d++;
     begin_2d();
     apply_states(true);
     glDisable(GL_DEPTH_TEST);
@@ -890,6 +1054,7 @@ RwInt32 RwIm3DRenderPrimitive(RwInt32 primType)
     {
         return 1;
     }
+    s_st.im3d++;
     im3d_setup();
     glDrawArrays(gl_prim(primType), 0, (GLsizei)s_im3dCount);
     glDisableClientState(GL_COLOR_ARRAY);

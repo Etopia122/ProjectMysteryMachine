@@ -134,7 +134,7 @@ void xPartitionGetLoop(_tagPartition* part, signed int range, signed int* sx, si
                        signed int* ey, signed int* ez);
 signed int xPartitionGetTrueIdx(_tagPartition* part, signed int x, signed int y, signed int z);
 _tagPartSpace* xPartitionGetSpace(_tagPartition* part, signed int idx);
-void xVec3Normalize(_xVec3* o, _xVec3* v);
+float xVec3Normalize(_xVec3* o, _xVec3* v);
 void xShadowSetLight(_xVec3* pos, _xVec3* vec, float shadow_depth);
 signed int zGameIsPaused();
 

@@ -25,7 +25,7 @@ public:
     _xVec3 pos;
 };
 
-void xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
+float xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
 void xMat3x3RotC(_xMat3x3* m, float x, float y, float z, float t);
 void xMat4x3Orthonormalize(_xMat4x3* o, _xMat4x3* m);
 void xMat4x3MoveLocalRight(_xMat4x3* m, float mag);
@@ -34,7 +34,7 @@ void xMat4x3MoveLocalUp(_xMat4x3* m, float mag);
 float xVec3Normalize(_xVec3* o, _xVec3* v);
 void xQuatFromMat(_xQuat* q, _xMat3x3* m);
 void xQuatToMat(_xQuat* q, _xMat3x3* m);
-void xQuatNormalize(_xQuat* o, _xQuat* q);
+float xQuatNormalize(_xQuat* o, _xQuat* q);
 void xQuatSlerp(_xQuat* o, _xQuat* a, _xQuat* b, float t);
 void xRayHitsCameraScene(_xScene* sc, _xRay3* r, void (*cb)(_xEnt*));
 void iRayHitsCamEnv(const _xRay3* r, const _xEnv* env, _xCollis* coll);

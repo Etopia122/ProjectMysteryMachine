@@ -90,8 +90,8 @@ signed int RwIm3DEnd();
 
 unsigned int irand();
 float iurand();
-void xVec3Normalize(_xVec3* o, _xVec3* v);
-void xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
+float xVec3Normalize(_xVec3* o, _xVec3* v);
+float xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
 void xMat3x3GetEuler(_xMat3x3* m, _xVec3* a);
 void xMat3x3Euler(_xMat3x3* m, float yaw, float pitch, float roll);
 void xMat3x3LMulVec(_xVec3* o, _xMat3x3* m, _xVec3* v);

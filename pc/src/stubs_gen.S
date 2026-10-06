@@ -595,205 +595,51 @@ _RADSetMemory:
     addl $4, %esp
     xorl %eax, %eax
     ret
-    .globl __Z14xCutscene_InitPv
-__Z14xCutscene_InitPv:
-    pushl $Lname86
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl __Z15zFMVFileGetName8eFMVFile
-__Z15zFMVFileGetName8eFMVFile:
-    pushl $Lname87
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
     .globl __Z16iDebugScreenDumpv
 __Z16iDebugScreenDumpv:
-    pushl $Lname88
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl __Z17xCutscene_DestroyP9xCutscene
-__Z17xCutscene_DestroyP9xCutscene:
-    pushl $Lname89
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl __Z8zFMVPlayPcjf
-__Z8zFMVPlayPcjf:
-    pushl $Lname90
+    pushl $Lname86
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl ___start
 ___start:
-    pushl $Lname91
+    pushl $Lname87
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __stack_addr
 __stack_addr:
-    pushl $Lname92
+    pushl $Lname88
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __stack_end
 __stack_end:
-    pushl $Lname93
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_800056F8
-_fn_800056F8:
-    pushl $Lname94
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80005AE8
-_fn_80005AE8:
-    pushl $Lname95
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80005AFC
-_fn_80005AFC:
-    pushl $Lname96
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80005B08
-_fn_80005B08:
-    pushl $Lname97
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80005B58
-_fn_80005B58:
-    pushl $Lname98
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80005C34
-_fn_80005C34:
-    pushl $Lname99
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80005C54
-_fn_80005C54:
-    pushl $Lname100
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80021B1C
-_fn_80021B1C:
-    pushl $Lname101
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80021B20
-_fn_80021B20:
-    pushl $Lname102
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80029458
-_fn_80029458:
-    pushl $Lname103
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_8002947C
-_fn_8002947C:
-    pushl $Lname104
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_800294A0
-_fn_800294A0:
-    pushl $Lname105
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_800294C4
-_fn_800294C4:
-    pushl $Lname106
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80032D28
-_fn_80032D28:
-    pushl $Lname107
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_800394B4
-_fn_800394B4:
-    pushl $Lname108
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_800C751C
-_fn_800C751C:
-    pushl $Lname109
+    pushl $Lname89
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80135484
 _fn_80135484:
-    pushl $Lname110
+    pushl $Lname90
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_8013558C
 _fn_8013558C:
-    pushl $Lname111
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80151CA4
-_fn_80151CA4:
-    pushl $Lname112
+    pushl $Lname91
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl _fn_80178A3C
 _fn_80178A3C:
-    pushl $Lname113
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _pc_gl_render_world
-_pc_gl_render_world:
-    pushl $Lname137
+    pushl $Lname92
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
@@ -885,59 +731,36 @@ Lname82: .asciz "_GXSetZCompLoc"
 Lname83: .asciz "_PSMTXIdentity"
 Lname84: .asciz "_RADSetAudioMemory"
 Lname85: .asciz "_RADSetMemory"
-Lname86: .asciz "xCutscene_Init(void*)"
-Lname87: .asciz "zFMVFileGetName(eFMVFile)"
-Lname88: .asciz "iDebugScreenDump()"
-Lname89: .asciz "xCutscene_Destroy(xCutscene*)"
-Lname90: .asciz "zFMVPlay(char*, unsigned int, float)"
-Lname91: .asciz "___start"
-Lname92: .asciz "__stack_addr"
-Lname93: .asciz "__stack_end"
-Lname94: .asciz "_fn_800056F8"
-Lname95: .asciz "_fn_80005AE8"
-Lname96: .asciz "_fn_80005AFC"
-Lname97: .asciz "_fn_80005B08"
-Lname98: .asciz "_fn_80005B58"
-Lname99: .asciz "_fn_80005C34"
-Lname100: .asciz "_fn_80005C54"
-Lname101: .asciz "_fn_80021B1C"
-Lname102: .asciz "_fn_80021B20"
-Lname103: .asciz "_fn_80029458"
-Lname104: .asciz "_fn_8002947C"
-Lname105: .asciz "_fn_800294A0"
-Lname106: .asciz "_fn_800294C4"
-Lname107: .asciz "_fn_80032D28"
-Lname108: .asciz "_fn_800394B4"
-Lname109: .asciz "_fn_800C751C"
-Lname110: .asciz "_fn_80135484"
-Lname111: .asciz "_fn_8013558C"
-Lname112: .asciz "_fn_80151CA4"
-Lname113: .asciz "_fn_80178A3C"
-Lname114: .asciz "_gFXSurfaceFlags"
-Lname115: .asciz "_gFrameCount"
-Lname116: .asciz "_gScreenDump"
-Lname117: .asciz "_gVsyncCount"
-Lname118: .asciz "_g_xSceneCur"
-Lname119: .asciz "_globalCamera"
-Lname120: .asciz "_lastEnv"
-Lname121: .asciz "_lbl_801FE3B8"
-Lname122: .asciz "_lbl_801FE3C4"
-Lname123: .asciz "_lbl_801FE3D4"
-Lname124: .asciz "_lbl_8025E348"
-Lname125: .asciz "_lbl_8025E868"
-Lname126: .asciz "_lbl_8025E8A0"
-Lname127: .asciz "_lbl_8025E96C"
-Lname128: .asciz "_lbl_8025E970"
-Lname129: .asciz "_lbl_8025E974"
-Lname130: .asciz "_lbl_8025E978"
-Lname131: .asciz "_lbl_8025E97C"
-Lname132: .asciz "_lbl_8025E980"
-Lname133: .asciz "_lbl_8025E984"
-Lname134: .asciz "_lbl_8025E988"
-Lname135: .asciz "_lbl_8025EEC8"
-Lname136: .asciz "_lbl_8025F860"
-Lname137: .asciz "_pc_gl_render_world"
-Lname138: .asciz "_sBeginDrawFX"
+Lname86: .asciz "iDebugScreenDump()"
+Lname87: .asciz "___start"
+Lname88: .asciz "__stack_addr"
+Lname89: .asciz "__stack_end"
+Lname90: .asciz "_fn_80135484"
+Lname91: .asciz "_fn_8013558C"
+Lname92: .asciz "_fn_80178A3C"
+Lname93: .asciz "_gFXSurfaceFlags"
+Lname94: .asciz "_gFrameCount"
+Lname95: .asciz "_gScreenDump"
+Lname96: .asciz "_gVsyncCount"
+Lname97: .asciz "_g_xSceneCur"
+Lname98: .asciz "_globalCamera"
+Lname99: .asciz "_lastEnv"
+Lname100: .asciz "_lbl_801FE3B8"
+Lname101: .asciz "_lbl_801FE3C4"
+Lname102: .asciz "_lbl_801FE3D4"
+Lname103: .asciz "_lbl_8025E348"
+Lname104: .asciz "_lbl_8025E8A0"
+Lname105: .asciz "_lbl_8025E96C"
+Lname106: .asciz "_lbl_8025E970"
+Lname107: .asciz "_lbl_8025E974"
+Lname108: .asciz "_lbl_8025E978"
+Lname109: .asciz "_lbl_8025E97C"
+Lname110: .asciz "_lbl_8025E980"
+Lname111: .asciz "_lbl_8025E984"
+Lname112: .asciz "_lbl_8025E988"
+Lname113: .asciz "_lbl_8025EEC8"
+Lname114: .asciz "_lbl_8025F860"
+Lname115: .asciz "_sBeginDrawFX"
     .bss
     .globl _GXNtsc480IntDf
     .balign 32
@@ -975,9 +798,6 @@ _lbl_801FE3D4: .space 256
     .globl _lbl_8025E348
     .balign 32
 _lbl_8025E348: .space 256
-    .globl _lbl_8025E868
-    .balign 32
-_lbl_8025E868: .space 256
     .globl _lbl_8025E8A0
     .balign 32
 _lbl_8025E8A0: .space 256

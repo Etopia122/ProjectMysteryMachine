@@ -1420,7 +1420,7 @@ void Shaggy5_WitchTransitions(xAnimTable* table);
 
 _tagLightning* zLightningAdd(_tagLightningAdd* add);
 void zLightningKill(_tagLightning* l);
-void xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
+float xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
 extern "C" void* memcpy(void* dst, const void* src, unsigned long n);
 extern const _xVec3 g_Y3;
 extern const _xVec3 g_O3;

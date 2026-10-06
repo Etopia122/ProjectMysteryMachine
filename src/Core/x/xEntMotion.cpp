@@ -48,7 +48,7 @@ float xSpline3_EvalArcApprox(xSpline3* spl, float s, unsigned int deriv, _xVec3*
 void xSpline3_EvalSeg(xSpline3* spl, float u, unsigned int deriv, _xVec3* o);
 void xMat3x3Euler(_xMat3x3* m, float yaw, float pitch, float roll);
 void xMat3x3RotC(_xMat3x3* m, float _x, float _y, float _z, float t);
-void xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
+float xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
 void xMat4x3Rot(_xMat4x3* m, _xVec3* a, float t, _xVec3* p);
 void xQuatFromMat(_xQuat* q, _xMat3x3* m);
 void xQuatToMat(_xQuat* q, _xMat3x3* m);

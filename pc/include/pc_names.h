@@ -14,5 +14,6 @@
 #define fn_80163610 RwFreeListCreate
 #define fn_80164200 RwResourcesGetArenaSize
 #define fn_8018B9A0 RxRenderStateVectorSetDefaultRenderStateVector
+#define fn_80151CA4 RpWorldSetSurfaceProperties
 
 #endif // PC_NAMES_H

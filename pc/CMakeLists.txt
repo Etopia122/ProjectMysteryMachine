@@ -33,6 +33,12 @@ target_compile_options(scoobygame PRIVATE
     -w -g -O0 -fno-strict-aliasing
     -include ${CMAKE_CURRENT_SOURCE_DIR}/include/pc_compat.h)
 
+# Debug: report call sites that leak values on the x87 stack (see src/fpcheck.cpp).
+option(PC_FPCHECK "Instrument game code to find x87 stack leaks" OFF)
+if(PC_FPCHECK)
+    target_compile_options(scoobygame PRIVATE -finstrument-functions)
+endif()
+
 find_package(SDL2 REQUIRED CONFIG)
 
 file(GLOB PC_SOURCES

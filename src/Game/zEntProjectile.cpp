@@ -54,7 +54,7 @@ extern const _xVec3 g_NY3;
 
 float xVec3Normalize(_xVec3* o, _xVec3* v);
 void xMat3x3Euler(_xMat3x3* m, _xVec3* ypr);
-void xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
+float xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
 void xMat4x3RMul3x3(_xMat4x3* o, _xMat3x3* a, _xMat4x3* b);
 void xEntMotionToMatrix(_xEnt* ent, _xEntFrame* frame);
 void xModelEval(xModelInstance* model);

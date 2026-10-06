@@ -200,7 +200,7 @@ void xDrawLine(const _xVec3* a, const _xVec3* b);
 void* xMemPushTemp(unsigned int size);
 void xMemPopTemp(void* addr);
 float xVec3Normalize(_xVec3* o, _xVec3* v);
-void xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
+float xMat3x3LookVec(_xMat3x3* m, _xVec3* at);
 void xRayHitsScene(_xScene* sc, _xRay3* r, _xCollis* coll);
 void iRayHitsEnv(const _xRay3* r, const _xEnv* env, _xCollis* coll);
 signed int zMenuRunning();
