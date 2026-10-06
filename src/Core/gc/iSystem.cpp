@@ -367,8 +367,8 @@ extern unsigned char* RwEngineInstance;
 RwFileFunctions* RwOsGetFileInterface();
 unsigned int RwEngineRegisterPlugin(signed int size, unsigned int pluginID, void* (*initCB)(void*, int, int),
                                     void* (*termCB)(void*, int, int));
-void* fn_80163610(unsigned int entrySize, unsigned int entriesPerBlock, unsigned int alignment); // RwFreeListCreate
-void fn_8016356C(void* freelist); // RwFreeListDestroy
+void* RwFreeListCreate(unsigned int entrySize, unsigned int entriesPerBlock, unsigned int alignment); // RwFreeListCreate
+void RwFreeListDestroy(void* freelist); // RwFreeListDestroy
 signed int RwEngineInit(RwMemoryFunctions* memFuncs, unsigned int initFlags, unsigned int resArenaSize);
 signed int RwResourcesSetArenaSize(unsigned int size);
 signed int RwEngineOpen(RwEngineOpenParams* params);
@@ -1160,7 +1160,7 @@ static void* _rwDolphinFSOpen(void* instance, int offset, int size)
     RwFileFunctions* funcs;
 
     lbl_8025E98C.globalsOffset = offset;
-    FSGLOBALS()->fileFreeList = fn_80163610(sizeof(dlFile), 5, 0x20);
+    FSGLOBALS()->fileFreeList = RwFreeListCreate(sizeof(dlFile), 5, 0x20);
     if (!FSGLOBALS()->fileFreeList)
     {
         return NULL;
@@ -1185,7 +1185,7 @@ static void* _rwDolphinFSOpen(void* instance, int offset, int size)
 static void* _rwDolphinFSClose(void* instance, int offset, int size)
 {
     *RwOsGetFileInterface() = FSGLOBALS()->oldFuncs;
-    fn_8016356C(FSGLOBALS()->fileFreeList);
+    RwFreeListDestroy(FSGLOBALS()->fileFreeList);
     lbl_8025E98C.numInstances--;
     return instance;
 }
