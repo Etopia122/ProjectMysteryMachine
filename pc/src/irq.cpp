@@ -50,6 +50,13 @@ void pc_irq_post(std::function<void()> fn)
     s_queueCv.notify_one();
 }
 
+// Runs fn now on the calling thread as an "interrupt" (game interrupts held off).
+void pc_irq_run(const std::function<void()>& fn)
+{
+    std::lock_guard<std::recursive_mutex> irq(s_irqLock);
+    fn();
+}
+
 extern "C" {
 
 int OSDisableInterrupts()

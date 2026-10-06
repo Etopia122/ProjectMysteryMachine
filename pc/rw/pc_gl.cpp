@@ -521,7 +521,7 @@ void pc_gl_present()
         static int frame;
         if (++frame % 120 == 0)
         {
-            pc_log("[stats] frame %d: cams %d atomics %d/%d sectors %d im2d %d im3d %d clears %d", frame, s_st.cams,
+            pc_log("[stats] %.1fs frame %d: cams %d atomics %d/%d sectors %d im2d %d im3d %d clears %d", SDL_GetTicks() / 1000.0, frame, s_st.cams,
                    s_st.atomicsDrawn, s_st.atomics, s_st.sectors, s_st.im2d, s_st.im3d, s_st.clears);
         }
         memset(&s_st, 0, sizeof(s_st));

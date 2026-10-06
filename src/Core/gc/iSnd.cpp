@@ -158,6 +158,21 @@ signed int iFileReadAsync(tag_xFile* file, void* buf, unsigned int size, void (*
 float xVec3Normalize(_xVec3* o, _xVec3* v);
 void zGameScreenTransitionUpdate(float percentComplete, char* msg, unsigned char* buf);
 
+#ifdef PC_PORT
+// The sound info's 32-bit addresses are copied onto AXPBADDR's Hi/Lo halfword
+// pairs, which only lines up on a big-endian CPU: swap the halves back.
+static inline void PCFixAddrHalves(AXPBADDR* a)
+{
+    unsigned short t;
+    t = a->loopAddressHi; a->loopAddressHi = a->loopAddressLo; a->loopAddressLo = t;
+    t = a->endAddressHi; a->endAddressHi = a->endAddressLo; a->endAddressLo = t;
+    t = a->currentAddressHi; a->currentAddressHi = a->currentAddressLo; a->currentAddressLo = t;
+}
+#define PC_FIX_ADDR_HALVES(a) PCFixAddrHalves(a)
+#else
+#define PC_FIX_ADDR_HALVES(a)
+#endif
+
 // DSPADPCM header of one sound, followed by its asset ID.
 class sDSPADPCM
 {
@@ -1162,6 +1177,7 @@ unsigned int iSndPlayStream(xSndVoiceInfo* vp)
 
         AXPBADDR addr;
         memcpy(&addr, &s->info.loop_flag, sizeof(AXPBADDR));
+        PC_FIX_ADDR_HALVES(&addr);
         unsigned int start = s->dest_a * 2;
         addr.loopFlag = 1;
         addr.format = 0;
@@ -1242,6 +1258,7 @@ unsigned int iSndPlaySound(xSndVoiceInfo* vp)
 
         AXPBADDR addr;
         memcpy(&addr, &lookup.info.loop_flag, sizeof(AXPBADDR));
+        PC_FIX_ADDR_HALVES(&addr);
         if (lookup.info.loop_flag == 0)
         {
             addr.loopAddressLo = zero_point;
