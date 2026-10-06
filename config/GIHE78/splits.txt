@@ -883,8 +883,19 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/abort_exit.c:
 	.bss        start:0x80242798 end:0x80242898
 	.sbss       start:0x8025F220 end:0x8025F230
 
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/alloc.c:
+	.text       start:0x800E6188 end:0x800E7350
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/ansi_files.c:
+	.text       start:0x800E7350 end:0x800E7650
+	.data       start:0x801CA268 end:0x801CA3A8
+	.bss        start:0x802428D0 end:0x80242BD0
+
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/arith.c:
 	.text       start:0x800E92BC end:0x800E92CC
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/buffer_io.c:
+	.text       start:0x800E9410 end:0x800E95D8
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/ctype.c:
 	.text       start:0x800E9A7C end:0x800E9AA0

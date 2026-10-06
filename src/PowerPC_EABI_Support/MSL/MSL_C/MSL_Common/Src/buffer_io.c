@@ -11,6 +11,31 @@ void __prep_buffer(FILE* file) {
     file->buffer_position = file->position;
 }
 
+int __load_buffer(FILE* file, size_t* bytes_loaded, int alignment) {
+    int ioresult;
+
+    __prep_buffer(file);
+
+    if (alignment == __dont_align_buffer)
+        file->buffer_length = file->buffer_size;
+
+    ioresult = (*file->read_fn)(file->handle, file->buffer, (size_t*)&file->buffer_length,
+                                file->idle_fn);
+
+    if (ioresult == __io_EOF)
+        file->buffer_length = 0;
+
+    if (bytes_loaded)
+        *bytes_loaded = file->buffer_length;
+
+    if (ioresult)
+        return ioresult;
+
+    file->position += file->buffer_length;
+
+    return 0;
+}
+
 int __flush_buffer(FILE* file, size_t* bytes_flushed) {
     size_t buffer_len;
     int ioresult;

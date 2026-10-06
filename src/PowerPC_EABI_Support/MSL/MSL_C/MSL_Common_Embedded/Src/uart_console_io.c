@@ -14,9 +14,7 @@ int __write_console(int param_0, int param_1, int* param_2, int param_3) {
 	return 0;
 }
 
-int __close_console() {
-	return 0;
-}
+// __close_console is the MetroTRK-backed version in this game (TRK file glue).
 
 static inline int __init_uart_console(void) {
 	static int initialized = 0;
