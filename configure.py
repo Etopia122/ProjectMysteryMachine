@@ -726,6 +726,7 @@ config.libs = [
         "cflags": cflags_tww_dolphin,
         "progress_category": "sdk",
         "objects": [
+            Object(NonMatching, "dolphin/card/CARDBios.c", extra_cflags=["-O0,s", "-use_lmw_stmw on", "-inline off"]),
             Object(Matching, "dolphin/card/CARDOpen.c"),
         ],
     },
