@@ -627,7 +627,7 @@ static inline void xVec3Cross(_xVec3* o, _xVec3* a, _xVec3* b)
 }
 
 extern "C" {
-signed int fn_800ED288();
+signed int rand();
 char* strcpy(char* dst, const char* src);
 char* strcat(char* dst, const char* src);
 signed int fn_800394B4();
@@ -932,7 +932,7 @@ static inline void zEntPlayer_SNDButtBounce(signed int hit_villain)
         signed int newsnd = sPlayerSndfx.head_snd;
         while (newsnd == sPlayerSndfx.head_snd)
         {
-            newsnd = fn_800ED288() % 3;
+            newsnd = rand() % 3;
         }
         sPlayerSndfx.head_snd = newsnd;
     }
@@ -943,7 +943,7 @@ static inline void zEntPlayer_SNDButtBounce(signed int hit_villain)
         signed int newsnd = sPlayerSndfx.butt_snd;
         while (newsnd == sPlayerSndfx.butt_snd)
         {
-            newsnd = fn_800ED288() % 3;
+            newsnd = rand() % 3;
         }
         sPlayerSndfx.butt_snd = newsnd;
     }
@@ -7898,13 +7898,13 @@ void zEntPlayer_SNDInit()
     sPlayerSndfx.butt_id[i++] = xStrHash("sndfx_butt_smash2");
     sPlayerSndfx.butt_id[i++] = xStrHash("sndfx_butt_smash3");
     sPlayerSndfx.butt_pitch = 359.0f * iurand();
-    sPlayerSndfx.butt_snd = fn_800ED288() % 3;
+    sPlayerSndfx.butt_snd = rand() % 3;
     i = 0;
     sPlayerSndfx.head_id[i++] = xStrHash("sndfx_head_butt1");
     sPlayerSndfx.head_id[i++] = xStrHash("sndfx_head_butt2");
     sPlayerSndfx.head_id[i++] = xStrHash("sndfx_head_butt3");
     sPlayerSndfx.head_pitch = 359.0f * iurand();
-    sPlayerSndfx.head_snd = fn_800ED288() % 3;
+    sPlayerSndfx.head_snd = rand() % 3;
     sPlayerSndfx.buttmiss_id = xStrHash("sndfx_butt_miss1");
     i = 0;
     sPlayerSndfx.skid_id[i++] = xStrHash("sndfx_skid1");
@@ -8629,7 +8629,7 @@ static unsigned int zEntPlayer_SNDSkidCB(unsigned int, xAnimActiveEffect*, xAnim
     newsnd = snd;
     while (newsnd == snd)
     {
-        newsnd = fn_800ED288() % 3;
+        newsnd = rand() % 3;
     }
     snd = newsnd;
 
