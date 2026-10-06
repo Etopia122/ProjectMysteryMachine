@@ -737,6 +737,7 @@ config.libs = [
         "objects": [
             Object(Matching, "rwsdk/src/batkbin.c"),
             Object(Matching, "rwsdk/src/batkreg.c"),
+            Object(Matching, "rwsdk/src/resheap.c"),
             Object(Matching, "rwsdk/src/rwstring.c"),
             Object(Matching, "rwsdk/src/rwpath.c"),
             Object(Matching, "rwsdk/src/babbox.c"),
