@@ -243,9 +243,21 @@ extern void* RwEngineInstance;
 
 typedef void (*RwFreeListCallBack)(void* pMem, void* pData);
 
+struct RwFreeList {
+    /* 0x00 */ void** freeIndices;
+    /* 0x04 */ void** freeIndexTop;
+    /* 0x08 */ void* firstBlock;
+    /* 0x0C */ RwUInt32 blockSize;
+    /* 0x10 */ RwUInt32 entrySize;
+    /* 0x14 */ RwUInt32 alignment;
+    /* 0x18 */ RwInt32 entriesPerBlock;
+    /* 0x1C */ RwInt32 totalEntries;
+    /* 0x20 */ RwLLLink link;
+};
+
 RwFreeList* RwFreeListCreate(RwInt32 entrySize, RwInt32 entriesPerBlock, RwInt32 alignment);
 RwBool RwFreeListDestroy(RwFreeList* freelist);
-void RwFreeListForAllUsed(RwFreeList* freelist, RwFreeListCallBack fpCallBack, void* pData);
+RwFreeList* RwFreeListForAllUsed(RwFreeList* freelist, RwFreeListCallBack fpCallBack, void* pData);
 void* _rwFreeListAllocReal(RwFreeList* freelist);
 
 // Plugin registries (one per extensible object type)
