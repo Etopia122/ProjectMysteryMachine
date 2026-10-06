@@ -914,7 +914,7 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/FILE_POS.c:
 	.text       start:0x800EA644 end:0x800EA910
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/mbstring.c:
-	.text       start:0x800EA910 end:0x800EAA74
+	.text       start:0x800EA910 end:0x800EAC80
 	.sdata2     start:0x80262180 end:0x80262184
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/mem.c:
