@@ -307,6 +307,7 @@ RwBool _rwStreamReadChunkHeader(RwStream* stream, RwUInt32* type, RwUInt32* leng
 RwStream* _rwStreamWriteVersionedChunkHeader(RwStream* stream, RwInt32 type, RwInt32 size, RwUInt32 version,
                                              RwUInt32 buildNum);
 
+#define rwID_STRUCT 0x01
 #define rwID_EXTENSION 0x03
 #define rwCHUNKHEADERSIZE 12
 #define rwLIBRARYBASEVERSION 0x31000
