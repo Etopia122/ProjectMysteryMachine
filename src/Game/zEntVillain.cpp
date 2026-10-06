@@ -7184,6 +7184,7 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->nav_next = vil->nav_mvptlist;
             vil->need_navpt = 0;
             vil->tmr_list[3] = -1.0f;
+            {
             _xVec3 d = {};
             if (vil->nav_next)
             {
@@ -7211,6 +7212,7 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 }
                 vil->dst_navTween = d;
                 vil->tmr_list[ZVIL_TYMR_GENERIC] = vil->dst_navTween / 6.0f;
+            }
             }
             break;
         case ZVIL_STIM_EXITGOAL:

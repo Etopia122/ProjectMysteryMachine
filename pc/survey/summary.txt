@@ -1,0 +1,5 @@
+133/133 files compile cleanly
+
+errors per file:
+
+error categories:

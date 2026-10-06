@@ -398,7 +398,12 @@ static void zMainParseINIGlobals(xIniFile* ini)
     sShowMenuOnBoot = xIniGetInt(ini, "ShowMenuOnBoot", 1);
 }
 
+#ifdef PC_PORT
+// On PC the platform layer owns the process entry point and calls this.
+void scooby_main()
+#else
 void main()
+#endif
 {
     fn_80016218();
     xMemRegisterBaseNotifyFunc(zMainMemLvlChkCB);
