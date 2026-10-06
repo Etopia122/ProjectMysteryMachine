@@ -1,0 +1,642 @@
+// RenderWare worlds (BSP of atomic sectors), lights, and collision queries.
+#include "rw_internal.h"
+#include "pc_platform.h"
+
+#include <float.h>
+#include <math.h>
+#include <string.h>
+#include <vector>
+
+// World format flags (RpWorld.flags), same bits as geometry.
+static std::vector<RpWorldSector*> s_tmpSectors;
+
+static void collect_sectors(RpSector* s, std::vector<RpWorldSector*>& out)
+{
+    if (!s)
+    {
+        return;
+    }
+    if (s->type < 0)
+    {
+        out.push_back((RpWorldSector*)s);
+        return;
+    }
+    RpPlaneSector* p = (RpPlaneSector*)s;
+    collect_sectors(p->leftSubTree, out);
+    collect_sectors(p->rightSubTree, out);
+}
+
+// Sectors of a world, cached per world (filled on load).
+struct PcWorld
+{
+    RpWorld w;
+    RwUInt8 ext[0x40];
+    std::vector<RpWorldSector*>* sectors;
+};
+static PcWorld* pc_world(RpWorld* w) { return (PcWorld*)w; }
+
+static void sector_plugin(RwStream* s, RwUInt32 id, RwUInt32 len, RwUInt32 ver, void* obj)
+{
+    RpWorldSector* sec = (RpWorldSector*)obj;
+    RpWorld* w = (RpWorld*)sec->repEntry; // stashed temporarily during load
+    if (id == rwID_BINMESHPLUGIN)
+    {
+        sec->mesh = pc_read_binmesh(s, len, &w->matList);
+    }
+}
+
+static RpSector* read_sector(RwStream* s, RpWorld* w, RwUInt32 format, int numTexSets)
+{
+    RwChunkHeaderInfo h;
+    if (!RwStreamReadChunkHeaderInfo(s, &h))
+    {
+        return NULL;
+    }
+    RwUInt32 slen, ver;
+    if (!RwStreamFindChunk(s, rwID_STRUCT, &slen, &ver))
+    {
+        return NULL;
+    }
+    std::vector<RwUInt8> st(slen);
+    RwStreamRead(s, st.data(), slen);
+    const RwUInt8* d = st.data();
+    if (h.type == rwID_PLANESECT)
+    {
+        RpPlaneSector* p = (RpPlaneSector*)rwCalloc(1, sizeof(RpPlaneSector));
+        p->type = (RwInt32)rd32(d);
+        p->value = rdf(d + 4);
+        p->leftValue = rdf(d + 16);
+        p->rightValue = rdf(d + 20);
+        p->leftSubTree = read_sector(s, w, format, numTexSets);
+        p->rightSubTree = read_sector(s, w, format, numTexSets);
+        return (RpSector*)p;
+    }
+    if (h.type != rwID_ATOMICSECT)
+    {
+        RwStreamSkip(s, h.length - slen - 12);
+        return NULL;
+    }
+    RpWorldSector* sec = (RpWorldSector*)rwCalloc(1, sizeof(RpWorldSector) + 0x20);
+    sec->type = rpWORLDSECTOR_TYPE;
+    sec->matListWindowBase = (RwUInt16)rd32(d);
+    RwInt32 np = (RwInt32)rd32(d + 4), nv = (RwInt32)rd32(d + 8);
+    sec->numPolygons = (RwUInt16)np;
+    sec->numVertices = (RwUInt16)nv;
+    sec->boundingBox.inf.x = rdf(d + 12);
+    sec->boundingBox.inf.y = rdf(d + 16);
+    sec->boundingBox.inf.z = rdf(d + 20);
+    sec->boundingBox.sup.x = rdf(d + 24);
+    sec->boundingBox.sup.y = rdf(d + 28);
+    sec->boundingBox.sup.z = rdf(d + 32);
+    sec->tightBoundingBox = sec->boundingBox;
+    rwLinkListInitialize(&sec->collAtomicsInWorldSector);
+    rwLinkListInitialize(&sec->noCollAtomicsInWorldSector);
+    rwLinkListInitialize(&sec->lightsInWorldSector);
+    size_t o = 44;
+    if (nv > 0)
+    {
+        sec->vertices = (RwV3d*)rwMalloc((size_t)nv * sizeof(RwV3d));
+        for (RwInt32 i = 0; i < nv * 3; i++)
+        {
+            ((float*)sec->vertices)[i] = rdf(d + o + i * 4);
+        }
+        o += (size_t)nv * 12;
+        if (format & rpGEOMETRYNORMALS)
+        {
+            sec->normals = (RpVertexNormal*)rwMalloc((size_t)nv * 4);
+            memcpy(sec->normals, d + o, (size_t)nv * 4);
+            o += (size_t)nv * 4;
+        }
+        if (format & rpGEOMETRYPRELIT)
+        {
+            sec->preLitLum = (RwRGBA*)rwMalloc((size_t)nv * 4);
+            memcpy(sec->preLitLum, d + o, (size_t)nv * 4);
+            o += (size_t)nv * 4;
+        }
+        for (int t = 0; t < numTexSets; t++)
+        {
+            sec->texCoords[t] = (RwTexCoords*)rwMalloc((size_t)nv * sizeof(RwTexCoords));
+            for (RwInt32 i = 0; i < nv * 2; i++)
+            {
+                ((float*)sec->texCoords[t])[i] = rdf(d + o + i * 4);
+            }
+            o += (size_t)nv * 8;
+        }
+    }
+    if (np > 0)
+    {
+        sec->polygons = (RpPolygon*)rwMalloc((size_t)np * sizeof(RpPolygon));
+        for (RwInt32 i = 0; i < np; i++)
+        {
+            const RwUInt8* q = d + o + i * 8;
+            if (ver >= 0x34000)
+            {
+                RwUInt32 a = rd32(q), b = rd32(q + 4);
+                sec->polygons[i].vertIndex[0] = (RwUInt16)(a >> 16);
+                sec->polygons[i].vertIndex[1] = (RwUInt16)a;
+                sec->polygons[i].matIndex = (RwUInt16)(b >> 16);
+                sec->polygons[i].vertIndex[2] = (RwUInt16)b;
+            }
+            else
+            {
+                sec->polygons[i].matIndex = rd16(q);
+                sec->polygons[i].vertIndex[0] = rd16(q + 2);
+                sec->polygons[i].vertIndex[1] = rd16(q + 4);
+                sec->polygons[i].vertIndex[2] = rd16(q + 6);
+            }
+        }
+    }
+    sec->repEntry = (RwResEntry*)w;
+    pc_read_extension(s, sector_plugin, sec);
+    sec->repEntry = NULL;
+    return (RpSector*)sec;
+}
+
+extern "C" {
+
+RpWorld* RpWorldCreate(RwBBox* bbox)
+{
+    PcWorld* p = (PcWorld*)rwCalloc(1, sizeof(PcWorld));
+    RpWorld* w = &p->w;
+    w->object.type = 7;
+    rwLinkListInitialize(&w->clumpList);
+    rwLinkListInitialize(&w->lightList);
+    rwLinkListInitialize(&w->directionalLightList);
+    if (bbox)
+    {
+        w->boundingBox = *bbox;
+    }
+    w->surfaceProps.ambient = w->surfaceProps.specular = w->surfaceProps.diffuse = 1.0f;
+    p->sectors = new std::vector<RpWorldSector*>();
+    if (bbox)
+    {
+        // An empty world still has one (empty) sector.
+        RpWorldSector* sec = (RpWorldSector*)rwCalloc(1, sizeof(RpWorldSector) + 0x20);
+        sec->type = rpWORLDSECTOR_TYPE;
+        sec->boundingBox = *bbox;
+        sec->tightBoundingBox = *bbox;
+        rwLinkListInitialize(&sec->collAtomicsInWorldSector);
+        rwLinkListInitialize(&sec->noCollAtomicsInWorldSector);
+        rwLinkListInitialize(&sec->lightsInWorldSector);
+        w->rootSector = (RpSector*)sec;
+        p->sectors->push_back(sec);
+    }
+    return w;
+}
+
+RpWorld* RpWorldStreamRead(RwStream* s)
+{
+    RwUInt32 len, ver;
+    if (!RwStreamFindChunk(s, rwID_STRUCT, &len, &ver))
+    {
+        return NULL;
+    }
+    std::vector<RwUInt8> st(len);
+    RwStreamRead(s, st.data(), len);
+    const RwUInt8* d = st.data();
+    PcWorld* p = (PcWorld*)RpWorldCreate(NULL);
+    RpWorld* w = &p->w;
+    w->worldOrigin.x = -rdf(d + 4);
+    w->worldOrigin.y = -rdf(d + 8);
+    w->worldOrigin.z = -rdf(d + 12);
+    size_t o = 16;
+    if (ver < 0x34000)
+    {
+        w->surfaceProps.ambient = rdf(d + o);
+        w->surfaceProps.specular = rdf(d + o + 4);
+        w->surfaceProps.diffuse = rdf(d + o + 8);
+        o += 12;
+    }
+    // numTriangles, numVertices, numPlaneSectors, numWorldSectors, colSectorSize, format
+    RwUInt32 format = rd32(d + o + 20);
+    w->flags = format;
+    int ntc = (format >> 16) & 0xFF;
+    if (!ntc)
+    {
+        ntc = (format & rpGEOMETRYTEXTURED2) ? 2 : (format & rpGEOMETRYTEXTURED) ? 1 : 0;
+    }
+    w->numTexCoordSets = ntc;
+    pc_read_material_list(s, &w->matList);
+    w->rootSector = read_sector(s, w, format, ntc);
+    collect_sectors(w->rootSector, *p->sectors);
+    // World bounding box from its sectors.
+    bool first = true;
+    for (size_t i = 0; i < p->sectors->size(); i++)
+    {
+        RwBBox& b = (*p->sectors)[i]->boundingBox;
+        if (first)
+        {
+            w->boundingBox = b;
+            first = false;
+            continue;
+        }
+        RwBBox& wb = w->boundingBox;
+        if (b.inf.x < wb.inf.x) wb.inf.x = b.inf.x; if (b.inf.y < wb.inf.y) wb.inf.y = b.inf.y;
+        if (b.inf.z < wb.inf.z) wb.inf.z = b.inf.z; if (b.sup.x > wb.sup.x) wb.sup.x = b.sup.x;
+        if (b.sup.y > wb.sup.y) wb.sup.y = b.sup.y; if (b.sup.z > wb.sup.z) wb.sup.z = b.sup.z;
+    }
+    pc_read_extension(s, NULL, NULL);
+    return w;
+}
+
+RwInt32 RpMaterialDestroy(RpMaterial* m);
+
+static void free_sector(RpSector* s)
+{
+    if (!s)
+    {
+        return;
+    }
+    if (s->type < 0)
+    {
+        RpWorldSector* w = (RpWorldSector*)s;
+        rwFree(w->polygons);
+        rwFree(w->vertices);
+        rwFree(w->normals);
+        rwFree(w->preLitLum);
+        for (int i = 0; i < 8; i++)
+        {
+            rwFree(w->texCoords[i]);
+        }
+        rwFree(w->mesh);
+    }
+    else
+    {
+        free_sector(((RpPlaneSector*)s)->leftSubTree);
+        free_sector(((RpPlaneSector*)s)->rightSubTree);
+    }
+    rwFree(s);
+}
+
+RpWorld* RpWorldDestroy(RpWorld* w)
+{
+    free_sector(w->rootSector);
+    for (RwInt32 i = 0; i < w->matList.numMaterials; i++)
+    {
+        if (w->matList.materials[i])
+        {
+            RpMaterialDestroy(w->matList.materials[i]);
+        }
+    }
+    rwFree(w->matList.materials);
+    delete pc_world(w)->sectors;
+    if (rwGlobals()->curWorld == w)
+    {
+        rwGlobals()->curWorld = NULL;
+    }
+    rwFree(w);
+    return w;
+}
+
+RpWorld* RpWorldForAllWorldSectors(RpWorld* w, RpWorldSector* (*cb)(RpWorldSector*, void*), void* data)
+{
+    std::vector<RpWorldSector*>& v = *pc_world(w)->sectors;
+    for (size_t i = 0; i < v.size(); i++)
+    {
+        if (!cb(v[i], data))
+        {
+            break;
+        }
+    }
+    return w;
+}
+
+RpWorldSector* RpMatFXWorldSectorEnableEffects(RpWorldSector* s) { return s; }
+
+RpWorld* RpWorldAddCamera(RpWorld* w, RwCamera* c)
+{
+    rwGlobals()->curWorld = w;
+    return w;
+}
+
+RpWorld* RpWorldRemoveCamera(RpWorld* w, RwCamera* c) { return w; }
+
+// ---------------------------------------------------------------- lights
+static RwObjectHasFrame* light_sync(RwObjectHasFrame* o) { return o; }
+
+RpLight* RpLightCreate(RwInt32 type)
+{
+    RpLight* l = (RpLight*)rwCalloc(1, sizeof(RpLight) + 0x20);
+    l->object.object.type = rpLIGHT;
+    l->object.object.subType = (RwUInt8)type;
+    l->object.object.flags = rpLIGHTLIGHTATOMICS | rpLIGHTLIGHTWORLD;
+    l->object.sync = light_sync;
+    l->color.red = l->color.green = l->color.blue = l->color.alpha = 1.0f;
+    l->radius = 1.0f;
+    l->minusCosAngle = 1.0f;
+    rwLinkListInitialize(&l->WorldSectorsInLight);
+    l->inWorld.next = l->inWorld.prev = NULL;
+    return l;
+}
+
+RwInt32 RpLightDestroy(RpLight* l)
+{
+    if (l->inWorld.next)
+    {
+        rwLinkListRemoveLLLink(&l->inWorld);
+    }
+    _rwObjectHasFrameSetFrame(l, NULL);
+    rwFree(l);
+    return 1;
+}
+
+RpLight* RpLightSetColor(RpLight* l, RwRGBAReal* c)
+{
+    l->color = *c;
+    return l;
+}
+
+RpLight* RpLightSetRadius(RpLight* l, float r)
+{
+    l->radius = r;
+    return l;
+}
+
+RpLight* RpLightSetConeAngle(RpLight* l, float angle)
+{
+    l->minusCosAngle = -cosf(angle);
+    return l;
+}
+
+RpWorld* RpWorldAddLight(RpWorld* w, RpLight* l)
+{
+    if (l->inWorld.next)
+    {
+        rwLinkListRemoveLLLink(&l->inWorld);
+    }
+    RwLinkList* list = (l->object.object.subType < 0x80) ? &w->directionalLightList : &w->lightList;
+    rwLinkListAddLLLink(list, &l->inWorld);
+    return w;
+}
+
+RpWorld* RpWorldRemoveLight(RpWorld* w, RpLight* l)
+{
+    if (l->inWorld.next)
+    {
+        rwLinkListRemoveLLLink(&l->inWorld);
+        l->inWorld.next = l->inWorld.prev = NULL;
+    }
+    return w;
+}
+
+void pc_gl_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors);
+
+RpWorld* RpWorldRender(RpWorld* w)
+{
+    pc_gl_render_world(w, *pc_world(w)->sectors);
+    return w;
+}
+
+}
+
+// ---------------------------------------------------------------- collision
+static bool line_tri(const RwV3d& o, const RwV3d& dir, const RwV3d& a, const RwV3d& b, const RwV3d& c, float* t)
+{
+    RwV3d e1 = { b.x - a.x, b.y - a.y, b.z - a.z }, e2 = { c.x - a.x, c.y - a.y, c.z - a.z };
+    RwV3d p = { dir.y * e2.z - dir.z * e2.y, dir.z * e2.x - dir.x * e2.z, dir.x * e2.y - dir.y * e2.x };
+    float det = e1.x * p.x + e1.y * p.y + e1.z * p.z;
+    if (fabsf(det) < 1e-12f)
+    {
+        return false;
+    }
+    float inv = 1.0f / det;
+    RwV3d s = { o.x - a.x, o.y - a.y, o.z - a.z };
+    float u = (s.x * p.x + s.y * p.y + s.z * p.z) * inv;
+    if (u < 0 || u > 1)
+    {
+        return false;
+    }
+    RwV3d q = { s.y * e1.z - s.z * e1.y, s.z * e1.x - s.x * e1.z, s.x * e1.y - s.y * e1.x };
+    float v = (dir.x * q.x + dir.y * q.y + dir.z * q.z) * inv;
+    if (v < 0 || u + v > 1)
+    {
+        return false;
+    }
+    *t = (e2.x * q.x + e2.y * q.y + e2.z * q.z) * inv;
+    return *t >= 0 && *t <= 1;
+}
+
+static float dot(const RwV3d& a, const RwV3d& b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+static RwV3d sub(const RwV3d& a, const RwV3d& b) { RwV3d r = { a.x - b.x, a.y - b.y, a.z - b.z }; return r; }
+
+// Squared distance from p to triangle abc.
+static float point_tri_dist2(const RwV3d& p, const RwV3d& a, const RwV3d& b, const RwV3d& c)
+{
+    RwV3d ab = sub(b, a), ac = sub(c, a), ap = sub(p, a);
+    float d1 = dot(ab, ap), d2 = dot(ac, ap);
+    RwV3d cl;
+    if (d1 <= 0 && d2 <= 0) cl = a;
+    else
+    {
+        RwV3d bp = sub(p, b);
+        float d3 = dot(ab, bp), d4 = dot(ac, bp);
+        if (d3 >= 0 && d4 <= d3) cl = b;
+        else
+        {
+            float vc = d1 * d4 - d3 * d2;
+            if (vc <= 0 && d1 >= 0 && d3 <= 0) { float v = d1 / (d1 - d3); cl.x = a.x + ab.x * v; cl.y = a.y + ab.y * v; cl.z = a.z + ab.z * v; }
+            else
+            {
+                RwV3d cp = sub(p, c);
+                float d5 = dot(ab, cp), d6 = dot(ac, cp);
+                if (d6 >= 0 && d5 <= d6) cl = c;
+                else
+                {
+                    float vb = d5 * d2 - d1 * d6;
+                    if (vb <= 0 && d2 >= 0 && d6 <= 0) { float w = d2 / (d2 - d6); cl.x = a.x + ac.x * w; cl.y = a.y + ac.y * w; cl.z = a.z + ac.z * w; }
+                    else
+                    {
+                        float va = d3 * d6 - d5 * d4;
+                        if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0)
+                        {
+                            float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+                            cl.x = b.x + (c.x - b.x) * w; cl.y = b.y + (c.y - b.y) * w; cl.z = b.z + (c.z - b.z) * w;
+                        }
+                        else
+                        {
+                            float den = 1.0f / (va + vb + vc);
+                            float v = vb * den, w = vc * den;
+                            cl.x = a.x + ab.x * v + ac.x * w; cl.y = a.y + ab.y * v + ac.y * w; cl.z = a.z + ab.z * v + ac.z * w;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    RwV3d d = sub(p, cl);
+    return dot(d, d);
+}
+
+static void make_coll_tri(RpCollisionTriangle* t, RwV3d* a, RwV3d* b, RwV3d* c, RwInt32 index)
+{
+    RwV3d e1 = sub(*b, *a), e2 = sub(*c, *a);
+    RwV3d n = { e1.y * e2.z - e1.z * e2.y, e1.z * e2.x - e1.x * e2.z, e1.x * e2.y - e1.y * e2.x };
+    float l = sqrtf(dot(n, n));
+    if (l > 0)
+    {
+        n.x /= l; n.y /= l; n.z /= l;
+    }
+    t->normal = n;
+    t->point = *a;
+    t->index = index;
+    t->vertices[0] = a;
+    t->vertices[1] = b;
+    t->vertices[2] = c;
+}
+
+static bool box_overlap(const RwBBox& b, const RwV3d& mn, const RwV3d& mx)
+{
+    return !(mx.x < b.inf.x || mn.x > b.sup.x || mx.y < b.inf.y || mn.y > b.sup.y || mx.z < b.inf.z || mn.z > b.sup.z);
+}
+
+// Bounds of an intersection primitive.
+static void isx_bounds(const RpIntersection* isx, RwV3d* mn, RwV3d* mx)
+{
+    if (isx->type == rpINTERSECTLINE)
+    {
+        const RwLine& l = isx->t.line;
+        mn->x = fminf(l.start.x, l.end.x); mn->y = fminf(l.start.y, l.end.y); mn->z = fminf(l.start.z, l.end.z);
+        mx->x = fmaxf(l.start.x, l.end.x); mx->y = fmaxf(l.start.y, l.end.y); mx->z = fmaxf(l.start.z, l.end.z);
+    }
+    else if (isx->type == rpINTERSECTSPHERE)
+    {
+        const RwSphere& s = isx->t.sphere;
+        mn->x = s.center.x - s.radius; mn->y = s.center.y - s.radius; mn->z = s.center.z - s.radius;
+        mx->x = s.center.x + s.radius; mx->y = s.center.y + s.radius; mx->z = s.center.z + s.radius;
+    }
+    else if (isx->type == rpINTERSECTBOX)
+    {
+        *mn = isx->t.box.inf;
+        *mx = isx->t.box.sup;
+    }
+    else
+    {
+        *mn = *mx = isx->t.point;
+    }
+}
+
+// Tests one triangle; returns true and the reported distance on a hit.
+static bool test_tri(const RpIntersection* isx, const RwV3d& a, const RwV3d& b, const RwV3d& c, float* dist)
+{
+    if (isx->type == rpINTERSECTLINE)
+    {
+        RwV3d dir = sub(isx->t.line.end, isx->t.line.start);
+        return line_tri(isx->t.line.start, dir, a, b, c, dist);
+    }
+    if (isx->type == rpINTERSECTSPHERE)
+    {
+        float d2 = point_tri_dist2(isx->t.sphere.center, a, b, c);
+        if (d2 > isx->t.sphere.radius * isx->t.sphere.radius)
+        {
+            return false;
+        }
+        *dist = sqrtf(d2);
+        return true;
+    }
+    if (isx->type == rpINTERSECTPOINT)
+    {
+        float d2 = point_tri_dist2(isx->t.point, a, b, c);
+        *dist = sqrtf(d2);
+        return d2 < 1e-6f;
+    }
+    if (isx->type == rpINTERSECTBOX)
+    {
+        RwV3d mn = { fminf(a.x, fminf(b.x, c.x)), fminf(a.y, fminf(b.y, c.y)), fminf(a.z, fminf(b.z, c.z)) };
+        RwV3d mx = { fmaxf(a.x, fmaxf(b.x, c.x)), fmaxf(a.y, fmaxf(b.y, c.y)), fmaxf(a.z, fmaxf(b.z, c.z)) };
+        *dist = 0;
+        return box_overlap(isx->t.box, mn, mx);
+    }
+    return false;
+}
+
+extern "C" {
+
+typedef RpCollisionTriangle* (*WorldCollCB)(RpIntersection*, RpWorldSector*, RpCollisionTriangle*, float, void*);
+typedef RpCollisionTriangle* (*AtomicCollCB)(RpIntersection*, RpCollisionTriangle*, float, void*);
+
+RpWorld* RpCollisionWorldForAllIntersections(RpWorld* w, RpIntersection* isx, WorldCollCB cb, void* data)
+{
+    if (!w)
+    {
+        return w;
+    }
+    RwV3d mn, mx;
+    isx_bounds(isx, &mn, &mx);
+    std::vector<RpWorldSector*>& v = *pc_world(w)->sectors;
+    for (size_t i = 0; i < v.size(); i++)
+    {
+        RpWorldSector* s = v[i];
+        if (!s->polygons || !box_overlap(s->boundingBox, mn, mx))
+        {
+            continue;
+        }
+        for (RwInt32 p = 0; p < s->numPolygons; p++)
+        {
+            RpPolygon& poly = s->polygons[p];
+            RwV3d* a = &s->vertices[poly.vertIndex[0]];
+            RwV3d* b = &s->vertices[poly.vertIndex[1]];
+            RwV3d* c = &s->vertices[poly.vertIndex[2]];
+            float d;
+            if (test_tri(isx, *a, *b, *c, &d))
+            {
+                RpCollisionTriangle tri;
+                make_coll_tri(&tri, a, b, c, p);
+                if (!cb(isx, s, &tri, d, data))
+                {
+                    return w;
+                }
+            }
+        }
+    }
+    return w;
+}
+
+RpAtomic* RpAtomicForAllIntersections(RpAtomic* a, RpIntersection* isx, AtomicCollCB cb, void* data)
+{
+    RpGeometry* g = a->geometry;
+    RwFrame* f = (RwFrame*)a->object.object.parent;
+    if (!g || !g->triangles || !g->morphTarget || !g->morphTarget->verts || !f)
+    {
+        return a;
+    }
+    // Move the query into the atomic's object space.
+    RwMatrix inv;
+    RwMatrixInvert(&inv, RwFrameGetLTM(f));
+    RpIntersection local = *isx;
+    if (isx->type == rpINTERSECTLINE)
+    {
+        RwV3dTransformPoints(&local.t.line.start, &isx->t.line.start, 1, &inv);
+        RwV3dTransformPoints(&local.t.line.end, &isx->t.line.end, 1, &inv);
+    }
+    else if (isx->type == rpINTERSECTSPHERE)
+    {
+        RwV3dTransformPoints(&local.t.sphere.center, &isx->t.sphere.center, 1, &inv);
+        float sx = sqrtf(dot(inv.right, inv.right));
+        local.t.sphere.radius = isx->t.sphere.radius * sx;
+    }
+    else if (isx->type == rpINTERSECTPOINT)
+    {
+        RwV3dTransformPoints(&local.t.point, &isx->t.point, 1, &inv);
+    }
+    RwV3d* verts = g->morphTarget->verts;
+    for (RwInt32 i = 0; i < g->numTriangles; i++)
+    {
+        RpTriangle& t = g->triangles[i];
+        RwV3d* va = &verts[t.vertIndex[0]];
+        RwV3d* vb = &verts[t.vertIndex[1]];
+        RwV3d* vc = &verts[t.vertIndex[2]];
+        float d;
+        if (test_tri(&local, *va, *vb, *vc, &d))
+        {
+            RpCollisionTriangle tri;
+            make_coll_tri(&tri, va, vb, vc, i);
+            if (!cb(isx, &tri, d, data))
+            {
+                break;
+            }
+        }
+    }
+    return a;
+}
+
+}

@@ -350,8 +350,10 @@ struct _MSL_FILE
     unsigned char pad[0x50];
 };
 
+#ifndef PC_PORT
 extern _MSL_FILE __files[3];
 signed int fprintf(_MSL_FILE* stream, const char* format, ...);
+#endif
 }
 
 void iModelAnimMatrices(RpAtomic* model, _xQuat* quat, _xVec3* tran, RwMatrixTag* mat);
@@ -1654,7 +1656,7 @@ static void SingleUpdate(xAnimSingle* single, float timeDelta, _xVec3* tran, _xQ
 
             if (curr == NULL)
             {
-                fprintf(&__files[2], "State \"%s\" no default conditionals true!\n",
+                fprintf(PC_STDERR_OR(&__files[2]), "State \"%s\" no default conditionals true!\n",
                         single->State->Name);
                 curr = single->State->Default;
             }

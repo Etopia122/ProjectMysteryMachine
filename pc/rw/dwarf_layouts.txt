@@ -1,0 +1,214 @@
+class RwObject {
+    unsigned char type; // offset 0x0, size 0x1
+    unsigned char subType; // offset 0x1, size 0x1
+    unsigned char flags; // offset 0x2, size 0x1
+    unsigned char privateFlags; // offset 0x3, size 0x1
+    void * parent; // offset 0x4, size 0x4
+};
+// total size: 0x10
+
+class RwObjectHasFrame {
+    class RwObject object; // offset 0x0, size 0x8
+    class RwLLLink lFrame; // offset 0x8, size 0x8
+    class RwObjectHasFrame * (* sync)(class RwObjectHasFrame *); // offset 0x10, size 0x4
+};
+// total size: 0x8
+
+class RwLinkList {
+    class RwLLLink link; // offset 0x0, size 0x8
+};
+
+class RwFrame {
+    class RwObject object; // offset 0x0, size 0x8
+    class RwLLLink inDirtyListLink; // offset 0x8, size 0x8
+    class RwMatrixTag modelling; // offset 0x10, size 0x40
+    class RwMatrixTag ltm; // offset 0x50, size 0x40
+    class RwLinkList objectList; // offset 0x90, size 0x8
+    class RwFrame * child; // offset 0x98, size 0x4
+    class RwFrame * next; // offset 0x9C, size 0x4
+    class RwFrame * root; // offset 0xA0, size 0x4
+};
+// total size: 0x40
+
+class RwTexture {
+    class RwRaster * raster; // offset 0x0, size 0x4
+    class RwTexDictionary * dict; // offset 0x4, size 0x4
+    class RwLLLink lInDictionary; // offset 0x8, size 0x8
+    char name[32]; // offset 0x10, size 0x20
+    char mask[32]; // offset 0x30, size 0x20
+    signed int refCount; // offset 0x50, size 0x4
+    enum RwTextureFilterMode filtering; // offset 0x54, size 0x4
+    enum RwTextureAddressMode addressingU; // offset 0x58, size 0x4
+    enum RwTextureAddressMode addressingV; // offset 0x5C, size 0x4
+};
+
+class RwTexDictionary {
+    class RwObject object; // offset 0x0, size 0x8
+    class RwLinkList texturesInDict; // offset 0x8, size 0x8
+    class RwLLLink lInInstance; // offset 0x10, size 0x8
+};
+// total size: 0x8
+
+class RwImage {
+    signed int flags; // offset 0x0, size 0x4
+    signed int width; // offset 0x4, size 0x4
+    signed int height; // offset 0x8, size 0x4
+    signed int depth; // offset 0xC, size 0x4
+    signed int stride; // offset 0x10, size 0x4
+    unsigned char * cpPixels; // offset 0x14, size 0x4
+    class RwRGBA * palette; // offset 0x18, size 0x4
+};
+// total size: 0x38
+
+class RpMaterial {
+    class RwTexture * texture; // offset 0x0, size 0x4
+    class RwRGBA color; // offset 0x4, size 0x4
+    class RxPipeline * pipeline; // offset 0x8, size 0x4
+    class RwSurfaceProperties surfaceProps; // offset 0xC, size 0xC
+    signed short refCount; // offset 0x18, size 0x2
+    signed short pad; // offset 0x1A, size 0x2
+};
+
+class RpMaterialList {
+    class RpMaterial * * materials; // offset 0x0, size 0x4
+    signed int numMaterials; // offset 0x4, size 0x4
+    signed int space; // offset 0x8, size 0x4
+};
+// total size: 0x10
+
+class RwSurfaceProperties {
+    float ambient; // offset 0x0, size 0x4
+    float specular; // offset 0x4, size 0x4
+    float diffuse; // offset 0x8, size 0x4
+};
+// total size: 0xC
+
+class RpTriangle {
+    unsigned short vertIndex[3]; // offset 0x0, size 0x6
+    signed short matIndex; // offset 0x6, size 0x2
+};
+// total size: 0x30
+
+class RpMorphTarget {
+    class RpGeometry * parentGeom; // offset 0x0, size 0x4
+    class RwSphere boundingSphere; // offset 0x4, size 0x10
+    class RwV3d * verts; // offset 0x14, size 0x4
+    class RwV3d * normals; // offset 0x18, size 0x4
+};
+// total size: 0x10
+
+class RpMeshHeader {
+    unsigned int flags; // offset 0x0, size 0x4
+    unsigned short numMeshes; // offset 0x4, size 0x2
+    unsigned short serialNum; // offset 0x6, size 0x2
+    unsigned int totalIndicesInMesh; // offset 0x8, size 0x4
+    unsigned int firstMeshOffset; // offset 0xC, size 0x4
+};
+// total size: 0x48
+
+class RpMesh {
+    unsigned short * indices; // offset 0x0, size 0x4
+    unsigned int numIndices; // offset 0x4, size 0x4
+    class RpMaterial * material; // offset 0x8, size 0x4
+};
+
+class RpInterpolator {
+    signed int flags; // offset 0x0, size 0x4
+    signed short startMorphTarget; // offset 0x4, size 0x2
+    signed short endMorphTarget; // offset 0x6, size 0x2
+    float time; // offset 0x8, size 0x4
+    float recipTime; // offset 0xC, size 0x4
+    float position; // offset 0x10, size 0x4
+};
+// total size: 0x8
+
+class RpAtomic {
+    class RwObjectHasFrame object; // offset 0x0, size 0x14
+    class RwResEntry * repEntry; // offset 0x14, size 0x4
+    class RpGeometry * geometry; // offset 0x18, size 0x4
+    class RwSphere boundingSphere; // offset 0x1C, size 0x10
+    class RwSphere worldBoundingSphere; // offset 0x2C, size 0x10
+    class RpClump * clump; // offset 0x3C, size 0x4
+    class RwLLLink inClumpLink; // offset 0x40, size 0x8
+    class RpAtomic * (* renderCallBack)(class RpAtomic *); // offset 0x48, size 0x4
+    class RpInterpolator interpolator; // offset 0x4C, size 0x14
+    unsigned short renderFrame; // offset 0x60, size 0x2
+    unsigned short pad; // offset 0x62, size 0x2
+    class RwLinkList llWorldSectorsInAtomic; // offset 0x64, size 0x8
+    class RxPipeline * pipeline; // offset 0x6C, size 0x4
+};
+// total size: 0x40
+
+class RpClump {
+    class RwObject object; // offset 0x0, size 0x8
+    class RwLinkList atomicList; // offset 0x8, size 0x8
+    class RwLLLink inWorldLink; // offset 0x10, size 0x8
+    class RpClump * (* callback)(class RpClump *, void *); // offset 0x18, size 0x4
+    unsigned short renderFrame; // offset 0x1C, size 0x2
+    unsigned short pad; // offset 0x1E, size 0x2
+};
+// total size: 0xEC
+
+class RpLight {
+    class RwObjectHasFrame object; // offset 0x0, size 0x14
+    float radius; // offset 0x14, size 0x4
+    class RwRGBAReal color; // offset 0x18, size 0x10
+    float minusCosAngle; // offset 0x28, size 0x4
+    class RwLinkList WorldSectorsInLight; // offset 0x2C, size 0x8
+    class RwLLLink inWorld; // offset 0x34, size 0x8
+    unsigned short lightFrame; // offset 0x3C, size 0x2
+    unsigned short pad; // offset 0x3E, size 0x2
+};
+// total size: 0x60
+
+class RwFrustumPlane {
+    class RwPlane plane; // offset 0x0, size 0x10
+    unsigned char closestX; // offset 0x10, size 0x1
+    unsigned char closestY; // offset 0x11, size 0x1
+    unsigned char closestZ; // offset 0x12, size 0x1
+    unsigned char pad; // offset 0x13, size 0x1
+};
+// total size: 0x28
+
+class RwPlane {
+    class RwV3d normal; // offset 0x0, size 0xC
+    float distance; // offset 0xC, size 0x4
+};
+// total size: 0x4FC
+
+class RwBBox {
+    class RwV3d sup; // offset 0x0, size 0xC
+    class RwV3d inf; // offset 0xC, size 0xC
+};
+// total size: 0x14
+
+class RwSphere {
+    class RwV3d center; // offset 0x0, size 0xC
+    float radius; // offset 0xC, size 0x4
+};
+// total size: 0xB0
+
+class RwResEntry {
+    class RwLLLink link; // offset 0x0, size 0x8
+    signed int size; // offset 0x8, size 0x4
+    void * owner; // offset 0xC, size 0x4
+    class RwResEntry * * ownerRef; // offset 0x10, size 0x4
+    void (* destroyNotify)(class RwResEntry *); // offset 0x14, size 0x4
+};
+
+class RwChunkHeaderInfo {
+    unsigned int type; // offset 0x0, size 0x4
+    unsigned int length; // offset 0x4, size 0x4
+    unsigned int version; // offset 0x8, size 0x4
+    unsigned int buildNum; // offset 0xC, size 0x4
+    signed int isComplex; // offset 0x10, size 0x4
+};
+
+class RwVideoMode {
+    signed int width; // offset 0x0, size 0x4
+    signed int height; // offset 0x4, size 0x4
+    signed int depth; // offset 0x8, size 0x4
+    enum RwVideoModeFlag flags; // offset 0xC, size 0x4
+};
+// total size: 0x4
+

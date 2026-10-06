@@ -705,6 +705,7 @@ extern "C" void fn_80015EA0(signed int addr, signed int size)
     lbl_8025E980 = size;
 }
 
+#ifndef PC_PORT // on PC the C library's malloc/free are used everywhere
 extern "C" void* malloc(unsigned int size)
 {
     return OSAllocFromHeap(the_heap, size);
@@ -717,6 +718,7 @@ extern "C" void free(void* ptr)
         OSFreeToHeap(the_heap, ptr);
     }
 }
+#endif
 
 // Blocks carry a 0x20-byte header: the size, then seven marker words.
 // 0x1EE7D00D marks blocks taken from the xMem heap; those are released

@@ -23,16 +23,16 @@ int OSSetCurrentHeap(int heap)
     return prev;
 }
 
-// GameCube DMA and the game's allocator expect 32-byte aligned blocks.
+// Plain malloc/free so blocks can be released either way (the game frees some
+// heap blocks with free()).
 void* OSAllocFromHeap(int heap, unsigned int size)
 {
-    void* p = _aligned_malloc(size ? size : 1, 32);
-    return p;
+    return malloc(size ? size : 1);
 }
 
 void OSFreeToHeap(int heap, void* ptr)
 {
-    _aligned_free(ptr);
+    free(ptr);
 }
 
 }

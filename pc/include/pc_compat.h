@@ -18,6 +18,14 @@ static inline double __frsqrte(double x) { return 1.0 / __builtin_sqrt(x); }
 }
 #endif
 
+// MSL's stdio objects (__files) don't exist on PC; use the host's streams.
+#ifdef PC_PORT
+#include <stdio.h>
+#define PC_STDERR_OR(x) stderr
+#else
+#define PC_STDERR_OR(x) (x)
+#endif
+
 #include "pc_names.h"
 
 #endif // PC_COMPAT_H

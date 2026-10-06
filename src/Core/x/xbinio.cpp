@@ -497,51 +497,68 @@ static signed int ReadBytes(st_FILELOADINFO* fli, char* data, signed int count)
     return ReadRaw(fli, data, 1, count);
 }
 
+#ifdef PC_PORT
+// Little-endian host: big-endian ("Motorola") values need swapping, Intel ones don't.
+#define PC_SWAP_M(fn, d, n) fn((char*)(d), n)
+#define PC_SWAP_I(fn, d, n)
+#else
+#define PC_SWAP_M(fn, d, n)
+#define PC_SWAP_I(fn, d, n) fn((char*)(d), n)
+#endif
+
 static signed int ReadMShorts(st_FILELOADINFO* fli, signed short* data, signed int count)
 {
-    return ReadRaw(fli, data, sizeof(signed short), count);
+    signed int act = ReadRaw(fli, data, sizeof(signed short), count);
+    PC_SWAP_M(Swap2, data, act);
+    return act;
 }
 
 static signed int ReadMLongs(st_FILELOADINFO* fli, signed int* data, signed int count)
 {
-    return ReadRaw(fli, data, sizeof(signed int), count);
+    signed int act = ReadRaw(fli, data, sizeof(signed int), count);
+    PC_SWAP_M(Swap4, data, act);
+    return act;
 }
 
 static signed int ReadMFloats(st_FILELOADINFO* fli, float* data, signed int count)
 {
-    return ReadRaw(fli, data, sizeof(float), count);
+    signed int act = ReadRaw(fli, data, sizeof(float), count);
+    PC_SWAP_M(Swap4, data, act);
+    return act;
 }
 
 static signed int ReadMDoubles(st_FILELOADINFO* fli, double* data, signed int count)
 {
-    return ReadRaw(fli, data, sizeof(double), count);
+    signed int act = ReadRaw(fli, data, sizeof(double), count);
+    PC_SWAP_M(Swap8, data, act);
+    return act;
 }
 
 static signed int ReadIShorts(st_FILELOADINFO* fli, signed short* data, signed int count)
 {
     signed int act = ReadRaw(fli, data, sizeof(signed short), count);
-    Swap2((char*)data, act);
+    PC_SWAP_I(Swap2, data, act);
     return act;
 }
 
 static signed int ReadILongs(st_FILELOADINFO* fli, signed int* data, signed int count)
 {
     signed int act = ReadRaw(fli, data, sizeof(signed int), count);
-    Swap4((char*)data, act);
+    PC_SWAP_I(Swap4, data, act);
     return act;
 }
 
 static signed int ReadIFloats(st_FILELOADINFO* fli, float* data, signed int count)
 {
     signed int act = ReadRaw(fli, data, sizeof(float), count);
-    Swap4((char*)data, act);
+    PC_SWAP_I(Swap4, data, act);
     return act;
 }
 
 static signed int ReadIDoubles(st_FILELOADINFO* fli, double* data, signed int count)
 {
     signed int act = ReadRaw(fli, data, sizeof(double), count);
-    Swap8((char*)data, act);
+    PC_SWAP_I(Swap8, data, act);
     return act;
 }
 

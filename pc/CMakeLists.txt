@@ -33,7 +33,12 @@ target_compile_options(scoobygame PRIVATE
     -w -g -O0 -fno-strict-aliasing
     -include ${CMAKE_CURRENT_SOURCE_DIR}/include/pc_compat.h)
 
-file(GLOB PC_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.S)
+find_package(SDL2 REQUIRED CONFIG)
+
+file(GLOB PC_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/rw/*.cpp)
 add_executable(scooby ${PC_SOURCES})
-target_link_libraries(scooby PRIVATE scoobygame)
-target_compile_options(scooby PRIVATE -g -O0)
+target_link_libraries(scooby PRIVATE scoobygame SDL2::SDL2 opengl32 -pthread)
+target_include_directories(scooby PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/rw)
+target_compile_options(scooby PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++17> -g -O0 -pthread)
