@@ -792,6 +792,7 @@ config.libs = [
             Object(Matching, "PowerPC_EABI_Support/Runtime/Src/__va_arg.c"),
             Object(Matching, "PowerPC_EABI_Support/Runtime/Src/global_destructor_chain.c"),
             Object(Matching, "PowerPC_EABI_Support/Runtime/Src/runtime.c"),
+            Object(Matching, "PowerPC_EABI_Support/Runtime/Src/GCN_mem_alloc.c", extra_cflags=["-str nopool"]),
         ],
     },
     {

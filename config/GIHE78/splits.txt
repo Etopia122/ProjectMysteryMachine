@@ -892,6 +892,10 @@ PowerPC_EABI_Support/Runtime/Src/runtime.c:
 	.text       start:0x800E57BC end:0x800E5F4C
 	.rodata     start:0x801A7D90 end:0x801A7DA8
 
+PowerPC_EABI_Support/Runtime/Src/GCN_mem_alloc.c:
+	.text       start:0x800E5F4C end:0x800E60BC
+	.rodata     start:0x801A7DA8 end:0x801A7E20
+
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/abort_exit.c:
 	.text       start:0x800E60BC end:0x800E6188
 	.bss        start:0x80242798 end:0x80242898
