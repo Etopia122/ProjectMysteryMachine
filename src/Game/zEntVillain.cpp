@@ -19249,24 +19249,23 @@ static en_NPC_ANIMSTATES VANM_set(st_zEntVillain* ent, en_NPC_ANIMSTATES* best, 
         {
             continue;
         }
+        // States flagged 0x40000000 are skipped: try the next candidate.
         if (astate->UserFlags & 0x40000000)
         {
             astate = NULL;
+            continue;
         }
-        if (astate)
+        if (ent->anim_playnext != best[i])
         {
-            if (ent->anim_playnext != best[i])
-            {
-                ent->anim_playnext = best[i];
-                ent->anim_playing = 0;
-                ent->anim_playsync = sync;
-                ent->anim_loopmult = 0.97f;
-                ent->tmr_list[ZVIL_TYMR_MINANIMPLAY] = VANM_duration(astate, ent, NULL) * ent->anim_loopmult;
-            }
-            else
-            {
-                astate = NULL;
-            }
+            ent->anim_playnext = best[i];
+            ent->anim_playing = 0;
+            ent->anim_playsync = sync;
+            ent->anim_loopmult = 0.97f;
+            ent->tmr_list[ZVIL_TYMR_MINANIMPLAY] = VANM_duration(astate, ent, NULL) * 0.97f;
+        }
+        else
+        {
+            astate = NULL;
         }
         break;
     }
