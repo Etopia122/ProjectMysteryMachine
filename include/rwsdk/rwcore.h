@@ -30,6 +30,16 @@ typedef struct RwV3d {
     RwReal z;
 } RwV3d;
 
+typedef struct RwBBox {
+    RwV3d sup;
+    RwV3d inf;
+} RwBBox;
+
+typedef struct RwLine {
+    RwV3d start;
+    RwV3d end;
+} RwLine;
+
 typedef struct RwStream RwStream;
 
 typedef struct RwMemoryFunctions {
@@ -74,6 +84,8 @@ RwError* RwErrorSet(RwError* code);
 // Streams
 RwStream* RwStreamWriteInt32(RwStream* stream, const RwInt32* ints, RwUInt32 numBytes);
 RwStream* RwStreamReadInt32(RwStream* stream, RwInt32* ints, RwUInt32 numBytes);
+RwStream* RwStreamWriteReal(RwStream* stream, const RwReal* reals, RwUInt32 numBytes);
+RwStream* RwStreamReadReal(RwStream* stream, RwReal* reals, RwUInt32 numBytes);
 
 // Plugins
 typedef void* (*RwPluginObjectConstructor)(void* object, RwInt32 offsetInObject, RwInt32 sizeInObject);

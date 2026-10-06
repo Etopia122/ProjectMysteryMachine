@@ -735,6 +735,7 @@ config.libs = [
         "cflags": cflags_rw,
         "progress_category": "sdk",
         "objects": [
+            Object(Matching, "rwsdk/plugin/collis/ctbsp.c"),
             Object(Matching, "rwsdk/plugin/collis/rpcollis.c"),
         ],
     },

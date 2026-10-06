@@ -5,31 +5,11 @@
 
 #include "rwsdk/rwcore.h"
 #include "rwsdk/rpworld.h"
+#include "rwsdk/rpcollis_int.h"
 
 #define rwPLUGIN_ID 0x11D /* rwID_COLLISPLUGIN */
 
 #define rpCOLLISIONDATAFLAG_SINGLEBLOCK 0x1
-
-typedef struct RpCollBSPTree {
-    RwUInt32 numLeafNodes;
-    struct RpCollBSPBranchNode* branchNodes;
-    struct RpCollBSPLeafNode* leafNodes;
-    RwUInt8 pad[4];
-} RpCollBSPTree;
-
-typedef struct RpCollisionData {
-    RwInt32 flags;
-    RpCollBSPTree* tree;
-    RwInt32 numTriangles;
-    RwUInt16* triangleMap;
-} RpCollisionData;
-
-RwUInt32 _rpCollBSPTreeMemGetSize(RwInt32 numLeafNodes);
-RpCollBSPTree* _rpCollBSPTreeInit(RpCollBSPTree* tree, RwInt32 numLeafNodes);
-void _rpCollBSPTreeDestroy(RpCollBSPTree* tree);
-RpCollBSPTree* _rpCollBSPTreeStreamWrite(RpCollBSPTree* tree, RwStream* stream);
-RpCollBSPTree* _rpCollBSPTreeStreamRead(RpCollBSPTree* tree, RwStream* stream);
-RwInt32 _rpCollBSPTreeStreamGetSize(RpCollBSPTree* tree);
 
 // Declared in reverse: .sbss holds them in the opposite order.
 RwInt32 _rpCollisionWorldSectorDataOffset;
