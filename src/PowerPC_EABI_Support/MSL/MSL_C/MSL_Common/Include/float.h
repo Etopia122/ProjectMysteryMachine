@@ -78,6 +78,12 @@ inline int __fpclassifyd(double __value) {
 #define FLT_MAX (*(float*) __float_max)
 #define FLT_EPSILON (*(float*) __float_epsilon)
 
+extern unsigned long __double_min[];
+extern unsigned long __double_max[];
+
+#define DBL_MIN (*(double*) __double_min)
+#define DBL_MAX (*(double*) __double_max)
+
 #define DBL_MANT_DIG   53
 #define DBL_DIG        15
 #define DBL_MIN_EXP    (-1021)

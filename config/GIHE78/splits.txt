@@ -905,6 +905,12 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/ansi_files.c:
 	.data       start:0x801CA268 end:0x801CA3A8
 	.bss        start:0x802428D0 end:0x80242BD0
 
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Src/ansi_fp.c:
+	.text       start:0x800E7650 end:0x800E92BC
+	.rodata     start:0x801A7E38 end:0x801A7F18
+	.data       start:0x801CA3A8 end:0x801CA50C
+	.sdata2     start:0x80262150 end:0x80262180
+
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/arith.c:
 	.text       start:0x800E92BC end:0x800E92CC
 

@@ -5,6 +5,7 @@
 
 #define NAN (*(float*) __float_nan)
 #define HUGE_VALF (*(float*) __float_huge)
+#define INFINITY (*(float*) __float_huge)
 
 #define M_PI 3.14159265358979323846f
 #define M_SQRT2 1.41421356237309504880f

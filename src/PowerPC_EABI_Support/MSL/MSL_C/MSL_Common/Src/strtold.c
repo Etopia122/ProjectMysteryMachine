@@ -6,8 +6,6 @@
 #include "math.h"
 #include "scanf.h"
 
-extern unsigned long __double_min[];
-extern unsigned long __double_max[];
 extern unsigned long __double_huge[];
 
 struct lconv
@@ -43,13 +41,10 @@ extern struct lconv __lconv;
 extern unsigned long __extended_min[];
 extern unsigned long __extended_max[];
 
-#define DBL_MIN (*(double*)__double_min)
-#define DBL_MAX (*(double*)__double_max)
 #define LDBL_MIN (*(long double*)__extended_min)
 #define LDBL_MAX (*(long double*)__extended_max)
 #undef HUGE_VAL
 #define HUGE_VAL (*(double*)__double_huge)
-#define INFINITY (*(float*)__float_huge)
 #define LDBL_MAX_EXP DBL_MAX_EXP
 #define LDBL_MANT_DIG DBL_MANT_DIG
 
