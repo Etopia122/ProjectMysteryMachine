@@ -1243,8 +1243,13 @@ dolphin/gx/GXTev.c:
 dolphin/gx/GXPixel.c:
 	.text       start:0x801018B8 end:0x80102000
 
+dolphin/gx/GXStubs.c:
+	.text       start:0x80102000 end:0x80102004
+
 dolphin/gx/GXDisplayList.c:
-	.text       start:0x801021A0 end:0x80102210
+	.text       start:0x80102004 end:0x80102210
+	.bss        start:0x8025AC78 end:0x8025B1A0
+	.sbss       start:0x8025F420 end:0x8025F428
 
 dolphin/gx/GXTransform.c:
 	.text       start:0x80102210 end:0x801028E0
