@@ -847,6 +847,9 @@ TRK_MINNOW_DOLPHIN/Portable/mem_TRK.c:
 
 TRK_MINNOW_DOLPHIN/ppc/Generic/targimpl.c:
 	.text       start:0x800E2DD0 end:0x800E4660
+	.rodata     start:0x801A7CC0 end:0x801A7D48
+	.data       start:0x801CA1D8 end:0x801CA208
+	.bss        start:0x8023FFD8 end:0x80240558
 
 TRK_MINNOW_DOLPHIN/Os/dolphin/dolphin_trk.c:
 	.text       start:0x800E4680 end:0x800E47C0

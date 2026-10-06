@@ -81,6 +81,7 @@ void TRK_ppc_memcpy(__REGISTER void* dest, __REGISTER const void* src, __REGISTE
 void TRKRestoreExtended1Block();
 void TRKUARTInterruptHandler();
 
+#pragma dont_inline on
 DSError TRKValidMemory32(const void* addr, size_t length, ValidMemoryOptions readWriteable) {
     DSError err = DS_InvalidMemory; /* assume range is invalid */
 
@@ -123,8 +124,8 @@ DSError TRKValidMemory32(const void* addr, size_t length, ValidMemoryOptions rea
             ** after the valid range.
             */
 
-            if (((readWriteable == VALIDMEM_Readable) && !gTRKMemMap[i].readable) ||
-                ((readWriteable == VALIDMEM_Writeable) && !gTRKMemMap[i].writeable))
+            if ((((u8)readWriteable == VALIDMEM_Readable) && !gTRKMemMap[i].readable) ||
+                (((u8)readWriteable == VALIDMEM_Writeable) && !gTRKMemMap[i].writeable))
             {
                 err = DS_InvalidMemory;
             } else {
@@ -160,7 +161,9 @@ DSError TRKValidMemory32(const void* addr, size_t length, ValidMemoryOptions rea
 
     return err;
 }
+#pragma dont_inline reset
 
+#pragma dont_inline on
 DSError TRKTargetAccessMemory(void* data, u32 start, size_t* length,
                               MemoryAccessOptions accessOptions, BOOL read) {
     DSError error;
@@ -198,6 +201,7 @@ DSError TRKTargetAccessMemory(void* data, u32 start, size_t* length,
     gTRKExceptionStatus = tempExceptionStatus;
     return error;
 }
+#pragma dont_inline reset
 
 static inline DSError TRKTargetReadInstruction(void* data, u32 start) {
     DSError error;
@@ -384,6 +388,81 @@ DSError TRKTargetAccessExtended2(u32 firstRegister, u32 lastRegister, TRKBuffer*
     gTRKExceptionStatus = savedException;
 
     return err;
+}
+
+extern BOOL gTRKBigEndian;
+extern u8 TRKTargetCPUMinorType(void);
+
+typedef struct TRKVersionsOld {
+    u8 kernelMajor;
+    u8 kernelMinor;
+    u8 protocolMajor;
+    u8 protocolMinor;
+} TRKVersionsOld;
+
+typedef struct TRKCPUTypeOld {
+    u8 cpuMajor;
+    u8 cpuMinor;
+    u8 bigEndian;
+    u8 defaultTypeSize;
+    u8 fpTypeSize;
+    u8 extended1TypeSize;
+    u8 extended2TypeSize;
+} TRKCPUTypeOld;
+
+DSError TRKTargetVersions(TRKVersionsOld* versions) {
+    versions->kernelMajor = 0;
+    versions->kernelMinor = 10;
+    versions->protocolMajor = 1;
+    versions->protocolMinor = 10;
+    return DS_NoError;
+}
+
+DSError TRKTargetSupportMask(u8 mask[32]) {
+    mask[0] = 0x7A;
+    mask[1] = 0;
+    mask[2] = 0x4F;
+    mask[3] = 7;
+    mask[4] = 0;
+    mask[5] = 0;
+    mask[6] = 0;
+    mask[7] = 0;
+    mask[8] = 0;
+    mask[9] = 0;
+    mask[10] = 0;
+    mask[11] = 0;
+    mask[12] = 0;
+    mask[13] = 0;
+    mask[14] = 0;
+    mask[15] = 0;
+    mask[16] = 1;
+    mask[17] = 0;
+    mask[18] = 3;
+    mask[19] = 0;
+    mask[20] = 0;
+    mask[21] = 0;
+    mask[22] = 0;
+    mask[23] = 0;
+    mask[24] = 0;
+    mask[25] = 0;
+    mask[26] = 3;
+    mask[27] = 0;
+    mask[28] = 0;
+    mask[29] = 0;
+    mask[30] = 0;
+    mask[31] = 0x80;
+    return DS_NoError;
+}
+
+DSError TRKTargetCPUType(TRKCPUTypeOld* cpuType) {
+    cpuType->cpuMajor = 0;
+    cpuType->cpuMinor = TRKTargetCPUMinorType();
+    cpuType->bigEndian = gTRKBigEndian;
+    cpuType->defaultTypeSize = 4;
+    cpuType->fpTypeSize = 8;
+    cpuType->extended1TypeSize = 4;
+    cpuType->extended2TypeSize = 8;
+    return DS_NoError;
 }
 
 void TRKPostInterruptEvent(void) {
@@ -592,9 +671,9 @@ u32 TRKTargetGetPC() {
 }
 
 DSError TRKTargetSupportRequest() {
-    DSIOResult ioResult;
+    u8 ioResult;
+    u8 commandId;
     size_t* length;
-    MessageCommandID commandId;
     DSError error;
     u32 local_28;
     TRKEvent event;
@@ -638,7 +717,7 @@ DSError TRKTargetSupportRequest() {
         *(u32*)gTRKCPUState.Default.GPR[5] = local_28;
     } else {
         length = (size_t*)gTRKCPUState.Default.GPR[5];
-        error = TRKSuppAccessFile(gTRKCPUState.Default.GPR[4], (u8*)gTRKCPUState.Default.GPR[6],
+        error = TRKSuppAccessFile((u8)gTRKCPUState.Default.GPR[4], (u8*)gTRKCPUState.Default.GPR[6],
                                   length, &ioResult, TRUE, commandId == DSMSG_ReadFile);
 
         if (ioResult == DS_IONoError && error != DS_NoError) {
@@ -654,6 +733,15 @@ DSError TRKTargetSupportRequest() {
 
     gTRKCPUState.Default.PC += 4;
     return error;
+}
+
+DSError TRKTargetFlushCache(u8 options, void* start, void* end) {
+    if (start < end) {
+        TRK_flush_cache(start, (u8*)end - (u8*)start);
+        return DS_NoError;
+    }
+
+    return DS_InvalidMemory;
 }
 
 BOOL TRKTargetStopped() {
@@ -716,6 +804,7 @@ DSError TRKPPCAccessPairedSingleRegister(void* srcDestPtr, u32 psr, BOOL read) {
     return TRKPPCAccessSpecialReg(srcDestPtr, instructionData, read);
 }
 
+#pragma dont_inline on
 DSError TRKPPCAccessFPRegister(void* srcDestPtr, u32 fpr, BOOL read) {
     DSError error = DS_NoError;
     // all nop by default
@@ -731,12 +820,7 @@ DSError TRKPPCAccessFPRegister(void* srcDestPtr, u32 fpr, BOOL read) {
 
         error = TRKPPCAccessSpecialReg(srcDestPtr, instructionData1, read);
     } else if (fpr == 0x20) {
-        if (read) {
-            ReadFPSCR(srcDestPtr);
-        } else {
-            WriteFPSCR(srcDestPtr);
-        }
-
+        // This TRK version does not transfer FPSCR (no Read/WriteFPSCR).
         *(u64*)srcDestPtr &= 0xFFFFFFFF;
     } else if (fpr == 0x21) {
         if (!read) {
@@ -751,6 +835,7 @@ DSError TRKPPCAccessFPRegister(void* srcDestPtr, u32 fpr, BOOL read) {
 
     return error;
 }
+#pragma dont_inline reset
 
 #define DEBUG_VECTORREG_ACCESS 0
 
