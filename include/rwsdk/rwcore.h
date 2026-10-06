@@ -176,8 +176,12 @@ extern void* RwEngineInstance;
 #define RwFreeListAlloc(_f) ((RWSRCGLOBAL(memoryAlloc))(_f))
 #define RwFreeListFree(_f, _p) ((RWSRCGLOBAL(memoryFree))((_f), (_p)))
 
+typedef void (*RwFreeListCallBack)(void* pMem, void* pData);
+
 RwFreeList* RwFreeListCreate(RwInt32 entrySize, RwInt32 entriesPerBlock, RwInt32 alignment);
 RwBool RwFreeListDestroy(RwFreeList* freelist);
+void RwFreeListForAllUsed(RwFreeList* freelist, RwFreeListCallBack fpCallBack, void* pData);
+void* _rwFreeListAllocReal(RwFreeList* freelist);
 
 // Plugin registries (one per extensible object type)
 typedef struct RwPluginRegEntry RwPluginRegEntry;
@@ -215,6 +219,25 @@ RwStream* RwStreamWriteInt32(RwStream* stream, const RwInt32* ints, RwUInt32 num
 RwStream* RwStreamReadInt32(RwStream* stream, RwInt32* ints, RwUInt32 numBytes);
 RwStream* RwStreamWriteReal(RwStream* stream, const RwReal* reals, RwUInt32 numBytes);
 RwStream* RwStreamReadReal(RwStream* stream, RwReal* reals, RwUInt32 numBytes);
+RwStream* RwStreamSkip(RwStream* stream, RwUInt32 offset);
+RwBool RwStreamFindChunk(RwStream* stream, RwUInt32 type, RwUInt32* lengthOut, RwUInt32* versionOut);
+RwBool _rwStreamReadChunkHeader(RwStream* stream, RwUInt32* type, RwUInt32* length, RwUInt32* version,
+                                RwUInt32* buildNum);
+RwStream* _rwStreamWriteVersionedChunkHeader(RwStream* stream, RwInt32 type, RwInt32 size, RwUInt32 version,
+                                             RwUInt32 buildNum);
+
+#define rwID_EXTENSION 0x03
+#define rwCHUNKHEADERSIZE 12
+#define rwLIBRARYBASEVERSION 0x31000
+#define rwLIBRARYCURRENTVERSION 0x33002
+#define rwLIBRARYBUILD 0xFFFF
+#define RwStreamWriteChunkHeader(stream, type, size) \
+    _rwStreamWriteVersionedChunkHeader(stream, type, size, rwLIBRARYCURRENTVERSION, rwLIBRARYBUILD)
+
+#define E_RW_BADVERSION 0x80000004
+#define E_RW_PLUGININIT 0x80000017
+
+RwUInt32 _rwGetNumEngineInstances(void);
 
 // Plugins
 typedef void* (*RwPluginObjectConstructor)(void* object, RwInt32 offsetInObject, RwInt32 sizeInObject);

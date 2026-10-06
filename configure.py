@@ -735,6 +735,8 @@ config.libs = [
         "cflags": cflags_rw,
         "progress_category": "sdk",
         "objects": [
+            Object(Matching, "rwsdk/src/batkbin.c"),
+            Object(Matching, "rwsdk/src/batkreg.c"),
             Object(Matching, "rwsdk/src/baframe.c"),
             Object(Matching, "rwsdk/plugin/collis/ctbsp.c"),
             Object(Matching, "rwsdk/plugin/collis/rpcollis.c"),

@@ -1435,6 +1435,13 @@ rwsdk/plugin/collis/rpcollis.c:
 	.text       start:0x8013B850 end:0x8013BD2C
 	.sbss       start:0x8025F650 end:0x8025F668
 
+rwsdk/src/batkbin.c:
+	.text       start:0x80164D48 end:0x801652F8
+
+rwsdk/src/batkreg.c:
+	.text       start:0x801652F8 end:0x801658F8
+	.sbss       start:0x8025F7A8 end:0x8025F7B8
+
 rwsdk/src/baframe.c:
 	.text       start:0x8016A9D8 end:0x8016B6C4
 	.data       start:0x801DDC48 end:0x801DDC60
