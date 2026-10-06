@@ -1442,6 +1442,11 @@ rwsdk/src/batkreg.c:
 	.text       start:0x801652F8 end:0x801658F8
 	.sbss       start:0x8025F7A8 end:0x8025F7B8
 
+rwsdk/src/bavector.c:
+	.text       start:0x801658F8 end:0x801662AC
+	.sbss       start:0x8025F7B8 end:0x8025F7C0
+	.sdata2     start:0x80262A60 end:0x80262A90
+
 rwsdk/src/resheap.c:
 	.text       start:0x801662AC end:0x801664F8
 

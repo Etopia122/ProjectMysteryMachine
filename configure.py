@@ -247,6 +247,9 @@ cflags_runtime = [
 cflags_rw = [
     *cflags_base,
     "-lang=c",
+    "-i src/PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Include",
+    "-i src/PowerPC_EABI_Support/MSL/MSL_C/MSL_Common_Embedded/Math/Include",
+    "-DSCOOBY_MSL",
     "-str reuse",
     "-common off",
     "-fp_contract off",
@@ -737,6 +740,7 @@ config.libs = [
         "objects": [
             Object(Matching, "rwsdk/src/batkbin.c"),
             Object(Matching, "rwsdk/src/batkreg.c"),
+            Object(NonMatching, "rwsdk/src/bavector.c"),
             Object(Matching, "rwsdk/src/resheap.c"),
             Object(Matching, "rwsdk/src/rwstring.c"),
             Object(Matching, "rwsdk/src/rwpath.c"),
