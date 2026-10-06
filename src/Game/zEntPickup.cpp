@@ -145,7 +145,7 @@ extern "C" {
 signed int sprintf(char* s, const char* format, ...);
 RwMatrixTag* RwMatrixUpdate(RwMatrixTag* matrix);
 // TODO: unidentified RenderWare matrix scale
-RwMatrixTag* fn_80162B60(RwMatrixTag* matrix, const RwV3d* scale, signed int combineOp);
+RwMatrixTag* RwMatrixScale(RwMatrixTag* matrix, const RwV3d* scale, signed int combineOp);
 // TODO: unidentified functions
 void fn_80015EAC(const char* fmt, ...);
 float fn_800294A0(float t);
@@ -1543,7 +1543,7 @@ void zEntPickup_RenderList(_zEntPickup* plist, unsigned int pcount)
                 scale.x = plist->fx_scale;
                 scale.y = plist->fx_scale;
                 scale.z = plist->fx_scale;
-                fn_80162B60(&frame->ltm, &scale, 1);
+                RwMatrixScale(&frame->ltm, &scale, 1);
             }
             RwMatrixUpdate(&frame->ltm);
             (*(void (**)(RpAtomic*))((unsigned char*)model + 0x48))(model);

@@ -1454,6 +1454,13 @@ rwsdk/src/osintf.c:
 rwsdk/src/baimmedi.c:
 	.text       start:0x801611C4 end:0x801612EC
 
+rwsdk/src/bamatrix.c:
+	.text       start:0x801612EC end:0x8016351C
+	.rodata     start:0x801AD2A8 end:0x801AD2B8
+	.data       start:0x801DDBD0 end:0x801DDBF0
+	.sbss       start:0x8025F788 end:0x8025F790
+	.sdata2     start:0x80262A50 end:0x80262A60
+
 rwsdk/src/bamemory.c:
 	.text       start:0x8016351C end:0x80163B14
 	.sbss       start:0x8025F790 end:0x8025F798
