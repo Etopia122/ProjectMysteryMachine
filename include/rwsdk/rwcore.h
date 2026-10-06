@@ -158,11 +158,33 @@ typedef struct RwMemoryFunctions {
     void* (*rwcalloc)(RwUInt32 numObj, RwUInt32 sizeObj);
 } RwMemoryFunctions;
 
+typedef char RwChar;
+
+typedef struct RwStringFunctions {
+    int (*vecSprintf)(RwChar* buffer, const RwChar* format, ...);
+    int (*vecVsprintf)(RwChar* buffer, const RwChar* format, void* argptr);
+    RwChar* (*rwstrcpy)(RwChar* dst, const RwChar* src);
+    RwChar* (*rwstrncpy)(RwChar* dst, const RwChar* src, RwUInt32 n);
+    RwChar* (*rwstrcat)(RwChar* dst, const RwChar* src);
+    RwChar* (*rwstrncat)(RwChar* dst, const RwChar* src, RwUInt32 n);
+    RwChar* (*rwstrrchr)(const RwChar* s, RwInt32 c);
+    RwChar* (*rwstrchr)(const RwChar* s, RwInt32 c);
+    RwChar* (*rwstrstr)(const RwChar* s, const RwChar* ss);
+    int (*rwstrcmp)(const RwChar* s1, const RwChar* s2);
+    int (*rwstricmp)(const RwChar* s1, const RwChar* s2);
+    RwUInt32 (*rwstrlen)(const RwChar* s);
+    RwChar* (*rwstrupr)(RwChar* s);
+    RwChar* (*rwstrlwr)(RwChar* s);
+    RwChar* (*rwstrtok)(RwChar* s, const RwChar* delim);
+    int (*rwsscanf)(const RwChar* buffer, const RwChar* format, ...);
+} RwStringFunctions;
+
 // Engine globals: only the fields the decompiled code uses are named.
 typedef struct RwGlobals {
     /* 0x000 */ RwUInt8 _000[0xBC];
     /* 0x0BC */ RwLinkList dirtyFrameList;
-    /* 0x0C4 */ RwUInt8 _0C4[0x130 - 0xC4];
+    /* 0x0C4 */ RwUInt8 _0C4[0xF0 - 0xC4];
+    /* 0x0F0 */ RwStringFunctions stringFuncs;
     /* 0x130 */ RwMemoryFunctions memoryFuncs;
     /* 0x140 */ void* (*memoryAlloc)(RwFreeList* fl);
     /* 0x144 */ RwFreeList* (*memoryFree)(RwFreeList* fl, void* pData);

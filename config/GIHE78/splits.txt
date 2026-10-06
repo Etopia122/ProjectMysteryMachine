@@ -1442,6 +1442,15 @@ rwsdk/src/batkreg.c:
 	.text       start:0x801652F8 end:0x801658F8
 	.sbss       start:0x8025F7A8 end:0x8025F7B8
 
+rwsdk/src/rwstring.c:
+	.text       start:0x801664F8 end:0x801667A8
+
+rwsdk/src/rwpath.c:
+	.text       start:0x801667A8 end:0x80166800
+
+rwsdk/src/babbox.c:
+	.text       start:0x80166800 end:0x80166974
+
 rwsdk/src/baframe.c:
 	.text       start:0x8016A9D8 end:0x8016B6C4
 	.data       start:0x801DDC48 end:0x801DDC60
