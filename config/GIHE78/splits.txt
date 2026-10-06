@@ -804,14 +804,47 @@ TRK_MINNOW_DOLPHIN/Portable/nubevent.c:
 	.text       start:0x800DE628 end:0x800DE850
 	.bss        start:0x8023E5D0 end:0x8023E5F8
 
+TRK_MINNOW_DOLPHIN/Portable/nubinit.c:
+	.text       start:0x800DE850 end:0x800DE9D0
+
+TRK_MINNOW_DOLPHIN/Portable/msg.c:
+	.text       start:0x800DE9D0 end:0x800DEBAC
+
+TRK_MINNOW_DOLPHIN/Portable/msgbuf.c:
+	.text       start:0x800DEBAC end:0x800DF5D8
+
+TRK_MINNOW_DOLPHIN/Portable/serpoll.c:
+	.text       start:0x800DF5D8 end:0x800DF9A4
+
 TRK_MINNOW_DOLPHIN/Portable/usr_put.c:
 	.text       start:0x800DF9A4 end:0x800DFA30
+
+TRK_MINNOW_DOLPHIN/Portable/dispatch.c:
+	.text       start:0x800DFA30 end:0x800DFACC
+
+TRK_MINNOW_DOLPHIN/Portable/msghndlr.c:
+	.text       start:0x800DFACC end:0x800E232C
+
+TRK_MINNOW_DOLPHIN/Portable/support.c:
+	.text       start:0x800E232C end:0x800E2BEC
 
 TRK_MINNOW_DOLPHIN/Portable/mutex_TRK.c:
 	.text       start:0x800E2BEC end:0x800E2C04
 
+TRK_MINNOW_DOLPHIN/Portable/notify.c:
+	.text       start:0x800E2C04 end:0x800E2CDC
+
 TRK_MINNOW_DOLPHIN/ppc/Generic/flush_cache.c:
 	.text       start:0x800E2CDC end:0x800E2D14
+
+TRK_MINNOW_DOLPHIN/Portable/mem_TRK.c:
+	.text       start:0x800E2D14 end:0x800E2DD0
+
+TRK_MINNOW_DOLPHIN/ppc/Generic/targimpl.c:
+	.text       start:0x800E2DD0 end:0x800E4660
+
+TRK_MINNOW_DOLPHIN/Os/dolphin/dolphin_trk.c:
+	.text       start:0x800E4680 end:0x800E47C0
 
 TRK_MINNOW_DOLPHIN/ppc/Generic/mpc_7xx_603e.c:
 	.text       start:0x800E47C0 end:0x800E4B38
@@ -819,6 +852,9 @@ TRK_MINNOW_DOLPHIN/ppc/Generic/mpc_7xx_603e.c:
 TRK_MINNOW_DOLPHIN/Portable/main_TRK.c:
 	.text       start:0x800E4B38 end:0x800E4B7C
 	.bss        start:0x80240560 end:0x80240564
+
+TRK_MINNOW_DOLPHIN/Os/dolphin/dolphin_trk_glue.c:
+	.text       start:0x800E4B7C end:0x800E5028
 
 TRK_MINNOW_DOLPHIN/Os/dolphin/targcont.c:
 	.text       start:0x800E5028 end:0x800E505C
