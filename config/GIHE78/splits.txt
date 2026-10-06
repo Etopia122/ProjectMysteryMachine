@@ -1469,6 +1469,11 @@ rwsdk/src/baresour.c:
 	.text       start:0x80163B14 end:0x80164374
 	.sbss       start:0x8025F798 end:0x8025F7A0
 
+rwsdk/src/bastream.c:
+	.text       start:0x80164374 end:0x80164D48
+	.sdata      start:0x8025E7D0 end:0x8025E7E0
+	.sbss       start:0x8025F7A0 end:0x8025F7A8
+
 rwsdk/src/batkbin.c:
 	.text       start:0x80164D48 end:0x801652F8
 
