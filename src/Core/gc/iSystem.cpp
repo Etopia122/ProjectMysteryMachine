@@ -37,7 +37,7 @@ extern unsigned int _stack_addr[];
 extern unsigned int _stack_end[];
 
 // TODO: unidentified (stops the movie player before a reset)
-void fn_800FDA54();
+void GXAbortFrame();
 // TODO: unidentified (size of the RenderWare resource arena)
 signed int fn_80164200();
 
@@ -156,7 +156,7 @@ extern "C" void fn_80016698(signed int toMenu)
 {
     iSndDIEDIEDIE();
     PADRecalibrate(0xF0000000);
-    fn_800FDA54();
+    GXAbortFrame();
     GXDrawDone();
     VISetBlack(1);
     VIFlush();
@@ -361,7 +361,7 @@ long long OSGetTime();
 void OSTicksToCalendarTime(long long ticks, OSCalendarTime* td);
 void* OSAllocFromHeap(int heap, unsigned int size);
 void OSFreeToHeap(int heap, void* ptr);
-void fn_800FD94C(signed int what, signed int value); // GXSetMisc
+void GXSetMisc(signed int what, signed int value);
 
 extern unsigned char* RwEngineInstance;
 RwFileFunctions* RwOsGetFileInterface();
@@ -549,7 +549,7 @@ extern "C" void fn_80016218()
     lbl_801FE3B8.renderMode = GXNtsc480IntDf;
     lbl_801FE3B8.unk4 = 0;
     lbl_801FE3B8.unk8 = 0x40000;
-    fn_800FD94C(1, 8);
+    GXSetMisc(1, 8);
     OSInit();
     DVDInit();
     VIInit();

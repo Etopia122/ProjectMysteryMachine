@@ -54,7 +54,7 @@ void GXSetCullMode(int mode);
 void GXBegin(int type, int vtxfmt, unsigned short nverts);
 void GXSetTevAlphaIn(int stage, int a, int b, int c, int d);
 // TODO: unidentified GX function (blend mode)
-void fn_80101B68(int type, int src_factor, int dst_factor, int op);
+void GXSetBlendMode(int type, int src_factor, int dst_factor, int op);
 
 extern unsigned char* sFMVWorkArea;
 
@@ -163,17 +163,17 @@ void Blit_RAD_3D_image(HRAD3DIMAGE image, float x_offset, float y_offset, float 
     {
         if (image->alpha == 0)
         {
-            fn_80101B68(0, 4, 5, 0);
+            GXSetBlendMode(0, 4, 5, 0);
         }
         else
         {
-            fn_80101B68(1, 4, 5, 0);
+            GXSetBlendMode(1, 4, 5, 0);
             GXSetTevAlphaIn(0, 7, 4, 6, 7);
         }
     }
     else
     {
-        fn_80101B68(1, 4, 5, 0);
+        GXSetBlendMode(1, 4, 5, 0);
         if (image->alpha == 0)
         {
             GXSetTevAlphaIn(0, 7, 5, 6, 7);
@@ -233,7 +233,7 @@ void Blit_RAD_3D_image(HRAD3DIMAGE image, float x_offset, float y_offset, float 
     GXWGFifo.f32 = 1.0f;
     GXWGFifo.f32 = 1.0f;
 
-    fn_80101B68(0, 4, 5, 0);
+    GXSetBlendMode(0, 4, 5, 0);
 }
 
 #ifdef __cplusplus
