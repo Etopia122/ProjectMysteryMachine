@@ -258,3 +258,212 @@ char* strrchr(const char* str, int c) {
 
     return chr ? NULL : (char*)p;
 }
+
+char* strtok(char* str, const char* set) {
+    unsigned char* p;
+    unsigned char* q;
+    unsigned char set_map[32] = {0};
+    static unsigned char* empty = (unsigned char*)"";
+    static unsigned char* s = (unsigned char*)"";
+    int c;
+
+    if (str)
+        s = (unsigned char*)str;
+
+    p = (unsigned char*)set - 1;
+    while (c = *++p)
+        set_map[(c & 0xff) >> 3] |= (1 << (c & 7));
+
+    p = s - 1;
+    while ((c = *++p) != 0)
+        if (!(set_map[(c & 0xff) >> 3] & (1 << (c & 7))))
+            break;
+
+    if (!c) {
+        s = empty;
+        return NULL;
+    }
+
+    q = p;
+    while ((c = *++p) != 0)
+        if (set_map[(c & 0xff) >> 3] & (1 << (c & 7)))
+            break;
+
+    if (!c)
+        s = empty;
+    else {
+        s = p + 1;
+        *p = 0;
+    }
+
+    return (char*)q;
+}
+
+char* strstr(const char* str, const char* pat) {
+    unsigned char* s1 = (unsigned char*)str - 1;
+    unsigned char* p1 = (unsigned char*)pat;
+    unsigned long firstc, c1, c2;
+
+    if ((pat == NULL) || (!(firstc = *p1)))
+        return (char*)str;
+
+    while (c1 = *++s1) {
+        if (c1 == firstc) {
+            const unsigned char* s2 = s1 - 1;
+            const unsigned char* p2 = p1 - 1;
+
+            while ((c1 = *++s2) == (c2 = *++p2) && c1)
+                ;
+
+            if (!c2)
+                return (char*)s1;
+        }
+    }
+
+    return NULL;
+}
+
+// Older MSL keeps strerror here. It is dead-stripped from the game, but its
+// message strings stay in this unit's string pool.
+extern int sprintf(char* s, const char* format, ...);
+
+char* __strerror(int errnum, char* str) {
+    switch (errnum) {
+    case 7: /* E2BIG */
+        strcpy(str, "Argument list too long");
+        break;
+    case 13: /* EACCES */
+        strcpy(str, "Permission denied");
+        break;
+    case 35: /* EAGAIN */
+        strcpy(str, "Resource temporarily unavailable");
+        break;
+    case 9: /* EBADF */
+        strcpy(str, "Bad file descriptor");
+        break;
+    case 16: /* EBUSY */
+        strcpy(str, "Device busy");
+        break;
+    case 10: /* ECHILD */
+        strcpy(str, "No child processes");
+        break;
+    case 11: /* EDEADLK */
+        strcpy(str, "Resource deadlock avoided");
+        break;
+    case 33: /* EDOM */
+        strcpy(str, "Numerical argument out of domain");
+        break;
+    case 17: /* EEXIST */
+        strcpy(str, "File exists");
+        break;
+    case 14: /* EFAULT */
+        strcpy(str, "Bad address");
+        break;
+    case 27: /* EFBIG */
+        strcpy(str, "File too large");
+        break;
+    case 40: /* EFPOS */
+        strcpy(str, "File Position Error");
+        break;
+    case 88: /* EILSEQ */
+        strcpy(str, "Wide character encoding error");
+        break;
+    case 4: /* EINTR */
+        strcpy(str, "Interrupted system call");
+        break;
+    case 22: /* EINVAL */
+        strcpy(str, "Invalid argument");
+        break;
+    case 5: /* EIO */
+        strcpy(str, "Input/output error");
+        break;
+    case 21: /* EISDIR */
+        strcpy(str, "Is a directory");
+        break;
+    case 24: /* EMFILE */
+        strcpy(str, "Too many open files");
+        break;
+    case 31: /* EMLINK */
+        strcpy(str, "Too many links");
+        break;
+    case 63: /* ENAMETOOLONG */
+        strcpy(str, "File name too long");
+        break;
+    case 23: /* ENFILE */
+        strcpy(str, "Too many open files in system");
+        break;
+    case 19: /* ENODEV */
+        strcpy(str, "Operation not supported by device");
+        break;
+    case 2: /* ENOENT */
+        strcpy(str, "No such file or directory");
+        break;
+    case 0: /* ENOERR */
+        strcpy(str, "No error detected");
+        break;
+    case 8: /* ENOEXEC */
+        strcpy(str, "Exec format error");
+        break;
+    case 77: /* ENOLCK */
+        strcpy(str, "No locks available");
+        break;
+    case 12: /* ENOMEM */
+        strcpy(str, "Cannot allocate memory");
+        break;
+    case 28: /* ENOSPC */
+        strcpy(str, "No space left on device");
+        break;
+    case 78: /* ENOSYS */
+        strcpy(str, "Function not implemented");
+        break;
+    case 20: /* ENOTDIR */
+        strcpy(str, "Not a directory");
+        break;
+    case 66: /* ENOTEMPTY */
+        strcpy(str, "Directory not empty");
+        break;
+    case 25: /* ENOTTY */
+        strcpy(str, "Inappropriate ioctl for device");
+        break;
+    case 6: /* ENXIO */
+        strcpy(str, "Device not configured");
+        break;
+    case 1: /* EPERM */
+        strcpy(str, "Operation not permitted");
+        break;
+    case 32: /* EPIPE */
+        strcpy(str, "Broken pipe");
+        break;
+    case 34: /* ERANGE */
+        strcpy(str, "Result too large");
+        break;
+    case 30: /* EROFS */
+        strcpy(str, "Read-only file system");
+        break;
+    case 36: /* ESIGPARM */
+        strcpy(str, "Signal error");
+        break;
+    case 29: /* ESPIPE */
+        strcpy(str, "Illegal seek");
+        break;
+    case 3: /* ESRCH */
+        strcpy(str, "No such process");
+        break;
+    case 99: /* EUNKNOWN */
+        strcpy(str, "Unknown error");
+        break;
+    case 18: /* EXDEV */
+        strcpy(str, "Cross-device link");
+        break;
+    default:
+        sprintf(str, "Unknown Error (%d)", errnum);
+        break;
+    }
+
+    return str;
+}
+
+char* strerror(int errnum) {
+    static char errstr[100];
+    return __strerror(errnum, errstr);
+}
