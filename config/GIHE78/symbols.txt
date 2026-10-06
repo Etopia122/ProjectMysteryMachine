@@ -1,7 +1,7 @@
 TRK_memset = .init:0x80003100; // type:function size:0x30 scope:global
 TRK_memcpy = .init:0x80003130; // type:function size:0x24
 gTRKInterruptVectorTable = .init:0x80003154; // type:label scope:global
-fn_80005088 = .init:0x80005088; // type:function size:0x104
+__TRK_copy_vectors = .init:0x80005088; // type:function size:0x104 scope:global
 gTRKInterruptVectorTableEnd = .init:0x80005088; // type:label scope:global
 memset = .init:0x8000518C; // type:function size:0x30 scope:global
 __fill_mem = .init:0x800051BC; // type:function size:0xB8 scope:global
@@ -7691,7 +7691,7 @@ gTRKMsgBufs = .bss:0x8023E600; // type:object size:0x19B0 scope:global
 gTRKInputPendingPtr = .bss:0x8023FFB0; // type:object size:0x4 scope:global data:4byte
 gTRKFramingState = .bss:0x8023FFB4; // type:object size:0x14 scope:local data:4byte
 lbl_8023FFC8 = .bss:0x8023FFC8; // type:object size:0x8 data:4byte
-lbl_8023FFD0 = .bss:0x8023FFD0; // type:object size:0x8 data:4byte
+IsTRKConnected = .bss:0x8023FFD0; // type:object size:0x4 scope:local data:4byte
 TRK_saved_exceptionID = .bss:0x8023FFD8; // type:object size:0x2 scope:local data:2byte
 gTRKState = .bss:0x8023FFDC; // type:object size:0xA4 scope:global data:4byte
 gTRKCPUState = .bss:0x80240080; // type:object size:0x430 scope:global
