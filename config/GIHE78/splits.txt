@@ -964,6 +964,14 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/string.c:
 	.rodata     start:0x801A7F70 end:0x801A8300
 	.sdata      start:0x8025E5E0 end:0x8025E5E8
 
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/float.c:
+	.sdata      start:0x8025E5E8 end:0x8025E618
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/strtold.c:
+	.text       start:0x800EE7BC end:0x800EF854
+	.rodata     start:0x801A8300 end:0x801A8338
+	.sdata2     start:0x80262190 end:0x802621A8
+
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/strtoul.c:
 	.text       start:0x800EF854 end:0x800F0098
 	.data       start:0x801CAB48 end:0x801CABD0
