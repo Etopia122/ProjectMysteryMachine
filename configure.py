@@ -667,7 +667,7 @@ config.libs = [
         "cflags": cflags_tww_dolphin,
         "progress_category": "sdk",
         "objects": [
-            Object(NonMatching, "dolphin/mtx/mtx.c"),
+            Object(Matching, "dolphin/mtx/mtx.c"),
             Object(Matching, "dolphin/mtx/mtx44.c"),
         ],
     },

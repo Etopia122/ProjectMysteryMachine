@@ -705,6 +705,7 @@ void PSMTXRotTrig(register Mtx m, register u8 axis, register f32 sinA, register 
 }
 #endif
 
+#if !defined(VERSION_GIHE78)
 void C_MTXRotAxisRad(Mtx m, const Vec* axis, f32 rad) {
     Vec vN;
     f32 s;
@@ -805,6 +806,8 @@ void PSMTXRotAxisRad(Mtx m, const Vec* axis, f32 rad) {
 
     __PSMTXRotAxisRadInternal(m, axis, sinT, cosT);
 }
+#endif
+
 #endif
 
 void C_MTXTrans(Mtx m, f32 xT, f32 yT, f32 zT) {
@@ -967,6 +970,7 @@ asm void PSMTXScaleApply(const register Mtx src, register Mtx dst, register f32 
 }
 #endif
 
+#if !defined(VERSION_GIHE78)
 void C_MTXQuat(Mtx m, const Quaternion* q) {
     f32 s;
     f32 xs;
@@ -1163,3 +1167,5 @@ void C_MTXLightOrtho(Mtx m, f32 t, f32 b, f32 l, f32 r, f32 scaleS, f32 scaleT, 
     m[2][2] = 0;
     m[2][3] = 1;
 }
+#endif
+
