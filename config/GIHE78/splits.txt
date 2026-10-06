@@ -885,6 +885,9 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/abort_exit.c:
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/alloc.c:
 	.text       start:0x800E6188 end:0x800E7350
+	.rodata     start:0x801A7E20 end:0x801A7E38
+	.bss        start:0x80242898 end:0x802428D0
+	.sbss       start:0x8025F230 end:0x8025F238
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/ansi_files.c:
 	.text       start:0x800E7350 end:0x800E7650
