@@ -251,10 +251,9 @@
   _rwFrameSyncDirty                                  iCamera,iEnv,xModel,xShadow
   _rwObjectHasFrameSetFrame                          iCamera,iLight,xFX,xModel
 
-== C library / other (109)
+== C library / other (108)
   DCInvalidateRange                                  iSnd
   DCStoreRange                                       iRad3D,iSnd
-  ___chkstk_ms                                       iCutscene,isavegame
   __ctype_map                                        xutil
   __files                                            xAnim
   __float_huge                                       xSpline
@@ -339,7 +338,7 @@
   lbl_8025F860                                       iFMV
   lbl_8025F870                                       iSystem
   memcmp                                             isavegame
-  memcpy                                             iAnimSKB,iCamera,iCollide,iFX
+  memcpy                                             iAnimSKB,iCamera,iFX,iParMgr
   memset                                             iFont,iMorph,iShadow,iSystem
   pow                                                xMath,zSurface
   qsort                                              zUI
@@ -375,9 +374,10 @@
   RADSetAudioMemory                                  iFMV
   RADSetMemory                                       iFMV
 
-== C++ runtime (5)
+== C++ runtime (6)
   _Unwind_Resume                                     xserializer,zEntPlayer,zScene,zUI
+  __chkstk_ms                                        iCutscene,isavegame
   __cxa_guard_abort                                  zEntPlayer,zUI
   __cxa_guard_acquire                                xEnt,xFX,xTRC,zEntPlayer
   __cxa_guard_release                                xEnt,xFX,xTRC,zEntPlayer
-  __gxx_personality_seh0                             xserializer,zEntPlayer,zScene,zUI
+  __gxx_personality_v0                               xserializer,zEntPlayer,zScene,zUI

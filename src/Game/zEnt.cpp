@@ -108,6 +108,7 @@ static zShadowParams sShadowParams[27] = {
 
 void zEntParseModelInfo(_xEnt* ent, unsigned int assetID);
 
+#ifndef PC_PORT // on PC the inline definitions from xBase.h are used
 #pragma auto_inline on
 void xBaseDisable(xBase* xb)
 {
@@ -124,6 +125,7 @@ unsigned int xBaseIsEnabled(xBase* xb)
     return xb->baseFlags & 1;
 }
 #pragma auto_inline off
+#endif
 
 void zEntInit(_zEnt* ent, p2EntAsset* asset, unsigned int type)
 {

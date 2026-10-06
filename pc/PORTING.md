@@ -25,24 +25,36 @@ native PC program. Game assets are not included: the player supplies their own d
 
 ## Plan
 
-1. **Toolchain.** Build 32-bit first (asset structs and RenderWare data assume
-   4-byte pointers). Needs an i686 compiler, CMake and SDL2
-   (MSYS2: `mingw-w64-i686-gcc`, `mingw-w64-i686-cmake`, `mingw-w64-i686-SDL2`).
+1. **Toolchain (installed).** Build 32-bit first (asset structs and RenderWare
+   data assume 4-byte pointers): MSYS2 `mingw-w64-i686-gcc`, `-cmake`, `-SDL2`
+   in `C:/msys64/mingw32`.
    64-bit comes later, once pointer fields in asset layouts are handled.
 2. **Name the leftovers.** Resolve the `fn_*`/`lbl_*` placeholders to the real
    SDK/RW/game functions and data they stand for (the decomp's symbols.txt and asm).
-3. **Link with stubs.** Generate stub definitions for every import so the whole
-   game links into an executable that does nothing useful yet.
-4. **Assets and endianness.** HIP archives and their contents are big-endian on
-   GameCube; textures and geometry are GameCube-native RenderWare data. Either
-   byte-swap/convert at load time, or use another release's assets (PS2 data is
-   little-endian and librw reads PS2-native geometry and textures). Decide before step 5.
+3. **Link with stubs (done).** `sh pc/tools/rebuild.sh` builds the game library
+   with CMake, generates `pc/src/stubs_gen.S` (`pc/tools/genstubs.py`) for every
+   symbol nothing on PC provides yet, and links `build/pc/scooby.exe`. Each stub
+   prints its name the first time it runs. Real implementations go in `pc/src/`;
+   rerunning the script drops their stubs.
+4. **Assets and endianness (decided: GameCube disc).** HIP archives and their
+   contents are big-endian on GameCube, and textures and geometry are
+   GameCube-native RenderWare data. The port byte-swaps game data and converts
+   RenderWare data to librw's formats at load time.
 5. **Platform layer.** Replace `src/Core/gc/i*.cpp` piece by piece:
    files (DVD -> stdio), memory (OS heap -> malloc), time, pad (SDL gamepad),
    rendering (RenderWare via librw on OpenGL), sound (AX -> SDL audio, DSP-ADPCM
    decoder), saves (CARD -> files), FMV (Bink -> FFmpeg or skip).
+   Done so far: OS heap (`os_heap.cpp`), ARAM + DMA queue (`aram.cpp`). The
+   executable now runs through system and sound init and stops at the first
+   disc read (DVD) and RenderWare engine start.
 6. **Boot to the title screen**, then into a level, then fix gameplay bugs by
    comparing with the GameCube build (Dolphin + the decomp's debugging tools).
+
+## TODO
+
+- **PS2 assets as an alternative source.** PS2 data is little-endian and librw
+  already reads PS2-native geometry and textures. Supporting a PS2 disc needs
+  the PS2 layouts where they differ from GameCube (see the decomp's PS2 DWARF notes).
 
 ## Rules for this fork
 

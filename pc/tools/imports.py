@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 ap = argparse.ArgumentParser()
-ap.add_argument('--cc', default='C:/msys64/mingw64/bin/g++.exe')
+ap.add_argument('--cc', default='C:/msys64/mingw32/bin/g++.exe')
 a = ap.parse_args()
 bindir = Path(a.cc).parent
 env = dict(os.environ, PATH=str(bindir) + os.pathsep + os.environ.get('PATH', ''))

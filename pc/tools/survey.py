@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 ap = argparse.ArgumentParser()
-ap.add_argument('--cc', default='C:/msys64/mingw64/bin/g++.exe')
+ap.add_argument('--cc', default='C:/msys64/mingw32/bin/g++.exe')
 ap.add_argument('--m32', action='store_true')
 ap.add_argument('filters', nargs='*')
 a = ap.parse_args()

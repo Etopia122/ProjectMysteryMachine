@@ -18,4 +18,6 @@ static inline double __frsqrte(double x) { return 1.0 / __builtin_sqrt(x); }
 }
 #endif
 
+#include "pc_names.h"
+
 #endif // PC_COMPAT_H
