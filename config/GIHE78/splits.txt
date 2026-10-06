@@ -863,6 +863,9 @@ TRK_MINNOW_DOLPHIN/Portable/main_TRK.c:
 
 TRK_MINNOW_DOLPHIN/Os/dolphin/dolphin_trk_glue.c:
 	.text       start:0x800E4B7C end:0x800E5028
+	.rodata     start:0x801A7D48 end:0x801A7D90
+	.data       start:0x801CA248 end:0x801CA268
+	.bss        start:0x80240568 end:0x80242790
 
 TRK_MINNOW_DOLPHIN/Os/dolphin/targcont.c:
 	.text       start:0x800E5028 end:0x800E505C
