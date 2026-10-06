@@ -31,9 +31,6 @@ static u32 TRK_ISR_OFFSETS[15] = {PPC_SystemReset,
                                   PPC_SystemManagementInterrupt,
                                   PPC_ThermalManagementInterrupt};
 
-void __TRK_copy_vectors(void);
-__declspec(section ".init") void __TRK_reset(void) { OSResetSystem(FALSE, 0, FALSE); }
-
 void EnableMetroTRKInterrupts(void) {
     EnableEXI2Interrupts();
 }
@@ -49,13 +46,14 @@ u32 TRKTargetTranslate(u32 param_0) {
 
 extern u8 gTRKInterruptVectorTable[];
 
-__declspec(section ".init") void TRK_copy_vector(u32 offset) {
+// Older TRK: the vector copy runs from .init and copies every vector in the mask.
+static inline void TRK_copy_vector(u32 offset) {
     void* destPtr = (void*)TRKTargetTranslate(offset);
     TRK_memcpy(destPtr, (void*)(gTRKInterruptVectorTable + offset), 0x100);
     TRK_flush_cache(destPtr, 0x100);
 }
 
-void __TRK_copy_vectors(void) {
+__declspec(section ".init") void __TRK_copy_vectors(void) {
     u32 r3 = lc_base;
     u32* isrOffsetPtr;
     int i;
@@ -72,7 +70,7 @@ void __TRK_copy_vectors(void) {
     isrOffsetPtr = TRK_ISR_OFFSETS;
 
     do {
-        if ((r29 & (1 << i)) && i != 4) {
+        if (r29 & (1 << i)) {
             TRK_copy_vector(isrOffsetPtr[i]);
         }
 
