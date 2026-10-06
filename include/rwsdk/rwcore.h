@@ -179,11 +179,54 @@ typedef struct RwStringFunctions {
     int (*rwsscanf)(const RwChar* buffer, const RwChar* format, ...);
 } RwStringFunctions;
 
+typedef RwInt32 RwRenderState;
+typedef RwBool (*RwRenderStateSetFunction)(RwRenderState state, void* value);
+typedef RwBool (*RwRenderStateGetFunction)(RwRenderState state, void* value);
+typedef RwBool (*RwIm2DRenderLineFunction)(void* vertices, RwInt32 numVertices, RwInt32 vert1, RwInt32 vert2);
+typedef RwBool (*RwIm2DRenderTriangleFunction)(void* vertices, RwInt32 numVertices, RwInt32 vert1, RwInt32 vert2,
+                                               RwInt32 vert3);
+typedef RwBool (*RwIm2DRenderPrimitiveFunction)(RwInt32 primType, void* vertices, RwInt32 numVertices);
+typedef RwBool (*RwIm2DRenderIndexedPrimitiveFunction)(RwInt32 primType, void* vertices, RwInt32 numVertices,
+                                                       RwUInt16* indices, RwInt32 numIndices);
+
+// Device interface (only the start is named).
+typedef struct RwDevice {
+    /* 0x00 */ RwReal gammaCorrection;
+    /* 0x04 */ void* fpSystem;
+    /* 0x08 */ RwReal zBufferNear;
+    /* 0x0C */ RwReal zBufferFar;
+    /* 0x10 */ RwRenderStateSetFunction fpRenderStateSet;
+    /* 0x14 */ RwRenderStateGetFunction fpRenderStateGet;
+    /* 0x18 */ RwIm2DRenderLineFunction fpIm2DRenderLine;
+    /* 0x1C */ RwIm2DRenderTriangleFunction fpIm2DRenderTriangle;
+    /* 0x20 */ RwIm2DRenderPrimitiveFunction fpIm2DRenderPrimitive;
+    /* 0x24 */ RwIm2DRenderIndexedPrimitiveFunction fpIm2DRenderIndexedPrimitive;
+    /* 0x28 */ RwUInt8 _28[0xAC - 0x28];
+} RwDevice;
+
+typedef struct RwFileFunctions {
+    RwBool (*rwfexist)(const RwChar* name);
+    void* (*rwfopen)(const RwChar* name, const RwChar* mode);
+    int (*rwfclose)(void* fptr);
+    RwUInt32 (*rwfread)(void* addr, RwUInt32 size, RwUInt32 count, void* fptr);
+    RwUInt32 (*rwfwrite)(const void* addr, RwUInt32 size, RwUInt32 count, void* fptr);
+    RwChar* (*rwfgets)(RwChar* buffer, int maxLen, void* fptr);
+    int (*rwfputs)(const RwChar* buffer, void* fptr);
+    int (*rwfeof)(void* fptr);
+    int (*rwfseek)(void* fptr, long offset, int origin);
+    int (*rwfflush)(void* fptr);
+    int (*rwftell)(void* fptr);
+} RwFileFunctions;
+
 // Engine globals: only the fields the decompiled code uses are named.
 typedef struct RwGlobals {
-    /* 0x000 */ RwUInt8 _000[0xBC];
+    /* 0x000 */ void* curCamera;
+    /* 0x004 */ void* curWorld;
+    /* 0x008 */ RwUInt32 renderFrame;
+    /* 0x00C */ RwUInt32 lightFrame;
+    /* 0x010 */ RwDevice dOpenDevice;
     /* 0x0BC */ RwLinkList dirtyFrameList;
-    /* 0x0C4 */ RwUInt8 _0C4[0xF0 - 0xC4];
+    /* 0x0C4 */ RwFileFunctions fileFuncs;
     /* 0x0F0 */ RwStringFunctions stringFuncs;
     /* 0x130 */ RwMemoryFunctions memoryFuncs;
     /* 0x140 */ void* (*memoryAlloc)(RwFreeList* fl);
