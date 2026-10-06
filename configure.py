@@ -243,6 +243,15 @@ cflags_runtime = [
     "-inline auto",
 ]
 
+# RenderWare 3.x GameCube libraries: MWCC 1.3.2, -O4,p, _savegpr calls (no lmw).
+cflags_rw = [
+    *cflags_base,
+    "-lang=c",
+    "-str reuse",
+    "-common off",
+    "-fp_contract off",
+]
+
 # MetroTRK / Runtime / MSL flags, as in zeldaret/tww (whose copies are
 # byte-identical to ours). Headers they need from TWW live in include/tww.
 cflags_tww_base = [
@@ -718,6 +727,15 @@ config.libs = [
             Object(Matching, "dolphin/ai/ai.c"),
             Object(Matching, "dolphin/ar/ar.c"),
             Object(Matching, "dolphin/ar/arq.c"),
+        ],
+    },
+    {
+        "lib": "rwsdk",
+        "mw_version": "GC/1.3.2",
+        "cflags": cflags_rw,
+        "progress_category": "sdk",
+        "objects": [
+            Object(Matching, "rwsdk/plugin/collis/rpcollis.c"),
         ],
     },
     {
