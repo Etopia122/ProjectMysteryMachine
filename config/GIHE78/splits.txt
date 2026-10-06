@@ -895,7 +895,10 @@ PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/arith.c:
 	.text       start:0x800E92BC end:0x800E92CC
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/buffer_io.c:
-	.text       start:0x800E9410 end:0x800E95D8
+	.text       start:0x800E92CC end:0x800E95D8
+
+PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/char_io.c:
+	.text       start:0x800E95D8 end:0x800E9A7C
 
 PowerPC_EABI_Support/MSL/MSL_C/MSL_Common/Src/ctype.c:
 	.text       start:0x800E9A7C end:0x800E9AA0

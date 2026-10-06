@@ -64,3 +64,49 @@ int __flush_buffer(FILE* file, size_t* bytes_flushed) {
 
     return 0;
 }
+
+extern int fflush(FILE* file);
+extern void free(void* ptr);
+extern void* malloc(size_t size);
+
+int setvbuf(FILE* file, char* buff, int mode, size_t size) {
+    int kind = file->file_mode.file_kind;
+
+    if (mode == _IONBF)
+        fflush(file);
+
+    if (file->file_state.io_state != __neutral || kind == __closed_file)
+        return -1;
+
+    if (mode != _IONBF && mode != _IOLBF && mode != _IOFBF)
+        return -1;
+
+    if (file->buffer && file->file_state.free_buffer)
+        free(file->buffer);
+
+    file->file_mode.buffer_mode = mode;
+    file->file_state.free_buffer = 0;
+    file->buffer = (unsigned char*)&file->char_buffer;
+    file->buffer_ptr = (unsigned char*)&file->char_buffer;
+    file->buffer_size = 1;
+    file->buffer_length = 0;
+    file->buffer_alignment = 0;
+
+    if (mode == _IONBF || size < 1) {
+        *(file->buffer_ptr) = 0;
+        return 0;
+    }
+
+    if (!buff) {
+        if (!(buff = (char*)malloc(size)))
+            return -1;
+        file->file_state.free_buffer = 1;
+    }
+
+    file->buffer = (unsigned char*)buff;
+    file->buffer_ptr = file->buffer;
+    file->buffer_size = size;
+    file->buffer_alignment = 0;
+
+    return 0;
+}
