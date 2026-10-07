@@ -13,6 +13,7 @@ struct PcRaster
     RwUInt32 glTex;
     int dirty;
     int numLevels;
+    RwUInt32 fbo, depthRb; // render target (camera texture rasters)
 };
 PcRaster* pc_raster(RwRaster* r);
 

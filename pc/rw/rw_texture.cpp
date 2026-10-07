@@ -305,8 +305,16 @@ RwTexture* RwTextureRead(const char* name, const char* mask)
     if (s_readCallBack)
     {
         RwTexture* t = s_readCallBack(name, mask);
+        static const char* logTex = getenv("PC_LOG_TEXREAD");
+        if (logTex)
+        {
+            pc_log("[texread] %s -> %p raster %p", name, t, t ? t->raster : NULL);
+        }
         if (t)
         {
+            // The caller owns a reference (materials release theirs when destroyed);
+            // the game's callback returns its asset's texture without adding one.
+            t->refCount++;
             return t;
         }
     }

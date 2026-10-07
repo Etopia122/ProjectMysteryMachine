@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 #include <vector>
 
 #ifndef GL_CLAMP_TO_EDGE
@@ -25,6 +26,39 @@ static int s_winW = 1280, s_winH = 960;
 
 // Logical framebuffer the game renders to.
 static const int FB_W = 640, FB_H = 480;
+
+// Framebuffer objects (GL 3.0 / ARB_framebuffer_object), loaded at startup.
+typedef void(APIENTRY* PFNGenFB)(GLsizei, GLuint*);
+typedef void(APIENTRY* PFNBindFB)(GLenum, GLuint);
+typedef void(APIENTRY* PFNFBTex2D)(GLenum, GLenum, GLenum, GLuint, GLint);
+typedef void(APIENTRY* PFNRBStorage)(GLenum, GLenum, GLsizei, GLsizei);
+typedef void(APIENTRY* PFNFBRB)(GLenum, GLenum, GLenum, GLuint);
+typedef GLenum(APIENTRY* PFNCheckFB)(GLenum);
+static PFNGenFB p_glGenFramebuffers, p_glGenRenderbuffers, p_glDeleteFramebuffers, p_glDeleteRenderbuffers;
+static PFNBindFB p_glBindFramebuffer, p_glBindRenderbuffer;
+static PFNFBTex2D p_glFramebufferTexture2D;
+static PFNRBStorage p_glRenderbufferStorage;
+static PFNFBRB p_glFramebufferRenderbuffer;
+static PFNCheckFB p_glCheckFramebufferStatus;
+enum { PC_GL_FRAMEBUFFER = 0x8D40, PC_GL_RENDERBUFFER = 0x8D41, PC_GL_COLOR_ATTACHMENT0 = 0x8CE0,
+       PC_GL_DEPTH_ATTACHMENT = 0x8D00, PC_GL_DEPTH_COMPONENT24 = 0x81A6, PC_GL_FRAMEBUFFER_COMPLETE = 0x8CD5 };
+
+static void load_fbo_functions()
+{
+    p_glGenFramebuffers = (PFNGenFB)SDL_GL_GetProcAddress("glGenFramebuffers");
+    p_glGenRenderbuffers = (PFNGenFB)SDL_GL_GetProcAddress("glGenRenderbuffers");
+    p_glDeleteFramebuffers = (PFNGenFB)SDL_GL_GetProcAddress("glDeleteFramebuffers");
+    p_glDeleteRenderbuffers = (PFNGenFB)SDL_GL_GetProcAddress("glDeleteRenderbuffers");
+    p_glBindFramebuffer = (PFNBindFB)SDL_GL_GetProcAddress("glBindFramebuffer");
+    p_glBindRenderbuffer = (PFNBindFB)SDL_GL_GetProcAddress("glBindRenderbuffer");
+    p_glFramebufferTexture2D = (PFNFBTex2D)SDL_GL_GetProcAddress("glFramebufferTexture2D");
+    p_glRenderbufferStorage = (PFNRBStorage)SDL_GL_GetProcAddress("glRenderbufferStorage");
+    p_glFramebufferRenderbuffer = (PFNFBRB)SDL_GL_GetProcAddress("glFramebufferRenderbuffer");
+    p_glCheckFramebufferStatus = (PFNCheckFB)SDL_GL_GetProcAddress("glCheckFramebufferStatus");
+}
+
+// The camera texture being rendered to, or NULL for the window.
+static PcRaster* s_target;
 
 // Current RenderWare render states.
 struct RenderStates
@@ -67,6 +101,7 @@ void pc_rw_device_open(void* displayID)
     s_gl = SDL_GL_CreateContext(s_window);
     SDL_GL_SetSwapInterval(0);
     pc_log("[gl] %s / %s", (const char*)glGetString(GL_RENDERER), (const char*)glGetString(GL_VERSION));
+    load_fbo_functions();
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
     s_rs.zTest = s_rs.zWrite = 1;
@@ -101,7 +136,13 @@ void pc_gl_raster_free(PcRaster* r)
     {
         glDeleteTextures(1, (GLuint*)&r->glTex);
     }
+    if (r->fbo && s_gl)
+    {
+        p_glDeleteFramebuffers(1, (GLuint*)&r->fbo);
+        p_glDeleteRenderbuffers(1, (GLuint*)&r->depthRb);
+    }
     r->glTex = 0;
+    r->fbo = r->depthRb = 0;
 }
 
 static void upload(PcRaster* p)
@@ -138,7 +179,7 @@ static void bind_texture(RwRaster* r, int filter, int addrU, int addrV)
         return;
     }
     PcRaster* p = pc_raster(r);
-    if (!p->glTex || p->dirty)
+    if (!p->fbo && (!p->glTex || p->dirty))
     {
         upload(p);
     }
@@ -159,6 +200,10 @@ static void bind_texture(RwRaster* r, int filter, int addrU, int addrV)
     case 5: min = GL_LINEAR_MIPMAP_NEAREST; break;
     case 6: min = GL_LINEAR_MIPMAP_LINEAR; break;
     default: min = GL_LINEAR; break;
+    }
+    if (p->fbo)
+    {
+        min = mag; // render targets have no mipmaps
     }
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min);
@@ -223,7 +268,9 @@ static void apply_states(bool alpha)
     {
         glEnable(GL_CULL_FACE);
         // The view matrix flips X, which flips winding: RW's back faces are GL front faces.
-        glCullFace(s_rs.cullMode == 2 ? GL_FRONT : GL_BACK);
+        // Render targets are also flipped vertically, which flips it back.
+        bool front = (s_rs.cullMode == 2) != (s_target != NULL);
+        glCullFace(front ? GL_FRONT : GL_BACK);
     }
     else
     {
@@ -335,12 +382,63 @@ RwInt32 RxRenderStateVectorSetDefaultRenderStateVector(RxRenderStateVector* r)
 }
 
 // ---------------------------------------------------------------- cameras
+static void set_viewport();
+
+// Points rendering at a camera texture raster (an FBO around its GL texture),
+// or back at the window for any other raster.
+static void bind_target(RwRaster* fb)
+{
+    PcRaster* p = NULL;
+    if (fb && fb->cType == rwRASTERTYPECAMERATEXTURE && p_glGenFramebuffers && fb->width > 0 && fb->height > 0)
+    {
+        p = pc_raster(fb);
+        if (!p->fbo)
+        {
+            if (!p->glTex)
+            {
+                glGenTextures(1, (GLuint*)&p->glTex);
+            }
+            glBindTexture(GL_TEXTURE_2D, p->glTex);
+            glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fb->width, fb->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+            p_glGenFramebuffers(1, (GLuint*)&p->fbo);
+            p_glGenRenderbuffers(1, (GLuint*)&p->depthRb);
+            p_glBindRenderbuffer(PC_GL_RENDERBUFFER, p->depthRb);
+            p_glRenderbufferStorage(PC_GL_RENDERBUFFER, PC_GL_DEPTH_COMPONENT24, fb->width, fb->height);
+            p_glBindFramebuffer(PC_GL_FRAMEBUFFER, p->fbo);
+            p_glFramebufferTexture2D(PC_GL_FRAMEBUFFER, PC_GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, p->glTex, 0);
+            p_glFramebufferRenderbuffer(PC_GL_FRAMEBUFFER, PC_GL_DEPTH_ATTACHMENT, PC_GL_RENDERBUFFER, p->depthRb);
+            if (p_glCheckFramebufferStatus(PC_GL_FRAMEBUFFER) != PC_GL_FRAMEBUFFER_COMPLETE)
+            {
+                pc_log("[gl] render target %dx%d incomplete", fb->width, fb->height);
+            }
+            p_glBindFramebuffer(PC_GL_FRAMEBUFFER, s_target ? s_target->fbo : 0);
+            p->dirty = 0;
+        }
+    }
+    if (p == s_target)
+    {
+        return;
+    }
+    s_target = p;
+    if (p_glBindFramebuffer)
+    {
+        p_glBindFramebuffer(PC_GL_FRAMEBUFFER, p ? p->fbo : 0);
+    }
+    set_viewport();
+}
+
 static float s_view[16];
 static RwCamera* s_cam;
 
 // The game renders at 640x480; fit that into the window keeping 4:3.
 static void set_viewport()
 {
+    if (s_target)
+    {
+        glViewport(0, 0, s_target->r.width, s_target->r.height);
+        return;
+    }
     SDL_GL_GetDrawableSize(s_window, &s_winW, &s_winH);
     int w = s_winW, h = s_winH;
     if (w * 3 > h * 4)
@@ -380,6 +478,11 @@ static void load_projection(RwCamera* c)
         p[11] = 1.0f;
         p[14] = -2.0f * f * n / (f - n);
     }
+    if (s_target)
+    {
+        // Texture row 0 is the image's top row: render targets are drawn upside down.
+        p[1] = -p[1], p[5] = -p[5], p[9] = -p[9], p[13] = -p[13];
+    }
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(p);
 }
@@ -400,6 +503,22 @@ void pc_gl_begin_camera(RwCamera* c)
     }
     s_cam = c;
     s_st.cams++;
+    bind_target(c->frameBuffer);
+    if (stats_on())
+    {
+        static void* seen[64];
+        static int nseen;
+        bool known = false;
+        for (int i = 0; i < nseen; i++)
+            known |= seen[i] == c;
+        if (!known && nseen < 64)
+        {
+            seen[nseen++] = c;
+            RwRaster* fb = c->frameBuffer;
+            pc_log("[cam] new camera %p fb %p type %d %dx%d parent %p zb %p", c, fb, fb ? fb->cType : -1,
+                   fb ? fb->width : 0, fb ? fb->height : 0, fb ? fb->parent : NULL, c->zBuffer);
+        }
+    }
     set_viewport();
     load_projection(c);
     // View = inverse(camera LTM) with X flipped (RW's +X points left on screen).
@@ -430,7 +549,11 @@ void pc_gl_begin_camera(RwCamera* c)
     }
 }
 
-void pc_gl_end_camera(RwCamera* c) { s_cam = NULL; }
+void pc_gl_end_camera(RwCamera* c)
+{
+    s_cam = NULL;
+    bind_target(NULL);
+}
 
 void pc_gl_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
 {
@@ -439,7 +562,19 @@ void pc_gl_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
         return;
     }
     s_st.clears++;
-    set_viewport();
+    if (stats_on())
+    {
+        static int n;
+        if (n++ % 400 == 0)
+        {
+            pc_log("[clear] cam %p mode %d col %02x%02x%02x%02x target %p", c, mode, col ? col->red : 0,
+                   col ? col->green : 0, col ? col->blue : 0, col ? col->alpha : 0, s_target);
+        }
+    }
+    // RwCameraClear clears the camera's own raster, and may be called outside
+    // its Begin/EndUpdate: clear that target, then restore the current one.
+    PcRaster* prev = s_target;
+    bind_target(c ? c->frameBuffer : NULL);
     GLbitfield bits = 0;
     if ((mode & rwCAMERACLEARIMAGE) && col)
     {
@@ -454,13 +589,14 @@ void pc_gl_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
     if (bits)
     {
         // Clear the whole window (letterbox bars included) for image clears.
-        if (bits & GL_COLOR_BUFFER_BIT)
+        if ((bits & GL_COLOR_BUFFER_BIT) && !s_target)
         {
             glViewport(0, 0, s_winW, s_winH);
         }
         glClear(bits);
         set_viewport();
     }
+    bind_target(prev ? &prev->r : NULL);
 }
 
 void pc_events_pump();
@@ -549,12 +685,24 @@ static void light_vertices(RpGeometry* g, const RwMatrix* ltm, const RwV3d* pos,
         return;
     }
     RwLinkList* lists[2] = { &w->directionalLightList, &w->lightList };
+    static int dumps;
+    static int calls;
+    bool dump = stats_on() && g->numVertices > 1000 && ++calls % 400 == 0 && dumps < 3;
+    dumps += dump;
     for (int li = 0; li < 2; li++)
     {
         RwLLLink* end = &lists[li]->link;
         for (RwLLLink* l = end->next; l != end; l = l->next)
         {
             RpLight* lt = rwLLLinkGetData(l, RpLight, inWorld);
+            if (dump)
+            {
+                RwFrame* lf = (RwFrame*)lt->object.object.parent;
+                pc_log("[light] type %x flags %x col %.2f %.2f %.2f radius %.1f pos %.1f %.1f %.1f at %.2f %.2f %.2f",
+                       lt->object.object.subType, lt->object.object.flags, lt->color.red, lt->color.green,
+                       lt->color.blue, lt->radius, lf ? lf->ltm.pos.x : 0, lf ? lf->ltm.pos.y : 0,
+                       lf ? lf->ltm.pos.z : 0, lf ? lf->ltm.at.x : 0, lf ? lf->ltm.at.y : 0, lf ? lf->ltm.at.z : 0);
+            }
             if (!(lt->object.object.flags & rpLIGHTLIGHTATOMICS))
             {
                 continue;
@@ -784,15 +932,24 @@ void pc_gl_render_atomic(RpAtomic* a)
     s_st.atomicsDrawn++;
     if (stats_on() && dbg && strstr(dbg, "atomlog"))
     {
-        static int n;
-        if (n++ < 40)
+        // Each distinct geometry once: flags, prelit sample, materials and textures.
+        static std::vector<RpGeometry*> seen;
+        if (std::find(seen.begin(), seen.end(), g) == seen.end() && seen.size() < 400)
         {
-            pc_log("[atomic] %p verts %d flags %x pos %.1f %.1f %.1f prelit %p mesh %d mat0 %02x%02x%02x%02x", a,
-                   g->numVertices, g->flags, f->ltm.pos.x, f->ltm.pos.y, f->ltm.pos.z, g->preLitLum,
-                   g->mesh ? g->mesh->numMeshes : -1, g->matList.numMaterials ? g->matList.materials[0]->color.red : 0,
-                   g->matList.numMaterials ? g->matList.materials[0]->color.green : 0,
-                   g->matList.numMaterials ? g->matList.materials[0]->color.blue : 0,
-                   g->matList.numMaterials ? g->matList.materials[0]->color.alpha : 0);
+            seen.push_back(g);
+            pc_log("[atomic] geo %p verts %d flags %x pos %.1f %.1f %.1f prelit %s %02x%02x%02x%02x skin %d", g,
+                   g->numVertices, g->flags, f->ltm.pos.x, f->ltm.pos.y, f->ltm.pos.z, g->preLitLum ? "yes" : "no",
+                   g->preLitLum ? g->preLitLum[0].red : 0, g->preLitLum ? g->preLitLum[0].green : 0,
+                   g->preLitLum ? g->preLitLum[0].blue : 0, g->preLitLum ? g->preLitLum[0].alpha : 0,
+                   pc_geometry(g)->skin != NULL);
+            for (int i = 0; i < g->matList.numMaterials; i++)
+            {
+                RpMaterial* m = g->matList.materials[i];
+                RwTexture* t = m ? m->texture : NULL;
+                pc_log("[atomic]   mat %d col %02x%02x%02x%02x tex %s raster %p", i, m ? m->color.red : 0,
+                       m ? m->color.green : 0, m ? m->color.blue : 0, m ? m->color.alpha : 0, t ? t->name : "-",
+                       t ? t->raster : NULL);
+            }
         }
     }
     float model[16];
@@ -944,7 +1101,14 @@ static void begin_2d()
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
-    glOrtho(0, FB_W, FB_H, 0, -1, 1);
+    if (s_target)
+    {
+        glOrtho(0, s_target->r.width, 0, s_target->r.height, -1, 1);
+    }
+    else
+    {
+        glOrtho(0, FB_W, FB_H, 0, -1, 1);
+    }
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
@@ -988,8 +1152,14 @@ RwInt32 RwIm2DRenderPrimitive(RwInt32 primType, RwIm2DVertex* v, RwInt32 n)
     {
         return 1;
     }
+    static const char* dbg = getenv("PC_DBG");
+    if (dbg && strstr(dbg, "noim2d"))
+    {
+        return 1;
+    }
     static int logged;
-    if (getenv("PC_LOG_IM2D") && logged++ < 20)
+    static const char* logIm2d = getenv("PC_LOG_IM2D");
+    if (logIm2d && s_st.im2d == 0 && logged++ < atoi(logIm2d))
     {
         pc_log("[im2d] prim %d n %d raster %p v0 (%.1f %.1f %.3f) col %02x%02x%02x%02x uv (%.3f %.3f) v1 (%.1f %.1f)",
                primType, n, s_rs.raster, v[0].x, v[0].y, v[0].z, v[0].emissiveColor.red, v[0].emissiveColor.green,
