@@ -4,135 +4,9 @@
  * rendering of the sectors inside the camera frustum.
  */
 
-#include "rwsdk/rwcore.h"
+#include "rwsdk/rpworld_int.h"
 
 #define rwPLUGIN_ID 2 /* world */
-
-#define rpWORLD 7
-#define rpWORLDMAXBSPDEPTH 64
-#define rpWORLDTRISTRIP 0x01
-#define rpWORLDSINGLEMALLOC 0x01
-#define rpWORLDRENDERFRONT2BACK 2
-#define rpATOMICRENDER 0x04
-
-#define rwSECTORATOMIC -1
-#define rwSECTORBUILD -2
-
-typedef struct RpMaterial RpMaterial;
-typedef struct RpBuildMesh RpBuildMesh;
-typedef struct RpMeshHeader RpMeshHeader;
-typedef struct RwResEntry RwResEntry;
-typedef struct RxPipeline RxPipeline;
-typedef struct RwCamera RwCamera;
-typedef struct RwSphere RwSphere;
-
-typedef struct RwSurfaceProperties {
-    RwReal ambient;
-    RwReal specular;
-    RwReal diffuse;
-} RwSurfaceProperties;
-
-typedef struct RwTexCoords {
-    RwReal u;
-    RwReal v;
-} RwTexCoords;
-
-typedef struct RpMaterialList {
-    RpMaterial** materials;
-    RwInt32 numMaterials;
-    RwInt32 space;
-} RpMaterialList;
-
-typedef struct RpPolygon {
-    RwUInt16 matIndex;
-    RwUInt16 vertIndex[3];
-} RpPolygon;
-
-typedef struct RpSector {
-    RwInt32 type;
-} RpSector;
-
-typedef struct RpPlaneSector {
-    /* 0x00 */ RwInt32 type;
-    /* 0x04 */ RwReal value;
-    /* 0x08 */ RpSector* leftSubTree;
-    /* 0x0C */ RpSector* rightSubTree;
-    /* 0x10 */ RwReal leftValue;
-    /* 0x14 */ RwReal rightValue;
-} RpPlaneSector;
-
-typedef struct RpWorldSector {
-    /* 0x00 */ RwInt32 type;
-    /* 0x04 */ RpPolygon* polygons;
-    /* 0x08 */ RwV3d* vertices;
-    /* 0x0C */ RwV3d* normals;
-    /* 0x10 */ RwTexCoords* texCoords[8];
-    /* 0x30 */ RwRGBA* preLitLum;
-    /* 0x34 */ RwResEntry* repEntry;
-    /* 0x38 */ RwLinkList collAtomicsInWorldSector;
-    /* 0x40 */ RwLinkList noCollAtomicsInWorldSector;
-    /* 0x48 */ RwLinkList lightsInWorldSector;
-    /* 0x50 */ RwBBox boundingBox;
-    /* 0x68 */ RwBBox tightBoundingBox;
-    /* 0x80 */ void* unk80;
-    /* 0x84 */ RpMeshHeader* mesh;
-    /* 0x88 */ RxPipeline* pipeline;
-    /* 0x8C */ RwUInt16 matListWindowBase;
-    /* 0x8E */ RwUInt16 numVertices;
-    /* 0x90 */ RwUInt16 numPolygons;
-    /* 0x92 */ RwUInt16 pad;
-} RpWorldSector;
-
-typedef RpWorldSector* (*RpWorldSectorCallBackRender)(RpWorldSector* worldSector);
-typedef RpWorldSector* (*RpWorldSectorCallBack)(RpWorldSector* worldSector, void* data);
-
-typedef struct RpWorld {
-    /* 0x00 */ RwObject object;
-    /* 0x08 */ RwUInt32 flags;
-    /* 0x0C */ RwInt32 renderOrder;
-    /* 0x10 */ RpMaterialList matList;
-    /* 0x1C */ RpSector* rootSector;
-    /* 0x20 */ RwInt32 numTexCoordSets;
-    /* 0x24 */ RwInt32 numClumpsInWorld;
-    /* 0x28 */ RwLLLink* currentClumpLink;
-    /* 0x2C */ RwLinkList clumpList;
-    /* 0x34 */ RwLinkList lightList;
-    /* 0x3C */ RwLinkList directionalLightList;
-    /* 0x44 */ RwV3d worldOrigin;
-    /* 0x50 */ RwBBox boundingBox;
-    /* 0x68 */ RwSurfaceProperties surfaceProps;
-    /* 0x74 */ RpWorldSectorCallBackRender renderCallBack;
-    /* 0x78 */ RxPipeline* pipeline;
-} RpWorld;
-
-typedef struct RpAtomic {
-    /* 0x00 */ RwObject object;
-    /* 0x08 */ RwUInt8 pad08[0x48 - 0x08];
-    /* 0x48 */ struct RpAtomic* (*renderCallBack)(struct RpAtomic* atomic);
-    /* 0x4C */ RwUInt8 pad4C[0x60 - 0x4C];
-    /* 0x60 */ RwUInt16 renderFrame;
-} RpAtomic;
-
-typedef struct RpLight {
-    RwUInt8 pad00[0x34];
-    /* 0x34 */ RwLLLink inWorld;
-} RpLight;
-
-typedef RpLight* (*RpLightCallBack)(RpLight* light, void* data);
-
-typedef struct RpTie {
-    RwLLLink lAtomicInWorldSector;
-    RpAtomic* apAtom;
-    RwLLLink lWorldSectorInAtomic;
-    RpWorldSector* worldSector;
-} RpTie;
-
-typedef struct RpLightTie {
-    RwLLLink lightInWorldSector;
-    RpLight* light;
-    RwLLLink WorldSectorInLight;
-    RpWorldSector* sect;
-} RpLightTie;
 
 typedef struct rpWorldRegEntry {
     RpWorld* world;
@@ -156,8 +30,6 @@ typedef struct rpFindSectorData {
     (*(RxPipeline**)((RwUInt8*)RwEngineInstance + lbl_8025F8A8.globalsOffset + 0x44))
 
 #define rpCurWorld ((RpWorld*)RWSRCGLOBAL(curWorld))
-
-#define SETCOORD(v, offset, value) (*(RwReal*)((RwUInt8*)&(v) + (offset)) = (value))
 
 extern RwPluginRegistry sectorTKList;
 extern RwModuleInfo lbl_8025F8A8;
@@ -207,7 +79,7 @@ RpWorldSector* WorldFindSector(RpWorldSector* worldSector, void* data) {
 }
 
 static inline void AtomicRenderVisible(RpAtomic* atomic) {
-    if (atomic->object.flags & rpATOMICRENDER) {
+    if (atomic->object.object.flags & rpATOMICRENDER) {
         if (atomic->renderFrame != RWSRCGLOBAL(renderFrame)) {
             if (RwCameraFrustumTestSphere(RWSRCGLOBAL(curCamera), RpAtomicGetWorldBoundingSphere(atomic))) {
                 atomic->renderCallBack(atomic);
@@ -793,7 +665,7 @@ RpWorld* RpWorldCreate(RwBBox* boundingBox) {
 
     rwObjectInitialize(world, rpWORLD, 0);
     _rpMaterialListInitialize(&world->matList);
-    world->renderOrder = rpWORLDRENDERFRONT2BACK;
+    world->renderOrder = rpWORLDRENDERBACK2FRONT;
     world->flags = 0;
 
     worldSector = (RpWorldSector*)RwMalloc(sectorTKList.sizeOfStruct);

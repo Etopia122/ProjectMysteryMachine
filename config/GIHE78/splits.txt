@@ -1467,6 +1467,10 @@ rwsdk/world/baworld.c:
 	.sbss       start:0x8025F748 end:0x8025F750
 	.sdata2     start:0x80262940 end:0x80262948
 
+rwsdk/world/baworobj.c:
+	.text       start:0x8015275C end:0x80154264
+	.sbss       start:0x8025F750 end:0x8025F768
+
 rwsdk/src/babinary.c:
 	.text       start:0x80160340 end:0x80160F60
 	.data       start:0x801DDB60 end:0x801DDBD0
