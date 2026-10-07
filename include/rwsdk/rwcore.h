@@ -242,7 +242,7 @@ typedef struct RwGlobals {
     /* 0x140 */ void* (*memoryAlloc)(RwFreeList* fl);
     /* 0x144 */ RwFreeList* (*memoryFree)(RwFreeList* fl, void* pData);
     /* 0x148 */ RwUInt32 unk148;
-    /* 0x14C */ RwUInt32 unk14C;
+    /* 0x14C */ RwInt32 engineStatus;
     /* 0x150 */ RwUInt32 resArenaInitSize;
 } RwGlobals;
 

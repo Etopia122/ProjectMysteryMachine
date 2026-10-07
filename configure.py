@@ -757,6 +757,7 @@ config.libs = [
             Object(Matching, "rwsdk/src/bacamstr.c"),
             Object(Matching, "rwsdk/src/bafrmstr.c"),
             Object(NonMatching, "rwsdk/src/babintex.c"),
+            Object(Matching, "rwsdk/src/baengine.c"),
             Object(Matching, "rwsdk/src/baframe.c"),
             Object(Matching, "rwsdk/plugin/collis/ctbsp.c"),
             Object(Matching, "rwsdk/plugin/collis/rpcollis.c"),
