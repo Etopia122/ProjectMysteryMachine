@@ -190,7 +190,12 @@ typedef RwBool (*RwIm2DRenderPrimitiveFunction)(RwInt32 primType, void* vertices
 typedef RwBool (*RwIm2DRenderIndexedPrimitiveFunction)(RwInt32 primType, void* vertices, RwInt32 numVertices,
                                                        RwUInt16* indices, RwInt32 numIndices);
 
-// Device interface (only the start is named).
+typedef RwBool (*RwStandardFunc)(void* pOut, void* pInOut, RwInt32 nI);
+
+/* Indices into RwGlobals.stdFunc */
+#define rwSTANDARDNATIVETEXTUREREAD 26
+
+// Device interface.
 typedef struct RwDevice {
     /* 0x00 */ RwReal gammaCorrection;
     /* 0x04 */ void* fpSystem;
@@ -202,7 +207,10 @@ typedef struct RwDevice {
     /* 0x1C */ RwIm2DRenderTriangleFunction fpIm2DRenderTriangle;
     /* 0x20 */ RwIm2DRenderPrimitiveFunction fpIm2DRenderPrimitive;
     /* 0x24 */ RwIm2DRenderIndexedPrimitiveFunction fpIm2DRenderIndexedPrimitive;
-    /* 0x28 */ RwUInt8 _28[0xAC - 0x28];
+    /* 0x28 */ void* fpIm3DRenderLine;
+    /* 0x2C */ void* fpIm3DRenderTriangle;
+    /* 0x30 */ void* fpIm3DRenderPrimitive;
+    /* 0x34 */ void* fpIm3DRenderIndexedPrimitive;
 } RwDevice;
 
 typedef struct RwFileFunctions {
@@ -226,6 +234,7 @@ typedef struct RwGlobals {
     /* 0x008 */ RwUInt32 renderFrame;
     /* 0x00C */ RwUInt32 lightFrame;
     /* 0x010 */ RwDevice dOpenDevice;
+    /* 0x048 */ RwStandardFunc stdFunc[29];
     /* 0x0BC */ RwLinkList dirtyFrameList;
     /* 0x0C4 */ RwFileFunctions fileFuncs;
     /* 0x0F0 */ RwStringFunctions stringFuncs;

@@ -1505,6 +1505,10 @@ rwsdk/src/bafrmstr.c:
 	.text       start:0x80166B54 end:0x80166F2C
 	.sdata2     start:0x80262A90 end:0x80262A98
 
+rwsdk/src/babintex.c:
+	.text       start:0x80166F2C end:0x801683DC
+	.sdata2     start:0x80262A98 end:0x80262AA0
+
 rwsdk/src/baframe.c:
 	.text       start:0x8016A9D8 end:0x8016B6C4
 	.data       start:0x801DDC48 end:0x801DDC60
