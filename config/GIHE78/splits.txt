@@ -1455,6 +1455,11 @@ rwsdk/world/bamesh.c:
 	.sdata      start:0x8025E790 end:0x8025E798
 	.sbss       start:0x8025F738 end:0x8025F740
 
+rwsdk/world/basector.c:
+	.text       start:0x80150F5C end:0x80151038
+	.data       start:0x801DD538 end:0x801DD550
+	.sbss       start:0x8025F740 end:0x8025F748
+
 rwsdk/src/babinary.c:
 	.text       start:0x80160340 end:0x80160F60
 	.data       start:0x801DDB60 end:0x801DDBD0

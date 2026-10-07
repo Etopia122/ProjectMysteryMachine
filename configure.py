@@ -769,6 +769,7 @@ config.libs = [
             Object(Matching, "rwsdk/world/bamateri.c"),
             Object(NonMatching, "rwsdk/world/bamatlst.c"),
             Object(Matching, "rwsdk/world/bamesh.c"),
+            Object(Matching, "rwsdk/world/basector.c"),
             Object(Matching, "rwsdk/plugin/collis/ctbsp.c"),
             Object(Matching, "rwsdk/plugin/collis/rpcollis.c"),
         ],
