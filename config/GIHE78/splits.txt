@@ -1450,6 +1450,11 @@ rwsdk/world/bamateri.c:
 rwsdk/world/bamatlst.c:
 	.text       start:0x8014D674 end:0x8014DD4C
 
+rwsdk/world/bamesh.c:
+	.text       start:0x8014DD4C end:0x8014E7A4
+	.sdata      start:0x8025E790 end:0x8025E798
+	.sbss       start:0x8025F738 end:0x8025F740
+
 rwsdk/src/babinary.c:
 	.text       start:0x80160340 end:0x80160F60
 	.data       start:0x801DDB60 end:0x801DDBD0
