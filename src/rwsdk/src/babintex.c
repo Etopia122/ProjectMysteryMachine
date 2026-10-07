@@ -13,22 +13,6 @@
 
 #define rwRASTERFORMATAUTOMIPMAP 0x1000
 
-typedef struct RwRaster {
-    struct RwRaster* parent;
-    RwUInt8* cpPixels;
-    RwUInt8* palette;
-    RwInt32 width;
-    RwInt32 height;
-    RwInt32 depth;
-    RwInt32 stride;
-    RwInt16 nOffsetX;
-    RwInt16 nOffsetY;
-    RwUInt8 cType;
-    RwUInt8 cFlags;
-    RwUInt8 privateFlags;
-    RwUInt8 cFormat;
-} RwRaster;
-
 typedef struct RwTexDictionary RwTexDictionary;
 
 typedef struct RwTexture {

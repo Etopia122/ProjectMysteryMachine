@@ -1520,3 +1520,11 @@ rwsdk/src/baframe.c:
 	.data       start:0x801DDC48 end:0x801DDC60
 	.sbss       start:0x8025F7D0 end:0x8025F7D8
 	.sdata2     start:0x80262AC8 end:0x80262AD0
+
+rwsdk/src/baimras.c:
+	.text       start:0x8016D610 end:0x8016D794
+
+rwsdk/src/baraster.c:
+	.text       start:0x8016D794 end:0x8016DD04
+	.data       start:0x801DDC78 end:0x801DDC90
+	.sbss       start:0x8025F7E0 end:0x8025F7E8

@@ -123,6 +123,47 @@ RwMatrix* RwMatrixTransform(RwMatrix* matrix, const RwMatrix* transform, RwOpCom
 RwMatrix* RwMatrixRotate(RwMatrix* matrix, const RwV3d* axis, RwReal angle, RwOpCombineType combineOp);
 RwMatrix* RwMatrixOrthoNormalize(RwMatrix* dst, const RwMatrix* src);
 
+// Rasters and images
+typedef struct RwRaster {
+    /* 0x00 */ struct RwRaster* parent;
+    /* 0x04 */ RwUInt8* cpPixels;
+    /* 0x08 */ RwUInt8* palette;
+    /* 0x0C */ RwInt32 width;
+    /* 0x10 */ RwInt32 height;
+    /* 0x14 */ RwInt32 depth;
+    /* 0x18 */ RwInt32 stride;
+    /* 0x1C */ RwInt16 nOffsetX;
+    /* 0x1E */ RwInt16 nOffsetY;
+    /* 0x20 */ RwUInt8 cType;
+    /* 0x21 */ RwUInt8 cFlags;
+    /* 0x22 */ RwUInt8 privateFlags;
+    /* 0x23 */ RwUInt8 cFormat;
+    /* 0x24 */ RwUInt8* originalPixels;
+    /* 0x28 */ RwInt32 originalWidth;
+    /* 0x2C */ RwInt32 originalHeight;
+    /* 0x30 */ RwInt32 originalStride;
+} RwRaster;
+
+#define RwRasterGetFormat(raster) ((RwInt32)((raster)->cFormat) << 8)
+#define RwRasterGetType(raster) ((raster)->cType)
+
+typedef struct RwRGBA {
+    RwUInt8 red;
+    RwUInt8 green;
+    RwUInt8 blue;
+    RwUInt8 alpha;
+} RwRGBA;
+
+typedef struct RwImage {
+    /* 0x00 */ RwInt32 flags;
+    /* 0x04 */ RwInt32 width;
+    /* 0x08 */ RwInt32 height;
+    /* 0x0C */ RwInt32 depth;
+    /* 0x10 */ RwInt32 stride;
+    /* 0x14 */ RwUInt8* cpPixels;
+    /* 0x18 */ RwRGBA* palette;
+} RwImage;
+
 // Frames
 typedef struct RwFrame {
     RwObject object;
