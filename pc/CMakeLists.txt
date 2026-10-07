@@ -33,6 +33,9 @@ target_compile_definitions(scoobygame PUBLIC PC_PORT=1 VERSION_GIHE78 BUILD_VERS
 target_compile_options(scoobygame PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++98 -fpermissive>
     -w -g -O0 -fno-strict-aliasing
+    # Decompiled functions sometimes fall off the end without a return; on
+    # GameCube that returns whatever is in r3. Don't let GCC turn it into a trap.
+    -fno-unreachable-traps
     -include ${CMAKE_CURRENT_SOURCE_DIR}/include/pc_compat.h)
 
 # Debug: report call sites that leak values on the x87 stack (see src/fpcheck.cpp).
