@@ -162,9 +162,11 @@ float next_sample(Voice& v)
         }
         else
         {
+            // Like the DSP: the play position moves to the loop address and the
+            // voice stops. The game points one-shots' and streams' loop address at a
+            // silent buffer and frees the voice once the position lands there.
             v.running = false;
-            a = end;
-            set_current(pb, a);
+            set_current(pb, addr32(pb.addr.loopAddressHi, pb.addr.loopAddressLo));
             return s / 32768.0f;
         }
     }
@@ -240,10 +242,33 @@ void mix_fmv(float* out)
     }
 }
 
+// Debug: PC_STATS=1 logs voice usage every 10 seconds.
+void log_voices()
+{
+    static int frames;
+    static int on = -1;
+    if (on < 0)
+    {
+        on = getenv("PC_STATS") ? 1 : 0;
+    }
+    if (!on || ++frames % 2000)
+    {
+        return;
+    }
+    int used = 0, running = 0;
+    for (int i = 0; i < MAX_VOICES; i++)
+    {
+        used += s_voices[i].used;
+        running += s_voices[i].used && s_voices[i].running;
+    }
+    pc_log("[audio] voices used %d playing %d", used, running);
+}
+
 // One 5 ms DSP frame: mix, then run the game's AX callback as an interrupt.
 void run_frame(float* out)
 {
     pc_irq_run([out]() {
+        log_voices();
         mix_frame(out);
         mix_fmv(out);
         if (s_frameCallback)
