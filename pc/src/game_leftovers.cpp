@@ -1,3 +1,4 @@
+#include <stdio.h>
 // Small game functions that are still unsplit assembly in the decomp
 // (fn_XXXXXXXX gaps). Written from the GameCube assembly.
 
@@ -254,8 +255,11 @@ extern unsigned char globals[];
 
 unsigned int zFMVPlay(char* filename, unsigned int buttons, float time)
 {
-    // TODO: play Bink videos (FFmpeg). For now the video is skipped.
-    unsigned int result = 0;
+    char path[64];
+    sprintf(path, "%s/%s%s", "FMV", filename, ".bik");
+    xSndSuspend();
+    unsigned int result = iFMVPlay(path, buttons, time);
+    xSndResume();
     if (!xStricmp(filename, (char*)"Credits2"))
     {
         PcSceneView* scene = *(PcSceneView**)(globals + 0xB64);

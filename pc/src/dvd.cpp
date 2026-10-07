@@ -4,6 +4,8 @@
 // complete (state + callback) on the interrupt thread, like a real drive.
 #include "pc_platform.h"
 
+#include <SDL.h>
+
 #include <algorithm>
 #include <ctype.h>
 #include <dirent.h>
@@ -67,8 +69,34 @@ const char* pc_data_dir(void)
     static std::string dir;
     if (dir.empty())
     {
+        // SCOOBY_DATA, else game/files under the working folder, next to the
+        // exe, or at the repository root when run from build/pc.
         const char* env = getenv("SCOOBY_DATA");
-        dir = env ? env : "game/files";
+        if (env)
+        {
+            dir = env;
+        }
+        else
+        {
+            std::string exe;
+            char* base = SDL_GetBasePath();
+            if (base)
+            {
+                exe = base;
+                SDL_free(base);
+            }
+            const std::string candidates[] = { "game/files", exe + "game/files", exe + "../../game/files" };
+            dir = candidates[0];
+            for (const std::string& c : candidates)
+            {
+                struct stat st;
+                if (stat(c.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
+                {
+                    dir = c;
+                    break;
+                }
+            }
+        }
     }
     return dir.c_str();
 }

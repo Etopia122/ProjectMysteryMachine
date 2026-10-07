@@ -34,7 +34,8 @@ for o in objs:
 libs = ['libmsvcrt.a', 'libstdc++.a', 'libgcc.a', 'libkernel32.a', 'libmingwex.a', 'libmingw32.a',
         'libucrt.a', 'libucrtbase.a', 'libmoldname.a', 'libgcc_eh.a', 'libwinpthread.a', 'libpthread.a',
         'crt2.o', 'crtbegin.o', 'crtend.o', 'libuser32.a', 'libgdi32.a', 'libopengl32.a', 'libwinmm.a',
-        'libSDL2.dll.a', 'libSDL2.a']
+        'libSDL2.dll.a', 'libSDL2.a', 'libavformat.dll.a', 'libavcodec.dll.a', 'libswscale.dll.a',
+        'libswresample.dll.a', 'libavutil.dll.a']
 gcclib = next((BIN.parent / 'lib' / 'gcc' / 'i686-w64-mingw32').glob('*'), None)
 for name in libs:
     for d in [BIN.parent / 'lib', BIN.parent / 'i686-w64-mingw32' / 'lib', gcclib]:

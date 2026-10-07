@@ -17,6 +17,8 @@ file(GLOB GAME_SOURCES
     ${ROOT}/src/Core/x/*.cpp
     ${ROOT}/src/Core/gc/*.cpp ${ROOT}/src/Core/gc/*.c
     ${ROOT}/src/Game/*.cpp)
+# Platform files replaced on PC (pc/src): the Bink/GX movie player.
+list(FILTER GAME_SOURCES EXCLUDE REGEX "/src/Core/gc/iFMV\.cpp$")
 # The original build compiles the .c files as C++ too.
 set_source_files_properties(${GAME_SOURCES} PROPERTIES LANGUAGE CXX)
 
@@ -45,6 +47,7 @@ file(GLOB PC_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.S
     ${CMAKE_CURRENT_SOURCE_DIR}/rw/*.cpp)
 add_executable(scooby ${PC_SOURCES})
-target_link_libraries(scooby PRIVATE scoobygame SDL2::SDL2 opengl32 -pthread -Wl,--large-address-aware)
+target_link_libraries(scooby PRIVATE scoobygame SDL2::SDL2 opengl32
+    avformat avcodec swscale swresample avutil -pthread -Wl,--large-address-aware)
 target_include_directories(scooby PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/rw)
 target_compile_options(scooby PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++17> -g -O0 -pthread)

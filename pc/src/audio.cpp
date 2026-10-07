@@ -17,6 +17,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <atomic>
+#include <deque>
+#include <mutex>
 #include <chrono>
 #include <thread>
 
@@ -223,11 +225,27 @@ void mix_frame(float* out)
     }
 }
 
+// Movie soundtrack: interleaved stereo at 32 kHz, queued by the FMV player.
+std::mutex s_fmvLock;
+std::deque<float> s_fmvQueue;
+
+void mix_fmv(float* out)
+{
+    std::lock_guard<std::mutex> lk(s_fmvLock);
+    size_t n = s_fmvQueue.size() < FRAME_SAMPLES * 2 ? s_fmvQueue.size() : FRAME_SAMPLES * 2;
+    for (size_t i = 0; i < n; i++)
+    {
+        out[i] += s_fmvQueue.front();
+        s_fmvQueue.pop_front();
+    }
+}
+
 // One 5 ms DSP frame: mix, then run the game's AX callback as an interrupt.
 void run_frame(float* out)
 {
     pc_irq_run([out]() {
         mix_frame(out);
+        mix_fmv(out);
         if (s_frameCallback)
         {
             s_frameCallback();
@@ -562,5 +580,25 @@ void MIXAdjustPan(AXVPB* p, int pan)
 }
 
 void pc_audio_set_stereo(int stereo) { s_stereo = stereo != 0; }
+
+// FMV soundtrack: append interleaved stereo samples at 32 kHz.
+void pc_audio_fmv_queue(const float* samples, int frames)
+{
+    std::lock_guard<std::mutex> lk(s_fmvLock);
+    s_fmvQueue.insert(s_fmvQueue.end(), samples, samples + frames * 2);
+}
+
+// Seconds of FMV audio queued but not yet played.
+double pc_audio_fmv_queued()
+{
+    std::lock_guard<std::mutex> lk(s_fmvLock);
+    return s_fmvQueue.size() / 2.0 / OUT_RATE;
+}
+
+void pc_audio_fmv_clear()
+{
+    std::lock_guard<std::mutex> lk(s_fmvLock);
+    s_fmvQueue.clear();
+}
 
 }

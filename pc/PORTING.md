@@ -44,13 +44,35 @@ native PC program. Game assets are not included: the player supplies their own d
    files (DVD -> stdio), memory (OS heap -> malloc), time, pad (SDL gamepad),
    rendering (RenderWare via librw on OpenGL), sound (AX -> SDL audio, DSP-ADPCM
    decoder), saves (CARD -> files), FMV (Bink -> FFmpeg or skip).
-   Done so far: OS heap (`os_heap.cpp`), ARAM + DMA queue (`aram.cpp`). The
-   executable now runs through system and sound init and stops at the first
-   disc read (DVD) and RenderWare engine start.
+   Done so far (2026-10-06): OS heap, ARAM, interrupts, DVD, VI/time, pad,
+   our own RenderWare 3.x layer on OpenGL (`pc/rw`), asset byte swapping,
+   audio (`audio.cpp`: AX voices, DSP-ADPCM, MIX, SDL output) and FMV
+   (`fmv.cpp`: Bink via FFmpeg, replacing `iFMV.cpp`). Boots through the logo
+   movies and Intro to the title screen and main menu; New Game loads the
+   first level.
 6. **Boot to the title screen**, then into a level, then fix gameplay bugs by
    comparing with the GameCube build (Dolphin + the decomp's debugging tools).
 
+## Running
+
+```
+sh pc/tools/rebuild.sh          # build
+python pc/tools/deploy.py       # copy the MinGW/SDL2/FFmpeg DLLs next to the exe
+build/pc/scooby.exe             # data from SCOOBY_DATA or game/files
+```
+
+Debug switches (environment): `PC_NOFMV=1` skips movies, `PC_STATS=1` logs
+render stats, `PC_SHOT=frame[,step]` saves screenshots, `PC_WAV=1` records the
+audio output, `PC_AUTOPAD="sec:mask,..."` scripts the pad, `PC_DBG=...`
+toggles render states, `PC_FPTRAP=N` traps invalid FP operations from frame N,
+and the `PC_FPCHECK` CMake option finds x87 stack leaks.
+
 ## TODO
+
+- **In-level rendering:** cameras that render to textures (shadows etc.)
+  draw into the window; the level background is white.
+- **Saves:** CARD -> files.
+- **Trim FFmpeg:** the MSYS2 build pulls in ~70 DLLs; a Bink-only build would do.
 
 - **PS2 assets as an alternative source.** PS2 data is little-endian and librw
   already reads PS2-native geometry and textures. Supporting a PS2 disc needs

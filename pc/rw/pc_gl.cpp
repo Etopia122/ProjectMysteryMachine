@@ -1101,3 +1101,80 @@ RwInt32 RwIm3DEnd()
 }
 
 }
+
+// ---------------------------------------------------------------- movies
+// Shows one decoded movie frame (RGBA) fitted to the 4:3 game area, and presents.
+extern "C" void pc_gl_fmv_frame(const unsigned char* rgba, int w, int h, int letterbox)
+{
+    if (!s_window)
+    {
+        return;
+    }
+    static GLuint tex;
+    static int texW, texH;
+    if (!tex)
+    {
+        glGenTextures(1, &tex);
+    }
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    if (w != texW || h != texH)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        texW = w;
+        texH = h;
+    }
+    else
+    {
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+    }
+    // Whole window black, then the movie in the 4:3 area keeping its aspect ratio.
+    glViewport(0, 0, s_winW, s_winH);
+    glDisable(GL_SCISSOR_TEST);
+    glClearColor(0, 0, 0, 1);
+    glDepthMask(GL_TRUE);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    set_viewport();
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_FOG);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_LIGHTING);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    float aspect = (float)w / h, area = 4.0f / 3.0f;
+    float sx = 1.0f, sy = 1.0f;
+    if (aspect > area)
+    {
+        sy = area / aspect;
+    }
+    else
+    {
+        sx = aspect / area;
+    }
+    (void)letterbox;
+    glEnable(GL_TEXTURE_2D);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 1); glVertex2f(-sx, -sy);
+    glTexCoord2f(1, 1); glVertex2f(sx, -sy);
+    glTexCoord2f(1, 0); glVertex2f(sx, sy);
+    glTexCoord2f(0, 0); glVertex2f(-sx, sy);
+    glEnd();
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    maybe_screenshot();
+    SDL_GL_SwapWindow(s_window);
+    pc_events_pump();
+}

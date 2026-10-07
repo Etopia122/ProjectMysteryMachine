@@ -24,6 +24,12 @@ const char* pc_data_dir(void);
 // ARAM contents (audio RAM), addressed in bytes.
 unsigned char* pc_aram_ptr(unsigned long addr);
 
+// Movie playback support (audio.cpp, pc_gl.cpp).
+void pc_audio_fmv_queue(const float* samples, int frames);
+double pc_audio_fmv_queued(void);
+void pc_audio_fmv_clear(void);
+void pc_gl_fmv_frame(const unsigned char* rgba, int w, int h, int letterbox);
+
 // Logging for the platform layer.
 void pc_log(const char* fmt, ...);
 
