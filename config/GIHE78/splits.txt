@@ -1447,6 +1447,9 @@ rwsdk/world/bamateri.c:
 	.sbss       start:0x8025F730 end:0x8025F738
 	.sdata2     start:0x80262930 end:0x80262938
 
+rwsdk/world/bamatlst.c:
+	.text       start:0x8014D674 end:0x8014DD4C
+
 rwsdk/src/babinary.c:
 	.text       start:0x80160340 end:0x80160F60
 	.data       start:0x801DDB60 end:0x801DDBD0
