@@ -759,6 +759,7 @@ config.libs = [
             Object(NonMatching, "rwsdk/src/babintex.c"),
             Object(Matching, "rwsdk/src/baengine.c"),
             Object(Matching, "rwsdk/src/baframe.c"),
+            Object(NonMatching, "rwsdk/src/baimage.c"),
             Object(Matching, "rwsdk/src/baimras.c"),
             Object(Matching, "rwsdk/src/baraster.c"),
             Object(Matching, "rwsdk/src/bafsync.c"),
