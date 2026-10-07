@@ -888,3 +888,48 @@ RwInt32 RpWorldRegisterPluginStream(RwUInt32 pluginID, RwPluginDataChunkReadCall
                                     RwPluginDataChunkGetSizeCallBack getSizeCB) {
     return _rwPluginRegistryAddPluginStream(&worldTKList, pluginID, readCB, writeCB, getSizeCB);
 }
+
+void* _rpMaterialOpen(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpMaterialClose(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpMeshOpen(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpMeshClose(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpGeometryOpen(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpGeometryClose(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpClumpOpen(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpClumpClose(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpLightOpen(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpLightClose(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpSectorOpen(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpSectorClose(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpBinaryWorldOpen(void* instance, RwInt32 offset, RwInt32 size);
+void* _rpBinaryWorldClose(void* instance, RwInt32 offset, RwInt32 size);
+RwBool _rpWorldObjRegisterExtensions(void);
+RwBool _rpClumpRegisterExtensions(void);
+RwBool _rpWorldPipeAttach(void);
+
+RwBool RpWorldPluginAttach(void) {
+    RwInt32 success;
+
+    success = RwEngineRegisterPlugin(4, 0x501, _rpMaterialOpen, _rpMaterialClose);
+    success |= RwEngineRegisterPlugin(0x30, 0x502, _rpMeshOpen, _rpMeshClose);
+    success |= RwEngineRegisterPlugin(4, 0x503, _rpGeometryOpen, _rpGeometryClose);
+    success |= RwEngineRegisterPlugin(8, 0x504, _rpClumpOpen, _rpClumpClose);
+    success |= RwEngineRegisterPlugin(4, 0x505, _rpLightOpen, _rpLightClose);
+    success |= RwEngineRegisterPlugin(0, 0x50A, _rpSectorOpen, _rpSectorClose);
+    success |= RwEngineRegisterPlugin(sizeof(rpWorldGlobals), 0x507, WorldOpen, WorldClose);
+    success |= RwEngineRegisterPlugin(0, 0x50B, _rpBinaryWorldOpen, _rpBinaryWorldClose);
+
+    if (success < 0) {
+        return FALSE;
+    }
+
+    if (!_rpWorldObjRegisterExtensions()) {
+        return FALSE;
+    }
+
+    if (!_rpClumpRegisterExtensions()) {
+        return FALSE;
+    }
+
+    return _rpWorldPipeAttach() ? TRUE : FALSE;
+}
