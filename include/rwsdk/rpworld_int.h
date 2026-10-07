@@ -4,6 +4,7 @@
 /* World plugin object layouts shared by the world source files. */
 
 #include "rwsdk/rwcore.h"
+#include "rwsdk/p2core_int.h"
 
 #define rpWORLD 7
 #define rpWORLDMAXBSPDEPTH 64
@@ -14,6 +15,8 @@
 #define rpATOMICCOLLISIONTEST 0x01
 #define rpATOMICRENDER 0x04
 #define rpLIGHTPOSITIONINGSTART 0x80
+#define rpLIGHTLIGHTATOMICS 0x01
+#define rpGEOMETRYLIGHT 0x20
 
 #define rwSECTORATOMIC -1
 #define rwSECTORBUILD -2
@@ -22,7 +25,6 @@ typedef struct RpMaterial RpMaterial;
 typedef struct RpBuildMesh RpBuildMesh;
 typedef struct RpMeshHeader RpMeshHeader;
 typedef struct RwResEntry RwResEntry;
-typedef struct RxPipeline RxPipeline;
 
 typedef struct RwSurfaceProperties {
     RwReal ambient;
@@ -146,7 +148,8 @@ typedef struct RpClump {
 
 typedef struct RpGeometry {
     /* 0x00 */ RwObject object;
-    /* 0x08 */ RwUInt8 pad08[0x20 - 0x08];
+    /* 0x08 */ RwInt32 flags;
+    /* 0x0C */ RwUInt8 pad0C[0x20 - 0x0C];
     /* 0x20 */ RpMaterialList matList;
     /* 0x2C */ RwUInt8 pad2C[0x60 - 0x2C];
     /* 0x60 */ RpMeshHeader* mesh;

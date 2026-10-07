@@ -772,6 +772,8 @@ config.libs = [
             Object(Matching, "rwsdk/world/basector.c"),
             Object(Matching, "rwsdk/world/baworld.c"),
             Object(Matching, "rwsdk/world/baworobj.c"),
+            Object(Matching, "rwsdk/world/pipe/wrldpipe.c"),
+            Object(Matching, "rwsdk/world/pipe/nodeAtomicEnumerateLights.c"),
             Object(Matching, "rwsdk/plugin/collis/ctbsp.c"),
             Object(Matching, "rwsdk/plugin/collis/rpcollis.c"),
         ],

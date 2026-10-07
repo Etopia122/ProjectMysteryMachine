@@ -1471,6 +1471,14 @@ rwsdk/world/baworobj.c:
 	.text       start:0x8015275C end:0x80154264
 	.sbss       start:0x8025F750 end:0x8025F768
 
+rwsdk/world/pipe/wrldpipe.c:
+	.text       start:0x80154264 end:0x80154714
+
+rwsdk/world/pipe/nodeAtomicEnumerateLights.c:
+	.text       start:0x80154714 end:0x80154994
+	.data       start:0x801DD568 end:0x801DD5F0
+	.sdata      start:0x8025E798 end:0x8025E7A0
+
 rwsdk/src/babinary.c:
 	.text       start:0x80160340 end:0x80160F60
 	.data       start:0x801DDB60 end:0x801DDBD0

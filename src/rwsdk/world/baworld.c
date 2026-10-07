@@ -26,13 +26,11 @@ typedef struct rpFindSectorData {
 
 #define RWWORLDGLOBAL(var) (RWPLUGINOFFSET(rpWorldGlobals, RwEngineInstance, worldModule.globalsOffset)->var)
 
-#define RpWorldGetDefaultSectorPipeline() \
-    (*(RxPipeline**)((RwUInt8*)RwEngineInstance + lbl_8025F8A8.globalsOffset + 0x44))
+#define RpWorldGetDefaultSectorPipeline() (RXPIPELINEGLOBAL(currentWorldSectorPipeline))
 
 #define rpCurWorld ((RpWorld*)RWSRCGLOBAL(curWorld))
 
 extern RwPluginRegistry sectorTKList;
-extern RwModuleInfo lbl_8025F8A8;
 
 RwPluginRegistry worldTKList = { sizeof(RpWorld), sizeof(RpWorld), 0, 0, NULL, NULL };
 
@@ -51,9 +49,8 @@ RwCamera* RwCameraForAllSectorsInFrustum(RwCamera* camera, RpWorldSectorCallBack
 RwBool RwResourcesFreeResEntry(RwResEntry* entry);
 void _rpTieDestroy(RpTie* tie);
 void _rpLightTieDestroy(RpLightTie* tie);
-RwBool fn_801542DC(void);
-RwBool fn_801543D0(void);
-RxPipeline* RxPipelineExecute(RxPipeline* pipeline, void* data, RwBool heapReset);
+void _rpWorldPipelineClose(void);
+RwBool _rpWorldPipelineOpen(void);
 RwBBox* RwBBoxInitialize(RwBBox* boundingBox, const RwV3d* vertex);
 RwBBox* RwBBoxAddPoint(RwBBox* boundingBox, const RwV3d* vertex);
 RpBuildMesh* _rpBuildMeshCreate(RwUInt32 bufferSize);
@@ -271,7 +268,7 @@ void* WorldClose(void* instance, RwInt32 offset, RwInt32 size) {
         RWWORLDGLOBAL(regEntryFreeList) = NULL;
     }
 
-    fn_801542DC();
+    _rpWorldPipelineClose();
 
     worldModule.numInstances--;
 
@@ -285,7 +282,7 @@ void* WorldOpen(void* instance, RwInt32 offset, RwInt32 size) {
 
     worldModule.globalsOffset = offset;
 
-    if (!fn_801543D0()) {
+    if (!_rpWorldPipelineOpen()) {
         return NULL;
     }
 
