@@ -1556,10 +1556,67 @@ static signed int iSG_get_fmoddate(st_ISG_MEMCARD_DATA* mcdata, const char* fnam
     return rc;
 }
 
+#ifdef PC_PORT
+// The icon and banner TPLs come straight from the disc, big-endian: swap the
+// header fields iSG_tpl_unpack reads (the pixel data is only copied to the card).
+static unsigned int PCSwap32(unsigned char* p)
+{
+    unsigned int v = (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+    memcpy(p, &v, 4);
+    return v;
+}
+
+static void PCSwap16(unsigned char* p)
+{
+    unsigned char t = p[0];
+    p[0] = p[1];
+    p[1] = t;
+}
+
+static void PCSwapTPL(void* data)
+{
+    unsigned char* tpl = (unsigned char*)data;
+    if (!tpl || tpl[0] != 0x00 || tpl[1] != 0x20 || tpl[2] != 0xAF || tpl[3] != 0x30)
+    {
+        return; // missing, or already in native order
+    }
+    PCSwap32(tpl);
+    unsigned int count = PCSwap32(tpl + 4);
+    unsigned char* table = tpl + PCSwap32(tpl + 8);
+    for (unsigned int i = 0; i < count; i++)
+    {
+        unsigned int img = PCSwap32(table + i * 8);
+        unsigned int pal = PCSwap32(table + i * 8 + 4);
+        if (img)
+        {
+            // height, width, format, data offset, wrap s/t, min/mag filter, LOD bias
+            PCSwap16(tpl + img);
+            PCSwap16(tpl + img + 2);
+            for (unsigned int k = 4; k < 0x20; k += 4)
+            {
+                PCSwap32(tpl + img + k);
+            }
+        }
+        if (pal)
+        {
+            // entry count, unpacked, pad, format, data offset
+            PCSwap16(tpl + pal);
+            PCSwap32(tpl + pal + 4);
+            PCSwap32(tpl + pal + 8);
+        }
+    }
+}
+#define PC_SWAP_TPL(p) PCSwapTPL(p)
+#else
+#define PC_SWAP_TPL(p)
+#endif
+
 static signed int iSG_load_icondata()
 {
     g_rawicon = (st_ISG_TPL_TEXPALETTE*)iFileLoad("/SD2GCIcon.tpl", NULL, &g_iconsize);
     g_rawbanr = (st_ISG_TPL_TEXPALETTE*)iFileLoad("/SD2GCBanner.tpl", NULL, &g_banrsize);
+    PC_SWAP_TPL(g_rawicon);
+    PC_SWAP_TPL(g_rawbanr);
     iSG_tpl_unpack(g_rawicon);
     iSG_tpl_unpack(g_rawbanr);
     return 1;

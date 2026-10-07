@@ -30,6 +30,9 @@ double pc_audio_fmv_queued(void);
 void pc_audio_fmv_clear(void);
 void pc_gl_fmv_frame(const unsigned char* rgba, int w, int h, int letterbox);
 
+// Local time as seconds since 2000-01-01 (the GameCube clock's epoch).
+unsigned long pc_local_seconds_since_2000(void);
+
 // Logging for the platform layer.
 void pc_log(const char* fmt, ...);
 

@@ -9,6 +9,7 @@
 
 #include <SDL.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -63,6 +64,8 @@ const unsigned long SECTOR = 8192;
 const long BLOCKS = 251;   // user blocks on a "Memory Card 251"
 const long MAX_FILES = 127;
 const long MEM_SIZE = 16;  // megabits
+const char GAME_CODE[] = "GIHE"; // disc ID GIHE78
+const char MAKER_CODE[] = "78";
 
 struct Card
 {
@@ -162,13 +165,22 @@ long file_count(const Card& c)
     return n;
 }
 
-// Seconds since 2000-01-01, the card's time base.
-unsigned long card_time()
-{
-    return (unsigned long)(time(NULL) - 946684800);
-}
+// Seconds since 2000-01-01 (local), the card's time base.
+unsigned long card_time() { return pc_local_seconds_since_2000(); }
 
 Card* card(long chan) { return chan == 0 ? &s_cards[0] : NULL; }
+
+// Debug: PC_LOG_CARD=1 traces the CARD calls.
+bool trace()
+{
+    static int on = -1;
+    if (on < 0)
+    {
+        on = getenv("PC_LOG_CARD") ? 1 : 0;
+    }
+    return on != 0;
+}
+#define TRACE(...)     do     {         if (trace())             pc_log("[card] " __VA_ARGS__);     } while (0)
 
 long finish(long chan, long result, CARDCallback cb)
 {
@@ -259,6 +271,7 @@ long CARDGetEncoding(long chan, unsigned short* encode)
 long CARDGetResultCode(long chan)
 {
     Card* c = card(chan);
+    TRACE("resultcode %ld -> %ld", chan, c ? c->result : (long)NOCARD);
     return c ? c->result : NOCARD;
 }
 
@@ -270,6 +283,7 @@ long CARDGetXferredBytes(long chan)
 
 long CARDFreeBlocks(long chan, long* bytesNotUsed, long* filesNotUsed)
 {
+    TRACE("freeblocks %ld", chan);
     Card* c = card(chan);
     if (!c)
     {
@@ -308,6 +322,7 @@ long CARDFormat(long chan)
 
 long CARDOpen(long chan, const char* fileName, CARDFileInfo* info)
 {
+    TRACE("open %ld '%s'", chan, fileName);
     Card* c = card(chan);
     if (!c)
     {
@@ -328,6 +343,7 @@ long CARDOpen(long chan, const char* fileName, CARDFileInfo* info)
 
 long CARDCreate(long chan, const char* fileName, unsigned long size, CARDFileInfo* info)
 {
+    TRACE("create %ld '%s' %lu", chan, fileName, size);
     Card* c = card(chan);
     if (!c)
     {
@@ -360,6 +376,10 @@ long CARDCreate(long chan, const char* fileName, unsigned long size, CARDFileInf
     fclose(f);
     CARDStat st = {};
     strncpy(st.fileName, fileName, sizeof(st.fileName) - 1);
+    // The SDK stamps new files with the disc's game and maker codes; the game
+    // only accepts saves carrying its own (GIHE / 78).
+    memcpy(st.gameName, GAME_CODE, 4);
+    memcpy(st.company, MAKER_CODE, 2);
     st.length = size;
     st.time = card_time();
     f = fopen(stat_path(fileName).c_str(), "wb");
@@ -390,6 +410,7 @@ long CARDClose(CARDFileInfo* info) { return READY; }
 
 long CARDDelete(long chan, const char* fileName)
 {
+    TRACE("delete %ld '%s'", chan, fileName);
     Card* c = card(chan);
     if (!c)
     {
@@ -409,6 +430,7 @@ long CARDDelete(long chan, const char* fileName)
 
 static long transfer(CARDFileInfo* info, void* buf, long length, long offset, bool write)
 {
+    TRACE("%s file %ld len %ld off %ld", write ? "write" : "read", info->fileNo, length, offset);
     Card* c = card(info->chan);
     if (!c)
     {
@@ -451,6 +473,7 @@ long CARDWriteAsync(CARDFileInfo* info, const void* addr, long length, long offs
 
 long CARDGetStatus(long chan, long fileNo, CARDStat* stat)
 {
+    TRACE("getstatus %ld %ld", chan, fileNo);
     Card* c = card(chan);
     if (!c)
     {
@@ -470,11 +493,17 @@ long CARDGetStatus(long chan, long fileNo, CARDStat* stat)
     }
     strncpy(stat->fileName, name.c_str(), sizeof(stat->fileName) - 1);
     stat->length = (unsigned long)file_size(data_path(name));
+    if (!stat->gameName[0])
+    {
+        memcpy(stat->gameName, GAME_CODE, 4);
+        memcpy(stat->company, MAKER_CODE, 2);
+    }
     return READY;
 }
 
 long CARDSetStatus(long chan, long fileNo, CARDStat* stat)
 {
+    TRACE("setstatus %ld %ld", chan, fileNo);
     Card* c = card(chan);
     if (!c)
     {

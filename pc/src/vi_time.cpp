@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <string.h>
 #include <time.h>
 
 typedef void (*VIRetraceCallback)(unsigned int retraceCount);
@@ -87,11 +88,22 @@ void VISetBlack(int black) {}
 void VIConfigure(const void* rm) {}
 void VISetNextFrameBuffer(void* fb) {}
 
+// Seconds since 2000-01-01 in local time: the GameCube clock's epoch (its RTC
+// holds local time).
+unsigned long pc_local_seconds_since_2000()
+{
+    time_t now = time(NULL);
+    struct tm lt = *localtime(&now);
+    return (unsigned long)(_mkgmtime(&lt) - 946684800);
+}
+
+// OS time: timer ticks since the 2000 epoch, like the hardware.
 OSTime OSGetTime()
 {
     using namespace std::chrono;
+    static const OSTime base = (OSTime)pc_local_seconds_since_2000() * OS_TIMER_CLOCK;
     long long ns = duration_cast<nanoseconds>(steady_clock::now() - s_start).count();
-    return (OSTime)((double)ns * (OS_TIMER_CLOCK / 1e9));
+    return base + (OSTime)((double)ns * (OS_TIMER_CLOCK / 1e9));
 }
 
 unsigned int OSGetTick() { return (unsigned int)OSGetTime(); }
@@ -101,24 +113,32 @@ struct OSCalendarTime
     int sec, min, hour, mday, mon, year, wday, yday, msec, usec;
 };
 
-// The game passes its own tick values (from OSGetTime); map them to wall-clock time.
 void OSTicksToCalendarTime(OSTime ticks, OSCalendarTime* td)
 {
-    using namespace std::chrono;
-    static const OSTime nowTicks = OSGetTime();
-    static const time_t nowWall = time(NULL);
-    long long secs = (long long)((ticks - nowTicks) / OS_TIMER_CLOCK);
-    time_t t = nowWall + (time_t)secs;
-    struct tm* lt = localtime(&t);
-    td->sec = lt->tm_sec;
-    td->min = lt->tm_min;
-    td->hour = lt->tm_hour;
-    td->mday = lt->tm_mday;
-    td->mon = lt->tm_mon;
-    td->year = lt->tm_year + 1900;
-    td->wday = lt->tm_wday;
-    td->yday = lt->tm_yday;
-    long long sub = (ticks % OS_TIMER_CLOCK + OS_TIMER_CLOCK) % OS_TIMER_CLOCK;
+    long long secs = ticks / OS_TIMER_CLOCK;
+    long long sub = ticks % OS_TIMER_CLOCK;
+    if (sub < 0)
+    {
+        sub += OS_TIMER_CLOCK;
+        secs--;
+    }
+    time_t t = (time_t)(946684800 + secs);
+    struct tm* gt = gmtime(&t);
+    if (!gt)
+    {
+        memset(td, 0, sizeof(*td));
+        td->year = 2000;
+        td->mday = 1;
+        return;
+    }
+    td->sec = gt->tm_sec;
+    td->min = gt->tm_min;
+    td->hour = gt->tm_hour;
+    td->mday = gt->tm_mday;
+    td->mon = gt->tm_mon;
+    td->year = gt->tm_year + 1900;
+    td->wday = gt->tm_wday;
+    td->yday = gt->tm_yday;
     td->msec = (int)(sub * 1000 / OS_TIMER_CLOCK);
     td->usec = (int)(sub * 1000000 / OS_TIMER_CLOCK % 1000);
 }

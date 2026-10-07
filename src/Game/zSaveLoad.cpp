@@ -146,7 +146,7 @@ signed int xSGT_LoadLoadCB(void* vp, st_XSAVEGAME_DATA* xsgdata, st_XSAVEGAME_RE
 signed int xSGT_LoadPrefsCB(void* vp, st_XSAVEGAME_DATA* xsgdata, st_XSAVEGAME_READCONTEXT* rctxt,
                             unsigned int ui, signed int i);
 
-signed int xSGGameIsEmpty(st_XSAVEGAME_DATA* xsgdata, signed int gidx);
+unsigned char xSGGameIsEmpty(st_XSAVEGAME_DATA* xsgdata, signed int gidx);
 
 class zSaveLoadUI
 {
