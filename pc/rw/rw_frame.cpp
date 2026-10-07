@@ -34,6 +34,21 @@ static void mat_mul(RwMatrix* out, const RwMatrix* a, const RwMatrix* b)
     *out = r;
 }
 
+// Objects attached to a destroyed frame are left without one (as in RenderWare).
+static void detach_objects(RwFrame* f)
+{
+    RwLLLink* end = &f->objectList.link;
+    for (RwLLLink* l = end->next; l && l != end;)
+    {
+        RwLLLink* n = l->next;
+        RwObjectHasFrame* o = rwLLLinkGetData(l, RwObjectHasFrame, lFrame);
+        o->object.parent = NULL;
+        o->lFrame.next = o->lFrame.prev = NULL;
+        l = n;
+    }
+    rwLinkListInitialize(&f->objectList);
+}
+
 extern "C" {
 
 RwMatrix* RwMatrixMultiply(RwMatrix* out, const RwMatrix* a, const RwMatrix* b)
@@ -269,15 +284,7 @@ RwInt32 RwFrameDestroy(RwFrame* f)
         frame_set_root(c, c);
         c = n;
     }
-    // Detach attached objects.
-    RwLLLink* end = &f->objectList.link;
-    for (RwLLLink* l = end->next; l != end;)
-    {
-        RwLLLink* n = l->next;
-        RwObjectHasFrame* o = rwLLLinkGetData(l, RwObjectHasFrame, lFrame);
-        o->object.parent = NULL;
-        l = n;
-    }
+    detach_objects(f);
     rwFree(f);
     return 1;
 }
@@ -294,6 +301,7 @@ static void destroy_tree(RwFrame* f)
         {
             rwLinkListRemoveLLLink(&f->inDirtyListLink);
         }
+        detach_objects(f);
         rwFree(f);
         f = n;
     }

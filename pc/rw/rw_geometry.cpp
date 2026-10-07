@@ -1054,7 +1054,8 @@ RpHAnimHierarchy* RpHAnimHierarchyCreate(RwInt32 numNodes, RwUInt32* nodeFlags, 
         RwMatrix& m = h->pMatrixArray[i];
         m.right.x = m.up.y = m.at.z = 1.0f;
     }
-    h->pNodeInfo = (RpHAnimNodeInfo*)rwCalloc(numNodes ? numNodes : 1, sizeof(RpHAnimNodeInfo));
+    // One spare entry: iModelAnimMatrices reads the node after the last one.
+    h->pNodeInfo = (RpHAnimNodeInfo*)rwCalloc(numNodes + 1, sizeof(RpHAnimNodeInfo));
     for (RwInt32 i = 0; i < numNodes; i++)
     {
         h->pNodeInfo[i].nodeID = nodeIDs ? nodeIDs[i] : i;

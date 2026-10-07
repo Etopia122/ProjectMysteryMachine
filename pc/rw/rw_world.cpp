@@ -270,6 +270,20 @@ static void free_sector(RpSector* s)
 
 RpWorld* RpWorldDestroy(RpWorld* w)
 {
+    // Detach the lights still in the world so destroying them later doesn't
+    // unlink through freed memory.
+    RwLinkList* lists[2] = { &w->directionalLightList, &w->lightList };
+    for (int i = 0; i < 2; i++)
+    {
+        RwLLLink* end = &lists[i]->link;
+        for (RwLLLink* l = end->next; l && l != end;)
+        {
+            RwLLLink* next = l->next;
+            l->next = l->prev = NULL;
+            l = next;
+        }
+        rwLinkListInitialize(lists[i]);
+    }
     free_sector(w->rootSector);
     for (RwInt32 i = 0; i < w->matList.numMaterials; i++)
     {
@@ -329,12 +343,22 @@ RpLight* RpLightCreate(RwInt32 type)
     return l;
 }
 
+// The game links and unlinks lights by hand (zLightAddLocalEnv and
+// zLightRemoveLocalEnv) without clearing their links, so only unlink a light
+// whose neighbours still point back at it.
+static void light_unlink(RpLight* l)
+{
+    RwLLLink* k = &l->inWorld;
+    if (k->next && k->prev && k->next->prev == k && k->prev->next == k)
+    {
+        rwLinkListRemoveLLLink(k);
+    }
+    k->next = k->prev = NULL;
+}
+
 RwInt32 RpLightDestroy(RpLight* l)
 {
-    if (l->inWorld.next)
-    {
-        rwLinkListRemoveLLLink(&l->inWorld);
-    }
+    light_unlink(l);
     _rwObjectHasFrameSetFrame(l, NULL);
     rwFree(l);
     return 1;
@@ -360,10 +384,7 @@ RpLight* RpLightSetConeAngle(RpLight* l, float angle)
 
 RpWorld* RpWorldAddLight(RpWorld* w, RpLight* l)
 {
-    if (l->inWorld.next)
-    {
-        rwLinkListRemoveLLLink(&l->inWorld);
-    }
+    light_unlink(l);
     RwLinkList* list = (l->object.object.subType < 0x80) ? &w->directionalLightList : &w->lightList;
     rwLinkListAddLLLink(list, &l->inWorld);
     return w;
@@ -371,11 +392,7 @@ RpWorld* RpWorldAddLight(RpWorld* w, RpLight* l)
 
 RpWorld* RpWorldRemoveLight(RpWorld* w, RpLight* l)
 {
-    if (l->inWorld.next)
-    {
-        rwLinkListRemoveLLLink(&l->inWorld);
-        l->inWorld.next = l->inWorld.prev = NULL;
-    }
+    light_unlink(l);
     return w;
 }
 

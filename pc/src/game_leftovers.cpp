@@ -213,7 +213,8 @@ void fn_80032D28() { pc_call_iParMgrRender(); }
 extern int mFade;
 signed int fn_800394B4() { return mFade; }
 
-// Random pitch step that differs from the previous one by more than 10 (of 360).
+// Random step (0..359) whose magnitude differs from the previous one by more than 10;
+// *pitch gets step / 360 * scale, truncated. (range is unused, as in the original.)
 signed short fn_800C751C(signed short old, float* pitch, signed int range, float scale)
 {
     int n;
@@ -221,7 +222,7 @@ signed short fn_800C751C(signed short old, float* pitch, signed int range, float
     do
     {
         n = (int)(360.0f * iurand());
-    } while (__builtin_fabsf((float)n) >= o - 10.0f && o <= 10.0f + __builtin_fabsf((float)n));
+    } while (o >= __builtin_fabsf((float)n) - 10.0f && o <= __builtin_fabsf((float)n) + 10.0f);
     *pitch = (float)(int)((float)n / 360.0f * scale);
     return (signed short)n;
 }

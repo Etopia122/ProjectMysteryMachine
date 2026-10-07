@@ -8,6 +8,7 @@
 #include <string.h>
 #include <strings.h>
 #include <vector>
+#include <windows.h>
 
 extern "C" {
 RwUInt8* RwEngineInstance;
@@ -22,9 +23,89 @@ RwUInt32 lbl_8025E3F8[2] = { 0x0000FFFE, 0 };
 void pc_rw_device_open(void* displayID);
 void pc_rw_device_close();
 
-void* rwMalloc(size_t size) { return malloc(size ? size : 1); }
-void* rwCalloc(size_t n, size_t size) { return calloc(n ? n : 1, size ? size : 1); }
-void rwFree(void* p) { free(p); }
+// Debug: PC_PAGEHEAP=1 gives every RenderWare allocation its own pages, ending
+// at a page boundary, and makes them inaccessible when freed, so overruns and
+// writes after free fault at the culprit. Uses a lot of address space.
+static int pageheap()
+{
+    static int on = -1;
+    if (on < 0)
+    {
+        on = getenv("PC_PAGEHEAP") ? 1 : 0;
+    }
+    return on;
+}
+
+struct PageHeader
+{
+    unsigned int magic;
+    unsigned int pages;
+};
+
+static void* pageheap_alloc(size_t size)
+{
+    size_t total = size + sizeof(PageHeader);
+    size_t pages = (total + 4095) / 4096;
+    unsigned char* base = (unsigned char*)VirtualAlloc(NULL, (pages + 1) * 4096, MEM_RESERVE, PAGE_NOACCESS);
+    if (!base)
+    {
+        return NULL;
+    }
+    VirtualAlloc(base, pages * 4096, MEM_COMMIT, PAGE_READWRITE);
+    // Align the end of the block to the guard page, keeping 8-byte alignment.
+    unsigned char* p = base + pages * 4096 - ((size + 7) & ~(size_t)7);
+    PageHeader* h = (PageHeader*)base;
+    h->magic = 0x50414745;
+    h->pages = (unsigned int)pages;
+    *(unsigned char**)(p - sizeof(void*)) = base; // only valid when the header fits before p
+    return p;
+}
+
+static void pageheap_free(void* ptr)
+{
+    unsigned char* base = (unsigned char*)((uintptr_t)ptr & ~(uintptr_t)4095);
+    if (((uintptr_t)ptr & 4095) < sizeof(PageHeader) + sizeof(void*))
+    {
+        base -= 4096; // block started near a page boundary
+    }
+    while (((PageHeader*)base)->magic != 0x50414745)
+    {
+        base -= 4096;
+    }
+    VirtualFree(base, ((PageHeader*)base)->pages * 4096, MEM_DECOMMIT);
+}
+
+void* rwMalloc(size_t size)
+{
+    if (pageheap())
+    {
+        return pageheap_alloc(size ? size : 1);
+    }
+    return malloc(size ? size : 1);
+}
+
+void* rwCalloc(size_t n, size_t size)
+{
+    if (pageheap())
+    {
+        return pageheap_alloc((n ? n : 1) * (size ? size : 1)); // VirtualAlloc memory is zeroed
+    }
+    return calloc(n ? n : 1, size ? size : 1);
+}
+
+void rwFree(void* p)
+{
+    if (!p)
+    {
+        return;
+    }
+    if (pageheap())
+    {
+        pageheap_free(p);
+        return;
+    }
+    free(p);
+}
 
 // ---------------------------------------------------------------- engine plugins
 struct EnginePlugin
