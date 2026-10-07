@@ -47,6 +47,9 @@ file(GLOB PC_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.S
     ${CMAKE_CURRENT_SOURCE_DIR}/rw/*.cpp)
 add_executable(scooby ${PC_SOURCES})
+# PC_EXE_NAME lets a test build link while the normal exe is running.
+set(PC_EXE_NAME "scooby" CACHE STRING "Output name of the executable")
+set_target_properties(scooby PROPERTIES OUTPUT_NAME ${PC_EXE_NAME})
 target_link_libraries(scooby PRIVATE scoobygame SDL2::SDL2 opengl32
     avformat avcodec swscale swresample avutil -pthread -Wl,--large-address-aware)
 target_include_directories(scooby PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/rw)

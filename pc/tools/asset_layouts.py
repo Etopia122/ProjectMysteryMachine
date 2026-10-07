@@ -38,7 +38,7 @@ TYPES = {
     'CNTR': [('fix', 'Bhh'), ('links',)],
     'SFX ': [('fix', 'Bhhwwwbbbb3www'), ('links',)],
     'GRUP': [('fix', 'Bhh'), ('arr', 'f[4]', 'w'), ('links',)],
-    'PORT': [('fix', 'B4w'), ('links',)],
+    'PORT': [('fix', 'B3wbbbb'), ('links',)],  # sceneID bytes are swapped by the game (HackSwapIt)
     'CAM ': [('fix', 'B15whh6w6w3wbbbb'), ('links',)],
     'BUTN': [('fix', 'E4wbbbb'), ('fix', 'M'), ('links',)],
     'GUST': [('fix', 'B8w'), ('links',)],

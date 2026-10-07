@@ -2409,7 +2409,14 @@ void zSceneUpdate(float dt)
 
         if (s->pendingPortal != NULL)
         {
+            #ifdef PC_PORT
+            // Compare the ID's bytes as the big-endian word GameCube reads.
+            const unsigned char* pid = (const unsigned char*)&s->pendingPortal->passet->sceneID;
+            unsigned int portalScene = (pid[0] << 24) | (pid[1] << 16) | (pid[2] << 8) | pid[3];
+            if (portalScene == '600S' || s->sceneID == 'S006')
+#else
             if (s->pendingPortal->passet->sceneID == '600S' || s->sceneID == 'S006')
+#endif
             {
                 zGameStateSwitch(5);
             }

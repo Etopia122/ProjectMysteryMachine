@@ -552,7 +552,12 @@ static void zGameUpdateMode()
         char* id = (char*)&passet->sceneID;
         unsigned int nextSceneID = (id[0] << 24) | (id[1] << 16) | (id[2] << 8) | id[3];
 
+        #ifdef PC_PORT
+        // sceneID's bytes are in big-endian order (see zSceneSwitch).
+        if (nextSceneID != globals.sceneCur->sceneID)
+#else
         if (passet->sceneID != globals.sceneCur->sceneID)
+#endif
         {
             signed int vbl;
 

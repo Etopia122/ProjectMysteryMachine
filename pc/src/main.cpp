@@ -32,6 +32,7 @@ extern "C" void pc_stub_hit(const char* name)
 
 extern "C" void pc_fptrap();
 void zGameStateSwitchEvent(signed int event);
+extern "C" void pc_debug_portal(int index);
 
 // Writes crash.txt next to the executable: the exception and a frame-pointer
 // stack walk, with addresses relative to the default image base so
@@ -86,6 +87,14 @@ static LONG WINAPI crash_handler(EXCEPTION_POINTERS* ep)
 // Window/system events; called once per presented frame.
 void pc_events_pump()
 {
+    // Debug: PC_PORTAL=<seconds>:<index> takes a portal of the current scene.
+    static const char* portal = getenv("PC_PORTAL");
+    if (portal && SDL_GetTicks() >= (Uint32)(atof(portal) * 1000))
+    {
+        const char* c = strchr(portal, ':');
+        portal = NULL;
+        pc_debug_portal(c ? atoi(c + 1) : 0);
+    }
     // Debug: PC_FORCESAVE=<seconds> fires the event that opens the save screen.
     static const char* forceSave = getenv("PC_FORCESAVE");
     if (forceSave && SDL_GetTicks() >= (Uint32)(atof(forceSave) * 1000))

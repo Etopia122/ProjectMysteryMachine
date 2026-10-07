@@ -159,6 +159,15 @@ static void upload(PcRaster* p)
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, p->r.width, p->r.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, p->rgba);
     p->dirty = 0;
+    p->hasAlpha = 0;
+    for (size_t i = 3, n = (size_t)p->r.width * p->r.height * 4; i < n; i += 4)
+    {
+        if (p->rgba[i] != 255)
+        {
+            p->hasAlpha = 1;
+            break;
+        }
+    }
 }
 
 static GLint gl_addr(int a)
@@ -246,6 +255,18 @@ static GLenum gl_alpha_func(int f)
     case 7: return GL_GEQUAL;
     default: return GL_ALWAYS;
     }
+}
+
+// RenderWare blends when vertex alpha is enabled or the texture has alpha
+// (call after the raster is bound, which uploads it).
+static bool raster_has_alpha(RwRaster* r)
+{
+    if (!r)
+    {
+        return false;
+    }
+    PcRaster* p = pc_raster(r);
+    return p->fbo != 0 || p->hasAlpha;
 }
 
 // Applies blending/depth/fog/cull/alpha-test. 'alpha' forces blending on.
@@ -391,6 +412,14 @@ RwInt32 RxRenderStateVectorSetDefaultRenderStateVector(RxRenderStateVector* r)
 
 }
 
+// Debug: PC_TRACE_AT=<seconds> logs the next ~60 clears/camera begins/presents.
+static bool trace_frame()
+{
+    static const char* at = getenv("PC_TRACE_AT");
+    static int left = 200;
+    return at && left > 0 && SDL_GetTicks() >= (Uint32)(atof(at) * 1000) && left--;
+}
+
 // ---------------------------------------------------------------- cameras
 static void set_viewport();
 
@@ -473,7 +502,7 @@ static void load_projection(RwCamera* c)
         p[5] = 1.0f / vy;
         p[10] = 2.0f / (f - n);
         p[12] = -ox / vx;
-        p[13] = -oy / vy;
+        p[13] = oy / vy;
         p[14] = -(f + n) / (f - n);
         p[15] = 1.0f;
     }
@@ -482,8 +511,14 @@ static void load_projection(RwCamera* c)
         // Camera space looks down +Z (x already flipped to point right).
         p[0] = 1.0f / vx;
         p[5] = 1.0f / vy;
-        p[8] = -ox / vx;
-        p[9] = -oy / vy;
+        // View offset, as RenderWare applies it: the window moves by the offset at
+        // distance 1 and the eye with it, so points shift by offset * (1 - 1/z).
+        // A positive offset moves the image right and up (the HUD's xModelRender2D
+        // puts a model on the axis and offsets it to its screen spot).
+        p[8] = ox / vx;
+        p[9] = oy / vy;
+        p[12] = -ox / vx;
+        p[13] = -oy / vy;
         p[10] = (f + n) / (f - n);
         p[11] = 1.0f;
         p[14] = -2.0f * f * n / (f - n);
@@ -513,6 +548,11 @@ void pc_gl_begin_camera(RwCamera* c)
     }
     s_cam = c;
     s_st.cams++;
+    if (trace_frame())
+    {
+        pc_log("[trace] begin cam %p fb %p vw %.3f %.3f off %.3f %.3f", c, c->frameBuffer, c->viewWindow.x,
+               c->viewWindow.y, c->viewOffset.x, c->viewOffset.y);
+    }
     bind_target(c->frameBuffer);
     if (stats_on())
     {
@@ -572,6 +612,11 @@ void pc_gl_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
         return;
     }
     s_st.clears++;
+    if (trace_frame())
+    {
+        pc_log("[trace] clear cam %p mode %d col %02x%02x%02x%02x", c, mode, col ? col->red : 0, col ? col->green : 0,
+               col ? col->blue : 0, col ? col->alpha : 0);
+    }
     if (stats_on())
     {
         static int n;
@@ -660,6 +705,10 @@ void pc_gl_present()
     if (!s_window)
     {
         return;
+    }
+    if (trace_frame())
+    {
+        pc_log("[trace] present");
     }
     maybe_screenshot();
     if (stats_on())
@@ -857,7 +906,7 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
             {
                 glDisable(GL_TEXTURE_2D);
             }
-            apply_states(alpha || (t && t->raster));
+            apply_states(alpha || (t && raster_has_alpha(t->raster)));
             static const char* dbg = getenv("PC_DBG");
             if (dbg && strstr(dbg, "white"))
             {
@@ -940,6 +989,11 @@ void pc_gl_render_atomic(RpAtomic* a)
         return;
     }
     s_st.atomicsDrawn++;
+    if (trace_frame())
+    {
+        pc_log("[trace] atomic verts %d pos %.1f %.1f %.1f blend %d/%d zt %d", g->numVertices, f->ltm.pos.x,
+               f->ltm.pos.y, f->ltm.pos.z, s_rs.srcBlend, s_rs.dstBlend, s_rs.zTest);
+    }
     if (stats_on() && dbg && strstr(dbg, "atomlog"))
     {
         // Each distinct geometry once: flags, prelit sample, materials and textures.
@@ -1045,7 +1099,8 @@ static bool sector_visible(RpWorldSector* s)
 
 void pc_gl_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors)
 {
-    if (!s_window)
+    static const char* dbg = getenv("PC_DBG");
+    if (!s_window || (dbg && strstr(dbg, "nosector")))
     {
         return;
     }
@@ -1103,6 +1158,20 @@ static GLenum gl_prim(int t)
     case rwPRIMTYPEPOINTLIST: return GL_POINTS;
     default: return GL_TRIANGLES;
     }
+}
+
+// Blending for immediate-mode geometry, as RenderWare decides it: a vertex with
+// alpha below 255 or a texture with alpha (vertexAlpha state is checked too).
+static bool im2d_alpha(const RwIm2DVertex* v, int n)
+{
+    for (int i = 0; i < n; i++)
+    {
+        if (v[i].emissiveColor.alpha != 255)
+        {
+            return true;
+        }
+    }
+    return raster_has_alpha(s_rs.raster);
 }
 
 static void begin_2d()
@@ -1176,8 +1245,15 @@ RwInt32 RwIm2DRenderPrimitive(RwInt32 primType, RwIm2DVertex* v, RwInt32 n)
                v[0].emissiveColor.blue, v[0].emissiveColor.alpha, v[0].u, v[0].v, n > 1 ? v[1].x : 0, n > 1 ? v[1].y : 0);
     }
     s_st.im2d++;
+    if (trace_frame())
+    {
+        pc_log("[trace] im2d prim %d n %d raster %p (%.0f,%.0f)-(%.0f,%.0f) col %02x%02x%02x%02x blend %d/%d va %d",
+               primType, n, s_rs.raster, v[0].x, v[0].y, v[n - 1].x, v[n - 1].y, v[0].emissiveColor.red,
+               v[0].emissiveColor.green, v[0].emissiveColor.blue, v[0].emissiveColor.alpha, s_rs.srcBlend,
+               s_rs.dstBlend, s_rs.vertexAlpha);
+    }
     begin_2d();
-    apply_states(true);
+    apply_states(im2d_alpha(v, n));
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE); // screen-space quads; the Y-down projection flips their winding
     im2d_arrays(v);
@@ -1193,8 +1269,15 @@ RwInt32 RwIm2DRenderIndexedPrimitive(RwInt32 primType, void* vertices, RwInt32 n
     {
         return 1;
     }
+    if (trace_frame())
+    {
+        RwIm2DVertex* tv = (RwIm2DVertex*)vertices;
+        pc_log("[trace] im2d-idx prim %d n %d raster %p (%.0f,%.0f) col %02x%02x%02x%02x blend %d/%d", primType, n,
+               s_rs.raster, tv[0].x, tv[0].y, tv[0].emissiveColor.red, tv[0].emissiveColor.green,
+               tv[0].emissiveColor.blue, tv[0].emissiveColor.alpha, s_rs.srcBlend, s_rs.dstBlend);
+    }
     begin_2d();
-    apply_states(true);
+    apply_states(im2d_alpha((RwIm2DVertex*)vertices, n));
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     im2d_arrays((RwIm2DVertex*)vertices);
@@ -1250,7 +1333,12 @@ static void im3d_setup()
                pr && pr->rgba ? *(unsigned int*)pr->rgba : 0, pr ? pr->ext[0xC] : -1);
     }
     pc_gl_bind_raster(s_rs.raster);
-    apply_states(true);
+    bool alpha = raster_has_alpha(s_rs.raster);
+    for (RwUInt32 i = 0; i < s_im3dCount && !alpha; i++)
+    {
+        alpha = s_im3dVerts[i].color.alpha != 255;
+    }
+    apply_states(alpha);
     RwIm3DVertex* v = s_im3dVerts;
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(3, GL_FLOAT, sizeof(RwIm3DVertex), &v->objVertex);
@@ -1261,9 +1349,15 @@ static void im3d_setup()
     glDisableClientState(GL_NORMAL_ARRAY);
 }
 
+static bool im3d_disabled()
+{
+    static const char* dbg = getenv("PC_DBG");
+    return dbg && strstr(dbg, "noim3d");
+}
+
 RwInt32 RwIm3DRenderPrimitive(RwInt32 primType)
 {
-    if (!s_window || !s_im3dVerts)
+    if (!s_window || !s_im3dVerts || im3d_disabled())
     {
         return 1;
     }
@@ -1278,7 +1372,7 @@ RwInt32 RwIm3DRenderPrimitive(RwInt32 primType)
 
 RwInt32 RwIm3DRenderIndexedPrimitive(RwInt32 primType, RwUInt16* idx, RwInt32 n)
 {
-    if (!s_window || !s_im3dVerts)
+    if (!s_window || !s_im3dVerts || im3d_disabled())
     {
         return 1;
     }

@@ -14,6 +14,7 @@ struct PcRaster
     int dirty;
     int numLevels;
     RwUInt32 fbo, depthRb; // render target (camera texture rasters)
+    int hasAlpha;          // any texel with alpha < 255 (set on upload)
 };
 PcRaster* pc_raster(RwRaster* r);
 

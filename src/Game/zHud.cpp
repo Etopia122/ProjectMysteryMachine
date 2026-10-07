@@ -639,7 +639,13 @@ void zHud_Update(_xScene* sc, float dt)
 {
     for (signed int i = 0; i < eHudCount; i++)
     {
+#ifdef PC_PORT
+        // The update callbacks take only (float dt); on PowerPC the float arrives in f1
+        // either way, on x86 it must be the first stack argument.
+        ((void (*)(float))sHudElements[i].hudUpdate)(dt);
+#else
         sHudElements[i].hudUpdate(sc, dt);
+#endif
     }
 
     if (globals.pad0->on & 0x40000)

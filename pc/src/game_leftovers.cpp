@@ -271,3 +271,31 @@ unsigned int zFMVPlay(char* filename, unsigned int buttons, float time)
     }
     return result;
 }
+
+// ---------------------------------------------------------------- debugging
+extern "C" void pc_log(const char* fmt, ...);
+class _zPortal;
+void zSceneSwitch(_zPortal* p);
+
+// Debug (PC_PORTAL=<sec>:<index>): takes the index-th portal of the current
+// scene, as if the player walked into it. Logs the scene's portals.
+extern "C" void pc_debug_portal(int index)
+{
+    unsigned char* scene = *(unsigned char**)(globals + 0xB64);
+    if (!scene)
+    {
+        return;
+    }
+    const int PORTAL_TYPE = 16, PORTAL_SIZE = 0x14;
+    unsigned int count = ((unsigned int*)(scene + 0x7C))[PORTAL_TYPE];
+    unsigned char* list = ((unsigned char**)(scene + 0x128))[PORTAL_TYPE];
+    for (unsigned int i = 0; i < count; i++)
+    {
+        unsigned char* asset = *(unsigned char**)(list + i * PORTAL_SIZE + 0x10);
+        pc_log("[portal] %u: to %.4s", i, asset ? (char*)asset + 0x14 : "?");
+    }
+    if (index >= 0 && (unsigned int)index < count)
+    {
+        zSceneSwitch((_zPortal*)(list + index * PORTAL_SIZE));
+    }
+}

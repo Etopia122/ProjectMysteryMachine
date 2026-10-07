@@ -28,7 +28,7 @@ PC_ASSET_TYPE('PICK', { PC_STEP_FIX, "ww", -1 }, { PC_STEP_ARR, "wbbhwww", 1 }, 
 PC_ASSET_TYPE('PKUP', { PC_STEP_FIX, "wbbhbbbbwwwwwwwwwwwwwwwwwwhh", -1 }, { PC_STEP_LINKS, "", -1 }, { PC_STEP_END, "", -1 })
 PC_ASSET_TYPE('PLAT', { PC_STEP_FIX, "wbbhbbbbwwwwwwwwwwwwwwwwwbbhwwwwwwwww", -1 }, { PC_STEP_FIX, "m", -1 }, { PC_STEP_LINKS, "", -1 }, { PC_STEP_END, "", -1 })
 PC_ASSET_TYPE('PLYR', { PC_STEP_FIX, "wbbhbbbbwwwwwwwwwwwwwwwww", -1 }, { PC_STEP_LINKS, "", -1 }, { PC_STEP_END, "", -1 })
-PC_ASSET_TYPE('PORT', { PC_STEP_FIX, "wbbhwwww", -1 }, { PC_STEP_LINKS, "", -1 }, { PC_STEP_END, "", -1 })
+PC_ASSET_TYPE('PORT', { PC_STEP_FIX, "wbbhwwwbbbb", -1 }, { PC_STEP_LINKS, "", -1 }, { PC_STEP_END, "", -1 })
 PC_ASSET_TYPE('PRJT', { PC_STEP_FIX, "wbbhwwwwwwwwwwwwwww", -1 }, { PC_STEP_LINKS, "", -1 }, { PC_STEP_END, "", -1 })
 PC_ASSET_TYPE('SCRP', { PC_STEP_FIX, "wbbhww", -1 }, { PC_STEP_ARR, "wwwwwwww", 4 }, { PC_STEP_LINKS, "", -1 }, { PC_STEP_END, "", -1 })
 PC_ASSET_TYPE('SFX ', { PC_STEP_FIX, "wbbhhhwwwbbbbwwwww", -1 }, { PC_STEP_LINKS, "", -1 }, { PC_STEP_END, "", -1 })
