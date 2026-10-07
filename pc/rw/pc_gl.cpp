@@ -298,9 +298,9 @@ static void apply_states(bool alpha)
     if (s_rs.cullMode == 2 || s_rs.cullMode == 3)
     {
         glEnable(GL_CULL_FACE);
-        // The view matrix flips X, which flips winding: RW's back faces are GL front faces.
-        // Render targets are also flipped vertically, which flips it back.
-        bool front = (s_rs.cullMode == 2) != (s_target != NULL);
+        // RW back faces (cull mode 2) are GL back faces here; render targets are
+        // drawn flipped vertically, which swaps them.
+        bool front = (s_rs.cullMode == 3) != (s_target != NULL);
         glCullFace(front ? GL_FRONT : GL_BACK);
     }
     else
