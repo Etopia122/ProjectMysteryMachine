@@ -765,6 +765,7 @@ config.libs = [
             Object(Matching, "rwsdk/src/bafsync.c"),
             Object(Matching, "rwsdk/src/batextur.c"),
             Object(Matching, "rwsdk/src/baobject.c"),
+            Object(Matching, "rwsdk/world/balight.c"),
             Object(Matching, "rwsdk/plugin/collis/ctbsp.c"),
             Object(Matching, "rwsdk/plugin/collis/rpcollis.c"),
         ],

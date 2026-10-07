@@ -292,8 +292,9 @@ typedef struct RwFileFunctions {
 typedef struct RwGlobals {
     /* 0x000 */ void* curCamera;
     /* 0x004 */ void* curWorld;
-    /* 0x008 */ RwUInt32 renderFrame;
-    /* 0x00C */ RwUInt32 lightFrame;
+    /* 0x008 */ RwUInt16 renderFrame;
+    /* 0x00A */ RwUInt16 lightFrame;
+    /* 0x00C */ RwUInt16 pad[2];
     /* 0x010 */ RwDevice dOpenDevice;
     /* 0x048 */ RwStandardFunc stdFunc[29];
     /* 0x0BC */ RwLinkList dirtyFrameList;
