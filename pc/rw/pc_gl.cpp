@@ -256,7 +256,17 @@ static void apply_states(bool alpha)
     if (alpha || s_rs.vertexAlpha)
     {
         glEnable(GL_BLEND);
-        glBlendFunc(gl_blend(s_rs.srcBlend), gl_blend(s_rs.dstBlend));
+        if (s_rs.srcBlend == 4 && s_rs.dstBlend == 9)
+        {
+            // INVSRCCOLOR/DESTCOLOR (the drop shadows): GX has no source-colour
+            // source factor or dest-colour dest factor, and on GameCube this
+            // darkens the frame by the source alpha.
+            glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
+        }
+        else
+        {
+            glBlendFunc(gl_blend(s_rs.srcBlend), gl_blend(s_rs.dstBlend));
+        }
     }
     else
     {
@@ -1223,6 +1233,22 @@ static void im3d_setup()
         glMultMatrixf(m);
     }
     glDisable(GL_LIGHTING);
+    static const char* logIm3d = getenv("PC_LOG_IM3D");
+    static int logged;
+    if (logIm3d && logged < atoi(logIm3d) && rwGlobals()->renderFrame > 2000)
+    {
+        logged++;
+        RwIm3DVertex* v0 = s_im3dVerts;
+        PcRaster* pr = s_rs.raster ? pc_raster(s_rs.raster) : NULL;
+        pc_log("[im3d] n %u raster %p %dx%d fmt %x blend %d/%d valpha %d zw %d zt %d atest %d/%d col %02x%02x%02x%02x "
+               "uv %.2f %.2f px0 %08x corner %08x gx %d",
+               s_im3dCount, s_rs.raster, s_rs.raster ? s_rs.raster->width : 0, s_rs.raster ? s_rs.raster->height : 0,
+               s_rs.raster ? s_rs.raster->cFormat : 0, s_rs.srcBlend, s_rs.dstBlend, s_rs.vertexAlpha, s_rs.zWrite,
+               s_rs.zTest, s_rs.alphaFunc, s_rs.alphaRef, v0->color.red, v0->color.green, v0->color.blue,
+               v0->color.alpha, v0->u, v0->v,
+               pr && pr->rgba ? *(unsigned int*)(pr->rgba + (s_rs.raster->width * (s_rs.raster->height / 2) + s_rs.raster->width / 2) * 4) : 0,
+               pr && pr->rgba ? *(unsigned int*)pr->rgba : 0, pr ? pr->ext[0xC] : -1);
+    }
     pc_gl_bind_raster(s_rs.raster);
     apply_states(true);
     RwIm3DVertex* v = s_im3dVerts;
