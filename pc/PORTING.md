@@ -49,7 +49,8 @@ native PC program. Game assets are not included: the player supplies their own d
    audio (`audio.cpp`: AX voices, DSP-ADPCM, MIX, SDL output) and FMV
    (`fmv.cpp`: Bink via FFmpeg, replacing `iFMV.cpp`). Boots through the logo
    movies and Intro to the title screen and main menu; New Game loads the
-   first level.
+   first level, where Scooby can run around; memory card saves go to files
+   (`card.cpp`).
 6. **Boot to the title screen**, then into a level, then fix gameplay bugs by
    comparing with the GameCube build (Dolphin + the decomp's debugging tools).
 
@@ -61,6 +62,11 @@ python pc/tools/deploy.py       # copy the MinGW/SDL2/FFmpeg DLLs next to the ex
 build/pc/scooby.exe             # data from SCOOBY_DATA or game/files
 ```
 
+Controls: a game controller (A/B/X/Y, triggers, sticks as on GameCube), or
+keyboard: WASD/arrows move, IJKL camera, Space = A, Shift = B, E = X, R = Y,
+Enter = Start, Q = L, Tab = R, F = Z, keypad 8/2/4/6 = D-pad. Alt+Enter or F11
+toggles fullscreen. Saves go to `save/cardA` next to the exe.
+
 Debug switches (environment): `PC_NOFMV=1` skips movies, `PC_STATS=1` logs
 render stats, `PC_SHOT=frame[,step]` saves screenshots, `PC_WAV=1` records the
 audio output, `PC_AUTOPAD="sec:mask,..."` scripts the pad, `PC_DBG=...`
@@ -69,9 +75,9 @@ and the `PC_FPCHECK` CMake option finds x87 stack leaks.
 
 ## TODO
 
-- **In-level rendering:** cameras that render to textures (shadows etc.)
-  draw into the window; the level background is white.
-- **Saves:** CARD -> files.
+- **Gameplay testing:** play through levels and compare with the GameCube
+  build; saving in-game hasn't been exercised yet.
+- **Remaining GX direct calls** (screen effects that use GX copies).
 - **Trim FFmpeg:** the MSYS2 build pulls in ~70 DLLs; a Bink-only build would do.
 
 - **PS2 assets as an alternative source.** PS2 data is little-endian and librw

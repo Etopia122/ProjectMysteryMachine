@@ -49,6 +49,17 @@ void pc_events_pump()
             SDL_Quit();
             exit(0);
         }
+        // Alt+Enter or F11 toggles borderless fullscreen.
+        if (e.type == SDL_KEYDOWN && !e.key.repeat &&
+            (e.key.keysym.sym == SDLK_F11 || (e.key.keysym.sym == SDLK_RETURN && (e.key.keysym.mod & KMOD_ALT))))
+        {
+            SDL_Window* w = SDL_GetWindowFromID(e.key.windowID);
+            if (w)
+            {
+                bool full = (SDL_GetWindowFlags(w) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
+                SDL_SetWindowFullscreen(w, full ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+            }
+        }
     }
 }
 
