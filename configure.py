@@ -776,6 +776,7 @@ config.libs = [
             Object(Matching, "rwsdk/world/pipe/nodeAtomicEnumerateLights.c"),
             Object(Matching, "rwsdk/plugin/collis/ctbsp.c"),
             Object(Matching, "rwsdk/plugin/collis/rpcollis.c"),
+            Object(NonMatching, "rwsdk/plugin/userdata/rpusrdat.c"),
         ],
     },
     {
