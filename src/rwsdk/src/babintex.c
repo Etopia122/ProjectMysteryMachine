@@ -13,20 +13,6 @@
 
 #define rwRASTERFORMATAUTOMIPMAP 0x1000
 
-typedef struct RwTexDictionary RwTexDictionary;
-
-typedef struct RwTexture {
-    RwRaster* raster;
-    RwTexDictionary* dict;
-    RwLLLink lInDictionary;
-    RwChar name[32];
-    RwChar mask[32];
-    RwUInt32 filterAddressing;
-    RwInt32 refCount;
-} RwTexture;
-
-typedef RwTexture* (*RwTextureCallBack)(RwTexture* texture, void* pData);
-
 typedef struct _rwStreamTexture {
     RwUInt32 filterAndAddress;
 } _rwStreamTexture;

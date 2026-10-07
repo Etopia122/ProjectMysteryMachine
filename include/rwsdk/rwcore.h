@@ -144,7 +144,7 @@ typedef struct RwRaster {
     /* 0x30 */ RwInt32 originalStride;
 } RwRaster;
 
-#define RwRasterGetFormat(raster) ((RwInt32)((raster)->cFormat) << 8)
+#define RwRasterGetFormat(raster) ((((raster)->cFormat) & (0xFF00 >> 8)) << 8)
 #define RwRasterGetType(raster) ((raster)->cType)
 
 typedef struct RwRGBA {
@@ -201,6 +201,26 @@ typedef struct RwMemoryFunctions {
 } RwMemoryFunctions;
 
 typedef char RwChar;
+
+// Textures
+typedef struct RwTexDictionary {
+    /* 0x00 */ RwObject object;
+    /* 0x08 */ RwLinkList texturesInDict;
+    /* 0x10 */ RwLLLink lInInstance;
+} RwTexDictionary;
+
+typedef struct RwTexture {
+    /* 0x00 */ RwRaster* raster;
+    /* 0x04 */ RwTexDictionary* dict;
+    /* 0x08 */ RwLLLink lInDictionary;
+    /* 0x10 */ RwChar name[32];
+    /* 0x30 */ RwChar mask[32];
+    /* 0x50 */ RwUInt32 filterAddressing;
+    /* 0x54 */ RwInt32 refCount;
+} RwTexture;
+
+typedef RwTexture* (*RwTextureCallBack)(RwTexture* texture, void* pData);
+
 
 typedef struct RwStringFunctions {
     int (*vecSprintf)(RwChar* buffer, const RwChar* format, ...);

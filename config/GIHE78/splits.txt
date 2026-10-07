@@ -1532,5 +1532,13 @@ rwsdk/src/baraster.c:
 rwsdk/src/bafsync.c:
 	.text       start:0x8016E9E4 end:0x8016F3EC
 
+rwsdk/src/batextur.c:
+	.text       start:0x8016F3EC end:0x80171450
+	.rodata     start:0x801AD2B8 end:0x801AD2D0
+	.data       start:0x801DDC90 end:0x801DDCC0
+	.sdata      start:0x8025E7E0 end:0x8025E7F0
+	.sbss       start:0x8025F7E8 end:0x8025F7F8
+	.sdata2     start:0x80262B10 end:0x80262B18
+
 rwsdk/src/baobject.c:
 	.text       start:0x80171450 end:0x801714EC
