@@ -393,7 +393,7 @@ const RwPluginRegistry* _rwPluginRegistryInitObject(const RwPluginRegistry* reg,
 const RwPluginRegistry* _rwPluginRegistryDeInitObject(const RwPluginRegistry* reg, void* object);
 
 // Frames (functions)
-RwFrame* _rwFrameSyncHierarchyLTM(RwFrame* frame);
+void _rwFrameSyncHierarchyLTM(RwFrame* frame);
 RwFrame* RwFrameRemoveChild(RwFrame* child);
 
 #ifdef __cplusplus
