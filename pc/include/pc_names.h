@@ -15,5 +15,7 @@
 #define fn_80164200 RwResourcesGetArenaSize
 #define fn_8018B9A0 RxRenderStateVectorSetDefaultRenderStateVector
 #define fn_80151CA4 RpWorldSetSurfaceProperties
+#define fn_80135484 CARDOpen
+#define fn_8013558C CARDClose
 
 #endif // PC_NAMES_H
