@@ -273,6 +273,13 @@ static void zMainLoop()
             iTimeSetGame(0.0f);
         }
 
+#ifdef PC_PORT
+        // Debug: PC_SCENE=<id> (e.g. I001) starts New Game in that scene.
+        {
+            extern unsigned int pc_debug_start_scene(unsigned int sceneID);
+            gameSceneID = pc_debug_start_scene(gameSceneID);
+        }
+#endif
         zGameInit(gameSceneID);
         zGameSetup();
         iProfileClear(gameSceneID);

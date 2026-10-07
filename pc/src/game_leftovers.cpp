@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 // Small game functions that are still unsplit assembly in the decomp
 // (fn_XXXXXXXX gaps). Written from the GameCube assembly.
 
@@ -298,4 +300,21 @@ extern "C" void pc_debug_portal(int index)
     {
         zSceneSwitch((_zPortal*)(list + index * PORTAL_SIZE));
     }
+}
+
+// Debug (PC_SCENE=<id>): the scene New Game starts in, e.g. I001.
+unsigned int pc_debug_start_scene(unsigned int sceneID)
+{
+    const char* s = getenv("PC_SCENE");
+    if (s && strlen(s) == 4)
+    {
+        static bool used;
+        if (!used)
+        {
+            used = true; // only the first game started
+            sceneID = (unsigned int)s[0] << 24 | (unsigned int)s[1] << 16 | (unsigned int)s[2] << 8 | (unsigned char)s[3];
+            pc_log("[debug] starting in scene %s", s);
+        }
+    }
+    return sceneID;
 }
