@@ -110,13 +110,13 @@ static RwCamera* camera_begin(RwCamera* c)
     camera_update_frustum(c);
     rwGlobals()->renderFrame++;
     c->renderFrame = rwGlobals()->renderFrame;
-    pc_gl_begin_camera(c);
+    pc_render_begin_camera(c);
     return c;
 }
 
 static RwCamera* camera_end(RwCamera* c)
 {
-    pc_gl_end_camera(c);
+    pc_render_end_camera(c);
     rwGlobals()->curCamera = NULL;
     return c;
 }
@@ -193,13 +193,13 @@ RwCamera* RwCameraSetViewOffset(RwCamera* c, const RwV2d* o)
 
 RwCamera* RwCameraClear(RwCamera* c, RwRGBA* colour, RwInt32 mode)
 {
-    pc_gl_clear(c, colour, mode);
+    pc_render_clear(c, colour, mode);
     return c;
 }
 
 RwCamera* RwCameraShowRaster(RwCamera* c, void* dev, RwUInt32 flags)
 {
-    pc_gl_present();
+    pc_render_present();
     return c;
 }
 

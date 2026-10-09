@@ -1,64 +1,19 @@
-// OpenGL (fixed-function) renderer behind the PC RenderWare implementation.
+// Shared RenderWare renderer: render states, cameras, lighting, skinning,
+// world sectors, Im2D/Im3D and the debug overlay. Drawing goes through the
+// graphics backend (gpu.h): OpenGL on PC, citro3d on the New 3DS.
 #include "rw_internal.h"
+#include "gpu.h"
 #include "pc_platform.h"
 
-#include <SDL.h>
-#include <GL/gl.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
 #include <vector>
 
-#ifndef GL_CLAMP_TO_EDGE
-#define GL_CLAMP_TO_EDGE 0x812F
-#endif
-#ifndef GL_MIRRORED_REPEAT
-#define GL_MIRRORED_REPEAT 0x8370
-#endif
-#ifndef GL_GENERATE_MIPMAP
-#define GL_GENERATE_MIPMAP 0x8191
-#endif
-
-static SDL_Window* s_window;
-static SDL_GLContext s_gl;
-static int s_winW = 1280, s_winH = 960;
-
 // Logical framebuffer the game renders to.
 static const int FB_W = 640, FB_H = 480;
-
-// Framebuffer objects (GL 3.0 / ARB_framebuffer_object), loaded at startup.
-typedef void(APIENTRY* PFNGenFB)(GLsizei, GLuint*);
-typedef void(APIENTRY* PFNBindFB)(GLenum, GLuint);
-typedef void(APIENTRY* PFNFBTex2D)(GLenum, GLenum, GLenum, GLuint, GLint);
-typedef void(APIENTRY* PFNRBStorage)(GLenum, GLenum, GLsizei, GLsizei);
-typedef void(APIENTRY* PFNFBRB)(GLenum, GLenum, GLenum, GLuint);
-typedef GLenum(APIENTRY* PFNCheckFB)(GLenum);
-static PFNGenFB p_glGenFramebuffers, p_glGenRenderbuffers, p_glDeleteFramebuffers, p_glDeleteRenderbuffers;
-static PFNBindFB p_glBindFramebuffer, p_glBindRenderbuffer;
-static PFNFBTex2D p_glFramebufferTexture2D;
-static PFNRBStorage p_glRenderbufferStorage;
-static PFNFBRB p_glFramebufferRenderbuffer;
-static PFNCheckFB p_glCheckFramebufferStatus;
-enum { PC_GL_FRAMEBUFFER = 0x8D40, PC_GL_RENDERBUFFER = 0x8D41, PC_GL_COLOR_ATTACHMENT0 = 0x8CE0,
-       PC_GL_DEPTH_ATTACHMENT = 0x8D00, PC_GL_DEPTH_COMPONENT24 = 0x81A6, PC_GL_FRAMEBUFFER_COMPLETE = 0x8CD5 };
-
-static void load_fbo_functions()
-{
-    p_glGenFramebuffers = (PFNGenFB)SDL_GL_GetProcAddress("glGenFramebuffers");
-    p_glGenRenderbuffers = (PFNGenFB)SDL_GL_GetProcAddress("glGenRenderbuffers");
-    p_glDeleteFramebuffers = (PFNGenFB)SDL_GL_GetProcAddress("glDeleteFramebuffers");
-    p_glDeleteRenderbuffers = (PFNGenFB)SDL_GL_GetProcAddress("glDeleteRenderbuffers");
-    p_glBindFramebuffer = (PFNBindFB)SDL_GL_GetProcAddress("glBindFramebuffer");
-    p_glBindRenderbuffer = (PFNBindFB)SDL_GL_GetProcAddress("glBindRenderbuffer");
-    p_glFramebufferTexture2D = (PFNFBTex2D)SDL_GL_GetProcAddress("glFramebufferTexture2D");
-    p_glRenderbufferStorage = (PFNRBStorage)SDL_GL_GetProcAddress("glRenderbufferStorage");
-    p_glFramebufferRenderbuffer = (PFNFBRB)SDL_GL_GetProcAddress("glFramebufferRenderbuffer");
-    p_glCheckFramebufferStatus = (PFNCheckFB)SDL_GL_GetProcAddress("glCheckFramebufferStatus");
-}
-
-// The camera texture being rendered to, or NULL for the window.
-static PcRaster* s_target;
 
 // Current RenderWare render states.
 struct RenderStates
@@ -84,32 +39,22 @@ static int s_gxAlphaFunc = -1, s_gxAlphaRef;
 static struct { int cams, atomics, atomicsDrawn, sectors, im2d, im3d, clears; } s_st;
 static bool stats_on() { static int on = -1; if (on < 0) on = getenv("PC_STATS") != NULL; return on; }
 
-SDL_Window* pc_window() { return s_window; }
+// PC_DBG=... render toggles.
+static bool dbg_has(const char* what)
+{
+    static const char* dbg = getenv("PC_DBG");
+    return dbg && strstr(dbg, what);
+}
+
+static bool s_open;
 
 void pc_rw_device_open(void* displayID)
 {
-    if (s_window)
+    if (s_open)
     {
         return;
     }
-    SDL_InitSubSystem(SDL_INIT_VIDEO);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    s_window = SDL_CreateWindow("Scooby-Doo! Night of 100 Frights", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                s_winW, s_winH, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-    if (!s_window)
-    {
-        pc_log("[gl] window creation failed: %s", SDL_GetError());
-        return;
-    }
-    s_gl = SDL_GL_CreateContext(s_window);
-    SDL_GL_SetSwapInterval(0);
-    pc_log("[gl] %s / %s", (const char*)glGetString(GL_RENDERER), (const char*)glGetString(GL_VERSION));
-    load_fbo_functions();
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
+    s_open = gpu_open();
     s_rs.zTest = s_rs.zWrite = 1;
     s_rs.srcBlend = 5;
     s_rs.dstBlend = 6;
@@ -123,50 +68,25 @@ void pc_rw_device_open(void* displayID)
 
 void pc_rw_device_close()
 {
-    if (s_gl)
+    if (s_open)
     {
-        SDL_GL_DeleteContext(s_gl);
+        gpu_close();
     }
-    if (s_window)
-    {
-        SDL_DestroyWindow(s_window);
-    }
-    s_gl = NULL;
-    s_window = NULL;
+    s_open = false;
 }
 
-// ---------------------------------------------------------------- textures
-void pc_gl_raster_free(PcRaster* r)
+void pc_render_raster_free(PcRaster* r)
 {
-    if (r->glTex && s_gl)
+    if (s_open)
     {
-        glDeleteTextures(1, (GLuint*)&r->glTex);
+        gpu_raster_free(r);
     }
-    if (r->fbo && s_gl)
-    {
-        p_glDeleteFramebuffers(1, (GLuint*)&r->fbo);
-        p_glDeleteRenderbuffers(1, (GLuint*)&r->depthRb);
-    }
-    r->glTex = 0;
-    r->fbo = r->depthRb = 0;
 }
 
-static void upload(PcRaster* p)
+void pc_raster_scan_alpha(PcRaster* p)
 {
-    if (!p->rgba)
-    {
-        return;
-    }
-    if (!p->glTex)
-    {
-        glGenTextures(1, (GLuint*)&p->glTex);
-    }
-    glBindTexture(GL_TEXTURE_2D, p->glTex);
-    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, p->r.width, p->r.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, p->rgba);
-    p->dirty = 0;
     p->hasAlpha = 0;
-    for (size_t i = 3, n = (size_t)p->r.width * p->r.height * 4; i < n; i += 4)
+    for (size_t i = 3, n = (size_t)p->r.width * p->r.height * 4; p->rgba && i < n; i += 4)
     {
         if (p->rgba[i] != 255)
         {
@@ -176,95 +96,9 @@ static void upload(PcRaster* p)
     }
 }
 
-static GLint gl_addr(int a)
-{
-    switch (a)
-    {
-    case 2: return GL_MIRRORED_REPEAT;
-    case 3: case 4: return GL_CLAMP_TO_EDGE;
-    default: return GL_REPEAT;
-    }
-}
-
-static void bind_texture(RwRaster* r, int filter, int addrU, int addrV)
-{
-    if (!r)
-    {
-        glDisable(GL_TEXTURE_2D);
-        return;
-    }
-    PcRaster* p = pc_raster(r);
-    if (!p->fbo && (!p->glTex || p->dirty))
-    {
-        upload(p);
-    }
-    if (!p->glTex)
-    {
-        glDisable(GL_TEXTURE_2D);
-        return;
-    }
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, p->glTex);
-    GLint mag = filter == 1 || filter == 3 || filter == 4 ? GL_NEAREST : GL_LINEAR;
-    GLint min;
-    switch (filter)
-    {
-    case 1: min = GL_NEAREST; break;
-    case 3: min = GL_NEAREST_MIPMAP_NEAREST; break;
-    case 4: min = GL_NEAREST_MIPMAP_LINEAR; break;
-    case 5: min = GL_LINEAR_MIPMAP_NEAREST; break;
-    case 6: min = GL_LINEAR_MIPMAP_LINEAR; break;
-    default: min = GL_LINEAR; break;
-    }
-    if (p->fbo)
-    {
-        min = mag; // render targets have no mipmaps
-    }
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, gl_addr(addrU));
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, gl_addr(addrV));
-}
-
-void pc_gl_bind_raster(RwRaster* r) { bind_texture(r, s_rs.filter, s_rs.addrU, s_rs.addrV); }
-
 // ---------------------------------------------------------------- render state
-static GLenum gl_blend(int b)
-{
-    switch (b)
-    {
-    case 1: return GL_ZERO;
-    case 2: return GL_ONE;
-    case 3: return GL_SRC_COLOR;
-    case 4: return GL_ONE_MINUS_SRC_COLOR;
-    case 5: return GL_SRC_ALPHA;
-    case 6: return GL_ONE_MINUS_SRC_ALPHA;
-    case 7: return GL_DST_ALPHA;
-    case 8: return GL_ONE_MINUS_DST_ALPHA;
-    case 9: return GL_DST_COLOR;
-    case 10: return GL_ONE_MINUS_DST_COLOR;
-    case 11: return GL_SRC_ALPHA_SATURATE;
-    default: return GL_ONE;
-    }
-}
-
-static GLenum gl_alpha_func(int f)
-{
-    switch (f)
-    {
-    case 1: return GL_NEVER;
-    case 2: return GL_LESS;
-    case 3: return GL_EQUAL;
-    case 4: return GL_LEQUAL;
-    case 5: return GL_GREATER;
-    case 6: return GL_NOTEQUAL;
-    case 7: return GL_GEQUAL;
-    default: return GL_ALWAYS;
-    }
-}
-
 // RenderWare blends when vertex alpha is enabled or the texture has alpha
-// (call after the raster is bound, which uploads it).
+// (call after the raster is prepared, which uploads it).
 static bool raster_has_alpha(RwRaster* r)
 {
     if (!r)
@@ -272,91 +106,57 @@ static bool raster_has_alpha(RwRaster* r)
         return false;
     }
     PcRaster* p = pc_raster(r);
-    return p->fbo != 0 || p->hasAlpha;
+    return p->isTarget || p->hasAlpha;
 }
 
-// Applies blending/depth/fog/cull/alpha-test. 'alpha' forces blending on.
-static void apply_states(bool alpha)
+// The texture to draw with, uploaded; NULL when there is none to use.
+static PcRaster* use_texture(RwRaster* r)
 {
-    if (s_rs.zTest) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
-    glDepthMask(s_rs.zWrite ? GL_TRUE : GL_FALSE);
-    if (alpha || s_rs.vertexAlpha)
+    if (!r || dbg_has("notex"))
     {
-        glEnable(GL_BLEND);
-        if (s_rs.srcBlend == 4 && s_rs.dstBlend == 9)
-        {
-            // INVSRCCOLOR/DESTCOLOR (the drop shadows): GX has no source-colour
-            // source factor or dest-colour dest factor, and on GameCube this
-            // darkens the frame by the source alpha.
-            glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
-        }
-        else
-        {
-            glBlendFunc(gl_blend(s_rs.srcBlend), gl_blend(s_rs.dstBlend));
-        }
+        return NULL;
     }
-    else
-    {
-        glDisable(GL_BLEND);
-    }
-    glColorMask(s_colorUpdate, s_colorUpdate, s_colorUpdate, s_alphaUpdate);
-    glEnable(GL_ALPHA_TEST);
+    PcRaster* p = pc_raster(r);
+    gpu_prepare_texture(p);
+    return p->rgba || p->isTarget ? p : NULL;
+}
+
+// Resolves the current RenderWare states for a draw. 'alpha' forces blending on.
+static GpuState draw_state(bool alpha, PcRaster* tex, int filter, int addrU, int addrV)
+{
+    GpuState s;
+    s.zTest = s_rs.zTest && !dbg_has("nodepth");
+    s.zWrite = s_rs.zWrite != 0;
+    s.blend = (alpha || s_rs.vertexAlpha) && !dbg_has("noblend");
+    s.srcBlend = s_rs.srcBlend;
+    s.dstBlend = s_rs.dstBlend;
+    s.colorWrite = s_colorUpdate;
+    s.alphaWrite = s_alphaUpdate;
     if (s_gxAlphaFunc >= 0)
     {
-        glAlphaFunc(gl_alpha_func(s_gxAlphaFunc), s_gxAlphaRef / 255.0f);
+        s.alphaFunc = s_gxAlphaFunc;
+        s.alphaRef = s_gxAlphaRef;
     }
     else
     {
-        glAlphaFunc(gl_alpha_func(s_rs.alphaFunc), s_rs.alphaRef / 255.0f);
+        s.alphaFunc = s_rs.alphaFunc;
+        s.alphaRef = s_rs.alphaRef;
     }
-    if (s_rs.cullMode == 2 || s_rs.cullMode == 3)
+    if (dbg_has("noat"))
     {
-        glEnable(GL_CULL_FACE);
-        // RW back faces (cull mode 2) are GL back faces here; render targets are
-        // drawn flipped vertically, which swaps them.
-        bool front = (s_rs.cullMode == 3) != (s_target != NULL);
-        glCullFace(front ? GL_FRONT : GL_BACK);
+        s.alphaFunc = PC_ALPHA_ALWAYS;
     }
-    else
-    {
-        glDisable(GL_CULL_FACE);
-    }
-    static const char* dbg = getenv("PC_DBG");
-    if (dbg && strstr(dbg, "notex"))
-    {
-        glDisable(GL_TEXTURE_2D);
-    }
-    if (dbg && strstr(dbg, "noat"))
-    {
-        glDisable(GL_ALPHA_TEST);
-    }
-    if (dbg && strstr(dbg, "nocull"))
-    {
-        glDisable(GL_CULL_FACE);
-    }
-    if (dbg && strstr(dbg, "nodepth"))
-    {
-        glDisable(GL_DEPTH_TEST);
-    }
-    if (dbg && strstr(dbg, "noblend"))
-    {
-        glDisable(GL_BLEND);
-    }
-    if (s_rs.fogEnable && !(dbg && strstr(dbg, "nofog")))
-    {
-        RwCamera* cam = rwGlobals()->curCamera;
-        glEnable(GL_FOG);
-        GLfloat c[4] = { s_rs.fogColor.red / 255.0f, s_rs.fogColor.green / 255.0f, s_rs.fogColor.blue / 255.0f,
-                         s_rs.fogColor.alpha / 255.0f };
-        glFogfv(GL_FOG_COLOR, c);
-        glFogi(GL_FOG_MODE, GL_LINEAR);
-        glFogf(GL_FOG_START, cam ? cam->fogPlane : 0.0f);
-        glFogf(GL_FOG_END, cam ? cam->farPlane : 1.0f);
-    }
-    else
-    {
-        glDisable(GL_FOG);
-    }
+    s.cull = dbg_has("nocull") ? PC_CULL_NONE : s_rs.cullMode;
+    s.fog = s_rs.fogEnable && !dbg_has("nofog");
+    s.fogColor = s_rs.fogColor;
+    RwCamera* cam = rwGlobals()->curCamera;
+    s.fogStart = cam ? cam->fogPlane : 0.0f;
+    s.fogEnd = cam ? cam->farPlane : 1.0f;
+    s.tex = tex;
+    s.filter = filter;
+    s.addrU = addrU;
+    s.addrV = addrV;
+    return s;
 }
 
 extern "C" {
@@ -431,85 +231,54 @@ static bool trace_frame()
 {
     static const char* at = getenv("PC_TRACE_AT");
     static int left = 200;
-    return at && left > 0 && SDL_GetTicks() >= (Uint32)(atof(at) * 1000) && left--;
+    return at && left > 0 && pc_ticks_ms() >= (unsigned)(atof(at) * 1000) && left--;
+}
+
+// ---------------------------------------------------------------- matrices
+static void matrix16(const RwMatrix* m, float* o)
+{
+    o[0] = m->right.x; o[1] = m->right.y; o[2] = m->right.z; o[3] = 0;
+    o[4] = m->up.x; o[5] = m->up.y; o[6] = m->up.z; o[7] = 0;
+    o[8] = m->at.x; o[9] = m->at.y; o[10] = m->at.z; o[11] = 0;
+    o[12] = m->pos.x; o[13] = m->pos.y; o[14] = m->pos.z; o[15] = 1;
+}
+
+// o = a * b (column-major).
+static void mul16(const float* a, const float* b, float* o)
+{
+    for (int c = 0; c < 4; c++)
+    {
+        for (int r = 0; r < 4; r++)
+        {
+            o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+        }
+    }
+}
+
+static const float kIdentity[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
+
+static void ortho(float* p, float l, float r, float b, float t)
+{
+    memset(p, 0, 16 * sizeof(float));
+    p[0] = 2.0f / (r - l);
+    p[5] = 2.0f / (t - b);
+    p[10] = -1.0f;
+    p[12] = -(r + l) / (r - l);
+    p[13] = -(t + b) / (t - b);
+    p[15] = 1.0f;
 }
 
 // ---------------------------------------------------------------- cameras
-static void set_viewport();
-
-// Points rendering at a camera texture raster (an FBO around its GL texture),
-// or back at the window for any other raster.
-static void bind_target(RwRaster* fb)
-{
-    PcRaster* p = NULL;
-    if (fb && fb->cType == rwRASTERTYPECAMERATEXTURE && p_glGenFramebuffers && fb->width > 0 && fb->height > 0)
-    {
-        p = pc_raster(fb);
-        if (!p->fbo)
-        {
-            if (!p->glTex)
-            {
-                glGenTextures(1, (GLuint*)&p->glTex);
-            }
-            glBindTexture(GL_TEXTURE_2D, p->glTex);
-            glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fb->width, fb->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-            p_glGenFramebuffers(1, (GLuint*)&p->fbo);
-            p_glGenRenderbuffers(1, (GLuint*)&p->depthRb);
-            p_glBindRenderbuffer(PC_GL_RENDERBUFFER, p->depthRb);
-            p_glRenderbufferStorage(PC_GL_RENDERBUFFER, PC_GL_DEPTH_COMPONENT24, fb->width, fb->height);
-            p_glBindFramebuffer(PC_GL_FRAMEBUFFER, p->fbo);
-            p_glFramebufferTexture2D(PC_GL_FRAMEBUFFER, PC_GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, p->glTex, 0);
-            p_glFramebufferRenderbuffer(PC_GL_FRAMEBUFFER, PC_GL_DEPTH_ATTACHMENT, PC_GL_RENDERBUFFER, p->depthRb);
-            if (p_glCheckFramebufferStatus(PC_GL_FRAMEBUFFER) != PC_GL_FRAMEBUFFER_COMPLETE)
-            {
-                pc_log("[gl] render target %dx%d incomplete", fb->width, fb->height);
-            }
-            p_glBindFramebuffer(PC_GL_FRAMEBUFFER, s_target ? s_target->fbo : 0);
-            p->dirty = 0;
-        }
-    }
-    if (p == s_target)
-    {
-        return;
-    }
-    s_target = p;
-    if (p_glBindFramebuffer)
-    {
-        p_glBindFramebuffer(PC_GL_FRAMEBUFFER, p ? p->fbo : 0);
-    }
-    set_viewport();
-}
-
 static float s_view[16];
+static float s_proj[16];
 static RwCamera* s_cam;
-
-// The game renders at 640x480; fit that into the window keeping 4:3.
-static void set_viewport()
-{
-    if (s_target)
-    {
-        glViewport(0, 0, s_target->r.width, s_target->r.height);
-        return;
-    }
-    SDL_GL_GetDrawableSize(s_window, &s_winW, &s_winH);
-    int w = s_winW, h = s_winH;
-    if (w * 3 > h * 4)
-    {
-        w = h * 4 / 3;
-    }
-    else
-    {
-        h = w * 3 / 4;
-    }
-    glViewport((s_winW - w) / 2, (s_winH - h) / 2, w, h);
-}
 
 static void load_projection(RwCamera* c)
 {
     float vx = c->viewWindow.x, vy = c->viewWindow.y, n = c->nearPlane, f = c->farPlane;
     float ox = c->viewOffset.x, oy = c->viewOffset.y;
-    float p[16] = { 0 };
+    float* p = s_proj;
+    memset(p, 0, 16 * sizeof(float));
     if (c->projectionType == rwPARALLEL)
     {
         p[0] = 1.0f / vx;
@@ -537,26 +306,25 @@ static void load_projection(RwCamera* c)
         p[11] = 1.0f;
         p[14] = -2.0f * f * n / (f - n);
     }
-    if (s_target)
+    gpu_set_projection(p);
+}
+
+static void target_camera(RwCamera* c)
+{
+    RwRaster* fb = c ? c->frameBuffer : NULL;
+    if (fb && fb->cType == rwRASTERTYPECAMERATEXTURE && fb->width > 0 && fb->height > 0)
     {
-        // Texture row 0 is the image's top row: render targets are drawn upside down.
-        p[1] = -p[1], p[5] = -p[5], p[9] = -p[9], p[13] = -p[13];
+        gpu_set_target(pc_raster(fb));
     }
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(p);
+    else
+    {
+        gpu_set_target(NULL);
+    }
 }
 
-static void matrix16(const RwMatrix* m, float* o)
+void pc_render_begin_camera(RwCamera* c)
 {
-    o[0] = m->right.x; o[1] = m->right.y; o[2] = m->right.z; o[3] = 0;
-    o[4] = m->up.x; o[5] = m->up.y; o[6] = m->up.z; o[7] = 0;
-    o[8] = m->at.x; o[9] = m->at.y; o[10] = m->at.z; o[11] = 0;
-    o[12] = m->pos.x; o[13] = m->pos.y; o[14] = m->pos.z; o[15] = 1;
-}
-
-void pc_gl_begin_camera(RwCamera* c)
-{
-    if (!s_window)
+    if (!s_open)
     {
         return;
     }
@@ -567,7 +335,7 @@ void pc_gl_begin_camera(RwCamera* c)
         pc_log("[trace] begin cam %p fb %p vw %.3f %.3f off %.3f %.3f", c, c->frameBuffer, c->viewWindow.x,
                c->viewWindow.y, c->viewOffset.x, c->viewOffset.y);
     }
-    bind_target(c->frameBuffer);
+    target_camera(c);
     if (stats_on())
     {
         static void* seen[64];
@@ -583,7 +351,6 @@ void pc_gl_begin_camera(RwCamera* c)
                    fb ? fb->width : 0, fb ? fb->height : 0, fb ? fb->parent : NULL, c->zBuffer);
         }
     }
-    set_viewport();
     load_projection(c);
     // View = inverse(camera LTM) with X flipped (RW's +X points left on screen).
     RwMatrix v = c->viewMatrix;
@@ -592,8 +359,7 @@ void pc_gl_begin_camera(RwCamera* c)
     v.at.x = -v.at.x;
     v.pos.x = -v.pos.x;
     matrix16(&v, s_view);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(s_view);
+    gpu_set_modelview(s_view);
     if (stats_on())
     {
         static int n;
@@ -613,15 +379,15 @@ void pc_gl_begin_camera(RwCamera* c)
     }
 }
 
-void pc_gl_end_camera(RwCamera* c)
+void pc_render_end_camera(RwCamera* c)
 {
     s_cam = NULL;
-    bind_target(NULL);
+    gpu_set_target(NULL);
 }
 
-void pc_gl_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
+void pc_render_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
 {
-    if (!s_window)
+    if (!s_open)
     {
         return;
     }
@@ -637,90 +403,32 @@ void pc_gl_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
         if (n++ % 400 == 0)
         {
             pc_log("[clear] cam %p mode %d col %02x%02x%02x%02x target %p", c, mode, col ? col->red : 0,
-                   col ? col->green : 0, col ? col->blue : 0, col ? col->alpha : 0, s_target);
+                   col ? col->green : 0, col ? col->blue : 0, col ? col->alpha : 0, gpu_target());
         }
     }
     // RwCameraClear clears the camera's own raster, and may be called outside
-    // its Begin/EndUpdate: clear that target, then restore the current one.
-    PcRaster* prev = s_target;
-    bind_target(c ? c->frameBuffer : NULL);
-    GLbitfield bits = 0;
-    if ((mode & rwCAMERACLEARIMAGE) && col)
+    // its Begin/EndUpdate.
+    RwRaster* fb = c ? c->frameBuffer : NULL;
+    PcRaster* target = NULL;
+    if (fb && fb->cType == rwRASTERTYPECAMERATEXTURE && fb->width > 0 && fb->height > 0)
     {
-        glClearColor(col->red / 255.0f, col->green / 255.0f, col->blue / 255.0f, col->alpha / 255.0f);
-        bits |= GL_COLOR_BUFFER_BIT;
+        target = pc_raster(fb);
     }
-    if (mode & rwCAMERACLEARZ)
+    const RwRGBA* image = (mode & rwCAMERACLEARIMAGE) ? col : NULL;
+    bool depth = (mode & rwCAMERACLEARZ) != 0;
+    if (image || depth)
     {
-        glDepthMask(GL_TRUE);
-        bits |= GL_DEPTH_BUFFER_BIT;
+        gpu_clear(target, image, depth);
     }
-    if (bits)
-    {
-        // Clear the whole window (letterbox bars included) for image clears.
-        if ((bits & GL_COLOR_BUFFER_BIT) && !s_target)
-        {
-            glViewport(0, 0, s_winW, s_winH);
-        }
-        // The GameCube clears with an EFB copy, which ignores the write masks.
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glClear(bits);
-        set_viewport();
-    }
-    bind_target(prev ? &prev->r : NULL);
 }
 
 void pc_events_pump();
 
-// Debug: PC_SHOT=<frame> saves build/pc/shot.bmp of that frame (and every 600 frames after).
-// PC_SHOT=<frame>,<step> saves build/pc/shot_<frame>.bmp every <step> frames instead.
-static void maybe_screenshot()
-{
-    static int frame;
-    static int at = -2, step = 600;
-    static bool numbered;
-    if (at == -2)
-    {
-        const char* e = getenv("PC_SHOT");
-        at = e ? atoi(e) : -1;
-        const char* c = e ? strchr(e, ',') : NULL;
-        if (c && atoi(c + 1) > 0)
-        {
-            step = atoi(c + 1);
-            numbered = true;
-        }
-    }
-    frame++;
-    if (at < 0 || frame < at || (frame - at) % step != 0)
-    {
-        return;
-    }
-    std::vector<unsigned char> px((size_t)s_winW * s_winH * 4);
-    glReadPixels(0, 0, s_winW, s_winH, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
-    SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormat(0, s_winW, s_winH, 32, SDL_PIXELFORMAT_ABGR8888);
-    for (int y = 0; y < s_winH; y++)
-    {
-        memcpy((unsigned char*)surf->pixels + y * surf->pitch, &px[(size_t)(s_winH - 1 - y) * s_winW * 4], (size_t)s_winW * 4);
-    }
-    char name[64];
-    if (numbered)
-    {
-        snprintf(name, sizeof(name), "build/pc/shot_%d.bmp", frame);
-    }
-    else
-    {
-        snprintf(name, sizeof(name), "build/pc/shot.bmp");
-    }
-    SDL_SaveBMP(surf, name);
-    SDL_FreeSurface(surf);
-    pc_log("[gl] screenshot at frame %d", frame);
-}
-
 static void draw_overlay();
 
-void pc_gl_present()
+void pc_render_present()
 {
-    if (!s_window)
+    if (!s_open)
     {
         return;
     }
@@ -729,18 +437,18 @@ void pc_gl_present()
         pc_log("[trace] present");
     }
     draw_overlay();
-    maybe_screenshot();
     if (stats_on())
     {
         static int frame;
         if (++frame % 120 == 0)
         {
-            pc_log("[stats] %.1fs frame %d: cams %d atomics %d/%d sectors %d im2d %d im3d %d clears %d", SDL_GetTicks() / 1000.0, frame, s_st.cams,
-                   s_st.atomicsDrawn, s_st.atomics, s_st.sectors, s_st.im2d, s_st.im3d, s_st.clears);
+            pc_log("[stats] %.1fs frame %d: cams %d atomics %d/%d sectors %d im2d %d im3d %d clears %d",
+                   pc_ticks_ms() / 1000.0, frame, s_st.cams, s_st.atomicsDrawn, s_st.atomics, s_st.sectors, s_st.im2d,
+                   s_st.im3d, s_st.clears);
         }
         memset(&s_st, 0, sizeof(s_st));
     }
-    SDL_GL_SwapWindow(s_window);
+    gpu_present();
     pc_events_pump();
 }
 
@@ -748,7 +456,7 @@ void pc_gl_present()
 // Lighting is done on the CPU with RenderWare's rules: per vertex,
 //   colour = prelit + materialColour * (ambient * ka + sum(lights) * kd)
 //   alpha  = prelit.alpha * materialAlpha
-// (fixed-function GL lighting can't add the prelit colour as well).
+// (fixed-function lighting can't add the prelit colour as well).
 static std::vector<float> s_light; // per-vertex accumulated direct light (rgb), or empty when unlit
 static float s_amb[3];              // accumulated ambient light
 
@@ -854,16 +562,29 @@ static void light_vertices(RpGeometry* g, const RwMatrix* ltm, const RwV3d* pos,
 }
 
 // ---------------------------------------------------------------- geometry
-static std::vector<float> s_pos, s_nrm;
 static std::vector<RwRGBA> s_col;
 
-static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* prelit, bool modulate, int nv,
-                        const RpTriangle* tris, int ntris)
+// Positions and texture coordinates shared by the meshes of one geometry.
+struct MeshArrays
 {
+    const RwV3d* pos;
+    const RwTexCoords* uv;
+};
+
+static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* prelit, bool modulate, int nv,
+                        const RpTriangle* tris, int ntris, const MeshArrays& arr)
+{
+    GpuVerts v;
+    v.pos = &arr.pos->x;
+    v.posStride = sizeof(RwV3d);
+    v.posSize = 3;
+    v.uv = arr.uv ? &arr.uv->u : NULL;
+    v.uvStride = sizeof(RwTexCoords);
+    v.count = nv;
     if (mh && mh->numMeshes)
     {
         RpMesh* mesh = (RpMesh*)(mh + 1);
-        GLenum prim = (mh->flags & rpMESHHEADERTRISTRIP) ? GL_TRIANGLE_STRIP : GL_TRIANGLES;
+        GpuPrim prim = (mh->flags & rpMESHHEADERTRISTRIP) ? GPU_TRISTRIP : GPU_TRIANGLES;
         for (int i = 0; i < mh->numMeshes; i++)
         {
             RpMaterial* m = mesh[i].material;
@@ -913,42 +634,36 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                     s_col[k].alpha = (RwUInt8)((prelit ? prelit[k].alpha : 255) * mc.alpha / 255);
                     alpha |= s_col[k].alpha < 255;
                 }
-                glEnableClientState(GL_COLOR_ARRAY);
-                glColorPointer(4, GL_UNSIGNED_BYTE, 0, s_col.data());
+                v.col = s_col.data();
+                v.colStride = sizeof(RwRGBA);
             }
             else
             {
-                glDisableClientState(GL_COLOR_ARRAY);
-                glColor4ub(mc.red, mc.green, mc.blue, mc.alpha);
+                v.col = NULL;
+                v.constCol = mc;
             }
             RwTexture* t = m ? m->texture : NULL;
-            if (t && t->raster)
-            {
-                bind_texture(t->raster, rwTexFilter(t), rwTexAddrU(t), rwTexAddrV(t));
-            }
-            else
-            {
-                glDisable(GL_TEXTURE_2D);
-            }
-            apply_states(alpha || (t && raster_has_alpha(t->raster)));
+            PcRaster* tex = t ? use_texture(t->raster) : NULL;
+            GpuState s = t ? draw_state(alpha || (t->raster && raster_has_alpha(t->raster)), tex, rwTexFilter(t),
+                                        rwTexAddrU(t), rwTexAddrV(t))
+                           : draw_state(alpha, NULL, 0, 0, 0);
             // Debug: PC_HILITE_MAT=<n> paints world material n bright red.
             static const char* hilite = getenv("PC_HILITE_MAT");
             RpWorld* cw = (RpWorld*)rwGlobals()->curWorld;
             if (hilite && cw && mats == &cw->matList && m && atoi(hilite) < cw->matList.numMaterials &&
                 cw->matList.materials[atoi(hilite)] == m)
             {
-                glDisableClientState(GL_COLOR_ARRAY);
-                glDisable(GL_TEXTURE_2D);
-                glDisable(GL_FOG);
-                glColor4ub(255, 0, 0, 255);
+                v.col = NULL;
+                v.constCol = RwRGBA{ 255, 0, 0, 255 };
+                s.tex = NULL;
+                s.fog = false;
             }
-            static const char* dbg = getenv("PC_DBG");
-            if (dbg && strstr(dbg, "white"))
+            if (dbg_has("white"))
             {
-                glDisableClientState(GL_COLOR_ARRAY);
-                glColor4ub(255, 255, 255, 255);
+                v.col = NULL;
+                v.constCol = RwRGBA{ 255, 255, 255, 255 };
             }
-            glDrawElements(prim, (GLsizei)mesh[i].numIndices, GL_UNSIGNED_SHORT, mesh[i].indices);
+            gpu_draw(s, v, prim, mesh[i].indices, (int)mesh[i].numIndices);
         }
         return;
     }
@@ -962,10 +677,9 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
             idx[i * 3 + 1] = tris[i].vertIndex[1];
             idx[i * 3 + 2] = tris[i].vertIndex[2];
         }
-        glDisable(GL_TEXTURE_2D);
-        glColor4ub(255, 255, 255, 255);
-        apply_states(false);
-        glDrawElements(GL_TRIANGLES, (GLsizei)idx.size(), GL_UNSIGNED_SHORT, idx.data());
+        v.col = NULL;
+        v.constCol = RwRGBA{ 255, 255, 255, 255 };
+        gpu_draw(draw_state(false, NULL, 0, 0, 0), v, GPU_TRIANGLES, idx.data(), (int)idx.size());
     }
 }
 
@@ -1009,17 +723,16 @@ static void skin_vertices(RpGeometry* g, PcSkin* sk, RpHAnimHierarchy* h, RwV3d*
     }
 }
 
-void pc_gl_render_atomic(RpAtomic* a)
+void pc_render_atomic(RpAtomic* a)
 {
     RpGeometry* g = a->geometry;
     RwFrame* f = (RwFrame*)a->object.object.parent;
     s_st.atomics++;
-    if (!s_window || !g || !f || !g->morphTarget || !g->morphTarget->verts || g->numVertices <= 0)
+    if (!s_open || !g || !f || !g->morphTarget || !g->morphTarget->verts || g->numVertices <= 0)
     {
         return;
     }
-    static const char* dbg = getenv("PC_DBG");
-    if (dbg && strstr(dbg, "noatomic"))
+    if (dbg_has("noatomic"))
     {
         return;
     }
@@ -1029,7 +742,7 @@ void pc_gl_render_atomic(RpAtomic* a)
         pc_log("[trace] atomic verts %d pos %.1f %.1f %.1f blend %d/%d zt %d", g->numVertices, f->ltm.pos.x,
                f->ltm.pos.y, f->ltm.pos.z, s_rs.srcBlend, s_rs.dstBlend, s_rs.zTest);
     }
-    if (stats_on() && dbg && strstr(dbg, "atomlog"))
+    if (stats_on() && dbg_has("atomlog"))
     {
         // Each distinct geometry once: flags, prelit sample, materials and textures.
         static std::vector<RpGeometry*> seen;
@@ -1051,11 +764,10 @@ void pc_gl_render_atomic(RpAtomic* a)
             }
         }
     }
-    float model[16];
+    float model[16], mv[16];
     matrix16(&f->ltm, model);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(s_view);
-    glMultMatrixf(model);
+    mul16(s_view, model, mv);
+    gpu_set_modelview(mv);
 
     const RwV3d* pos = g->morphTarget->verts;
     const RwV3d* nrm = g->morphTarget->normals;
@@ -1100,26 +812,6 @@ void pc_gl_render_atomic(RpAtomic* a)
         }
         nrm = nrm ? sn.data() : NULL;
     }
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(3, GL_FLOAT, 0, pos);
-    if (nrm)
-    {
-        glEnableClientState(GL_NORMAL_ARRAY);
-        glNormalPointer(GL_FLOAT, 0, nrm);
-    }
-    else
-    {
-        glDisableClientState(GL_NORMAL_ARRAY);
-    }
-    if (g->texCoords[0])
-    {
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        glTexCoordPointer(2, GL_FLOAT, 0, g->texCoords[0]);
-    }
-    else
-    {
-        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    }
     if (nrm && (g->flags & rpGEOMETRYLIGHT))
     {
         light_vertices(g, &f->ltm, pos, nrm);
@@ -1128,13 +820,11 @@ void pc_gl_render_atomic(RpAtomic* a)
     {
         s_light.clear();
     }
+    MeshArrays arr = { pos, g->texCoords[0] };
     draw_meshes(g->mesh, &g->matList, g->preLitLum, (g->flags & rpGEOMETRYMODULATEMATERIALCOLOR) != 0,
-                g->numVertices, g->triangles, g->numTriangles);
+                g->numVertices, g->triangles, g->numTriangles, arr);
     s_light.clear();
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(s_view);
+    gpu_set_modelview(s_view);
 }
 
 static bool sector_visible(RpWorldSector* s)
@@ -1159,17 +849,13 @@ static bool sector_visible(RpWorldSector* s)
     return true;
 }
 
-void pc_gl_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors)
+void pc_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors)
 {
-    static const char* dbg = getenv("PC_DBG");
-    if (!s_window || (dbg && strstr(dbg, "nosector")))
+    if (!s_open || dbg_has("nosector"))
     {
         return;
     }
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(s_view);
-    glDisable(GL_LIGHTING);
-    glDisableClientState(GL_NORMAL_ARRAY);
+    gpu_set_modelview(s_view);
     for (size_t i = 0; i < sectors.size(); i++)
     {
         RpWorldSector* s = sectors[i];
@@ -1191,34 +877,23 @@ void pc_gl_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors)
                        s->preLitLum ? s->preLitLum[0].alpha : 0, s->texCoords[0]);
             }
         }
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(3, GL_FLOAT, 0, s->vertices);
-        if (s->texCoords[0])
-        {
-            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-            glTexCoordPointer(2, GL_FLOAT, 0, s->texCoords[0]);
-        }
-        else
-        {
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-        }
+        MeshArrays arr = { s->vertices, s->texCoords[0] };
         draw_meshes(s->mesh, &w->matList, s->preLitLum, (w->flags & rpGEOMETRYMODULATEMATERIALCOLOR) != 0,
-                    s->numVertices, NULL, 0);
+                    s->numVertices, NULL, 0, arr);
     }
-    glDisableClientState(GL_COLOR_ARRAY);
 }
 
 // ---------------------------------------------------------------- immediate mode
-static GLenum gl_prim(int t)
+static GpuPrim gpu_prim(int t)
 {
     switch (t)
     {
-    case rwPRIMTYPELINELIST: return GL_LINES;
-    case rwPRIMTYPEPOLYLINE: return GL_LINE_STRIP;
-    case rwPRIMTYPETRISTRIP: return GL_TRIANGLE_STRIP;
-    case rwPRIMTYPETRIFAN: return GL_TRIANGLE_FAN;
-    case rwPRIMTYPEPOINTLIST: return GL_POINTS;
-    default: return GL_TRIANGLES;
+    case rwPRIMTYPELINELIST: return GPU_LINES;
+    case rwPRIMTYPEPOLYLINE: return GPU_LINESTRIP;
+    case rwPRIMTYPETRISTRIP: return GPU_TRISTRIP;
+    case rwPRIMTYPETRIFAN: return GPU_TRIFAN;
+    case rwPRIMTYPEPOINTLIST: return GPU_POINTS;
+    default: return GPU_TRIANGLES;
     }
 }
 
@@ -1236,44 +911,46 @@ static bool im2d_alpha(const RwIm2DVertex* v, int n)
     return raster_has_alpha(s_rs.raster);
 }
 
+// Screen-space draws: pixels of the current target (the 640x480 game area for
+// the screen), y down.
 static void begin_2d()
 {
-    set_viewport();
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    if (s_target)
-    {
-        glOrtho(0, s_target->r.width, 0, s_target->r.height, -1, 1);
-    }
-    else
-    {
-        glOrtho(0, FB_W, FB_H, 0, -1, 1);
-    }
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    glDisable(GL_LIGHTING);
-    pc_gl_bind_raster(s_rs.raster);
+    float p[16];
+    PcRaster* t = gpu_target();
+    ortho(p, 0, t ? (float)t->r.width : (float)FB_W, t ? (float)t->r.height : (float)FB_H, 0);
+    gpu_set_projection(p);
+    gpu_set_modelview(kIdentity);
 }
 
 static void end_2d()
 {
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
+    gpu_set_projection(s_proj);
+    gpu_set_modelview(s_view);
 }
 
-static void im2d_arrays(RwIm2DVertex* v)
+static GpuVerts im2d_verts(RwIm2DVertex* v, int n)
 {
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(2, GL_FLOAT, sizeof(RwIm2DVertex), &v->x);
-    glEnableClientState(GL_COLOR_ARRAY);
-    glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(RwIm2DVertex), &v->emissiveColor);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glTexCoordPointer(2, GL_FLOAT, sizeof(RwIm2DVertex), &v->u);
-    glDisableClientState(GL_NORMAL_ARRAY);
+    GpuVerts gv;
+    gv.pos = &v->x;
+    gv.posStride = sizeof(RwIm2DVertex);
+    gv.posSize = 2;
+    gv.col = &v->emissiveColor;
+    gv.colStride = sizeof(RwIm2DVertex);
+    gv.uv = &v->u;
+    gv.uvStride = sizeof(RwIm2DVertex);
+    gv.count = n;
+    return gv;
+}
+
+// Im2D: screen-space quads with no depth test; the y-down projection flips
+// their winding, so no culling either.
+static GpuState im2d_state(RwIm2DVertex* v, int n)
+{
+    PcRaster* tex = use_texture(s_rs.raster);
+    GpuState s = draw_state(im2d_alpha(v, n), tex, s_rs.filter, s_rs.addrU, s_rs.addrV);
+    s.zTest = false;
+    s.cull = PC_CULL_NONE;
+    return s;
 }
 
 // Im3D: the last transformed batch.
@@ -1289,12 +966,7 @@ float RwIm2DGetFarScreenZ() { return 1.0f; }
 
 RwInt32 RwIm2DRenderPrimitive(RwInt32 primType, RwIm2DVertex* v, RwInt32 n)
 {
-    if (!s_window || n <= 0)
-    {
-        return 1;
-    }
-    static const char* dbg = getenv("PC_DBG");
-    if (dbg && strstr(dbg, "noim2d"))
+    if (!s_open || n <= 0 || dbg_has("noim2d"))
     {
         return 1;
     }
@@ -1315,36 +987,26 @@ RwInt32 RwIm2DRenderPrimitive(RwInt32 primType, RwIm2DVertex* v, RwInt32 n)
                s_rs.dstBlend, s_rs.vertexAlpha);
     }
     begin_2d();
-    apply_states(im2d_alpha(v, n));
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE); // screen-space quads; the Y-down projection flips their winding
-    im2d_arrays(v);
-    glDrawArrays(gl_prim(primType), 0, n);
-    glDisableClientState(GL_COLOR_ARRAY);
+    gpu_draw(im2d_state(v, n), im2d_verts(v, n), gpu_prim(primType), NULL, 0);
     end_2d();
     return 1;
 }
 
 RwInt32 RwIm2DRenderIndexedPrimitive(RwInt32 primType, void* vertices, RwInt32 n, RwUInt16* idx, RwInt32 ni)
 {
-    if (!s_window || n <= 0)
+    if (!s_open || n <= 0)
     {
         return 1;
     }
+    RwIm2DVertex* v = (RwIm2DVertex*)vertices;
     if (trace_frame())
     {
-        RwIm2DVertex* tv = (RwIm2DVertex*)vertices;
         pc_log("[trace] im2d-idx prim %d n %d raster %p (%.0f,%.0f) col %02x%02x%02x%02x blend %d/%d", primType, n,
-               s_rs.raster, tv[0].x, tv[0].y, tv[0].emissiveColor.red, tv[0].emissiveColor.green,
-               tv[0].emissiveColor.blue, tv[0].emissiveColor.alpha, s_rs.srcBlend, s_rs.dstBlend);
+               s_rs.raster, v[0].x, v[0].y, v[0].emissiveColor.red, v[0].emissiveColor.green,
+               v[0].emissiveColor.blue, v[0].emissiveColor.alpha, s_rs.srcBlend, s_rs.dstBlend);
     }
     begin_2d();
-    apply_states(im2d_alpha((RwIm2DVertex*)vertices, n));
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-    im2d_arrays((RwIm2DVertex*)vertices);
-    glDrawElements(gl_prim(primType), ni, GL_UNSIGNED_SHORT, idx);
-    glDisableClientState(GL_COLOR_ARRAY);
+    gpu_draw(im2d_state(v, n), im2d_verts(v, n), gpu_prim(primType), idx, ni);
     end_2d();
     return 1;
 }
@@ -1367,17 +1029,21 @@ void* RwIm3DTransform(RwIm3DVertex* v, RwUInt32 n, RwMatrix* ltm, RwUInt32 flags
     return v;
 }
 
-static void im3d_setup()
+}
+
+static void im3d_draw(GpuPrim prim, const RwUInt16* idx, int n)
 {
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(s_view);
     if (s_im3dHasLtm)
     {
-        float m[16];
+        float m[16], mv[16];
         matrix16(&s_im3dLtm, m);
-        glMultMatrixf(m);
+        mul16(s_view, m, mv);
+        gpu_set_modelview(mv);
     }
-    glDisable(GL_LIGHTING);
+    else
+    {
+        gpu_set_modelview(s_view);
+    }
     static const char* logIm3d = getenv("PC_LOG_IM3D");
     static int logged;
     if (logIm3d && logged < atoi(logIm3d) && rwGlobals()->renderFrame > 2000)
@@ -1394,55 +1060,46 @@ static void im3d_setup()
                pr && pr->rgba ? *(unsigned int*)(pr->rgba + (s_rs.raster->width * (s_rs.raster->height / 2) + s_rs.raster->width / 2) * 4) : 0,
                pr && pr->rgba ? *(unsigned int*)pr->rgba : 0, pr ? pr->ext[0xC] : -1);
     }
-    pc_gl_bind_raster(s_rs.raster);
+    PcRaster* tex = use_texture(s_rs.raster);
     bool alpha = raster_has_alpha(s_rs.raster);
     for (RwUInt32 i = 0; i < s_im3dCount && !alpha; i++)
     {
         alpha = s_im3dVerts[i].color.alpha != 255;
     }
-    apply_states(alpha);
-    RwIm3DVertex* v = s_im3dVerts;
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(3, GL_FLOAT, sizeof(RwIm3DVertex), &v->objVertex);
-    glEnableClientState(GL_COLOR_ARRAY);
-    glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(RwIm3DVertex), &v->color);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glTexCoordPointer(2, GL_FLOAT, sizeof(RwIm3DVertex), &v->u);
-    glDisableClientState(GL_NORMAL_ARRAY);
+    GpuVerts v;
+    RwIm3DVertex* iv = s_im3dVerts;
+    v.pos = &iv->objVertex.x;
+    v.posStride = sizeof(RwIm3DVertex);
+    v.posSize = 3;
+    v.col = &iv->color;
+    v.colStride = sizeof(RwIm3DVertex);
+    v.uv = &iv->u;
+    v.uvStride = sizeof(RwIm3DVertex);
+    v.count = (int)s_im3dCount;
+    gpu_draw(draw_state(alpha, tex, s_rs.filter, s_rs.addrU, s_rs.addrV), v, prim, idx, n);
+    gpu_set_modelview(s_view);
 }
 
-static bool im3d_disabled()
-{
-    static const char* dbg = getenv("PC_DBG");
-    return dbg && strstr(dbg, "noim3d");
-}
+extern "C" {
 
 RwInt32 RwIm3DRenderPrimitive(RwInt32 primType)
 {
-    if (!s_window || !s_im3dVerts || im3d_disabled())
+    if (!s_open || !s_im3dVerts || dbg_has("noim3d"))
     {
         return 1;
     }
     s_st.im3d++;
-    im3d_setup();
-    glDrawArrays(gl_prim(primType), 0, (GLsizei)s_im3dCount);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(s_view);
+    im3d_draw(gpu_prim(primType), NULL, 0);
     return 1;
 }
 
 RwInt32 RwIm3DRenderIndexedPrimitive(RwInt32 primType, RwUInt16* idx, RwInt32 n)
 {
-    if (!s_window || !s_im3dVerts || im3d_disabled())
+    if (!s_open || !s_im3dVerts || dbg_has("noim3d"))
     {
         return 1;
     }
-    im3d_setup();
-    glDrawElements(gl_prim(primType), n, GL_UNSIGNED_SHORT, idx);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(s_view);
+    im3d_draw(gpu_prim(primType), idx, n);
     return 1;
 }
 
@@ -1455,80 +1112,14 @@ RwInt32 RwIm3DEnd()
 }
 
 // ---------------------------------------------------------------- movies
-// Shows one decoded movie frame (RGBA) fitted to the 4:3 game area, and presents.
-extern "C" void pc_gl_fmv_frame(const unsigned char* rgba, int w, int h, int letterbox)
+extern "C" void pc_render_fmv_frame(const unsigned char* rgba, int w, int h, int letterbox)
 {
-    if (!s_window)
+    if (!s_open)
     {
         return;
     }
-    static GLuint tex;
-    static int texW, texH;
-    if (!tex)
-    {
-        glGenTextures(1, &tex);
-    }
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    if (w != texW || h != texH)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        texW = w;
-        texH = h;
-    }
-    else
-    {
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
-    }
-    // Whole window black, then the movie in the 4:3 area keeping its aspect ratio.
-    glViewport(0, 0, s_winW, s_winH);
-    glDisable(GL_SCISSOR_TEST);
-    glClearColor(0, 0, 0, 1);
-    glDepthMask(GL_TRUE);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    set_viewport();
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
-    glDisable(GL_ALPHA_TEST);
-    glDisable(GL_FOG);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_LIGHTING);
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    float aspect = (float)w / h, area = 4.0f / 3.0f;
-    float sx = 1.0f, sy = 1.0f;
-    if (aspect > area)
-    {
-        sy = area / aspect;
-    }
-    else
-    {
-        sx = aspect / area;
-    }
     (void)letterbox;
-    glEnable(GL_TEXTURE_2D);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-    glBegin(GL_QUADS);
-    glTexCoord2f(0, 1); glVertex2f(-sx, -sy);
-    glTexCoord2f(1, 1); glVertex2f(sx, -sy);
-    glTexCoord2f(1, 0); glVertex2f(sx, sy);
-    glTexCoord2f(0, 0); glVertex2f(-sx, sy);
-    glEnd();
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    maybe_screenshot();
-    SDL_GL_SwapWindow(s_window);
+    gpu_fmv_frame(rgba, w, h);
     pc_events_pump();
 }
 
@@ -1564,9 +1155,40 @@ static const struct { char c; unsigned char rows[7]; } s_font[] = {
 
 static char s_overlay[4096];
 
-extern "C" void pc_gl_set_overlay(const char* text)
+extern "C" void pc_render_set_overlay(const char* text)
 {
     snprintf(s_overlay, sizeof(s_overlay), "%s", text ? text : "");
+}
+
+static void overlay_rect(std::vector<float>& q, int x0, int y0, int x1, int y1)
+{
+    const float v[12] = { (float)x0, (float)y0, (float)x1, (float)y0, (float)x1, (float)y1,
+                          (float)x0, (float)y0, (float)x1, (float)y1, (float)x0, (float)y1 };
+    q.insert(q.end(), v, v + 12);
+}
+
+static void overlay_draw(const std::vector<float>& q, RwRGBA col)
+{
+    if (q.empty())
+    {
+        return;
+    }
+    GpuState s;
+    memset(&s, 0, sizeof(s));
+    s.blend = true;
+    s.srcBlend = PC_BLEND_SRCALPHA;
+    s.dstBlend = PC_BLEND_INVSRCALPHA;
+    s.alphaFunc = PC_ALPHA_ALWAYS;
+    s.cull = PC_CULL_NONE;
+    s.colorWrite = s.alphaWrite = true;
+    GpuVerts v;
+    memset(&v, 0, sizeof(v));
+    v.pos = q.data();
+    v.posStride = 2 * sizeof(float);
+    v.posSize = 2;
+    v.constCol = col;
+    v.count = (int)q.size() / 2;
+    gpu_draw(s, v, GPU_TRIANGLES, NULL, 0);
 }
 
 static void draw_overlay()
@@ -1575,45 +1197,28 @@ static void draw_overlay()
     {
         return;
     }
-    const int S = 3; // pixels per font pixel
-    glViewport(0, 0, s_winW, s_winH);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0, s_winW, s_winH, 0, -1, 1);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_FOG);
-    glDisable(GL_ALPHA_TEST);
-    glDisable(GL_LIGHTING);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    gpu_set_target(NULL);
+    int w, h;
+    const int S = gpu_overlay_begin(&w, &h); // pixels per font pixel
+    float p[16];
+    ortho(p, 0, (float)w, (float)h, 0);
+    gpu_set_projection(p);
+    gpu_set_modelview(kIdentity);
     // Backing box, then the text.
     int lines = 1, cols = 0, col = 0;
-    for (const char* p = s_overlay; *p; p++)
+    for (const char* c = s_overlay; *c; c++)
     {
-        if (*p == '\n') { lines++; col = 0; } else if (++col > cols) cols = col;
+        if (*c == '\n') { lines++; col = 0; } else if (++col > cols) cols = col;
     }
-    glColor4f(0, 0, 0, 0.6f);
-    glBegin(GL_QUADS);
-    glVertex2i(4, 4);
-    glVertex2i(12 + cols * 6 * S, 4);
-    glVertex2i(12 + cols * 6 * S, 12 + lines * 9 * S);
-    glVertex2i(4, 12 + lines * 9 * S);
-    glEnd();
-    glColor4f(1, 1, 0.3f, 1);
-    glBegin(GL_QUADS);
+    std::vector<float> q;
+    overlay_rect(q, 4, 4, 12 + cols * 6 * S, 12 + lines * 9 * S);
+    overlay_draw(q, RwRGBA{ 0, 0, 0, 153 });
+    q.clear();
     int x0 = 8, x = x0, y = 8;
-    for (const char* p = s_overlay; *p; p++)
+    for (const char* c = s_overlay; *c; c++)
     {
-        char c = *p >= 'a' && *p <= 'z' ? *p - 32 : *p;
-        if (c == '\n')
+        char ch = *c >= 'a' && *c <= 'z' ? *c - 32 : *c;
+        if (ch == '\n')
         {
             x = x0;
             y += 9 * S;
@@ -1621,7 +1226,7 @@ static void draw_overlay()
         }
         for (size_t g = 0; g < sizeof(s_font) / sizeof(s_font[0]); g++)
         {
-            if (s_font[g].c != c)
+            if (s_font[g].c != ch)
             {
                 continue;
             }
@@ -1632,10 +1237,7 @@ static void draw_overlay()
                     if (s_font[g].rows[r] & (0x10 >> b))
                     {
                         int px = x + b * S, py = y + r * S;
-                        glVertex2i(px, py);
-                        glVertex2i(px + S, py);
-                        glVertex2i(px + S, py + S);
-                        glVertex2i(px, py + S);
+                        overlay_rect(q, px, py, px + S, py + S);
                     }
                 }
             }
@@ -1643,10 +1245,10 @@ static void draw_overlay()
         }
         x += 6 * S;
     }
-    glEnd();
-    glDisable(GL_BLEND);
+    overlay_draw(q, RwRGBA{ 255, 255, 77, 255 });
 }
 
+// ---------------------------------------------------------------- direct GX calls
 // GX calls the game makes directly (src/Core/gc/iEnv.cpp, iSystem.cpp).
 extern "C" void GXSetColorUpdate(int enable)
 {
@@ -1658,8 +1260,8 @@ extern "C" void GXSetAlphaUpdate(int enable)
     s_alphaUpdate = enable != 0;
 }
 
-// GX tests (alpha comp0 ref0) op (alpha comp1 ref1); fixed-function GL has one
-// comparison, so keep the side that can fail. The game only uses
+// GX tests (alpha comp0 ref0) op (alpha comp1 ref1); fixed-function GPUs have
+// one comparison, so keep the side that can fail. The game only uses
 // "alpha >= 0 AND alpha <= ref". GX compares are RenderWare's minus one.
 static bool gx_compare_always(int comp, int ref)
 {
@@ -1683,13 +1285,13 @@ extern "C" void GXSetAlphaCompare(int comp0, unsigned char ref0, int op, int com
 }
 
 // RenderWare re-applies its own alpha test state.
-void pc_gl_reset_gx_alpha()
+void pc_render_reset_gx_alpha()
 {
     s_gxAlphaFunc = -1;
 }
 
-// Z before or after texturing: GL discards alpha-tested fragments before the
-// depth write either way.
+// Z before or after texturing: alpha-tested fragments never write depth on the
+// PC or 3DS GPUs either way.
 extern "C" void GXSetZCompLoc(int beforeTex) {}
 extern "C" void GXSetMisc(int token, int value) {}
 extern "C" void GXAbortFrame() {}

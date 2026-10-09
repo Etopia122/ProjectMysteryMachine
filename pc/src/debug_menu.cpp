@@ -33,7 +33,7 @@ int pc_debug_area(int i, const char** name, const unsigned int** scenes);
 unsigned int pc_debug_scene_id();
 void pc_debug_player_pos(float* out);
 void pc_debug_teleport(float x, float y, float z);
-void pc_gl_set_overlay(const char* text);
+void pc_render_set_overlay(const char* text);
 }
 
 namespace {
@@ -266,7 +266,7 @@ void build_overlay()
     {
         t.pop_back();
     }
-    pc_gl_set_overlay(t.c_str());
+    pc_render_set_overlay(t.c_str());
 }
 
 } // namespace

@@ -190,7 +190,7 @@ private:
             {
                 break;
             }
-            pc_gl_fmv_frame(m_rgba.data(), w, h, m_letterbox);
+            pc_render_fmv_frame(m_rgba.data(), w, h, m_letterbox);
             poll_skip();
         }
     }

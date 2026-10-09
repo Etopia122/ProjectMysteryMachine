@@ -43,7 +43,7 @@ extern "C" void pc_debug_probe(float x, float z);
 extern "C" void pc_debug_sectors();
 extern "C" void pc_debug_sphere(float x, float y, float z, float r);
 extern "C" unsigned int pc_debug_scene_id();
-extern "C" void pc_gl_set_overlay(const char* text);
+extern "C" void pc_render_set_overlay(const char* text);
 static bool s_teleportDone = !getenv("PC_TELEPORT");
 static bool teleportPending() { return !s_teleportDone; }
 
@@ -114,6 +114,11 @@ extern "C" const char* pc_base_path()
 extern "C" void pc_mkdir(const char* path)
 {
     CreateDirectoryA(path, NULL);
+}
+
+extern "C" unsigned int pc_ticks_ms()
+{
+    return SDL_GetTicks();
 }
 
 extern "C" void pc_exit(int code)

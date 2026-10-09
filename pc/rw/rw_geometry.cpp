@@ -708,7 +708,7 @@ static RwObjectHasFrame* atomic_sync(RwObjectHasFrame* o)
 
 static RpAtomic* atomic_default_render(RpAtomic* a)
 {
-    pc_gl_render_atomic(a);
+    pc_render_atomic(a);
     return a;
 }
 

@@ -410,13 +410,13 @@ RpWorld* RpWorldSetSurfaceProperties(RpWorld* w, const RwSurfaceProperties* p)
 
 }
 
-void pc_gl_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors);
+void pc_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors);
 
 extern "C" {
 
 RpWorld* RpWorldRender(RpWorld* w)
 {
-    pc_gl_render_world(w, *pc_world(w)->sectors);
+    pc_render_world(w, *pc_world(w)->sectors);
     return w;
 }
 

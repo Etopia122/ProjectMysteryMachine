@@ -30,6 +30,9 @@ void pc_mkdir(const char* path);
 // Shuts the platform down and ends the program.
 void pc_exit(int code);
 
+// Milliseconds since the program started.
+unsigned int pc_ticks_ms(void);
+
 // ARAM contents (audio RAM), addressed in bytes.
 unsigned char* pc_aram_ptr(unsigned long addr);
 
@@ -37,7 +40,7 @@ unsigned char* pc_aram_ptr(unsigned long addr);
 void pc_audio_fmv_queue(const float* samples, int frames);
 double pc_audio_fmv_queued(void);
 void pc_audio_fmv_clear(void);
-void pc_gl_fmv_frame(const unsigned char* rgba, int w, int h, int letterbox);
+void pc_render_fmv_frame(const unsigned char* rgba, int w, int h, int letterbox);
 
 // Local time as seconds since 2000-01-01 (the GameCube clock's epoch).
 unsigned long pc_local_seconds_since_2000(void);

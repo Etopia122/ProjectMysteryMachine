@@ -248,7 +248,7 @@ RwInt32 RwRasterDestroy(RwRaster* r)
         return 1;
     }
     PcRaster* p = pc_raster(r);
-    pc_gl_raster_free(p);
+    pc_render_raster_free(p);
     rwFree(p->rgba);
     rwFree(p);
     return 1;
@@ -577,7 +577,7 @@ RwImage* RwImageSetFromRaster(RwImage* im, RwRaster* r)
 // game set through GX directly.
 void _rwDlTextureRasterFlush(RwInt32 mode, volatile void* data)
 {
-    pc_gl_reset_gx_alpha();
+    pc_render_reset_gx_alpha();
 }
 
 }

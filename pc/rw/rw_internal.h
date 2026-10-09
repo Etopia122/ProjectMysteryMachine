@@ -10,11 +10,11 @@ struct PcRaster
     RwRaster r;
     RwUInt8 ext[0x40]; // room for the platform extension the game may touch
     RwUInt8* rgba;
-    RwUInt32 glTex;
-    int dirty;
+    void* gpu;    // graphics backend data (texture, render target)
+    int dirty;    // pixels changed since the last upload
     int numLevels;
-    RwUInt32 fbo, depthRb; // render target (camera texture rasters)
-    int hasAlpha;          // any texel with alpha < 255 (set on upload)
+    int isTarget; // a render target (camera texture raster) was made for it
+    int hasAlpha; // any texel with alpha < 255 (set on upload)
 };
 PcRaster* pc_raster(RwRaster* r);
 
@@ -78,14 +78,13 @@ void pc_gx_decode(int fmt, const RwUInt8* src, int w, int h, const RwUInt8* pal,
 int pc_gx_level_size(int fmt, int w, int h);
 
 // Renderer (pc_gl.cpp)
-void pc_gl_raster_free(PcRaster* r);
-void pc_gl_bind_raster(RwRaster* r);
-void pc_gl_begin_camera(RwCamera* cam);
-void pc_gl_end_camera(RwCamera* cam);
-void pc_gl_clear(RwCamera* cam, const RwRGBA* colour, RwInt32 mode);
-void pc_gl_reset_gx_alpha();
-void pc_gl_present();
-void pc_gl_render_atomic(RpAtomic* atomic);
+void pc_render_raster_free(PcRaster* r);
+void pc_render_begin_camera(RwCamera* cam);
+void pc_render_end_camera(RwCamera* cam);
+void pc_render_clear(RwCamera* cam, const RwRGBA* colour, RwInt32 mode);
+void pc_render_reset_gx_alpha();
+void pc_render_present();
+void pc_render_atomic(RpAtomic* atomic);
 
 extern "C" {
 RwUInt32 RwStreamRead(RwStream* s, void* buffer, RwUInt32 length);
