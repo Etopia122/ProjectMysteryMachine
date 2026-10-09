@@ -1627,3 +1627,6 @@ rwsdk/p2/p2heap.c:
 rwsdk/p2/p2renderstate.c:
 	.text       start:0x8018B69C end:0x8018BB5C
 	.sdata2     start:0x80262C48 end:0x80262C50
+
+rwsdk/p2/p2radixsort.c:
+	.text       start:0x8018BB5C end:0x8018C010
