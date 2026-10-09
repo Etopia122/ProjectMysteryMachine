@@ -1512,6 +1512,11 @@ rwsdk/world/bamesh.c:
 	.sdata      start:0x8025E790 end:0x8025E798
 	.sbss       start:0x8025F738 end:0x8025F740
 
+rwsdk/world/bameshop.c:
+	.text       start:0x8014E7A4 end:0x80150F5C
+	.data       start:0x801DD520 end:0x801DD538
+	.sdata2     start:0x80262938 end:0x80262940
+
 rwsdk/world/basector.c:
 	.text       start:0x80150F5C end:0x80151038
 	.data       start:0x801DD538 end:0x801DD550
