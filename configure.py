@@ -765,6 +765,7 @@ config.libs = [
             Object(Matching, "rwsdk/src/bafsync.c"),
             Object(Matching, "rwsdk/src/batextur.c"),
             Object(Matching, "rwsdk/src/baobject.c"),
+            Object(NonMatching, "rwsdk/src/bacamera.c"),
             Object(Matching, "rwsdk/world/balight.c"),
             Object(Matching, "rwsdk/world/bamateri.c"),
             Object(NonMatching, "rwsdk/world/bamatlst.c"),

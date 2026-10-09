@@ -1580,6 +1580,12 @@ rwsdk/src/babintex.c:
 	.text       start:0x80166F2C end:0x801683DC
 	.sdata2     start:0x80262A98 end:0x80262AA0
 
+rwsdk/src/bacamera.c:
+	.text       start:0x801683DC end:0x80169E98
+	.data       start:0x801DDBF0 end:0x801DDC30
+	.sbss       start:0x8025F7C0 end:0x8025F7C8
+	.sdata2     start:0x80262AA0 end:0x80262AC8
+
 rwsdk/src/baengine.c:
 	.text       start:0x80169E98 end:0x8016A9D8
 	.data       start:0x801DDC30 end:0x801DDC48

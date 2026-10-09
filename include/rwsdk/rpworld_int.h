@@ -186,6 +186,11 @@ typedef struct RpGeometry {
     /* 0x68 */ RpMorphTarget* morphTarget;
 } RpGeometry;
 
+typedef struct RwV2d {
+    RwReal x;
+    RwReal y;
+} RwV2d;
+
 typedef struct RwPlane {
     RwV3d normal;
     RwReal distance;
@@ -205,7 +210,17 @@ typedef struct RwCamera {
     /* 0x018 */ struct RwCamera* (*beginUpdate)(struct RwCamera* camera);
     /* 0x01C */ struct RwCamera* (*endUpdate)(struct RwCamera* camera);
     /* 0x020 */ RwMatrix viewMatrix;
-    /* 0x060 */ RwUInt8 pad60[0x98 - 0x60];
+    /* 0x060 */ RwRaster* frameBuffer;
+    /* 0x064 */ RwRaster* zBuffer;
+    /* 0x068 */ RwV2d viewWindow;
+    /* 0x070 */ RwV2d recipViewWindow;
+    /* 0x078 */ RwV2d viewOffset;
+    /* 0x080 */ RwReal nearPlane;
+    /* 0x084 */ RwReal farPlane;
+    /* 0x088 */ RwReal fogPlane;
+    /* 0x08C */ RwReal zScale;
+    /* 0x090 */ RwReal zShift;
+    /* 0x094 */ RwUInt32 pad94;
     /* 0x098 */ RwFrustumPlane frustumPlanes[6];
     /* 0x110 */ RwBBox frustumBoundBox;
     /* 0x128 */ RwV3d frustumCorners[8];
