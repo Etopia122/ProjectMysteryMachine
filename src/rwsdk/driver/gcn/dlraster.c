@@ -343,11 +343,12 @@ void DlRasterUntile(RwUInt8* dst, RwUInt8* src, RwInt32 width, RwInt32 height, R
     }
 }
 
+#pragma dont_inline on
 RwUInt32 _rwDlRasterGetMipSize(RwRaster* raster, RwUInt8 level)
 {
     RwUInt32 size = 0;
-    RwRaster* parent = raster->parent;
     RwInt32 width;
+    RwRaster* parent = raster->parent;
     RwInt32 height;
 
     if (raster->privateFlags & (rwRASTERPIXELLOCKEDREAD | rwRASTERPIXELLOCKEDWRITE)) {
@@ -355,10 +356,16 @@ RwUInt32 _rwDlRasterGetMipSize(RwRaster* raster, RwUInt8 level)
         height = parent->height;
     } else {
         RwInt32 w = parent->width >> level;
-        RwInt32 h = parent->height >> level;
+        RwUInt32 h = parent->height >> level;
 
-        width = w ? w : 1;
-        height = h ? h : 1;
+        width = 1;
+        if (w) {
+            width = w;
+        }
+        height = 1;
+        if (h) {
+            height = h;
+        }
     }
 
     switch (raster->depth) {
@@ -382,6 +389,8 @@ RwUInt32 _rwDlRasterGetMipSize(RwRaster* raster, RwUInt8 level)
 
     return ALIGN32(size);
 }
+
+#pragma dont_inline reset
 
 RwBool _rwDlRasterLock(void* pixelsOut, RwRaster* raster, RwInt32 flags)
 {
@@ -600,7 +609,7 @@ RwBool _rwDlRasterUnlockPalette(void* unused, RwRaster* raster, RwInt32 flags)
     case rwRASTERTYPENORMAL:
     case rwRASTERTYPETEXTURE:
     case rwRASTERTYPECAMERATEXTURE:
-        if (raster->parent == raster) {
+        if (raster == raster->parent) {
             RwDlRasterExt* rasterExt = RASTEREXTFROMRASTER(raster);
 
             if (raster->privateFlags & rwRASTERPALETTELOCKEDWRITE) {
@@ -618,7 +627,7 @@ RwBool _rwDlRasterUnlockPalette(void* unused, RwRaster* raster, RwInt32 flags)
 
 RwBool _rwDlRasterSetFormat(RwRaster* raster, RwInt32 flags)
 {
-    RwInt32 format = flags & 0xFF00;
+    RwUInt32 format = flags & 0xFF00;
 
     raster->cType = flags & rwRASTERTYPEMASK;
     raster->cFlags = flags & 0xF8;
@@ -702,7 +711,7 @@ RwBool _rwDlRasterSetFormat(RwRaster* raster, RwInt32 flags)
     return TRUE;
 }
 
-RwBool _rwDlRasterGetMipLevels(RwInt32* numLevels, RwRaster* raster)
+RwBool _rwDlRasterGetMipLevels(RwUInt32* numLevels, RwRaster* raster)
 {
     RwDlRasterExt* rasterExt = RASTEREXTFROMRASTER(raster);
 
@@ -711,7 +720,7 @@ RwBool _rwDlRasterGetMipLevels(RwInt32* numLevels, RwRaster* raster)
     } else {
         RwUInt8 levels;
 
-        if (raster->cFormat & (rwRASTERFORMATMIPMAP >> 8)) {
+        if (RwRasterGetFormat(raster) & rwRASTERFORMATMIPMAP) {
             levels = (raster->width > raster->height) ? DLMIPLEVELS(raster->width) : DLMIPLEVELS(raster->height);
         } else {
             levels = 1;
@@ -726,15 +735,15 @@ RwUInt32 _rwDlRasterGetSize(RwRaster* raster)
     RwUInt32 size = 0;
     RwInt32 numLevels;
 
-    _rwDlRasterGetMipLevels(&numLevels, raster);
+    _rwDlRasterGetMipLevels((RwUInt32*)&numLevels, raster);
     while (numLevels--) {
         size += _rwDlRasterGetMipSize(raster, numLevels);
     }
     return size;
 }
 
-RwBool _rwDlTextureRasterCreate(RwRaster* raster, RwInt32 gxFormat, RwInt32 tlutFormat, RwInt32 hasAlpha,
-                                RwUInt8 depth, RwInt32 numLevels)
+static inline RwBool DlRasterAllocate(RwRaster* raster, RwInt32 gxFormat, RwInt32 tlutFormat, RwInt32 hasAlpha,
+                                      RwUInt8 depth, RwInt32 numLevels)
 {
     RwDlRasterExt* rasterExt;
     RwUInt32 size;
@@ -753,7 +762,8 @@ RwBool _rwDlTextureRasterCreate(RwRaster* raster, RwInt32 gxFormat, RwInt32 tlut
         RwUInt32 allocSize;
 
         rasterExt->tlutFormat = tlutFormat;
-        allocSize = size + (((1 << raster->depth) << 1) + 31);
+        allocSize = ((1 << raster->depth) << 1) + 31;
+        allocSize = size + allocSize;
         rasterExt->unaligned = RwMalloc(allocSize);
         if (rasterExt->unaligned == NULL) {
             RWERROR((E_RW_NOMEM, allocSize));
@@ -776,16 +786,23 @@ RwBool _rwDlTextureRasterCreate(RwRaster* raster, RwInt32 gxFormat, RwInt32 tlut
     return TRUE;
 }
 
+RwBool _rwDlTextureRasterCreate(RwRaster* raster, RwInt32 gxFormat, RwInt32 tlutFormat, RwInt32 hasAlpha,
+                                RwUInt8 depth, RwInt32 numLevels)
+{
+    return DlRasterAllocate(raster, gxFormat, tlutFormat, hasAlpha, depth, numLevels);
+}
+
 RwBool _rwDlRasterCreateTexture(RwRaster* raster)
 {
     RwInt32 gxFormat = 0;
     RwInt32 tlutFormat = 0;
     RwInt32 hasAlpha = 0;
-    RwInt32 format = raster->cFormat << 8;
+    RwInt32 format = RwRasterGetFormat(raster);
+    RwInt32 pixelFormat = (raster->cFormat & (rwRASTERFORMATPIXELFORMATMASK >> 8)) << 8;
     RwUInt8 numLevels;
 
     if (format & (rwRASTERFORMATPAL4 | rwRASTERFORMATPAL8)) {
-        switch (format & rwRASTERFORMATPIXELFORMATMASK) {
+        switch (pixelFormat) {
         case rwRASTERFORMAT555:
             tlutFormat = GX_TL_RGB5A3;
             hasAlpha = 0;
@@ -805,7 +822,7 @@ RwBool _rwDlRasterCreateTexture(RwRaster* raster)
         }
         gxFormat = (format & rwRASTERFORMATPAL4) ? GX_TF_C4 : GX_TF_C8;
     } else {
-        switch (format & rwRASTERFORMATPIXELFORMATMASK) {
+        switch (pixelFormat) {
         case rwRASTERFORMAT555:
             gxFormat = GX_TF_RGB5A3;
             hasAlpha = 0;
@@ -833,22 +850,25 @@ RwBool _rwDlRasterCreateTexture(RwRaster* raster)
         }
     }
 
-    if (raster->cFormat & (rwRASTERFORMATMIPMAP >> 8)) {
-        numLevels = (raster->width > raster->height) ? DLMIPLEVELS(raster->width) : DLMIPLEVELS(raster->height);
+    if (RwRasterGetFormat(raster) & rwRASTERFORMATMIPMAP) {
+        if (raster->width > raster->height) {
+            numLevels = DLMIPLEVELS(raster->width);
+        } else {
+            numLevels = DLMIPLEVELS(raster->height);
+        }
     } else {
         numLevels = 1;
     }
 
-    _rwDlTextureRasterCreate(raster, gxFormat, tlutFormat, hasAlpha, raster->depth, numLevels);
+    DlRasterAllocate(raster, gxFormat, tlutFormat, hasAlpha, raster->depth, numLevels);
     return TRUE;
 }
 
 RwBool _rwDlRasterCreate(void* unused, RwRaster* raster, RwInt32 flags)
 {
-    RwDlRasterExt* rasterExt;
+    RwDlRasterExt* rasterExt = RASTEREXTFROMRASTER(raster);
 
     raster->stride = 0;
-    rasterExt = RASTEREXTFROMRASTER(raster);
     rasterExt->format = 0xFF;
     rasterExt->tlutFormat = 0xFF;
     rasterExt->flags = 0;
@@ -866,30 +886,30 @@ RwBool _rwDlRasterCreate(void* unused, RwRaster* raster, RwInt32 flags)
         return FALSE;
     }
 
-    if (raster->width == 0 || raster->height == 0) {
+    if (raster->width != 0 && raster->height != 0) {
+        switch (raster->cType) {
+        case rwRASTERTYPENORMAL:
+        case rwRASTERTYPETEXTURE:
+        case rwRASTERTYPECAMERATEXTURE:
+            if (!(raster->cFlags & rwRASTERDONTALLOCATE)) {
+                if (!_rwDlRasterCreateTexture(raster)) {
+                    RWERROR((E_RW_DLNOTSUPPORTED, "Failed to create surface for texture"));
+                    return FALSE;
+                }
+            }
+            break;
+        case rwRASTERTYPEZBUFFER:
+        case rwRASTERTYPECAMERA:
+            raster->cFlags = rwRASTERDONTALLOCATE;
+            break;
+        case 3:
+        default:
+            RWERROR((E_RW_INVRASTERFORMAT));
+            return FALSE;
+        }
+    } else {
         raster->cFlags = rwRASTERDONTALLOCATE;
         return TRUE;
-    }
-
-    switch (raster->cType) {
-    case rwRASTERTYPENORMAL:
-    case rwRASTERTYPETEXTURE:
-    case rwRASTERTYPECAMERATEXTURE:
-        if (!(raster->cFlags & rwRASTERDONTALLOCATE)) {
-            if (!_rwDlRasterCreateTexture(raster)) {
-                RWERROR((E_RW_DLNOTSUPPORTED, "Failed to create surface for texture"));
-                return FALSE;
-            }
-        }
-        break;
-    case rwRASTERTYPEZBUFFER:
-    case rwRASTERTYPECAMERA:
-        raster->cFlags = rwRASTERDONTALLOCATE;
-        break;
-    case 3:
-    default:
-        RWERROR((E_RW_INVRASTERFORMAT));
-        return FALSE;
     }
     return TRUE;
 }
