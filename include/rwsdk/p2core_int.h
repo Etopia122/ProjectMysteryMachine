@@ -116,8 +116,25 @@ typedef struct RxExecutionContext {
     /* 0x10 */ RxPipelineNodeParam params;
 } RxExecutionContext;
 
+typedef struct RxRenderStateVector {
+    /* 0x00 */ RwUInt32 Flags;
+    /* 0x04 */ RwInt32 ShadeMode;
+    /* 0x08 */ RwInt32 SrcBlend;
+    /* 0x0C */ RwInt32 DestBlend;
+    /* 0x10 */ RwRaster* TextureRaster;
+    /* 0x14 */ RwInt32 AddressModeU;
+    /* 0x18 */ RwInt32 AddressModeV;
+    /* 0x1C */ RwInt32 FilterMode;
+    /* 0x20 */ RwRGBA BorderColor;
+    /* 0x24 */ RwInt32 FogType;
+    /* 0x28 */ RwRGBA FogColor;
+    /* 0x2C */ RwUInt8* FogTable;
+} RxRenderStateVector;
+
 typedef struct rwPipeGlobals {
-    /* 0x00 */ RwUInt8 pad00[0x40];
+    /* 0x00 */ RwUInt32 pad00;
+    /* 0x04 */ RxRenderStateVector defaultRenderState;
+    /* 0x34 */ RwUInt8 pad34[0xC];
     /* 0x40 */ RxPipeline* currentAtomicPipeline;
     /* 0x44 */ RxPipeline* currentWorldSectorPipeline;
     /* 0x48 */ RxPipeline* currentMaterialPipeline;

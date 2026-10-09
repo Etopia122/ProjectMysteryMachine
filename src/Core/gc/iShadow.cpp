@@ -59,7 +59,7 @@ signed int RwIm3DEnd();
 // TODO: misnamed RenderWare GameCube function (mode, state block)
 void _rwDlTextureRasterFlush(signed int mode, volatile void* data);
 // TODO: unidentified RenderWare functions
-RxRenderStateVector* fn_8018B9A0(RxRenderStateVector* rsv);
+RxRenderStateVector* RxRenderStateVectorLoadDriverState(RxRenderStateVector* rsv);
 RwV3d* RwV3dTransformPoints(_xVec3* pointsOut, const _xVec3* pointsIn, signed int numPoints,
                    const RwMatrixTag* matrix);
 }
@@ -264,7 +264,7 @@ void iShadowRender()
 {
     if (sShadowVertCount)
     {
-        fn_8018B9A0(&rsv);
+        RxRenderStateVectorLoadDriverState(&rsv);
         RwRenderStateSet(10, (void*)4);
         RwRenderStateSet(11, (void*)9);
         RwRenderStateSet(12, (void*)1);

@@ -90,7 +90,7 @@ RwImage* RwImageCreate(signed int width, signed int height, signed int depth);
 RwImage* RwImageAllocatePixels(RwImage* image);
 RwImage* RwImageSetFromRaster(RwImage* image, RwRaster* raster);
 signed int RwImageDestroy(RwImage* image);
-signed int fn_8018B9A0(RxRenderStateVector* rsvp);
+signed int RxRenderStateVectorLoadDriverState(RxRenderStateVector* rsvp);
 signed int fn_800CD170();
 }
 
@@ -117,7 +117,7 @@ static RwRaster* sButtonRaster;
 
 void iFontSaveRenderState()
 {
-    fn_8018B9A0(&rsv);
+    RxRenderStateVectorLoadDriverState(&rsv);
     rcz = 1.0f / RwEngineInstance->curCamera->nearPlane;
     nsz = RwIm2DGetNearScreenZ();
 }
