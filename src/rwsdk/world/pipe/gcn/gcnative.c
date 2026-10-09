@@ -149,11 +149,12 @@ void* DlNativeDataStreamRead(RwStream* stream, void* owner, rxGCResEntry** resEn
     return owner;
 }
 
-static inline RwInt32 DlNativeDataSize(rxGCResEntry* resEntry, RwUInt32 numMeshes)
+static inline RwInt32 DlNativeDataSize(RwUInt32 numMeshes, rxGCResEntry* resEntry)
 {
-    RwInt32 size = sizeof(rxGCInstanceData) + numMeshes * sizeof(rxGCMeshData) + rwCHUNKHEADERSIZE + 3 * sizeof(RwInt32);
+    RwInt32 size = numMeshes * sizeof(rxGCMeshData);
     RwUInt8* data = ALIGN32((rxGCMeshData*)((RwUInt8*)resEntry + sizeof(rxGCResEntry) + sizeof(rxGCInstanceData)) + numMeshes);
 
+    size += sizeof(rxGCInstanceData) + rwCHUNKHEADERSIZE + 3 * sizeof(RwInt32);
     size += resEntry->size - (data - (RwUInt8*)GCRESENTRYDATA(resEntry));
     return size;
 }
@@ -164,7 +165,7 @@ RwStream* DlNativeDataStreamWrite(RwStream* stream, rxGCResEntry* resEntry, void
     rxGCInstanceData* inst = GCRESENTRYDATA(resEntry);
     rxGCMeshData* meshes = GCMESHES(inst);
     RwUInt32 headerSize = sizeof(rxGCInstanceData) + numMeshes * sizeof(rxGCMeshData);
-    RwInt32 size = DlNativeDataSize(resEntry, numMeshes) - rwCHUNKHEADERSIZE;
+    RwInt32 size = DlNativeDataSize(numMeshes, resEntry) - rwCHUNKHEADERSIZE;
     RwUInt8* data = ALIGN32((RwUInt8*)meshes + numMeshes * sizeof(rxGCMeshData));
     RwUInt32 dataSize;
     rxGCMeshData* mesh = meshes;
@@ -239,7 +240,7 @@ RwStream* DlNativeDataStreamWrite(RwStream* stream, rxGCResEntry* resEntry, void
 RwInt32 _rpGeometryNativeSize(const RpGeometry* geometry)
 {
     if ((geometry->flags & rpGEOMETRYNATIVE) && geometry->repEntry) {
-        return DlNativeDataSize((rxGCResEntry*)geometry->repEntry, ((rxGCMeshHeader*)geometry->mesh)->numMeshes);
+        return DlNativeDataSize(((rxGCMeshHeader*)geometry->mesh)->numMeshes, (rxGCResEntry*)geometry->repEntry);
     }
     return 0;
 }
@@ -264,7 +265,7 @@ RwInt32 _rpWorldSectorNativeSize(const RpWorldSector* sector)
     const RpWorld* world = RpWorldSectorGetWorld(sector);
 
     if ((world->flags & rpGEOMETRYNATIVE) && sector->repEntry) {
-        return DlNativeDataSize((rxGCResEntry*)sector->repEntry, ((rxGCMeshHeader*)sector->mesh)->numMeshes);
+        return DlNativeDataSize(((rxGCMeshHeader*)sector->mesh)->numMeshes, (rxGCResEntry*)sector->repEntry);
     }
     return 0;
 }
