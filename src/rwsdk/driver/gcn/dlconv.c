@@ -461,7 +461,7 @@ void _rwDlImage32GetFromRaster(RwImage* image, RwRaster* raster)
             RwUInt8* src = raster->cpPixels + raster->stride * y;
 
             for (x = 0; x < raster->width; x += 2) {
-                dst[0] = palette[*src >> 4];
+                dst[0] = palette[(*src >> 4) & 0xF];
                 dst[1] = palette[*src & 0xF];
                 src++;
                 dst += 2;
@@ -522,9 +522,11 @@ void _rwDlImage32GetFromRaster(RwImage* image, RwRaster* raster)
 
 RwBool _rwDlImageGetFromRaster(RwImage* image, RwRaster* raster)
 {
-    RwBool locked = FALSE;
-    RwBool paletteLocked = FALSE;
+    RwBool locked;
+    RwBool paletteLocked;
 
+    locked = FALSE;
+    paletteLocked = FALSE;
     if (!(raster->privateFlags & rwRASTERPIXELLOCKEDREAD)) {
         RwRasterLock(raster, 0, rwRASTERLOCKREAD);
         locked = TRUE;
@@ -598,7 +600,7 @@ void _rwDlRasterPalletized4SetFromImage(RwRaster* raster, RwImage* image)
             RwUInt8* dst = raster->cpPixels + raster->stride * y;
 
             for (x = 0; x < raster->width; x += 2) {
-                *dst++ = (src[0] << 4) | (src[1] & 0xF);
+                *dst++ = ((src[0] << 4) & 0xF0) | (src[1] & 0xF);
                 src += 2;
             }
         }
@@ -606,7 +608,7 @@ void _rwDlRasterPalletized4SetFromImage(RwRaster* raster, RwImage* image)
             RwUInt16* palette = (RwUInt16*)raster->palette;
 
             for (i = 0; i < 16; i++) {
-                *palette++ = convFn(&image->palette[i]);
+                palette[i] = convFn(&image->palette[i]);
             }
         }
         break;
@@ -629,6 +631,7 @@ void _rwDlRasterPalletized4SetFromImage(RwRaster* raster, RwImage* image)
 void _rwDlRasterPalletized8SetFromImage(RwRaster* raster, RwImage* image)
 {
     RwDlConvFromRGBFn convFn;
+    RwDlRasterExt* rasterExt;
     RwInt32 i;
     RwInt32 y;
     RwInt32 x;
@@ -638,7 +641,7 @@ void _rwDlRasterPalletized8SetFromImage(RwRaster* raster, RwImage* image)
     switch (image->depth) {
     case 4:
     case 8: {
-        RwDlRasterExt* rasterExt = RASTEREXTFROMRASTER(raster->parent);
+        rasterExt = RASTEREXTFROMRASTER(raster->parent);
 
         for (y = 0; y < raster->height; y++) {
             RwUInt8* src = image->cpPixels + image->stride * y;
@@ -654,7 +657,7 @@ void _rwDlRasterPalletized8SetFromImage(RwRaster* raster, RwImage* image)
             RwUInt16* palette = (RwUInt16*)raster->palette;
 
             for (i = 0; i < (1 << image->depth); i++) {
-                *palette++ = convFn(&image->palette[i]);
+                palette[i] = convFn(&image->palette[i]);
             }
         }
         break;
@@ -770,9 +773,13 @@ void _rwDlRaster32SetFromImage(RwRaster* raster, RwImage* image)
 
 RwBool _rwDlRasterSetFromImage(RwRaster* raster, RwImage* image)
 {
-    RwBool locked = FALSE;
-    RwBool paletteLocked = FALSE;
-    RwInt32 format = RwRasterGetFormat(raster);
+    RwBool locked;
+    RwBool paletteLocked;
+    RwInt32 format;
+
+    locked = FALSE;
+    paletteLocked = FALSE;
+    format = RwRasterGetFormat(raster);
 
     if (raster->privateFlags & rwRASTERPIXELLOCKEDWRITE) {
         locked = TRUE;
