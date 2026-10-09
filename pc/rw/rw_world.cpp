@@ -153,12 +153,16 @@ static RpSector* read_sector(RwStream* s, RpWorld* w, RwUInt32 format, int numTe
     return (RpSector*)sec;
 }
 
+// Every live world, for the debug probes.
+static std::vector<RpWorld*> s_worlds;
+
 extern "C" {
 
 RpWorld* RpWorldCreate(RwBBox* bbox)
 {
     PcWorld* p = (PcWorld*)rwCalloc(1, sizeof(PcWorld));
     RpWorld* w = &p->w;
+    s_worlds.push_back(w);
     w->object.type = 7;
     rwLinkListInitialize(&w->clumpList);
     rwLinkListInitialize(&w->lightList);
@@ -271,6 +275,7 @@ static void free_sector(RpSector* s)
 
 RpWorld* RpWorldDestroy(RpWorld* w)
 {
+    s_worlds.erase(std::remove(s_worlds.begin(), s_worlds.end(), w), s_worlds.end());
     // Detach the lights still in the world so destroying them later doesn't
     // unlink through freed memory.
     RwLinkList* lists[2] = { &w->directionalLightList, &w->lightList };
@@ -748,7 +753,39 @@ extern "C" void pc_debug_probe(float x, float z)
     isx.t.line.start.x = x, isx.t.line.start.y = 20, isx.t.line.start.z = z;
     isx.t.line.end.x = x, isx.t.line.end.y = -40, isx.t.line.end.z = z;
     pc_log("[probe] (%.2f, %.2f)", x, z);
-    RpCollisionWorldForAllIntersections(w, &isx, probe_cb, NULL);
+    for (size_t i = 0; i < s_worlds.size(); i++)
+    {
+        if (s_worlds.size() > 1)
+        {
+            pc_log("[probe]  world %u%s (%d sectors)", (unsigned)i, s_worlds[i] == w ? " (current)" : "",
+                   (int)pc_world(s_worlds[i])->sectors->size());
+        }
+        RpCollisionWorldForAllIntersections(s_worlds[i], &isx, probe_cb, NULL);
+    }
+}
+
+// Debug: triangles of every world within radius r of (x, y, z).
+static RpCollisionTriangle* sphere_cb(RpIntersection* isx, RpWorldSector* s, RpCollisionTriangle* t, float d, void*)
+{
+    const RwV3d* v = t->vertices[0];
+    pc_log("[probe]   tri mat %d normal %.2f %.2f %.2f dist %.2f v0 %.2f %.2f %.2f", s ? s->polygons[t->index].matIndex : -1,
+           t->normal.x, t->normal.y, t->normal.z, d, v->x, v->y, v->z);
+    return t;
+}
+
+extern "C" void pc_debug_sphere(float x, float y, float z, float r)
+{
+    RpIntersection isx;
+    memset(&isx, 0, sizeof(isx));
+    isx.type = rpINTERSECTSPHERE;
+    isx.t.sphere.center.x = x, isx.t.sphere.center.y = y, isx.t.sphere.center.z = z;
+    isx.t.sphere.radius = r;
+    pc_log("[probe] sphere (%.2f, %.2f, %.2f) r %.2f", x, y, z, r);
+    for (size_t i = 0; i < s_worlds.size(); i++)
+    {
+        pc_log("[probe]  world %u (%d sectors)", (unsigned)i, (int)pc_world(s_worlds[i])->sectors->size());
+        RpCollisionWorldForAllIntersections(s_worlds[i], &isx, sphere_cb, NULL);
+    }
 }
 
 extern "C" void pc_debug_sectors()

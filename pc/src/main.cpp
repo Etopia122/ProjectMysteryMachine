@@ -39,6 +39,7 @@ extern "C" void pc_debug_teleport(float x, float y, float z);
 extern "C" void pc_debug_player_pos(float* out);
 extern "C" void pc_debug_probe(float x, float z);
 extern "C" void pc_debug_sectors();
+extern "C" void pc_debug_sphere(float x, float y, float z, float r);
 extern "C" unsigned int pc_debug_scene_id();
 extern "C" void pc_gl_set_overlay(const char* text);
 static bool s_teleportDone = !getenv("PC_TELEPORT");
@@ -125,6 +126,18 @@ void pc_events_pump()
                 float t = n > 1 ? (float)i / (n - 1) : 0;
                 pc_debug_probe(x0 + (x1 - x0) * t, z0 + (z1 - z0) * t);
             }
+        }
+    }
+    // Debug: PC_SPHERE=<sec>:x,y,z,r lists world triangles near a point.
+    static const char* sphere = getenv("PC_SPHERE");
+    if (sphere && SDL_GetTicks() >= (Uint32)(atof(sphere) * 1000))
+    {
+        float x, y, z, r;
+        const char* c = strchr(sphere, ':');
+        sphere = NULL;
+        if (c && sscanf(c + 1, "%f,%f,%f,%f", &x, &y, &z, &r) == 4)
+        {
+            pc_debug_sphere(x, y, z, r);
         }
     }
     // Debug: PC_POSLOG=1 logs the player position every second (after a teleport).
