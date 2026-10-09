@@ -392,41 +392,60 @@ RwUInt32 _rwDlRasterGetMipSize(RwRaster* raster, RwUInt8 level)
 
 #pragma dont_inline reset
 
+static inline RwInt32 DlRasterGetStride(RwRaster* raster, RwInt32 width)
+{
+    RwInt32 stride;
+
+    switch (raster->depth) {
+    case 4:
+        stride = ALIGN8(width) >> 1;
+        break;
+    case 8:
+        stride = ALIGN8(width);
+        break;
+    case 16:
+        stride = ALIGN4(width) << 1;
+        break;
+    case 32:
+        stride = ALIGN4(width) << 2;
+        break;
+    case 24:
+        RWERROR((E_RW_INVRASTERDEPTH));
+        break;
+    }
+    return stride;
+}
+
 RwBool _rwDlRasterLock(void* pixelsOut, void* pRaster, RwInt32 flags)
 {
-    RwRaster* raster = (RwRaster*)pRaster;
-    RwRaster* parent = raster->parent;
-    RwDlRasterExt* rasterExt = RASTEREXTFROMRASTER(parent);
-    RwUInt8 level = (flags >> 8) & 0xFF;
+    RwRaster* parent;
+    RwRaster* raster;
+    RwUInt32 offset;
+    RwDlRasterExt* rasterExt;
     RwUInt8* pixels;
     RwInt32 stride;
-    RwUInt32 offset;
+    RwUInt8 mip;
+    RwUInt8 level;
+
+    raster = (RwRaster*)pRaster;
+    parent = raster->parent;
+    rasterExt = RASTEREXTFROMRASTER(parent);
+    level = (flags >> 8) & 0xFF;
 
     switch (raster->cType & rwRASTERTYPEMASK) {
     case rwRASTERTYPENORMAL:
     case rwRASTERTYPETEXTURE:
     case rwRASTERTYPECAMERATEXTURE: {
-        RwUInt8 mip = level;
         RwInt32 w = parent->width >> level;
-        RwInt32 mipWidth = w ? w : 1;
+        RwInt32 mipWidth = 1;
 
-        switch (raster->depth) {
-        case 4:
-            stride = ALIGN8(mipWidth) >> 1;
-            break;
-        case 8:
-            stride = ALIGN8(mipWidth);
-            break;
-        case 16:
-            stride = ALIGN4(mipWidth) << 1;
-            break;
-        case 32:
-            stride = ALIGN4(mipWidth) << 2;
-            break;
-        case 24:
-            RWERROR((E_RW_INVRASTERDEPTH));
-            break;
+        mip = level;
+
+        if (w) {
+            mipWidth = w;
         }
+
+        stride = DlRasterGetStride(raster, mipWidth);
 
         offset = 0;
         while (mip--) {
@@ -436,8 +455,12 @@ RwBool _rwDlRasterLock(void* pixelsOut, void* pRaster, RwInt32 flags)
 
         if (rasterExt->format != GX_TF_CMPR && !(flags & rwRASTERLOCKRAW)) {
             RwInt32 h = parent->height >> level;
+            RwInt32 mipHeight = 1;
 
-            rasterExt->linear = (RwUInt8*)RwMalloc(stride * (h ? h : 1));
+            if (h) {
+                mipHeight = h;
+            }
+            rasterExt->linear = (RwUInt8*)RwMalloc(stride * mipHeight);
             if (rasterExt->linear == NULL) {
                 return FALSE;
             }
@@ -445,14 +468,21 @@ RwBool _rwDlRasterLock(void* pixelsOut, void* pRaster, RwInt32 flags)
 
         if (parent == raster) {
             RwInt32 rw = raster->width;
-            RwInt32 rh;
-            RwInt32 newWidth = (rw >> level) ? (rw >> level) : 1;
+            RwInt32 w2 = rw >> level;
+            RwInt32 h2 = raster->height >> level;
+            RwInt32 newWidth = 1;
+            RwInt32 newHeight = 1;
 
-            rh = raster->height >> level;
+            if (w2) {
+                newWidth = w2;
+            }
+            if (h2) {
+                newHeight = h2;
+            }
             raster->originalWidth = rw;
             raster->originalHeight = raster->height;
             raster->width = newWidth;
-            raster->height = rh ? rh : 1;
+            raster->height = newHeight;
 
             if (rasterExt->format != GX_TF_CMPR && !(flags & rwRASTERLOCKRAW)) {
                 raster->cpPixels = rasterExt->linear;
@@ -770,7 +800,7 @@ static inline RwBool DlRasterAllocate(RwRaster* raster, RwInt32 gxFormat, RwInt3
 
         rasterExt->tlutFormat = tlutFormat;
         allocSize = ((1 << raster->depth) << 1) + 31;
-        allocSize = size + allocSize;
+        allocSize += size;
         rasterExt->unaligned = RwMalloc(allocSize);
         if (rasterExt->unaligned == NULL) {
             RWERROR((E_RW_NOMEM, allocSize));
@@ -796,7 +826,45 @@ static inline RwBool DlRasterAllocate(RwRaster* raster, RwInt32 gxFormat, RwInt3
 RwBool _rwDlTextureRasterCreate(RwRaster* raster, RwInt32 gxFormat, RwInt32 tlutFormat, RwInt32 hasAlpha,
                                 RwUInt8 depth, RwInt32 numLevels)
 {
-    return DlRasterAllocate(raster, gxFormat, tlutFormat, hasAlpha, depth, numLevels);
+    RwDlRasterExt* rasterExt;
+    RwUInt32 size;
+
+    raster->depth = depth;
+    rasterExt = RASTEREXTFROMRASTER(raster);
+    if (hasAlpha == 1) {
+        rasterExt->flags |= 1;
+    }
+    rasterExt->maxLevel = numLevels - 1;
+    rasterExt->format = gxFormat;
+
+    size = _rwDlRasterGetSize(raster);
+
+    if (RwRasterGetFormat(raster) & (rwRASTERFORMATPAL4 | rwRASTERFORMATPAL8)) {
+        RwUInt32 allocSize;
+
+        rasterExt->tlutFormat = tlutFormat;
+        allocSize = ((1 << raster->depth) << 1) + 31;
+        allocSize += size;
+        rasterExt->unaligned = RwMalloc(allocSize);
+        if (rasterExt->unaligned == NULL) {
+            RWERROR((E_RW_NOMEM, allocSize));
+            return FALSE;
+        }
+        rasterExt->pixels = (RwUInt8*)ALIGN32((RwUInt32)rasterExt->unaligned);
+        rasterExt->palette = rasterExt->pixels + size;
+        GXInitTlutObj(&rasterExt->tlutObj, rasterExt->palette, rasterExt->tlutFormat, 1 << raster->depth);
+    } else {
+        rasterExt->unaligned = RwMalloc(size + 31);
+        if (rasterExt->unaligned == NULL) {
+            RWERROR((E_RW_NOMEM, size + 31));
+            return FALSE;
+        }
+        rasterExt->pixels = (RwUInt8*)ALIGN32((RwUInt32)rasterExt->unaligned);
+        if (raster->cType == rwRASTERTYPECAMERATEXTURE) {
+            DCInvalidateRange(rasterExt->pixels, size);
+        }
+    }
+    return TRUE;
 }
 
 RwBool _rwDlRasterCreateTexture(RwRaster* raster)
