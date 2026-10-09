@@ -100,7 +100,7 @@ typedef struct SkinGlobals {
     /* 0x20 */ RxPipeline* pipelines[6];
 } SkinGlobals;
 
-typedef RpAtomic* (*SkinReinstanceCallBack)(RpAtomic* atomic, RwResEntry** resEntryRef);
+typedef void* (*SkinReinstanceCallBack)(void* object, RwResEntry** resEntryRef);
 
 #define RPSKINATOMICGETDATA(atomic) (*(RpHAnimHierarchy**)((RwUInt8*)(atomic) + _rpSkinGlobals.atomicOffset))
 #define RPSKINGEOMETRYGETDATA(geometry) (*(RpSkin**)((RwUInt8*)(geometry) + _rpSkinGlobals.geometryOffset))
@@ -173,6 +173,14 @@ void GXInvalidateVtxCache(void);
 void DCFlushRange(void* addr, RwUInt32 nBytes);
 
 static SkinReinstanceCallBack SkinDefaultReinstance;
+
+static inline void SkinSetQuantization(register RwUInt32 gqr6, register RwUInt32 gqr7)
+{
+    asm {
+        mtspr GQR6, gqr6
+        mtspr GQR7, gqr7
+    }
+}
 
 asm void _rpSkinGameCubeBlend(const RwMatrixWeights* weights, const RwUInt8* posIn, const RwUInt8* nrmIn,
                               RwUInt8* posOut, RwUInt8* nrmOut, const RwMatrix* matrices,
@@ -527,16 +535,12 @@ static inline void SkinMatricesUpdate(RpAtomic* atomic, RpSkin* skin)
 
             RwMatrixInvert(&inverseLTM, ltm);
             for (i = 0; i < hierarchy->numNodes; i++) {
-                RwMatrixMultiply(&tmp, skinToBone, RwFrameGetLTM(hierarchy->pNodeInfo[i].pFrame));
-                RwMatrixMultiply(matrices, &tmp, &inverseLTM);
-                skinToBone++;
-                matrices++;
+                RwMatrixMultiply(&tmp, &skinToBone[i], RwFrameGetLTM(hierarchy->pNodeInfo[i].pFrame));
+                RwMatrixMultiply(&matrices[i], &tmp, &inverseLTM);
             }
         } else if (hierarchy->flags & rpHANIMHIERARCHYLOCALSPACEMATRICES) {
             for (i = 0; i < hierarchy->numNodes; i++) {
-                RwMatrixMultiply(matrices, skinToBone, &hierarchy->pMatrixArray[i]);
-                skinToBone++;
-                matrices++;
+                RwMatrixMultiply(&matrices[i], &skinToBone[i], &hierarchy->pMatrixArray[i]);
             }
         } else {
             RwMatrix inverseLTM;
@@ -544,24 +548,23 @@ static inline void SkinMatricesUpdate(RpAtomic* atomic, RpSkin* skin)
 
             RwMatrixInvert(&inverseLTM, ltm);
             for (i = 0; i < hierarchy->numNodes; i++) {
-                RwMatrixMultiply(&tmp, skinToBone, &hierarchy->pMatrixArray[i]);
-                RwMatrixMultiply(matrices, &tmp, &inverseLTM);
-                skinToBone++;
-                matrices++;
+                RwMatrixMultiply(&tmp, &skinToBone[i], &hierarchy->pMatrixArray[i]);
+                RwMatrixMultiply(&matrices[i], &tmp, &inverseLTM);
             }
         }
     }
 }
 
-RpAtomic* SkinAtomicReinstance(RpAtomic* atomic, RwResEntry** resEntryRef)
+void* SkinAtomicReinstance(void* object, RwResEntry** resEntryRef)
 {
-    RpGeometry* geometry = atomic->geometry;
-    RpSkin* skin = RPSKINGEOMETRYGETDATA(geometry);
-    rxGCInstanceData* inst = GCRESENTRYDATA(*resEntryRef);
+    RpAtomic* atomic;
+    RpGeometry* geometry;
+    RpSkin* skin;
+    rxGCInstanceData* inst;
     rxGCVtxFmt* vtxFmt;
     RwInt32 numVertices;
-    register RwUInt32 gqr6;
-    register RwUInt32 gqr7;
+    RwUInt32 gqr6;
+    RwUInt32 gqr7;
     RwInt32 posStride;
     RwInt32 nrmStride;
     RwInt32 nrmExtra;
@@ -572,10 +575,14 @@ RpAtomic* SkinAtomicReinstance(RpAtomic* atomic, RwResEntry** resEntryRef)
     const RwUInt8* nrmIn;
     RwUInt8* posOut;
     RwUInt8* nrmOut;
+    atomic = (RpAtomic*)object;
+    geometry = ((RpAtomic*)object)->geometry;
+    skin = RPSKINGEOMETRYGETDATA(geometry);
+    inst = GCRESENTRYDATA(*resEntryRef);
 
     if (skin->positions == NULL) {
         if (!(geometry->flags & rpGEOMETRYNATIVE)) {
-            SkinDefaultReinstance(atomic, resEntryRef);
+            SkinDefaultReinstance(object, resEntryRef);
         }
         skin->positions = inst->positions;
         skin->normals = inst->normals;
@@ -587,7 +594,7 @@ RpAtomic* SkinAtomicReinstance(RpAtomic* atomic, RwResEntry** resEntryRef)
 
         inst->positions = skin->positions;
         inst->normals = skin->normals;
-        SkinDefaultReinstance(atomic, resEntryRef);
+        SkinDefaultReinstance(object, resEntryRef);
         inst->positions = positions;
         inst->normals = normals;
     }
@@ -628,17 +635,14 @@ RpAtomic* SkinAtomicReinstance(RpAtomic* atomic, RwResEntry** resEntryRef)
         gqr7 |= gqr7 << 16;
     }
 
-    asm {
-        mtspr GQR6, gqr6
-        mtspr GQR7, gqr7
-    }
+    SkinSetQuantization(gqr6, gqr7);
 
     _rpSkinGameCubeBlend(weights, posIn, nrmOut ? nrmIn : posIn, posOut, nrmOut, matrices, indices, numVertices,
                          posStride, nrmStride, nrmExtra);
 
     DCFlushRange(SKINBUFFERRESENTRY(posOut) + 1, SKINBUFFERRESENTRY(posOut)->size);
 
-    return atomic;
+    return object;
 }
 
 RpGeometry* _rpSkinInitialize(RpGeometry* geometry)
