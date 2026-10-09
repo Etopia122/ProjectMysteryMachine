@@ -110,6 +110,22 @@ typedef struct RwSphere {
     RwReal radius;
 } RwSphere;
 
+typedef struct RpInterpolator {
+    /* 0x00 */ RwInt32 flags;
+    /* 0x04 */ RwInt16 startMorphTarget;
+    /* 0x06 */ RwInt16 endMorphTarget;
+    /* 0x08 */ RwReal time;
+    /* 0x0C */ RwReal recipTime;
+    /* 0x10 */ RwReal position;
+} RpInterpolator;
+
+typedef struct RpMorphTarget {
+    /* 0x00 */ struct RpGeometry* parentGeom;
+    /* 0x04 */ RwSphere boundingSphere;
+    /* 0x14 */ RwV3d* verts;
+    /* 0x18 */ RwV3d* normals;
+} RpMorphTarget;
+
 typedef struct RpAtomic {
     /* 0x00 */ RwObjectHasFrame object;
     /* 0x14 */ RwResEntry* repEntry;
@@ -119,7 +135,7 @@ typedef struct RpAtomic {
     /* 0x3C */ struct RpClump* clump;
     /* 0x40 */ RwLLLink inClumpLink;
     /* 0x48 */ struct RpAtomic* (*renderCallBack)(struct RpAtomic* atomic);
-    /* 0x4C */ RwUInt8 interpolator[0x14];
+    /* 0x4C */ RpInterpolator interpolator;
     /* 0x60 */ RwUInt16 renderFrame;
     /* 0x62 */ RwUInt16 pad;
     /* 0x64 */ RwLinkList llWorldSectorsInAtomic;
@@ -149,10 +165,14 @@ typedef struct RpClump {
 typedef struct RpGeometry {
     /* 0x00 */ RwObject object;
     /* 0x08 */ RwInt32 flags;
-    /* 0x0C */ RwUInt8 pad0C[0x20 - 0x0C];
+    /* 0x0C */ RwUInt8 pad0C[0x18 - 0x0C];
+    /* 0x18 */ RwInt32 numMorphTargets;
+    /* 0x1C */ RwUInt8 pad1C[0x20 - 0x1C];
     /* 0x20 */ RpMaterialList matList;
     /* 0x2C */ RwUInt8 pad2C[0x60 - 0x2C];
     /* 0x60 */ RpMeshHeader* mesh;
+    /* 0x64 */ RwResEntry* repEntry;
+    /* 0x68 */ RpMorphTarget* morphTarget;
 } RpGeometry;
 
 typedef struct RwPlane {

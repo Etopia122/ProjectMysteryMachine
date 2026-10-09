@@ -1444,6 +1444,12 @@ rwsdk/world/babinwor.c:
 	.sbss       start:0x8025F6F0 end:0x8025F708
 	.sdata2     start:0x802628C8 end:0x802628D0
 
+rwsdk/world/baclump.c:
+	.text       start:0x801484D4 end:0x8014AFC4
+	.data       start:0x801DD498 end:0x801DD4C8
+	.sbss       start:0x8025F708 end:0x8025F720
+	.sdata2     start:0x802628D0 end:0x802628D8
+
 rwsdk/world/balight.c:
 	.text       start:0x8014C7DC end:0x8014D044
 	.data       start:0x801DD4E0 end:0x801DD4F8
