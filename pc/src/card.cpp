@@ -7,7 +7,6 @@
 // as an interrupt, like the hardware's completion.
 #include "pc_platform.h"
 
-#include <SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,7 +14,6 @@
 #include <time.h>
 #include <string>
 #include <vector>
-#include <direct.h>
 
 extern "C" {
 
@@ -82,12 +80,10 @@ std::string card_dir()
     static std::string dir;
     if (dir.empty())
     {
-        char* base = SDL_GetBasePath();
-        dir = std::string(base ? base : "") + "save";
-        SDL_free(base);
-        _mkdir(dir.c_str());
+        dir = std::string(pc_base_path()) + "save";
+        pc_mkdir(dir.c_str());
         dir += "/cardA";
-        _mkdir(dir.c_str());
+        pc_mkdir(dir.c_str());
     }
     return dir;
 }

@@ -21,6 +21,15 @@ extern "C" {
 // Folder holding the extracted disc files (default: game/files).
 const char* pc_data_dir(void);
 
+// Folder the program runs from, with a trailing slash (saves go under it).
+const char* pc_base_path(void);
+
+// Creates a folder; an existing one is fine.
+void pc_mkdir(const char* path);
+
+// Shuts the platform down and ends the program.
+void pc_exit(int code);
+
 // ARAM contents (audio RAM), addressed in bytes.
 unsigned char* pc_aram_ptr(unsigned long addr);
 

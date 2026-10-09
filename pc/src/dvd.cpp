@@ -4,7 +4,6 @@
 // complete (state + callback) on the interrupt thread, like a real drive.
 #include "pc_platform.h"
 
-#include <SDL.h>
 
 #include <algorithm>
 #include <ctype.h>
@@ -78,13 +77,7 @@ const char* pc_data_dir(void)
         }
         else
         {
-            std::string exe;
-            char* base = SDL_GetBasePath();
-            if (base)
-            {
-                exe = base;
-                SDL_free(base);
-            }
+            std::string exe = pc_base_path();
             const std::string candidates[] = { "game/files", exe + "game/files", exe + "../../game/files" };
             dir = candidates[0];
             for (const std::string& c : candidates)

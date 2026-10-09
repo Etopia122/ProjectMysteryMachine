@@ -1525,7 +1525,11 @@ static signed int iSG_get_fmoddate(st_ISG_MEMCARD_DATA* mcdata, const char* fnam
     else
     {
         long long t = mcdata->unk_b0.time;
+#ifdef PC_PORT
+        t = t * (162000000u / 4);
+#else
         t = t * (*(unsigned long*)0x800000F8 / 4);
+#endif
         OSTicksToCalendarTime(t, &time);
 
         if (sec)

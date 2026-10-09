@@ -3,7 +3,6 @@
 // pre-retrace callback as an interrupt, like the GameCube's VI.
 #include "pc_platform.h"
 
-#include <SDL.h>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -151,15 +150,13 @@ void OSSetSoundMode(unsigned int mode) {}
 void OSResetSystem(int reset, unsigned int resetCode, int forceMenu)
 {
     pc_log("[os] OSResetSystem(%d, %u, %d): exiting", reset, resetCode, forceMenu);
-    SDL_Quit();
-    exit(0);
+    pc_exit(0);
 }
 
 void OSPanic(const char* file, int line, const char* msg, ...)
 {
     pc_log("[os] PANIC %s:%d: %s", file, line, msg);
-    SDL_Quit();
-    exit(1);
+    pc_exit(1);
 }
 
 // Cache maintenance has no meaning on PC.

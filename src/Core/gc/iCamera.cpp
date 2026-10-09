@@ -66,7 +66,12 @@ float iTimeDiffSec(iTime t0, iTime t1);
 
 extern RwCamera* globalCamera;
 
+#ifdef PC_PORT
+// The GameCube OS keeps the bus clock in its globals page; ports can't map it.
+#define GET_BUS_FREQUENCY() (162000000u)
+#else
 #define GET_BUS_FREQUENCY() (*(unsigned int*)0x800000F8)
+#endif
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define RWRGBALONG(r, g, b, a)                                                                  \

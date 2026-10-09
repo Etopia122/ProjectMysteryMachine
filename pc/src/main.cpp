@@ -97,6 +97,31 @@ static LONG WINAPI crash_handler(EXCEPTION_POINTERS* ep)
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
+extern "C" const char* pc_base_path()
+{
+    static char* base;
+    if (!base)
+    {
+        base = SDL_GetBasePath();
+        if (!base)
+        {
+            base = SDL_strdup("");
+        }
+    }
+    return base;
+}
+
+extern "C" void pc_mkdir(const char* path)
+{
+    CreateDirectoryA(path, NULL);
+}
+
+extern "C" void pc_exit(int code)
+{
+    SDL_Quit();
+    exit(code);
+}
+
 bool pc_debug_menu_event(const SDL_Event& e);
 void pc_debug_menu_frame();
 
