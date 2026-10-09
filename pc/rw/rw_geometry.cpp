@@ -1254,3 +1254,20 @@ void RtQuatSetupSlerpCache(RtQuat* from, RtQuat* to, RtQuatSlerpCache* c)
 }
 
 }
+
+extern "C" void pc_rw_atomic_spheres(void* atomic, float* out8)
+{
+    RpAtomic* a = (RpAtomic*)atomic;
+    memset(out8, 0, 8 * sizeof(float));
+    if (!a)
+    {
+        return;
+    }
+    out8[0] = a->boundingSphere.center.x, out8[1] = a->boundingSphere.center.y;
+    out8[2] = a->boundingSphere.center.z, out8[3] = a->boundingSphere.radius;
+    if (a->geometry && a->geometry->morphTarget)
+    {
+        const RwSphere& s = a->geometry->morphTarget[0].boundingSphere;
+        out8[4] = s.center.x, out8[5] = s.center.y, out8[6] = s.center.z, out8[7] = s.radius;
+    }
+}

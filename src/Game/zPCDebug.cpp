@@ -1,10 +1,17 @@
 #ifdef PC_PORT
 // PC debug menu actions (pc/src/debug_menu.cpp): level warps and cheats.
 // Not part of the GameCube build.
+#include <stdio.h>
 #include <string.h>
 #include "xBase.h"
 #include "zGlobals.h"
 #include "zScene.h"
+#include "xEnt.h"
+#include "xString.h"
+
+xBase* zSceneFindObject(unsigned int gameID);
+extern "C" void pc_log(const char* fmt, ...);
+extern "C" void pc_rw_atomic_spheres(void* atomic, float* out8);
 
 class zPortalAsset : public p2BaseAsset
 {
@@ -22,6 +29,7 @@ public:
 };
 
 void zEntPickupCheat_allWarps();
+void zEntEvent(char* to, unsigned int toEvent);
 void zVarUnlockEndGame();
 void zVarUnlockAllMovies();
 signed int zGameStateGet();
@@ -87,6 +95,58 @@ void pc_dbg_refill()
 void pc_dbg_add_snacks(unsigned int n) { globals.player.Inv_ScoobySnacks += n; }
 
 int pc_dbg_toggle_infinite_health() { return sInfiniteHealth = !sInfiniteHealth; }
+
+// Sends an event to the named object (debugging scripted sequences).
+void pc_dbg_event(const char* name, unsigned int event) { zEntEvent((char*)name, event); }
+
+// Damages the current boss the way the level does it. Returns a status message.
+// A Dark and Stormy Knight (O008): each button counter (BUTTONn_CNTR, count 1)
+// fires the lightning rod, hits the Black Knight and decrements his health
+// counter when it expires; decrementing it once does all of that.
+const char* pc_dbg_force_boss_damage()
+{
+    static int sNextButton = 1;
+    static char msg[64];
+    unsigned int scene = globals.sceneCur ? globals.sceneCur->sceneID : 0;
+    if (scene == 'O008')
+    {
+        if (sNextButton > 4)
+        {
+            return "BLACK KNIGHT ALREADY HIT 4 TIMES";
+        }
+        char name[32];
+        sprintf(name, "BUTTON%02d_CNTR", sNextButton);
+        zEntEvent(name, 12); // decrement
+        sprintf(msg, "BLACK KNIGHT HIT %d OF 4", sNextButton);
+        sNextButton++;
+        return msg;
+    }
+    return "NO FORCED DAMAGE FOR THIS BOSS YET";
+}
+
+// Logs an entity's visibility and model state (debugging invisible objects).
+void pc_dbg_ent_info(const char* name)
+{
+    _xEnt* e = (_xEnt*)zSceneFindObject(xStrHash(name));
+    if (!e)
+    {
+        pc_log("[ent] %s not found", name);
+        return;
+    }
+    xModelInstance* m = e->model;
+    pc_log("[ent] %s type %d baseFlags %x flags %x pflags %x moreFlags %x collType %x alpha %.2f model %p render %p", name,
+           e->baseType, e->baseFlags, e->flags, e->pflags, e->moreFlags, e->collType, e->material_alpha, m, e->render);
+    for (int i = 0; m && i < 4; i++, m = m->Next)
+    {
+        float* mat = (float*)m->Mat;
+        pc_log("[ent]   model %d atomic %p flags %x anim %p pos %.2f %.2f %.2f scale %.2f %.2f %.2f", i, m->Data, m->Flags,
+               m->Anim, mat ? mat[12] : 0, mat ? mat[13] : 0, mat ? mat[14] : 0, m->Scale.x, m->Scale.y, m->Scale.z);
+        float sp[8];
+        pc_rw_atomic_spheres(m->Data, sp);
+        pc_log("[ent]     atomic sphere (%.2f %.2f %.2f) r %.2f, geometry sphere (%.2f %.2f %.2f) r %.2f", sp[0], sp[1], sp[2],
+               sp[3], sp[4], sp[5], sp[6], sp[7]);
+    }
+}
 
 // Called once per frame.
 void pc_dbg_frame()

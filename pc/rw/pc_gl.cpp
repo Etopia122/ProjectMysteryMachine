@@ -1046,6 +1046,16 @@ void pc_gl_render_atomic(RpAtomic* a)
     PcSkin* sk = pc_geometry(g)->skin;
     RpHAnimHierarchy* h = pc_atomic(a)->skinHierarchy;
     std::vector<RwV3d> sp, sn;
+    {
+        static int geolog0 = getenv("PC_GEOLOG") ? atoi(getenv("PC_GEOLOG")) : -1;
+        static int n0;
+        if (g->numVertices == geolog0 && n0++ % 300 == 0)
+        {
+            pc_log("[geo] atomic %p skin %p hierarchy %p matrices %p ltm pos %.1f %.1f %.1f right %.2f %.2f %.2f", a, sk, h,
+                   h ? h->pMatrixArray : NULL, f->ltm.pos.x, f->ltm.pos.y, f->ltm.pos.z, f->ltm.right.x, f->ltm.right.y,
+                   f->ltm.right.z);
+        }
+    }
     if (sk && h && h->pMatrixArray)
     {
         sp.resize(g->numVertices);
@@ -1055,6 +1065,23 @@ void pc_gl_render_atomic(RpAtomic* a)
         }
         skin_vertices(g, sk, h, sp.data(), nrm ? sn.data() : NULL);
         pos = sp.data();
+        // Debug: PC_GEOLOG=<verts> logs the skinned bounds of models with that many vertices.
+        static int geolog = getenv("PC_GEOLOG") ? atoi(getenv("PC_GEOLOG")) : -1;
+        static int geologged;
+        if (g->numVertices == geolog && geologged++ % 300 == 0)
+        {
+            float mn[3] = { 1e9f, 1e9f, 1e9f }, mx[3] = { -1e9f, -1e9f, -1e9f };
+            for (int i = 0; i < g->numVertices; i++)
+            {
+                const float* v = &sp[i].x;
+                for (int k = 0; k < 3; k++) { mn[k] = fminf(mn[k], v[k]); mx[k] = fmaxf(mx[k], v[k]); }
+            }
+            const RwV3d* b0 = g->morphTarget->verts;
+            pc_log("[geo] skinned bounds (%.2f %.2f %.2f)-(%.2f %.2f %.2f) bind v0 (%.2f %.2f %.2f) skinned v0 (%.2f %.2f %.2f) "
+                   "bones %d nodes %d ltm pos %.1f %.1f %.1f alpha %d", mn[0], mn[1], mn[2], mx[0], mx[1], mx[2], b0->x, b0->y, b0->z,
+                   sp[0].x, sp[0].y, sp[0].z, sk->numBones, h->numNodes, f->ltm.pos.x, f->ltm.pos.y, f->ltm.pos.z,
+                   g->matList.numMaterials ? g->matList.materials[0]->color.alpha : -1);
+        }
         nrm = nrm ? sn.data() : NULL;
     }
     glEnableClientState(GL_VERTEX_ARRAY);

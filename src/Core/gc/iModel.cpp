@@ -1,3 +1,6 @@
+#ifdef PC_PORT
+#include <stdlib.h>
+#endif
 #include "iModel.h"
 #include "rwtypes.h"
 
@@ -410,6 +413,18 @@ signed int iModelCull(RpAtomic* model, RwMatrixTag* mat)
     sph.radius = model->boundingSphere.radius * xsqrt(MAX2(right, MAX2(up, at)));
     model->worldBoundingSphere = sph;
 
+#ifdef PC_PORT
+    // Debug: PC_NOMODELCULL=1 draws every model regardless of the camera.
+    static int nocull = -1;
+    if (nocull < 0)
+    {
+        nocull = getenv("PC_NOMODELCULL") ? 1 : 0;
+    }
+    if (nocull)
+    {
+        return 0;
+    }
+#endif
     return (unsigned char)(RwCameraFrustumTestSphere(cam, &sph) == 0);
 }
 

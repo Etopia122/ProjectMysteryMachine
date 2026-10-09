@@ -25,6 +25,9 @@ void pc_dbg_refill();
 void pc_dbg_add_snacks(unsigned int n);
 int pc_dbg_toggle_infinite_health();
 void pc_dbg_frame();
+void pc_dbg_event(const char* name, unsigned int event);
+const char* pc_dbg_force_boss_damage();
+void pc_dbg_ent_info(const char* name);
 int pc_debug_area(int i, const char** name, const unsigned int** scenes);
 unsigned int pc_debug_scene_id();
 void pc_debug_player_pos(float* out);
@@ -35,7 +38,7 @@ void pc_gl_set_overlay(const char* text);
 namespace {
 
 enum Page { MAIN, LEVELS };
-enum Item { WARP, UPGRADES, GATES, REFILL, SNACKS, INFHEALTH, EXTRAS, COORDS, CLOSE, ITEM_COUNT };
+enum Item { WARP, UPGRADES, GATES, REFILL, SNACKS, INFHEALTH, BOSSDMG, EXTRAS, COORDS, CLOSE, ITEM_COUNT };
 
 bool s_open;
 Page s_page = MAIN;
@@ -144,6 +147,9 @@ void activate()
         s_infHealth = pc_dbg_toggle_infinite_health() != 0;
         status(s_infHealth ? "INFINITE HEALTH ON" : "INFINITE HEALTH OFF");
         break;
+    case BOSSDMG:
+        status(pc_dbg_force_boss_damage());
+        break;
     case EXTRAS:
         pc_dbg_unlock_extras();
         status("MOVIES AND CREDITS UNLOCKED");
@@ -213,6 +219,7 @@ void build_overlay()
         const char* labels[ITEM_COUNT] = {
             "WARP TO LEVEL",          "ALL UPGRADES",           "UNLOCK ALL WARP GATES",
             "REFILL HEALTH AND AMMO", "ADD 100 SCOOBY SNACKS",  s_infHealth ? "INFINITE HEALTH: ON" : "INFINITE HEALTH: OFF",
+            "FORCE BOSS DAMAGE",
             "UNLOCK MOVIES, CREDITS", s_showCoords ? "COORDINATES: ON" : "COORDINATES: OFF", "CLOSE",
         };
         for (int i = 0; i < ITEM_COUNT; i++)
@@ -349,6 +356,47 @@ void pc_debug_menu_frame()
         s_open = true;
         s_page = strcmp(menu, "levels") ? MAIN : LEVELS;
         menu = NULL;
+    }
+    // Testing: PC_EVENT=<sec>:NAME:event[;NAME:event...] sends events to objects.
+    static const char* ev = getenv("PC_EVENT");
+    if (ev && SDL_GetTicks() >= (Uint32)(atof(ev) * 1000))
+    {
+        std::string list = strchr(ev, ':') ? strchr(ev, ':') + 1 : "";
+        ev = NULL;
+        size_t start = 0;
+        while (start < list.size())
+        {
+            size_t end = list.find(';', start);
+            std::string item = list.substr(start, end == std::string::npos ? std::string::npos : end - start);
+            size_t colon = item.rfind(':');
+            if (colon != std::string::npos)
+            {
+                std::string name = item.substr(0, colon);
+                unsigned int id = (unsigned int)atoi(item.c_str() + colon + 1);
+                pc_log("[debug] event %u -> %s", id, name.c_str());
+                pc_dbg_event(name.c_str(), id);
+            }
+            if (end == std::string::npos) break;
+            start = end + 1;
+        }
+    }
+    // Testing: PC_BOSSDMG=<sec>[,<sec>...] forces boss damage at those times.
+    static const char* bossdmg = getenv("PC_BOSSDMG");
+    if (bossdmg && SDL_GetTicks() >= (Uint32)(atof(bossdmg) * 1000))
+    {
+        status(pc_dbg_force_boss_damage());
+        bossdmg = strchr(bossdmg, ',');
+        if (bossdmg) bossdmg++;
+    }
+    // Testing: PC_ENTINFO=<sec>:NAME[,<sec>:NAME] logs an entity's state.
+    static const char* entinfo = getenv("PC_ENTINFO");
+    if (entinfo && SDL_GetTicks() >= (Uint32)(atof(entinfo) * 1000))
+    {
+        const char* c = strchr(entinfo, ':');
+        const char* next = strchr(entinfo, ',');
+        std::string name = c ? std::string(c + 1, next ? next : c + 1 + strlen(c + 1)) : "";
+        pc_dbg_ent_info(name.c_str());
+        entinfo = next ? next + 1 : NULL;
     }
     static const char* warp = getenv("PC_WARP");
     if (warp && SDL_GetTicks() >= (Uint32)(atof(warp) * 1000))

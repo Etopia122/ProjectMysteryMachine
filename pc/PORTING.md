@@ -69,7 +69,8 @@ toggles fullscreen. Saves go to `save/cardA` next to the exe.
 
 Debug menu: F1 (or the controller's Back/Select button) opens it. Warp to any
 level and scene (from gameplay), all upgrades, unlock all warp gates, refill
-health/chances/ammo, +100 Scooby Snacks, infinite health, unlock movies and
+health/chances/ammo, +100 Scooby Snacks, infinite health, force boss damage
+(Black Knight so far), unlock movies and
 credits, coordinate readout. Up/Down choose, Left/Right pick a level's scene,
 Enter/A selects, Esc/B goes back; game input is ignored while it is open.
 Debug keys: F3 shows the scene and Scooby's position, F4 saves it to
@@ -79,7 +80,10 @@ saved spot. `PC_SCENE=<id> PC_TELEPORT=<sec>:x,y,z` starts there directly.
 Debug switches (environment): `PC_SCENE=I001` starts New Game in that scene
 (scene IDs and level names are in `sAreaTable`, src/Game/zScene.cpp),
 `PC_PORTAL=<sec>:<n>` takes the n-th portal of the current scene,
-`PC_WARP=<sec>:<scene>` warps like the menu, `PC_MENU=main|levels` opens the menu,
+`PC_WARP=<sec>:<scene>` warps like the menu, `PC_EVENT=<sec>:NAME:event;...` sends
+events to objects, `PC_ENTINFO=<sec>:NAME` logs an entity's state, `PC_BOSSDMG=<sec>`
+forces boss damage, `PC_NOMODELCULL=1` draws every model, `PC_GEOLOG=<verts>` logs
+models with that vertex count, `PC_MENU=main|levels` opens the menu,
 `PC_FORCESAVE=<sec>` opens the save screen, `PC_POSLOG=1` logs the position each
 second, `PC_PROBE=<sec>:x0,z0,x1,z1,n` casts vertical rays (all worlds),
 `PC_SPHERE=<sec>:x,y,z,r` lists world triangles near a point,

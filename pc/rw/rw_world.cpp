@@ -750,8 +750,8 @@ extern "C" void pc_debug_probe(float x, float z)
     RpIntersection isx;
     memset(&isx, 0, sizeof(isx));
     isx.type = rpINTERSECTLINE;
-    isx.t.line.start.x = x, isx.t.line.start.y = 20, isx.t.line.start.z = z;
-    isx.t.line.end.x = x, isx.t.line.end.y = -40, isx.t.line.end.z = z;
+    isx.t.line.start.x = x, isx.t.line.start.y = 300, isx.t.line.start.z = z;
+    isx.t.line.end.x = x, isx.t.line.end.y = -300, isx.t.line.end.z = z;
     pc_log("[probe] (%.2f, %.2f)", x, z);
     for (size_t i = 0; i < s_worlds.size(); i++)
     {
