@@ -28,6 +28,7 @@ void pc_dbg_frame();
 void pc_dbg_event(const char* name, unsigned int event);
 const char* pc_dbg_force_boss_damage();
 void pc_dbg_ent_info(const char* name);
+void pc_dbg_hurt();
 int pc_debug_area(int i, const char** name, const unsigned int** scenes);
 unsigned int pc_debug_scene_id();
 void pc_debug_player_pos(float* out);
@@ -387,6 +388,14 @@ void pc_debug_menu_frame()
         status(pc_dbg_force_boss_damage());
         bossdmg = strchr(bossdmg, ',');
         if (bossdmg) bossdmg++;
+    }
+    // Testing: PC_HURT=<sec>[,<sec>...] damages Scooby at those times.
+    static const char* hurt = getenv("PC_HURT");
+    if (hurt && SDL_GetTicks() >= (Uint32)(atof(hurt) * 1000))
+    {
+        pc_dbg_hurt();
+        hurt = strchr(hurt, ',');
+        if (hurt) hurt++;
     }
     // Testing: PC_ENTINFO=<sec>:NAME[,<sec>:NAME] logs an entity's state.
     static const char* entinfo = getenv("PC_ENTINFO");

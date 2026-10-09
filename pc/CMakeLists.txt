@@ -17,8 +17,9 @@ file(GLOB GAME_SOURCES
     ${ROOT}/src/Core/x/*.cpp
     ${ROOT}/src/Core/gc/*.cpp ${ROOT}/src/Core/gc/*.c
     ${ROOT}/src/Game/*.cpp)
-# Platform files replaced on PC (pc/src): the Bink/GX movie player.
-list(FILTER GAME_SOURCES EXCLUDE REGEX "/src/Core/gc/iFMV\.cpp$")
+# Platform files replaced on PC (pc/src): the Bink/GX movie player and its
+# GX blitter.
+list(FILTER GAME_SOURCES EXCLUDE REGEX "/src/Core/gc/(iFMV\.cpp|iRad3D\.c)$")
 # The original build compiles the .c files as C++ too.
 set_source_files_properties(${GAME_SOURCES} PROPERTIES LANGUAGE CXX)
 

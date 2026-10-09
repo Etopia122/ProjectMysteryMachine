@@ -74,6 +74,12 @@ struct RenderStates
 };
 static RenderStates s_rs;
 
+// GX state the game sets directly, outside RenderWare: colour/alpha writes
+// (depth-only passes) and an alpha compare that replaces RenderWare's until
+// the next RW alpha state flush (src/Core/gc/iEnv.cpp).
+static bool s_colorUpdate = true, s_alphaUpdate = true;
+static int s_gxAlphaFunc = -1, s_gxAlphaRef;
+
 // Debug statistics (PC_STATS=1): draws per frame, printed every 120 frames.
 static struct { int cams, atomics, atomicsDrawn, sectors, im2d, im3d, clears; } s_st;
 static bool stats_on() { static int on = -1; if (on < 0) on = getenv("PC_STATS") != NULL; return on; }
@@ -293,8 +299,16 @@ static void apply_states(bool alpha)
     {
         glDisable(GL_BLEND);
     }
+    glColorMask(s_colorUpdate, s_colorUpdate, s_colorUpdate, s_alphaUpdate);
     glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(gl_alpha_func(s_rs.alphaFunc), s_rs.alphaRef / 255.0f);
+    if (s_gxAlphaFunc >= 0)
+    {
+        glAlphaFunc(gl_alpha_func(s_gxAlphaFunc), s_gxAlphaRef / 255.0f);
+    }
+    else
+    {
+        glAlphaFunc(gl_alpha_func(s_rs.alphaFunc), s_rs.alphaRef / 255.0f);
+    }
     if (s_rs.cullMode == 2 || s_rs.cullMode == 3)
     {
         glEnable(GL_CULL_FACE);
@@ -648,6 +662,8 @@ void pc_gl_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
         {
             glViewport(0, 0, s_winW, s_winH);
         }
+        // The GameCube clears with an EFB copy, which ignores the write masks.
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glClear(bits);
         set_viewport();
     }
@@ -1473,6 +1489,7 @@ extern "C" void pc_gl_fmv_frame(const unsigned char* rgba, int w, int h, int let
     glDisable(GL_SCISSOR_TEST);
     glClearColor(0, 0, 0, 1);
     glDepthMask(GL_TRUE);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     set_viewport();
     glDisable(GL_DEPTH_TEST);
@@ -1571,6 +1588,7 @@ static void draw_overlay()
     glDisable(GL_FOG);
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_LIGHTING);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -1628,3 +1646,51 @@ static void draw_overlay()
     glEnd();
     glDisable(GL_BLEND);
 }
+
+// GX calls the game makes directly (src/Core/gc/iEnv.cpp, iSystem.cpp).
+extern "C" void GXSetColorUpdate(int enable)
+{
+    s_colorUpdate = enable != 0;
+}
+
+extern "C" void GXSetAlphaUpdate(int enable)
+{
+    s_alphaUpdate = enable != 0;
+}
+
+// GX tests (alpha comp0 ref0) op (alpha comp1 ref1); fixed-function GL has one
+// comparison, so keep the side that can fail. The game only uses
+// "alpha >= 0 AND alpha <= ref". GX compares are RenderWare's minus one.
+static bool gx_compare_always(int comp, int ref)
+{
+    return comp == 7 || (comp == 6 && ref == 0) || (comp == 3 && ref == 255);
+}
+
+extern "C" void GXSetAlphaCompare(int comp0, unsigned char ref0, int op, int comp1, unsigned char ref1)
+{
+    bool always0 = gx_compare_always(comp0, ref0), always1 = gx_compare_always(comp1, ref1);
+    if (op == 1 && (always0 || always1)) // OR
+    {
+        comp0 = 7;
+    }
+    else if (always0)
+    {
+        comp0 = comp1;
+        ref0 = ref1;
+    }
+    s_gxAlphaFunc = comp0 + 1;
+    s_gxAlphaRef = ref0;
+}
+
+// RenderWare re-applies its own alpha test state.
+void pc_gl_reset_gx_alpha()
+{
+    s_gxAlphaFunc = -1;
+}
+
+// Z before or after texturing: GL discards alpha-tested fragments before the
+// depth write either way.
+extern "C" void GXSetZCompLoc(int beforeTex) {}
+extern "C" void GXSetMisc(int token, int value) {}
+extern "C" void GXAbortFrame() {}
+extern "C" void GXDrawDone() {}

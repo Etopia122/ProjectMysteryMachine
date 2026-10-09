@@ -47,7 +47,9 @@ native PC program. Game assets are not included: the player supplies their own d
    Done so far (2026-10-06): OS heap, ARAM, interrupts, DVD, VI/time, pad,
    our own RenderWare 3.x layer on OpenGL (`pc/rw`), asset byte swapping,
    audio (`audio.cpp`: AX voices, DSP-ADPCM, MIX, SDL output) and FMV
-   (`fmv.cpp`: Bink via FFmpeg, replacing `iFMV.cpp`). Boots through the logo
+   (`fmv.cpp`: Bink via FFmpeg, replacing `iFMV.cpp` and `iRad3D.c`). The GX
+   calls the game makes directly (colour/alpha write masks for depth-only
+   passes, the env FX alpha compare) are handled in `pc/rw/pc_gl.cpp`. Boots through the logo
    movies and Intro to the title screen and main menu; New Game loads the
    first level, where Scooby can run around; memory card saves go to files
    (`card.cpp`).
@@ -82,7 +84,7 @@ Debug switches (environment): `PC_SCENE=I001` starts New Game in that scene
 `PC_PORTAL=<sec>:<n>` takes the n-th portal of the current scene,
 `PC_WARP=<sec>:<scene>` warps like the menu, `PC_EVENT=<sec>:NAME:event;...` sends
 events to objects, `PC_ENTINFO=<sec>:NAME` logs an entity's state, `PC_BOSSDMG=<sec>`
-forces boss damage, `PC_NOMODELCULL=1` draws every model, `PC_GEOLOG=<verts>` logs
+forces boss damage, `PC_HURT=<sec>` damages Scooby, `PC_NOMODELCULL=1` draws every model, `PC_GEOLOG=<verts>` logs
 models with that vertex count, `PC_MENU=main|levels` opens the menu,
 `PC_FORCESAVE=<sec>` opens the save screen, `PC_POSLOG=1` logs the position each
 second, `PC_PROBE=<sec>:x0,z0,x1,z1,n` casts vertical rays (all worlds),
@@ -99,7 +101,6 @@ and the `PC_FPCHECK` CMake option finds x87 stack leaks.
 
 - **Gameplay testing:** play through levels and compare with the GameCube
   build; saving in-game hasn't been exercised yet.
-- **Remaining GX direct calls** (screen effects that use GX copies).
 - **Trim FFmpeg:** the MSYS2 build pulls in ~70 DLLs; a Bink-only build would do.
 
 - **PS2 assets as an alternative source.** PS2 data is little-endian and librw

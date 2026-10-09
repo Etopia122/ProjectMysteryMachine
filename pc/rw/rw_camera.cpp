@@ -223,4 +223,9 @@ RwInt32 RwCameraFrustumTestSphere(const RwCamera* c, const RwSphere* s)
     return result;
 }
 
+// GameCube RenderWare: copies the embedded framebuffer into a raster (the
+// shadow pass saves and restores the screen with it). Cameras render into
+// their own targets on PC, so there is nothing to copy.
+void fn_80178A3C(RwRaster* raster) {}
+
 }

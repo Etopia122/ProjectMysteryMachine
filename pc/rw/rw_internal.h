@@ -83,6 +83,7 @@ void pc_gl_bind_raster(RwRaster* r);
 void pc_gl_begin_camera(RwCamera* cam);
 void pc_gl_end_camera(RwCamera* cam);
 void pc_gl_clear(RwCamera* cam, const RwRGBA* colour, RwInt32 mode);
+void pc_gl_reset_gx_alpha();
 void pc_gl_present();
 void pc_gl_render_atomic(RpAtomic* atomic);
 

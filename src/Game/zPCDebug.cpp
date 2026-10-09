@@ -32,6 +32,7 @@ public:
 
 void zEntPickupCheat_allWarps();
 void zEntEvent(char* to, unsigned int toEvent);
+signed int zEntPlayer_Damage(xBase* src, unsigned int damage);
 void zVarUnlockEndGame();
 void zVarUnlockAllMovies();
 signed int zGameStateGet();
@@ -100,6 +101,9 @@ int pc_dbg_toggle_infinite_health() { return sInfiniteHealth = !sInfiniteHealth;
 
 // Sends an event to the named object (debugging scripted sequences).
 void pc_dbg_event(const char* name, unsigned int event) { zEntEvent((char*)name, event); }
+
+// Hurts Scooby by one, as an enemy hit does (testing damage effects).
+void pc_dbg_hurt() { zEntPlayer_Damage(&globals.player.ent, 1); }
 
 // Moves an entity (e.g. a boss) to a position, keeping its bound in step.
 static void move_ent(_xEnt* e, const _xVec3* pos)

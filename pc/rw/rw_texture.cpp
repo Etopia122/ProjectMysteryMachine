@@ -573,7 +573,11 @@ RwImage* RwImageSetFromRaster(RwImage* im, RwRaster* r)
     return im;
 }
 
-// GameCube texture-cache flush; nothing to do on PC.
-void _rwDlTextureRasterFlush(RwInt32 mode, volatile void* data) {}
+// GameCube texture-cache and alpha-state flush: drops any alpha compare the
+// game set through GX directly.
+void _rwDlTextureRasterFlush(RwInt32 mode, volatile void* data)
+{
+    pc_gl_reset_gx_alpha();
+}
 
 }

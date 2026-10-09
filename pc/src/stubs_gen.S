@@ -14,142 +14,30 @@ _AISetStreamVolRight:
     addl $4, %esp
     xorl %eax, %eax
     ret
-    .globl _GXAbortFrame
-_GXAbortFrame:
-    pushl $Lname2
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXBegin
-_GXBegin:
-    pushl $Lname3
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXDrawDone
-_GXDrawDone:
-    pushl $Lname4
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXGetTexBufferSize
-_GXGetTexBufferSize:
-    pushl $Lname5
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXInitTexObj
-_GXInitTexObj:
-    pushl $Lname6
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXInitTexObjLOD
-_GXInitTexObjLOD:
-    pushl $Lname7
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXLoadTexObj
-_GXLoadTexObj:
-    pushl $Lname8
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXSetAlphaCompare
-_GXSetAlphaCompare:
-    pushl $Lname10
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXSetAlphaUpdate
-_GXSetAlphaUpdate:
-    pushl $Lname11
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXSetBlendMode
-_GXSetBlendMode:
-    pushl $Lname12
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXSetColorUpdate
-_GXSetColorUpdate:
-    pushl $Lname13
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXSetCullMode
-_GXSetCullMode:
-    pushl $Lname14
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXSetMisc
-_GXSetMisc:
-    pushl $Lname15
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXSetTevAlphaIn
-_GXSetTevAlphaIn:
-    pushl $Lname16
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _GXSetZCompLoc
-_GXSetZCompLoc:
-    pushl $Lname17
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
     .globl __Z16iDebugScreenDumpv
 __Z16iDebugScreenDumpv:
-    pushl $Lname18
+    pushl $Lname3
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl ___start
 ___start:
-    pushl $Lname19
+    pushl $Lname4
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __stack_addr
 __stack_addr:
-    pushl $Lname20
+    pushl $Lname5
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __stack_end
 __stack_end:
-    pushl $Lname21
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
-    .globl _fn_80178A3C
-_fn_80178A3C:
-    pushl $Lname22
+    pushl $Lname6
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
@@ -157,49 +45,33 @@ _fn_80178A3C:
     .section .rdata,"dr"
 Lname0: .asciz "_AISetStreamVolLeft"
 Lname1: .asciz "_AISetStreamVolRight"
-Lname2: .asciz "_GXAbortFrame"
-Lname3: .asciz "_GXBegin"
-Lname4: .asciz "_GXDrawDone"
-Lname5: .asciz "_GXGetTexBufferSize"
-Lname6: .asciz "_GXInitTexObj"
-Lname7: .asciz "_GXInitTexObjLOD"
-Lname8: .asciz "_GXLoadTexObj"
-Lname9: .asciz "_GXNtsc480IntDf"
-Lname10: .asciz "_GXSetAlphaCompare"
-Lname11: .asciz "_GXSetAlphaUpdate"
-Lname12: .asciz "_GXSetBlendMode"
-Lname13: .asciz "_GXSetColorUpdate"
-Lname14: .asciz "_GXSetCullMode"
-Lname15: .asciz "_GXSetMisc"
-Lname16: .asciz "_GXSetTevAlphaIn"
-Lname17: .asciz "_GXSetZCompLoc"
-Lname18: .asciz "iDebugScreenDump()"
-Lname19: .asciz "___start"
-Lname20: .asciz "__stack_addr"
-Lname21: .asciz "__stack_end"
-Lname22: .asciz "_fn_80178A3C"
-Lname23: .asciz "_gFXSurfaceFlags"
-Lname24: .asciz "_gFrameCount"
-Lname25: .asciz "_gScreenDump"
-Lname26: .asciz "_gVsyncCount"
-Lname27: .asciz "_g_xSceneCur"
-Lname28: .asciz "_globalCamera"
-Lname29: .asciz "_lastEnv"
-Lname30: .asciz "_lbl_801FE3B8"
-Lname31: .asciz "_lbl_801FE3C4"
-Lname32: .asciz "_lbl_801FE3D4"
-Lname33: .asciz "_lbl_8025E348"
-Lname34: .asciz "_lbl_8025E8A0"
-Lname35: .asciz "_lbl_8025E96C"
-Lname36: .asciz "_lbl_8025E970"
-Lname37: .asciz "_lbl_8025E974"
-Lname38: .asciz "_lbl_8025E978"
-Lname39: .asciz "_lbl_8025E97C"
-Lname40: .asciz "_lbl_8025E980"
-Lname41: .asciz "_lbl_8025E984"
-Lname42: .asciz "_lbl_8025E988"
-Lname43: .asciz "_lbl_8025EEC8"
-Lname44: .asciz "_sBeginDrawFX"
+Lname2: .asciz "_GXNtsc480IntDf"
+Lname3: .asciz "iDebugScreenDump()"
+Lname4: .asciz "___start"
+Lname5: .asciz "__stack_addr"
+Lname6: .asciz "__stack_end"
+Lname7: .asciz "_gFXSurfaceFlags"
+Lname8: .asciz "_gFrameCount"
+Lname9: .asciz "_gScreenDump"
+Lname10: .asciz "_gVsyncCount"
+Lname11: .asciz "_g_xSceneCur"
+Lname12: .asciz "_globalCamera"
+Lname13: .asciz "_lastEnv"
+Lname14: .asciz "_lbl_801FE3B8"
+Lname15: .asciz "_lbl_801FE3C4"
+Lname16: .asciz "_lbl_801FE3D4"
+Lname17: .asciz "_lbl_8025E348"
+Lname18: .asciz "_lbl_8025E8A0"
+Lname19: .asciz "_lbl_8025E96C"
+Lname20: .asciz "_lbl_8025E970"
+Lname21: .asciz "_lbl_8025E974"
+Lname22: .asciz "_lbl_8025E978"
+Lname23: .asciz "_lbl_8025E97C"
+Lname24: .asciz "_lbl_8025E980"
+Lname25: .asciz "_lbl_8025E984"
+Lname26: .asciz "_lbl_8025E988"
+Lname27: .asciz "_lbl_8025EEC8"
+Lname28: .asciz "_sBeginDrawFX"
     .bss
     .globl _GXNtsc480IntDf
     .balign 32
