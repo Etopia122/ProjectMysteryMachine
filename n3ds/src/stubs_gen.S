@@ -26,12 +26,48 @@ AISetStreamVolRight:
     vmov d0, r0, r1
     pop {r4, pc}
     .ltorg
+    .globl _Z11xBaseEnableP5xBase
+    .type _Z11xBaseEnableP5xBase, %function
+    .balign 4
+_Z11xBaseEnableP5xBase:
+    push {r4, lr}
+    ldr r0, =Lname3
+    bl pc_stub_hit
+    mov r0, #0
+    mov r1, #0
+    vmov d0, r0, r1
+    pop {r4, pc}
+    .ltorg
+    .globl _Z12xBaseDisableP5xBase
+    .type _Z12xBaseDisableP5xBase, %function
+    .balign 4
+_Z12xBaseDisableP5xBase:
+    push {r4, lr}
+    ldr r0, =Lname4
+    bl pc_stub_hit
+    mov r0, #0
+    mov r1, #0
+    vmov d0, r0, r1
+    pop {r4, pc}
+    .ltorg
+    .globl _Z14xBaseIsEnabledP5xBase
+    .type _Z14xBaseIsEnabledP5xBase, %function
+    .balign 4
+_Z14xBaseIsEnabledP5xBase:
+    push {r4, lr}
+    ldr r0, =Lname5
+    bl pc_stub_hit
+    mov r0, #0
+    mov r1, #0
+    vmov d0, r0, r1
+    pop {r4, pc}
+    .ltorg
     .globl _Z16iDebugScreenDumpv
     .type _Z16iDebugScreenDumpv, %function
     .balign 4
 _Z16iDebugScreenDumpv:
     push {r4, lr}
-    ldr r0, =Lname3
+    ldr r0, =Lname6
     bl pc_stub_hit
     mov r0, #0
     mov r1, #0
@@ -43,7 +79,7 @@ _Z16iDebugScreenDumpv:
     .balign 4
 __start:
     push {r4, lr}
-    ldr r0, =Lname4
+    ldr r0, =Lname7
     bl pc_stub_hit
     mov r0, #0
     mov r1, #0
@@ -55,7 +91,7 @@ __start:
     .balign 4
 _stack_addr:
     push {r4, lr}
-    ldr r0, =Lname5
+    ldr r0, =Lname8
     bl pc_stub_hit
     mov r0, #0
     mov r1, #0
@@ -67,7 +103,7 @@ _stack_addr:
     .balign 4
 _stack_end:
     push {r4, lr}
-    ldr r0, =Lname6
+    ldr r0, =Lname9
     bl pc_stub_hit
     mov r0, #0
     mov r1, #0
@@ -78,32 +114,35 @@ _stack_end:
 Lname0: .asciz "AISetStreamVolLeft"
 Lname1: .asciz "AISetStreamVolRight"
 Lname2: .asciz "GXNtsc480IntDf"
-Lname3: .asciz "iDebugScreenDump()"
-Lname4: .asciz "__start"
-Lname5: .asciz "_stack_addr"
-Lname6: .asciz "_stack_end"
-Lname7: .asciz "gFXSurfaceFlags"
-Lname8: .asciz "gFrameCount"
-Lname9: .asciz "gScreenDump"
-Lname10: .asciz "gVsyncCount"
-Lname11: .asciz "g_xSceneCur"
-Lname12: .asciz "globalCamera"
-Lname13: .asciz "lastEnv"
-Lname14: .asciz "lbl_801FE3B8"
-Lname15: .asciz "lbl_801FE3C4"
-Lname16: .asciz "lbl_801FE3D4"
-Lname17: .asciz "lbl_8025E348"
-Lname18: .asciz "lbl_8025E8A0"
-Lname19: .asciz "lbl_8025E96C"
-Lname20: .asciz "lbl_8025E970"
-Lname21: .asciz "lbl_8025E974"
-Lname22: .asciz "lbl_8025E978"
-Lname23: .asciz "lbl_8025E97C"
-Lname24: .asciz "lbl_8025E980"
-Lname25: .asciz "lbl_8025E984"
-Lname26: .asciz "lbl_8025E988"
-Lname27: .asciz "lbl_8025EEC8"
-Lname28: .asciz "sBeginDrawFX"
+Lname3: .asciz "xBaseEnable(xBase*)"
+Lname4: .asciz "xBaseDisable(xBase*)"
+Lname5: .asciz "xBaseIsEnabled(xBase*)"
+Lname6: .asciz "iDebugScreenDump()"
+Lname7: .asciz "__start"
+Lname8: .asciz "_stack_addr"
+Lname9: .asciz "_stack_end"
+Lname10: .asciz "gFXSurfaceFlags"
+Lname11: .asciz "gFrameCount"
+Lname12: .asciz "gScreenDump"
+Lname13: .asciz "gVsyncCount"
+Lname14: .asciz "g_xSceneCur"
+Lname15: .asciz "globalCamera"
+Lname16: .asciz "lastEnv"
+Lname17: .asciz "lbl_801FE3B8"
+Lname18: .asciz "lbl_801FE3C4"
+Lname19: .asciz "lbl_801FE3D4"
+Lname20: .asciz "lbl_8025E348"
+Lname21: .asciz "lbl_8025E8A0"
+Lname22: .asciz "lbl_8025E96C"
+Lname23: .asciz "lbl_8025E970"
+Lname24: .asciz "lbl_8025E974"
+Lname25: .asciz "lbl_8025E978"
+Lname26: .asciz "lbl_8025E97C"
+Lname27: .asciz "lbl_8025E980"
+Lname28: .asciz "lbl_8025E984"
+Lname29: .asciz "lbl_8025E988"
+Lname30: .asciz "lbl_8025EEC8"
+Lname31: .asciz "sBeginDrawFX"
     .bss
     .globl GXNtsc480IntDf
     .balign 32

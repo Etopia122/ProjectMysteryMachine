@@ -122,6 +122,9 @@ extern "C" void pc_thread_start(void (*fn)(void), const char* name)
     std::thread(fn).detach();
 }
 
+extern "C" unsigned long long pc_perf_counter() { return SDL_GetPerformanceCounter(); }
+extern "C" double pc_perf_seconds(unsigned long long t) { return (double)t / SDL_GetPerformanceFrequency(); }
+
 extern "C" unsigned int pc_ticks_ms()
 {
     return SDL_GetTicks();

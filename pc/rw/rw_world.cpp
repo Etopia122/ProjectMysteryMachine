@@ -4,6 +4,7 @@
 
 #include <float.h>
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 #include <algorithm>
 #include <vector>
@@ -255,6 +256,7 @@ static void free_sector(RpSector* s)
     if (s->type < 0)
     {
         RpWorldSector* w = (RpWorldSector*)s;
+        pc_render_forget(w);
         rwFree(w->polygons);
         rwFree(w->vertices);
         rwFree(w->normals);
@@ -585,6 +587,35 @@ static bool test_tri(const RpIntersection* isx, const RwV3d& a, const RwV3d& b, 
 extern "C" {
 
 typedef RpCollisionTriangle* (*WorldCollCB)(RpIntersection*, RpWorldSector*, RpCollisionTriangle*, float, void*);
+
+// PC_PROF=1: collision work per second.
+static struct { int queries[5], tris, hits, atomicQueries, atomicTris; unsigned long long start; } s_cprof;
+static void cprof_tick()
+{
+    static int on = -1;
+    if (on < 0)
+    {
+        on = getenv("PC_PROF") != NULL;
+    }
+    if (!on)
+    {
+        return;
+    }
+    unsigned long long now = pc_perf_counter();
+    if (!s_cprof.start)
+    {
+        s_cprof.start = now;
+    }
+    if (pc_perf_seconds(now - s_cprof.start) >= 1.0)
+    {
+        pc_log("[prof] collision/s: world queries line %d sphere %d box %d point %d, %d tris tested, %d hits; "
+               "atomic queries %d, %d tris", s_cprof.queries[rpINTERSECTLINE], s_cprof.queries[rpINTERSECTSPHERE],
+               s_cprof.queries[rpINTERSECTBOX], s_cprof.queries[rpINTERSECTPOINT], s_cprof.tris, s_cprof.hits,
+               s_cprof.atomicQueries, s_cprof.atomicTris);
+        memset(&s_cprof, 0, sizeof(s_cprof));
+        s_cprof.start = now;
+    }
+}
 typedef RpCollisionTriangle* (*AtomicCollCB)(RpIntersection*, RpCollisionTriangle*, float, void*);
 
 RpWorld* RpCollisionWorldForAllIntersections(RpWorld* w, RpIntersection* isx, WorldCollCB cb, void* data)
@@ -595,6 +626,11 @@ RpWorld* RpCollisionWorldForAllIntersections(RpWorld* w, RpIntersection* isx, Wo
     }
     RwV3d mn, mx;
     isx_bounds(isx, &mn, &mx);
+    cprof_tick();
+    if (isx->type >= 0 && isx->type < 5)
+    {
+        s_cprof.queries[isx->type]++;
+    }
     std::vector<RpWorldSector*>& v = *pc_world(w)->sectors;
     for (size_t i = 0; i < v.size(); i++)
     {
@@ -603,6 +639,7 @@ RpWorld* RpCollisionWorldForAllIntersections(RpWorld* w, RpIntersection* isx, Wo
         {
             continue;
         }
+        s_cprof.tris += s->numPolygons;
         for (RwInt32 p = 0; p < s->numPolygons; p++)
         {
             RpPolygon& poly = s->polygons[p];
@@ -612,6 +649,7 @@ RpWorld* RpCollisionWorldForAllIntersections(RpWorld* w, RpIntersection* isx, Wo
             float d;
             if (test_tri(isx, *a, *b, *c, &d))
             {
+                s_cprof.hits++;
                 RpCollisionTriangle tri;
                 make_coll_tri(&tri, a, b, c, p);
                 if (!cb(isx, s, &tri, d, data))
@@ -652,6 +690,8 @@ RpAtomic* RpAtomicForAllIntersections(RpAtomic* a, RpIntersection* isx, AtomicCo
         RwV3dTransformPoints(&local.t.point, &isx->t.point, 1, &inv);
     }
     RwV3d* verts = g->morphTarget->verts;
+    s_cprof.atomicQueries++;
+    s_cprof.atomicTris += g->numTriangles;
     for (RwInt32 i = 0; i < g->numTriangles; i++)
     {
         RpTriangle& t = g->triangles[i];

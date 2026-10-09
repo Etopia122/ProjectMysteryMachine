@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
+#include <unordered_map>
 #include <vector>
 
 // Logical framebuffer the game renders to.
@@ -38,6 +39,52 @@ static int s_gxAlphaFunc = -1, s_gxAlphaRef;
 // Debug statistics (PC_STATS=1): draws per frame, printed every 120 frames.
 static struct { int cams, atomics, atomicsDrawn, sectors, im2d, im3d, clears; } s_st;
 static bool stats_on() { static int on = -1; if (on < 0) on = getenv("PC_STATS") != NULL; return on; }
+
+// PC_PROF=1: per-second profile of the renderer's CPU work.
+enum { PROF_SKIN, PROF_LIGHT, PROF_COLOUR, PROF_DRAW, PROF_WORLD, PROF_IM, PROF_COUNT };
+static unsigned long long s_prof[PROF_COUNT];
+static bool prof_on() { static int on = -1; if (on < 0) on = getenv("PC_PROF") != NULL; return on; }
+struct ProfScope
+{
+    int slot;
+    unsigned long long t0;
+    ProfScope(int s) : slot(s), t0(prof_on() ? pc_perf_counter() : 0) {}
+    ~ProfScope()
+    {
+        if (t0)
+        {
+            s_prof[slot] += pc_perf_counter() - t0;
+        }
+    }
+};
+
+static void prof_frame()
+{
+    static unsigned long long start;
+    static int frames;
+    unsigned long long now = pc_perf_counter();
+    if (!start)
+    {
+        start = now;
+    }
+    frames++;
+    double secs = pc_perf_seconds(now - start);
+    if (secs < 1.0)
+    {
+        return;
+    }
+    double ms[PROF_COUNT];
+    for (int i = 0; i < PROF_COUNT; i++)
+    {
+        ms[i] = pc_perf_seconds(s_prof[i]) * 1000.0 / frames;
+        s_prof[i] = 0;
+    }
+    pc_log("[prof] %.1f fps, %.1f ms/frame: skin %.1f light %.1f colour %.1f draw %.1f (world %.1f) im2d/3d %.1f",
+           frames / secs, secs * 1000.0 / frames, ms[PROF_SKIN], ms[PROF_LIGHT], ms[PROF_COLOUR], ms[PROF_DRAW],
+           ms[PROF_WORLD], ms[PROF_IM]);
+    start = now;
+    frames = 0;
+}
 
 // PC_DBG=... render toggles.
 static bool dbg_has(const char* what)
@@ -156,6 +203,7 @@ static GpuState draw_state(bool alpha, PcRaster* tex, int filter, int addrU, int
     s.filter = filter;
     s.addrU = addrU;
     s.addrV = addrV;
+    s.matColor = RwRGBA{ 255, 255, 255, 255 };
     return s;
 }
 
@@ -449,6 +497,10 @@ void pc_render_present()
         memset(&s_st, 0, sizeof(s_st));
     }
     gpu_present();
+    if (prof_on())
+    {
+        prof_frame();
+    }
     pc_events_pump();
 }
 
@@ -462,6 +514,7 @@ static float s_amb[3];              // accumulated ambient light
 
 static void light_vertices(RpGeometry* g, const RwMatrix* ltm, const RwV3d* pos, const RwV3d* nrm)
 {
+    ProfScope prof(PROF_LIGHT);
     RpWorld* w = (RpWorld*)rwGlobals()->curWorld;
     int nv = g->numVertices;
     s_light.assign(nv * 3, 0.0f);
@@ -564,6 +617,34 @@ static void light_vertices(RpGeometry* g, const RwMatrix* ltm, const RwV3d* pos,
 // ---------------------------------------------------------------- geometry
 static std::vector<RwRGBA> s_col;
 
+// Whether a static prelit array has any alpha below 255, per cache key.
+static std::unordered_map<const void*, bool> s_prelitAlpha;
+
+static bool prelit_has_alpha(const void* key, const RwRGBA* prelit, int nv)
+{
+    std::unordered_map<const void*, bool>::iterator it = s_prelitAlpha.find(key);
+    if (it != s_prelitAlpha.end())
+    {
+        return it->second;
+    }
+    bool a = false;
+    for (int k = 0; k < nv && !a; k++)
+    {
+        a = prelit[k].alpha < 255;
+    }
+    s_prelitAlpha[key] = a;
+    return a;
+}
+
+void pc_render_forget(const void* key)
+{
+    s_prelitAlpha.erase(key);
+    if (s_open)
+    {
+        gpu_forget(key);
+    }
+}
+
 // Positions and texture coordinates shared by the meshes of one geometry.
 struct MeshArrays
 {
@@ -571,8 +652,10 @@ struct MeshArrays
     const RwTexCoords* uv;
 };
 
+// staticKey: the sector or unskinned geometry whose arrays these are (NULL
+// when they change every frame).
 static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* prelit, bool modulate, int nv,
-                        const RpTriangle* tris, int ntris, const MeshArrays& arr)
+                        const RpTriangle* tris, int ntris, const MeshArrays& arr, const void* staticKey)
 {
     GpuVerts v;
     v.pos = &arr.pos->x;
@@ -581,10 +664,11 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
     v.uv = arr.uv ? &arr.uv->u : NULL;
     v.uvStride = sizeof(RwTexCoords);
     v.count = nv;
+    v.cacheKey = NULL;
     if (mh && mh->numMeshes)
     {
         RpMesh* mesh = (RpMesh*)(mh + 1);
-        GpuPrim prim = (mh->flags & rpMESHHEADERTRISTRIP) ? GPU_TRISTRIP : GPU_TRIANGLES;
+        GpuPrim prim = (mh->flags & rpMESHHEADERTRISTRIP) ? PRIM_TRISTRIP : PRIM_TRIANGLES;
         for (int i = 0; i < mh->numMeshes; i++)
         {
             RpMaterial* m = mesh[i].material;
@@ -595,8 +679,21 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
             }
             bool alpha = mc.alpha < 255;
             bool lit = !s_light.empty();
-            if (prelit || lit)
+            RwRGBA matColor = { 255, 255, 255, 255 };
+            v.cacheKey = NULL;
+            if (prelit && !lit && staticKey)
             {
+                // Static prelit geometry: the GPU multiplies by the material colour
+                // and the backend can keep the arrays.
+                v.col = prelit;
+                v.colStride = sizeof(RwRGBA);
+                v.cacheKey = staticKey;
+                matColor = mc;
+                alpha |= prelit_has_alpha(staticKey, prelit, nv);
+            }
+            else if (prelit || lit)
+            {
+                ProfScope prof(PROF_COLOUR);
                 s_col.resize(nv);
                 float ka = m ? m->surfaceProps.ambient : 1.0f, kd = m ? m->surfaceProps.diffuse : 1.0f;
                 if (lit && m)
@@ -647,6 +744,7 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
             GpuState s = t ? draw_state(alpha || (t->raster && raster_has_alpha(t->raster)), tex, rwTexFilter(t),
                                         rwTexAddrU(t), rwTexAddrV(t))
                            : draw_state(alpha, NULL, 0, 0, 0);
+            s.matColor = matColor;
             // Debug: PC_HILITE_MAT=<n> paints world material n bright red.
             static const char* hilite = getenv("PC_HILITE_MAT");
             RpWorld* cw = (RpWorld*)rwGlobals()->curWorld;
@@ -654,15 +752,20 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                 cw->matList.materials[atoi(hilite)] == m)
             {
                 v.col = NULL;
+                v.cacheKey = NULL;
                 v.constCol = RwRGBA{ 255, 0, 0, 255 };
+                s.matColor = RwRGBA{ 255, 255, 255, 255 };
                 s.tex = NULL;
                 s.fog = false;
             }
             if (dbg_has("white"))
             {
                 v.col = NULL;
+                v.cacheKey = NULL;
                 v.constCol = RwRGBA{ 255, 255, 255, 255 };
+                s.matColor = RwRGBA{ 255, 255, 255, 255 };
             }
+            ProfScope prof(PROF_DRAW);
             gpu_draw(s, v, prim, mesh[i].indices, (int)mesh[i].numIndices);
         }
         return;
@@ -679,12 +782,13 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
         }
         v.col = NULL;
         v.constCol = RwRGBA{ 255, 255, 255, 255 };
-        gpu_draw(draw_state(false, NULL, 0, 0, 0), v, GPU_TRIANGLES, idx.data(), (int)idx.size());
+        gpu_draw(draw_state(false, NULL, 0, 0, 0), v, PRIM_TRIANGLES, idx.data(), (int)idx.size());
     }
 }
 
 static void skin_vertices(RpGeometry* g, PcSkin* sk, RpHAnimHierarchy* h, RwV3d* outPos, RwV3d* outNrm)
 {
+    ProfScope prof(PROF_SKIN);
     int nb = sk->numBones;
     std::vector<RwMatrix> m(nb);
     for (int b = 0; b < nb && b < h->numNodes; b++)
@@ -822,7 +926,7 @@ void pc_render_atomic(RpAtomic* a)
     }
     MeshArrays arr = { pos, g->texCoords[0] };
     draw_meshes(g->mesh, &g->matList, g->preLitLum, (g->flags & rpGEOMETRYMODULATEMATERIALCOLOR) != 0,
-                g->numVertices, g->triangles, g->numTriangles, arr);
+                g->numVertices, g->triangles, g->numTriangles, arr, sp.empty() ? (const void*)g : NULL);
     s_light.clear();
     gpu_set_modelview(s_view);
 }
@@ -855,6 +959,7 @@ void pc_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors)
     {
         return;
     }
+    ProfScope prof(PROF_WORLD);
     gpu_set_modelview(s_view);
     for (size_t i = 0; i < sectors.size(); i++)
     {
@@ -879,7 +984,7 @@ void pc_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors)
         }
         MeshArrays arr = { s->vertices, s->texCoords[0] };
         draw_meshes(s->mesh, &w->matList, s->preLitLum, (w->flags & rpGEOMETRYMODULATEMATERIALCOLOR) != 0,
-                    s->numVertices, NULL, 0, arr);
+                    s->numVertices, NULL, 0, arr, s);
     }
 }
 
@@ -888,12 +993,12 @@ static GpuPrim gpu_prim(int t)
 {
     switch (t)
     {
-    case rwPRIMTYPELINELIST: return GPU_LINES;
-    case rwPRIMTYPEPOLYLINE: return GPU_LINESTRIP;
-    case rwPRIMTYPETRISTRIP: return GPU_TRISTRIP;
-    case rwPRIMTYPETRIFAN: return GPU_TRIFAN;
-    case rwPRIMTYPEPOINTLIST: return GPU_POINTS;
-    default: return GPU_TRIANGLES;
+    case rwPRIMTYPELINELIST: return PRIM_LINES;
+    case rwPRIMTYPEPOLYLINE: return PRIM_LINESTRIP;
+    case rwPRIMTYPETRISTRIP: return PRIM_TRISTRIP;
+    case rwPRIMTYPETRIFAN: return PRIM_TRIFAN;
+    case rwPRIMTYPEPOINTLIST: return PRIM_POINTS;
+    default: return PRIM_TRIANGLES;
     }
 }
 
@@ -939,6 +1044,7 @@ static GpuVerts im2d_verts(RwIm2DVertex* v, int n)
     gv.uv = &v->u;
     gv.uvStride = sizeof(RwIm2DVertex);
     gv.count = n;
+    gv.cacheKey = NULL;
     return gv;
 }
 
@@ -986,6 +1092,7 @@ RwInt32 RwIm2DRenderPrimitive(RwInt32 primType, RwIm2DVertex* v, RwInt32 n)
                v[0].emissiveColor.green, v[0].emissiveColor.blue, v[0].emissiveColor.alpha, s_rs.srcBlend,
                s_rs.dstBlend, s_rs.vertexAlpha);
     }
+    ProfScope prof(PROF_IM);
     begin_2d();
     gpu_draw(im2d_state(v, n), im2d_verts(v, n), gpu_prim(primType), NULL, 0);
     end_2d();
@@ -1076,6 +1183,7 @@ static void im3d_draw(GpuPrim prim, const RwUInt16* idx, int n)
     v.uv = &iv->u;
     v.uvStride = sizeof(RwIm3DVertex);
     v.count = (int)s_im3dCount;
+    v.cacheKey = NULL;
     gpu_draw(draw_state(alpha, tex, s_rs.filter, s_rs.addrU, s_rs.addrV), v, prim, idx, n);
     gpu_set_modelview(s_view);
 }
@@ -1181,6 +1289,7 @@ static void overlay_draw(const std::vector<float>& q, RwRGBA col)
     s.alphaFunc = PC_ALPHA_ALWAYS;
     s.cull = PC_CULL_NONE;
     s.colorWrite = s.alphaWrite = true;
+    s.matColor = RwRGBA{ 255, 255, 255, 255 };
     GpuVerts v;
     memset(&v, 0, sizeof(v));
     v.pos = q.data();
@@ -1188,7 +1297,7 @@ static void overlay_draw(const std::vector<float>& q, RwRGBA col)
     v.posSize = 2;
     v.constCol = col;
     v.count = (int)q.size() / 2;
-    gpu_draw(s, v, GPU_TRIANGLES, NULL, 0);
+    gpu_draw(s, v, PRIM_TRIANGLES, NULL, 0);
 }
 
 static void draw_overlay()

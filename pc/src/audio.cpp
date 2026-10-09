@@ -356,7 +356,22 @@ void timer_thread()
     {
         next += period;
         std::this_thread::sleep_until(next);
+        // PC_PROF=1: average mixing time per 5 ms audio frame.
+        static bool prof = getenv("PC_PROF") != NULL;
+        unsigned long long t0 = prof ? pc_perf_counter() : 0;
         run_frame(buf);
+        if (prof)
+        {
+            static unsigned long long total;
+            static int frames;
+            total += pc_perf_counter() - t0;
+            if (++frames == 200)
+            {
+                pc_log("[prof] audio mix %.2f ms per 5 ms frame", pc_perf_seconds(total) * 1000.0 / frames);
+                total = 0;
+                frames = 0;
+            }
+        }
     }
 }
 

@@ -23,7 +23,7 @@ target_include_directories(scoobygame PUBLIC
 target_compile_definitions(scoobygame PUBLIC PC_PORT=1 N3DS_PORT=1 VERSION_GIHE78 BUILD_VERSION=0)
 target_compile_options(scoobygame PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++98 -fpermissive>
-    -w -g -O0 -fno-strict-aliasing
+    -w -g -O2 -fno-strict-aliasing
     # The PC build (x86) has signed char; keep the same behaviour on ARM.
     -fsigned-char
     -fno-unreachable-traps
@@ -41,5 +41,6 @@ file(GLOB N3DS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOU
 add_executable(scooby ${SHARED_PC_SOURCES} ${PC_RW_SOURCES} ${N3DS_SOURCES})
 target_include_directories(scooby PRIVATE ${PC}/include ${PC}/rw)
 target_compile_options(scooby PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++17> -g -O2 -fsigned-char)
+n3ds_add_shader(scooby ${CMAKE_CURRENT_SOURCE_DIR}/src/scene.v.pica)
 target_link_libraries(scooby PRIVATE scoobygame citro3d ctru m)
 n3ds_add_3dsx(scooby "Scooby-Doo! Night of 100 Frights" "Experimental New 3DS port")

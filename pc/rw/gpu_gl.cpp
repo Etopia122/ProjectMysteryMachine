@@ -373,11 +373,11 @@ static GLenum gl_prim(GpuPrim p)
 {
     switch (p)
     {
-    case GPU_TRISTRIP: return GL_TRIANGLE_STRIP;
-    case GPU_TRIFAN: return GL_TRIANGLE_FAN;
-    case GPU_LINES: return GL_LINES;
-    case GPU_LINESTRIP: return GL_LINE_STRIP;
-    case GPU_POINTS: return GL_POINTS;
+    case PRIM_TRISTRIP: return GL_TRIANGLE_STRIP;
+    case PRIM_TRIFAN: return GL_TRIANGLE_FAN;
+    case PRIM_LINES: return GL_LINES;
+    case PRIM_LINESTRIP: return GL_LINE_STRIP;
+    case PRIM_POINTS: return GL_POINTS;
     default: return GL_TRIANGLES;
     }
 }
@@ -437,6 +437,18 @@ static void apply_state(const GpuState& s)
     }
 }
 
+void gpu_forget(const void* key) {}
+
+static RwRGBA modulate(const RwRGBA& c, const RwRGBA& m)
+{
+    RwRGBA o;
+    o.red = (RwUInt8)(c.red * m.red / 255.0f);
+    o.green = (RwUInt8)(c.green * m.green / 255.0f);
+    o.blue = (RwUInt8)(c.blue * m.blue / 255.0f);
+    o.alpha = (RwUInt8)(c.alpha * m.alpha / 255);
+    return o;
+}
+
 void gpu_draw(const GpuState& s, const GpuVerts& v, GpuPrim prim, const RwUInt16* idx, int nidx)
 {
     if (!s_window)
@@ -446,15 +458,30 @@ void gpu_draw(const GpuState& s, const GpuVerts& v, GpuPrim prim, const RwUInt16
     apply_state(s);
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(v.posSize, GL_FLOAT, v.posStride, v.pos);
-    if (v.col)
+    // The material colour multiplies the vertex colours (fixed-function GL has
+    // no constant colour for that with a colour array, so do it here).
+    bool white = s.matColor.red == 255 && s.matColor.green == 255 && s.matColor.blue == 255 && s.matColor.alpha == 255;
+    static std::vector<RwRGBA> modulated;
+    if (v.col && !white)
+    {
+        modulated.resize(v.count);
+        for (int i = 0; i < v.count; i++)
+        {
+            modulated[i] = modulate(*(const RwRGBA*)((const RwUInt8*)v.col + (size_t)i * v.colStride), s.matColor);
+        }
+        glEnableClientState(GL_COLOR_ARRAY);
+        glColorPointer(4, GL_UNSIGNED_BYTE, 0, modulated.data());
+    }
+    else if (v.col)
     {
         glEnableClientState(GL_COLOR_ARRAY);
         glColorPointer(4, GL_UNSIGNED_BYTE, v.colStride, v.col);
     }
     else
     {
+        RwRGBA c = white ? v.constCol : modulate(v.constCol, s.matColor);
         glDisableClientState(GL_COLOR_ARRAY);
-        glColor4ub(v.constCol.red, v.constCol.green, v.constCol.blue, v.constCol.alpha);
+        glColor4ub(c.red, c.green, c.blue, c.alpha);
     }
     if (v.uv)
     {

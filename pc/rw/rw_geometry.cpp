@@ -351,6 +351,7 @@ RwInt32 RpGeometryDestroy(RpGeometry* g)
         return 1;
     }
     PcGeometry* p = pc_geometry(g);
+    pc_render_forget(g);
     for (RwInt32 i = 0; i < g->matList.numMaterials; i++)
     {
         if (g->matList.materials[i])

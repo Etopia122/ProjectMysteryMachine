@@ -38,6 +38,10 @@ void pc_thread_start(void (*fn)(void), const char* name);
 // PC_AUTOPAD test script: adds its buttons and stick to the pad state.
 void pc_autopad(unsigned short* buttons, int* sx, int* sy);
 
+// High-resolution timer for profiling.
+unsigned long long pc_perf_counter(void);
+double pc_perf_seconds(unsigned long long ticks);
+
 // Milliseconds since the program started.
 unsigned int pc_ticks_ms(void);
 

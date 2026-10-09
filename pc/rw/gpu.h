@@ -22,12 +22,12 @@ enum
 
 enum GpuPrim
 {
-    GPU_TRIANGLES,
-    GPU_TRISTRIP,
-    GPU_TRIFAN,
-    GPU_LINES,
-    GPU_LINESTRIP,
-    GPU_POINTS,
+    PRIM_TRIANGLES,
+    PRIM_TRISTRIP,
+    PRIM_TRIFAN,
+    PRIM_LINES,
+    PRIM_LINESTRIP,
+    PRIM_POINTS,
 };
 
 // Fixed-function state of one draw, already resolved from RenderWare's rules.
@@ -44,6 +44,7 @@ struct GpuState
     float fogStart, fogEnd;   // camera-space depth
     PcRaster* tex;            // NULL: untextured
     int filter, addrU, addrV; // rwFILTER*, rwTEXTUREADDRESS* values
+    RwRGBA matColor;          // multiplies the vertex colours (white: none)
 };
 
 // Vertex arrays of one draw. Strides are in bytes.
@@ -58,6 +59,10 @@ struct GpuVerts
     const float* uv;       // NULL: no texture coordinates
     int uvStride;
     int count;
+    // Non-NULL: these arrays never change for this key (a world sector or an
+    // unskinned geometry), so the backend may keep a converted copy until
+    // gpu_forget(key).
+    const void* cacheKey;
 };
 
 bool gpu_open();
@@ -79,6 +84,9 @@ void gpu_clear(PcRaster* target, const RwRGBA* colour, bool depth);
 // Uploads a texture raster if its pixels changed (sets hasAlpha).
 void gpu_prepare_texture(PcRaster* r);
 void gpu_raster_free(PcRaster* r);
+
+// Drops anything cached for a cacheKey (its geometry is being destroyed).
+void gpu_forget(const void* key);
 
 // idx NULL: v.count vertices in order.
 void gpu_draw(const GpuState& s, const GpuVerts& v, GpuPrim prim, const RwUInt16* idx, int nidx);

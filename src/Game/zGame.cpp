@@ -148,7 +148,12 @@ public:
     _xVec3 pos; // 0x0
 };
 
+#ifdef PC_PORT
+// The GameCube OS keeps the bus clock in its globals page; ports can't map it.
+#define GET_BUS_FREQUENCY() (162000000u)
+#else
 #define GET_BUS_FREQUENCY() (*(unsigned int*)0x800000F8)
+#endif
 
 extern _zEnv* gCurEnv;
 extern signed int gGameState;

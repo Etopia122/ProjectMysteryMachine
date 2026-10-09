@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -62,9 +63,33 @@ unsigned int VIGetRetraceCount() { return s_retraceCount; }
 
 void VIWaitForRetrace()
 {
-    std::unique_lock<std::mutex> lk(s_viLock);
-    unsigned int c = s_retraceCount;
-    s_viCv.wait_for(lk, std::chrono::milliseconds(50), [c] { return s_retraceCount != c; });
+    static bool prof = getenv("PC_PROF") != NULL;
+    unsigned long long t0 = prof ? pc_perf_counter() : 0;
+    {
+        std::unique_lock<std::mutex> lk(s_viLock);
+        unsigned int c = s_retraceCount;
+        s_viCv.wait_for(lk, std::chrono::milliseconds(50), [c] { return s_retraceCount != c; });
+    }
+    if (prof)
+    {
+        // PC_PROF=1: time spent waiting for retraces, per second.
+        static unsigned long long total, start;
+        static int calls;
+        unsigned long long now = pc_perf_counter();
+        total += now - t0;
+        calls++;
+        if (!start)
+        {
+            start = now;
+        }
+        if (pc_perf_seconds(now - start) >= 1.0)
+        {
+            pc_log("[prof] VIWaitForRetrace: %d calls, %.0f ms waiting per second", calls, pc_perf_seconds(total) * 1000.0);
+            total = 0;
+            calls = 0;
+            start = now;
+        }
+    }
 }
 
 VIRetraceCallback VISetPreRetraceCallback(VIRetraceCallback cb)

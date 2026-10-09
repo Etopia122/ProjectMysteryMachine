@@ -296,7 +296,11 @@ static inline void zSaveLoad_pollCheck(signed int sel)
 
 void zSaveLoad_Tick()
 {
+#ifdef PC_PORT
+    time_current = (1.0f / (162000000u >> 2)) * iTimeGet();
+#else
     time_current = (1.0f / (*(unsigned int*)0x800000F8 >> 2)) * iTimeGet();
+#endif
     time_elapsed = time_current - time_last;
     if (time_elapsed < 0.0f)
     {

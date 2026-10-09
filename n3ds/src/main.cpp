@@ -34,9 +34,20 @@ extern "C" void pc_thread_start(void (*fn)(void), const char* name)
 {
     s32 prio = 0x30;
     svcGetThreadPriority(&prio, CUR_THREAD_HANDLE);
-    Thread t = threadCreate(thread_entry, (void*)fn, 64 * 1024, prio - 1, 0, true);
-    pc_log("[n3ds] thread %s: %s (priority 0x%lx)", name, t ? "started" : "FAILED", (long)(prio - 1));
+    // Core 2 is the New 3DS's extra application core: helpers there don't take
+    // time from the game on core 0. Fall back to core 0 above the game's priority.
+    int core = 2;
+    Thread t = threadCreate(thread_entry, (void*)fn, 64 * 1024, prio - 1, core, true);
+    if (!t)
+    {
+        core = 0;
+        t = threadCreate(thread_entry, (void*)fn, 64 * 1024, prio - 1, core, true);
+    }
+    pc_log("[n3ds] thread %s: %s on core %d (priority 0x%lx)", name, t ? "started" : "FAILED", core, (long)(prio - 1));
 }
+
+extern "C" unsigned long long pc_perf_counter() { return svcGetSystemTick(); }
+extern "C" double pc_perf_seconds(unsigned long long t) { return (double)t / SYSCLOCK_ARM11; }
 
 extern "C" unsigned int pc_ticks_ms() { return (unsigned int)(osGetTime() - s_startMs); }
 

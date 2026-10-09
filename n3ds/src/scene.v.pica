@@ -1,0 +1,35 @@
+; Vertex shader for every draw of the game: one combined matrix (projection *
+; modelview, already adjusted for the PICA200 and the screen rotation), vertex
+; colour as unsigned bytes, texture coordinates scaled for padded textures.
+
+.fvec mvp[4]
+.fvec uvScale
+
+.constf consts(1.0, 0.00392156862745, 0.0, 0.0)
+.alias  ones    consts.xxxx
+.alias  rcp255  consts.yyyy
+
+.out outpos position
+.out outclr color
+.out outtc0 texcoord0
+
+.alias inpos v0
+.alias inclr v1
+.alias intex v2
+
+.proc main
+    mov r0.xyz, inpos
+    mov r0.w, ones
+
+    dp4 outpos.x, mvp[0], r0
+    dp4 outpos.y, mvp[1], r0
+    dp4 outpos.z, mvp[2], r0
+    dp4 outpos.w, mvp[3], r0
+
+    mul outclr, rcp255, inclr
+
+    mul r1, uvScale, intex
+    mov outtc0, r1
+
+    end
+.end
