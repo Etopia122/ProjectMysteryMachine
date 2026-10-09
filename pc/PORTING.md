@@ -82,7 +82,9 @@ Debug switches (environment): `PC_SCENE=I001` starts New Game in that scene
 `PC_WARP=<sec>:<scene>` warps like the menu, `PC_MENU=main|levels` opens the menu,
 `PC_FORCESAVE=<sec>` opens the save screen, `PC_POSLOG=1` logs the position each
 second, `PC_PROBE=<sec>:x0,z0,x1,z1,n` casts vertical rays (all worlds),
-`PC_SPHERE=<sec>:x,y,z,r` lists world triangles near a point, `PC_SURFDUMP=<sec>`
+`PC_SPHERE=<sec>:x,y,z,r` lists world triangles near a point,
+`PC_POSLOG=1|2|3` logs position (+animation, +collisions), `PC_CHECKTRI=1`
+checks model collision triangles against their render meshes, `PC_SURFDUMP=<sec>`
 lists special surfaces, `PC_HILITE_MAT=<n>` paints a world material red, `PC_NOFMV=1` skips movies, `PC_STATS=1` logs
 render stats, `PC_SHOT=frame[,step]` saves screenshots, `PC_WAV=1` records the
 audio output, `PC_AUTOPAD="sec:mask,..."` scripts the pad, `PC_DBG=...`

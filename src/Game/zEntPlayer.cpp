@@ -8736,3 +8736,41 @@ void zEntPlayer_InitCutsceneModelHack()
     sPlayerHeadAtomic->boundingSphere.radius = 1.9f;
     sPlayerHeadAtomic->geometry->morphTarget->boundingSphere.radius = 1.9f;
 }
+
+#ifdef PC_PORT
+// Debug (PC_POSLOG): the player's animation state and surface flags.
+extern "C" void pc_dbg_player_anim(const char** name, unsigned int* userFlags, unsigned int* sticky, int* speed)
+{
+    _xEnt* ent = &globals.player.ent;
+    xAnimSingle* single = (ent->model && ent->model->Anim) ? ent->model->Anim->Single : NULL;
+    *name = (single && single->State) ? single->State->Name : "-";
+    *userFlags = (single && single->State) ? single->State->UserFlags : 0;
+    *sticky = surfSticky;
+    *speed = globals.player.Speed;
+}
+
+extern "C" void pc_log(const char* fmt, ...);
+// Debug (PC_POSLOG=3): the player's current collisions.
+extern "C" void pc_dbg_player_colls()
+{
+    _xEntCollis* c = globals.player.ent.collis;
+    if (!c)
+    {
+        return;
+    }
+    pc_log("[coll] idx %d env %d-%d npc %d-%d dyn %d-%d stat %d-%d", c->idx, c->env_sidx, c->env_eidx, c->npc_sidx,
+           c->npc_eidx, c->dyn_sidx, c->dyn_eidx, c->stat_sidx, c->stat_eidx);
+    for (int i = 0; i < c->idx && i < 18; i++)
+    {
+        _xCollis& k = c->colls[i];
+        if (!(k.flags & 1))
+        {
+            continue;
+        }
+        xBase* b = (xBase*)k.optr;
+        pc_log("[coll]   %d flags %x oid %u optr %p (id %08x type %d) dist %.3f norm %.2f %.2f %.2f depen %.2f %.2f %.2f", i,
+               k.flags, k.oid, k.optr, b ? b->id : 0, b ? b->baseType : -1, k.dist, k.norm.x, k.norm.y, k.norm.z,
+               k.depen.x, k.depen.y, k.depen.z);
+    }
+}
+#endif

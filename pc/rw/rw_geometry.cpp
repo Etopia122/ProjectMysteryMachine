@@ -5,8 +5,13 @@
 #include "pc_platform.h"
 
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 #include <vector>
+#include <algorithm>
+#include <map>
+
+static void check_triangle_winding(RpGeometry* g);
 
 extern "C" RpHAnimHierarchy* RpHAnimHierarchyCreate(RwInt32, RwUInt32*, RwInt32*, RwInt32, RwInt32);
 
@@ -559,11 +564,23 @@ static RpGeometry* read_geometry(RwStream* s)
         }
         for (RwInt32 i = 0; i < numTris; i++)
         {
-            RwUInt32 a = rd32(d + o), b = rd32(d + o + 4);
-            g->triangles[i].vertIndex[0] = (RwUInt16)(a >> 16);
-            g->triangles[i].vertIndex[1] = (RwUInt16)a;
-            g->triangles[i].matIndex = (RwInt16)(b >> 16);
-            g->triangles[i].vertIndex[2] = (RwUInt16)b;
+            if (ver >= 0x34000)
+            {
+                RwUInt32 a = rd32(d + o), b = rd32(d + o + 4);
+                g->triangles[i].vertIndex[0] = (RwUInt16)(a >> 16);
+                g->triangles[i].vertIndex[1] = (RwUInt16)a;
+                g->triangles[i].matIndex = (RwInt16)(b >> 16);
+                g->triangles[i].vertIndex[2] = (RwUInt16)b;
+            }
+            else
+            {
+                // RenderWare 3.1 stores v0, v2, matIndex, v1 as 16-bit fields
+                // (checked against the BinMesh triangles and their winding).
+                g->triangles[i].vertIndex[0] = rd16(d + o);
+                g->triangles[i].vertIndex[2] = rd16(d + o + 2);
+                g->triangles[i].matIndex = (RwInt16)rd16(d + o + 4);
+                g->triangles[i].vertIndex[1] = rd16(d + o + 6);
+            }
             o += 8;
         }
     }
@@ -614,7 +631,63 @@ static RpGeometry* read_geometry(RwStream* s)
     }
     pc_read_material_list(s, &g->matList);
     pc_read_extension(s, geometry_plugin, g);
+    check_triangle_winding(g);
     return g;
+}
+
+// Debug (PC_CHECKTRI=1): compares the winding of the collision triangles with
+// the BinMesh (render) triangles, which are known to be right.
+static void check_triangle_winding(RpGeometry* g)
+{
+    static int on = -1;
+    if (on < 0)
+    {
+        on = getenv("PC_CHECKTRI") ? 1 : 0;
+    }
+    if (!on || !g->mesh || !g->triangles)
+    {
+        return;
+    }
+    // Map sorted vertex triple -> oriented triple from the mesh.
+    std::map<unsigned long long, unsigned long long> tris;
+    RpMesh* m = (RpMesh*)(g->mesh + 1);
+    bool strip = (g->mesh->flags & rpMESHHEADERTRISTRIP) != 0;
+    for (int k = 0; k < g->mesh->numMeshes; k++)
+    {
+        for (RwUInt32 j = 0; j + 2 < m[k].numIndices; j += strip ? 1 : 3)
+        {
+            unsigned a = m[k].indices[j], b = m[k].indices[j + 1], c = m[k].indices[j + 2];
+            if (a == b || b == c || a == c) continue;
+            if (strip && (j & 1)) std::swap(a, b);
+            unsigned v[3] = { a, b, c };
+            std::sort(v, v + 3);
+            tris[(unsigned long long)v[0] << 32 | v[1] << 16 | v[2]] = (unsigned long long)a << 32 | b << 16 | c;
+        }
+    }
+    int same = 0, flipped = 0, missing = 0;
+    for (RwInt32 i = 0; i < g->numTriangles; i++)
+    {
+        unsigned t[3] = { g->triangles[i].vertIndex[0], g->triangles[i].vertIndex[1], g->triangles[i].vertIndex[2] };
+        unsigned v[3] = { t[0], t[1], t[2] };
+        std::sort(v, v + 3);
+        auto it = tris.find((unsigned long long)v[0] << 32 | v[1] << 16 | v[2]);
+        if (it == tris.end())
+        {
+            missing++;
+            continue;
+        }
+        unsigned a = (unsigned)(it->second >> 32), b = (unsigned)(it->second >> 16) & 0xFFFF;
+        // Same orientation if t is a rotation of (a, b, c).
+        bool rot = (t[0] == a && t[1] == b) || (t[1] == a && t[2] == b) || (t[2] == a && t[0] == b);
+        rot ? same++ : flipped++;
+    }
+    static int tsame, tflip, tmiss, ngeo;
+    tsame += same, tflip += flipped, tmiss += missing, ngeo++;
+    if (ngeo % 50 == 0 || flipped)
+    {
+        pc_log("[tri] geometry %d tris: %d same as mesh, %d flipped, %d not in mesh (total so far %d/%d/%d over %d)",
+               g->numTriangles, same, flipped, missing, tsame, tflip, tmiss, ngeo);
+    }
 }
 
 // ---------------------------------------------------------------- atomics & clumps

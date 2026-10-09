@@ -37,6 +37,8 @@ extern "C" void pc_debug_portal(int index);
 extern "C" void pc_debug_surfaces();
 extern "C" void pc_debug_teleport(float x, float y, float z);
 extern "C" void pc_debug_player_pos(float* out);
+extern "C" void pc_dbg_player_colls();
+extern "C" void pc_dbg_player_anim(const char** name, unsigned int* userFlags, unsigned int* sticky, int* speed);
 extern "C" void pc_debug_probe(float x, float z);
 extern "C" void pc_debug_sectors();
 extern "C" void pc_debug_sphere(float x, float y, float z, float r);
@@ -145,10 +147,19 @@ void pc_events_pump()
     static Uint32 nextPos;
     if (posLog && !teleportPending() && SDL_GetTicks() >= nextPos)
     {
-        nextPos = SDL_GetTicks() + 1000;
+        nextPos = SDL_GetTicks() + (getenv("PC_POSLOG")[0] >= '2' ? 250 : 1000);
         float p[3];
         pc_debug_player_pos(p);
-        pc_log("[pos] %.1fs %.2f %.2f %.2f", SDL_GetTicks() / 1000.0, p[0], p[1], p[2]);
+        const char* anim;
+        unsigned int uf, sticky;
+        int speed;
+        pc_dbg_player_anim(&anim, &uf, &sticky, &speed);
+        pc_log("[pos] %.1fs %.2f %.2f %.2f anim %s flags %x sticky %u speed %d", SDL_GetTicks() / 1000.0, p[0], p[1],
+               p[2], anim, uf, sticky, speed);
+        if (getenv("PC_POSLOG")[0] == '3')
+        {
+            pc_dbg_player_colls();
+        }
     }
     // Debug: PC_TELEPORT=<seconds>:x,y,z moves the player there.
     static const char* teleport = getenv("PC_TELEPORT");
