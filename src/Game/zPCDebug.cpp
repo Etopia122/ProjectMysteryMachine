@@ -10,6 +10,7 @@
 #include "xString.h"
 
 xBase* zSceneFindObject(unsigned int gameID);
+void* xSTFindAsset(unsigned int aid, unsigned int* size);
 extern "C" void pc_log(const char* fmt, ...);
 extern "C" void pc_rw_atomic_spheres(void* atomic, float* out8);
 
@@ -99,15 +100,42 @@ int pc_dbg_toggle_infinite_health() { return sInfiniteHealth = !sInfiniteHealth;
 // Sends an event to the named object (debugging scripted sequences).
 void pc_dbg_event(const char* name, unsigned int event) { zEntEvent((char*)name, event); }
 
+// Moves an entity (e.g. a boss) to a position, keeping its bound in step.
+static void move_ent(_xEnt* e, const _xVec3* pos)
+{
+    if (!e || !e->frame)
+    {
+        return;
+    }
+    e->frame->mat.pos = *pos;
+    e->frame->oldpos = *pos;
+    if (e->model && e->model->Mat)
+    {
+        *(_xVec3*)&e->model->Mat->pos = *pos;
+    }
+    if (e->bupdate)
+    {
+        e->bupdate(e, (_xVec3*)pos);
+    }
+}
+
 // Damages the current boss the way the level does it. Returns a status message.
-// A Dark and Stormy Knight (O008): each button counter (BUTTONn_CNTR, count 1)
-// fires the lightning rod, hits the Black Knight and decrements his health
-// counter when it expires; decrementing it once does all of that.
+// A Dark and Stormy Knight (O008): when the Black Knight walks into the
+// detection trigger at lightning rod n it enables BUTTONn_CNTR; pressing
+// button n raises the rod (LR_MECHn) and decrements the counter, whose
+// expiry strikes LRn_STRIKE with lightning, hits the knight (event 174) and
+// lowers his health. Do the same, with the knight placed at the strike point.
 const char* pc_dbg_force_boss_damage()
 {
     static int sNextButton = 1;
+    static unsigned int sScene;
     static char msg[64];
     unsigned int scene = globals.sceneCur ? globals.sceneCur->sceneID : 0;
+    if (scene != sScene)
+    {
+        sScene = scene;
+        sNextButton = 1;
+    }
     if (scene == 'O008')
     {
         if (sNextButton > 4)
@@ -115,8 +143,20 @@ const char* pc_dbg_force_boss_damage()
             return "BLACK KNIGHT ALREADY HIT 4 TIMES";
         }
         char name[32];
+        unsigned int size;
+        sprintf(name, "LR%d_STRIKE", sNextButton);
+        unsigned char* marker = (unsigned char*)xSTFindAsset(xStrHash(name), &size);
+        _xEnt* knight = (_xEnt*)zSceneFindObject(xStrHash("BLACK_KNIGHT"));
+        if (marker && knight)
+        {
+            move_ent(knight, (_xVec3*)(marker + 8));
+        }
         sprintf(name, "BUTTON%02d_CNTR", sNextButton);
-        zEntEvent(name, 12); // decrement
+        zEntEvent(name, 1); // enable, as the detection trigger does
+        sprintf(name, "LR_MECH%02d", sNextButton);
+        zEntEvent(name, 18); // the rod rises, as the button does
+        sprintf(name, "BUTTON%02d_CNTR", sNextButton);
+        zEntEvent(name, 12); // decrement: strike, hit, health
         sprintf(msg, "BLACK KNIGHT HIT %d OF 4", sNextButton);
         sNextButton++;
         return msg;
