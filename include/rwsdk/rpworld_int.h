@@ -162,14 +162,25 @@ typedef struct RpClump {
     /* 0x28 */ void* callback;
 } RpClump;
 
+typedef struct RpTriangle {
+    RwUInt16 vertIndex[3];
+    RwInt16 matIndex;
+} RpTriangle;
+
 typedef struct RpGeometry {
     /* 0x00 */ RwObject object;
-    /* 0x08 */ RwInt32 flags;
-    /* 0x0C */ RwUInt8 pad0C[0x18 - 0x0C];
+    /* 0x08 */ RwUInt32 flags;
+    /* 0x0C */ RwUInt16 lockedSinceLastInst;
+    /* 0x0E */ RwInt16 refCount;
+    /* 0x10 */ RwInt32 numTriangles;
+    /* 0x14 */ RwInt32 numVertices;
     /* 0x18 */ RwInt32 numMorphTargets;
-    /* 0x1C */ RwUInt8 pad1C[0x20 - 0x1C];
+    /* 0x1C */ RwInt32 numTexCoordSets;
     /* 0x20 */ RpMaterialList matList;
-    /* 0x2C */ RwUInt8 pad2C[0x60 - 0x2C];
+    /* 0x2C */ RpTriangle* triangles;
+    /* 0x30 */ RwRGBA* preLitLum;
+    /* 0x34 */ RwTexCoords* texCoords[8];
+    /* 0x54 */ RwSurfaceProperties surfaceProps;
     /* 0x60 */ RpMeshHeader* mesh;
     /* 0x64 */ RwResEntry* repEntry;
     /* 0x68 */ RpMorphTarget* morphTarget;

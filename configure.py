@@ -779,6 +779,7 @@ config.libs = [
             Object(NonMatching, "rwsdk/plugin/userdata/rpusrdat.c"),
             Object(Matching, "rwsdk/world/babinwor.c"),
             Object(NonMatching, "rwsdk/world/baclump.c"),
+            Object(Matching, "rwsdk/world/bageomet.c"),
         ],
     },
     {
