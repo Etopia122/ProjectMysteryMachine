@@ -12,6 +12,7 @@ typedef struct RxPipelineNode RxPipelineNodeInstance;
 typedef struct RxNodeDefinition RxNodeDefinition;
 typedef struct RxClusterDefinition RxClusterDefinition;
 typedef struct RxPacket RxPacket;
+typedef struct RxPipelineCluster RxPipelineCluster;
 
 typedef enum RxClusterValidityReq {
     rxCLREQ_DONTWANT = 0,
@@ -45,9 +46,24 @@ typedef struct RxCluster {
     /* 0x08 */ void* currentData;
     /* 0x0C */ RwUInt32 numAlloced;
     /* 0x10 */ RwUInt32 numUsed;
-    /* 0x14 */ void* clusterRef;
+    /* 0x14 */ RxPipelineCluster* clusterRef;
     /* 0x18 */ RwUInt32 attributes;
 } RxCluster;
+
+struct RxPipelineCluster {
+    /* 0x00 */ RxClusterDefinition* clusterRef;
+    /* 0x04 */ RwUInt32 creationAttributes;
+};
+
+struct RxPacket {
+    /* 0x00 */ RwUInt16 flags;
+    /* 0x02 */ RwUInt16 numClusters;
+    /* 0x04 */ RxPipeline* pipeline;
+    /* 0x08 */ RwUInt32* inputToClusterSlot;
+    /* 0x0C */ RwUInt32* slotsContinue;
+    /* 0x10 */ RxPipelineCluster** slotClusterRefs;
+    /* 0x14 */ RxCluster clusters[1];
+};
 
 typedef struct RxPipelineNodeParam {
     void* dataParam;
@@ -95,15 +111,37 @@ struct RxNodeDefinition {
     RwInt32 InputPipesCnt;
 };
 
+typedef struct RxPipelineNodeTopSortData {
+    /* 0x00 */ RwUInt32 numIns;
+    /* 0x04 */ RwUInt32 numInsVisited;
+    /* 0x08 */ void* req;
+} RxPipelineNodeTopSortData;
+
 struct RxPipelineNode {
-    RxNodeDefinition* nodeDef;
+    /* 0x00 */ RxNodeDefinition* nodeDef;
+    /* 0x04 */ RwUInt32 numOutputs;
+    /* 0x08 */ RwUInt32* outputs;
+    /* 0x0C */ RxPipelineCluster** slotClusterRefs;
+    /* 0x10 */ RwUInt32* slotsContinue;
+    /* 0x14 */ void* privateData;
+    /* 0x18 */ RwUInt32* inputToClusterSlot;
+    /* 0x1C */ RxPipelineNodeTopSortData* topSortData;
+    /* 0x20 */ void* initializationData;
+    /* 0x24 */ RwUInt32 initializationDataSize;
 };
 
 struct RxPipeline {
-    /* 0x00 */ RwUInt8 pad00[0x10];
+    /* 0x00 */ RwBool locked;
+    /* 0x04 */ RwUInt32 numNodes;
+    /* 0x08 */ RxPipelineNode* nodes;
+    /* 0x0C */ RwUInt32 packetNumClusterSlots;
     /* 0x10 */ RwInt32 embeddedPacketState;
     /* 0x14 */ RxPacket* embeddedPacket;
-    /* 0x18 */ RwUInt8 pad18[0x2C - 0x18];
+    /* 0x18 */ RwUInt32 numInputRequirements;
+    /* 0x1C */ void* inputRequirements;
+    /* 0x20 */ void* superBlock;
+    /* 0x24 */ RwUInt32 superBlockSize;
+    /* 0x28 */ RwUInt32 entryPoint;
     /* 0x2C */ RwUInt32 pluginId;
     /* 0x30 */ RwUInt32 pluginData;
 };
@@ -132,9 +170,11 @@ typedef struct RxRenderStateVector {
 } RxRenderStateVector;
 
 typedef struct rwPipeGlobals {
-    /* 0x00 */ RwUInt32 pad00;
+    /* 0x00 */ RwFreeList* pipesFreeList;
     /* 0x04 */ RxRenderStateVector defaultRenderState;
-    /* 0x34 */ RwUInt8 pad34[0xC];
+    /* 0x34 */ RwUInt32 unk34;
+    /* 0x38 */ RwUInt32 unk38;
+    /* 0x3C */ RwUInt32 maxNodesPerPipe;
     /* 0x40 */ RxPipeline* currentAtomicPipeline;
     /* 0x44 */ RxPipeline* currentWorldSectorPipeline;
     /* 0x48 */ RxPipeline* currentMaterialPipeline;
