@@ -1702,6 +1702,35 @@ void zSceneSwitch(_zPortal* p)
     }
 }
 
+#ifdef PC_PORT
+extern "C" unsigned int pc_debug_scene_id()
+{
+    return globals.sceneCur ? globals.sceneCur->sceneID : 0;
+}
+
+extern "C" void pc_debug_player_pos(float* out)
+{
+    if (!globals.player.ent.frame)
+    {
+        out[0] = out[1] = out[2] = 0.0f;
+        return;
+    }
+    out[0] = globals.player.ent.frame->mat.pos.x;
+    out[1] = globals.player.ent.frame->mat.pos.y;
+    out[2] = globals.player.ent.frame->mat.pos.z;
+}
+
+// Debug (PC_TELEPORT): moves the player like a same-scene portal marker does.
+extern "C" void pc_debug_teleport(float x, float y, float z)
+{
+    _xVec3 marker = { x, y, z };
+    xVec3Copy(&globals.player.ent.frame->mat.pos, &marker);
+    xVec3Copy(&((_xMat4x3*)globals.player.ent.model->Mat)->pos, &marker);
+    xCameraSetTarget(&globals.camera, &globals.player.ent.frame->mat.pos);
+    xCameraSetTarget(&globals.camera, (_xMat4x3*)globals.player.ent.model->Mat);
+}
+#endif
+
 void zSceneSave(zScene* ent, xSerial* xs)
 {
     xSerial xser;

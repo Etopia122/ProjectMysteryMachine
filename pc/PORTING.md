@@ -67,10 +67,16 @@ keyboard: WASD/arrows move, IJKL camera, Space = A, Shift = B, E = X, R = Y,
 Enter = Start, Q = L, Tab = R, F = Z, keypad 8/2/4/6 = D-pad. Alt+Enter or F11
 toggles fullscreen. Saves go to `save/cardA` next to the exe.
 
+Debug keys: F3 shows the scene and Scooby's position, F4 saves it to
+`coords.txt` next to the exe (and the clipboard), F5 teleports back to the last
+saved spot. `PC_SCENE=<id> PC_TELEPORT=<sec>:x,y,z` starts there directly.
+
 Debug switches (environment): `PC_SCENE=I001` starts New Game in that scene
 (scene IDs and level names are in `sAreaTable`, src/Game/zScene.cpp),
 `PC_PORTAL=<sec>:<n>` takes the n-th portal of the current scene,
-`PC_FORCESAVE=<sec>` opens the save screen, `PC_NOFMV=1` skips movies, `PC_STATS=1` logs
+`PC_FORCESAVE=<sec>` opens the save screen, `PC_POSLOG=1` logs the position each
+second, `PC_PROBE=<sec>:x0,z0,x1,z1,n` casts vertical rays, `PC_SURFDUMP=<sec>`
+lists special surfaces, `PC_HILITE_MAT=<n>` paints a world material red, `PC_NOFMV=1` skips movies, `PC_STATS=1` logs
 render stats, `PC_SHOT=frame[,step]` saves screenshots, `PC_WAV=1` records the
 audio output, `PC_AUTOPAD="sec:mask,..."` scripts the pad, `PC_DBG=...`
 toggles render states, `PC_FPTRAP=N` traps invalid FP operations from frame N,

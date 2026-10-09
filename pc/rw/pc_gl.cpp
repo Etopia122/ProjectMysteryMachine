@@ -700,6 +700,8 @@ static void maybe_screenshot()
     pc_log("[gl] screenshot at frame %d", frame);
 }
 
+static void draw_overlay();
+
 void pc_gl_present()
 {
     if (!s_window)
@@ -710,6 +712,7 @@ void pc_gl_present()
     {
         pc_log("[trace] present");
     }
+    draw_overlay();
     maybe_screenshot();
     if (stats_on())
     {
@@ -907,6 +910,17 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                 glDisable(GL_TEXTURE_2D);
             }
             apply_states(alpha || (t && raster_has_alpha(t->raster)));
+            // Debug: PC_HILITE_MAT=<n> paints world material n bright red.
+            static const char* hilite = getenv("PC_HILITE_MAT");
+            RpWorld* cw = (RpWorld*)rwGlobals()->curWorld;
+            if (hilite && cw && mats == &cw->matList && m && atoi(hilite) < cw->matList.numMaterials &&
+                cw->matList.materials[atoi(hilite)] == m)
+            {
+                glDisableClientState(GL_COLOR_ARRAY);
+                glDisable(GL_TEXTURE_2D);
+                glDisable(GL_FOG);
+                glColor4ub(255, 0, 0, 255);
+            }
             static const char* dbg = getenv("PC_DBG");
             if (dbg && strstr(dbg, "white"))
             {
@@ -1467,4 +1481,114 @@ extern "C" void pc_gl_fmv_frame(const unsigned char* rgba, int w, int h, int let
     maybe_screenshot();
     SDL_GL_SwapWindow(s_window);
     pc_events_pump();
+}
+
+// ---------------------------------------------------------------- debug overlay
+// A tiny 5x7 bitmap font for the debug readout (F3). Each glyph is 7 rows of
+// 5 bits, most significant bit on the left.
+static const struct { char c; unsigned char rows[7]; } s_font[] = {
+    { '0', { 0x0E, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0E } }, { '1', { 0x04, 0x0C, 0x04, 0x04, 0x04, 0x04, 0x0E } },
+    { '2', { 0x0E, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1F } }, { '3', { 0x1F, 0x02, 0x04, 0x02, 0x01, 0x11, 0x0E } },
+    { '4', { 0x02, 0x06, 0x0A, 0x12, 0x1F, 0x02, 0x02 } }, { '5', { 0x1F, 0x10, 0x1E, 0x01, 0x01, 0x11, 0x0E } },
+    { '6', { 0x06, 0x08, 0x10, 0x1E, 0x11, 0x11, 0x0E } }, { '7', { 0x1F, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08 } },
+    { '8', { 0x0E, 0x11, 0x11, 0x0E, 0x11, 0x11, 0x0E } }, { '9', { 0x0E, 0x11, 0x11, 0x0F, 0x01, 0x02, 0x0C } },
+    { 'A', { 0x0E, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11 } }, { 'B', { 0x1E, 0x11, 0x11, 0x1E, 0x11, 0x11, 0x1E } },
+    { 'C', { 0x0E, 0x11, 0x10, 0x10, 0x10, 0x11, 0x0E } }, { 'D', { 0x1C, 0x12, 0x11, 0x11, 0x11, 0x12, 0x1C } },
+    { 'E', { 0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x1F } }, { 'F', { 0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x10 } },
+    { 'G', { 0x0E, 0x11, 0x10, 0x17, 0x11, 0x11, 0x0F } }, { 'H', { 0x11, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11 } },
+    { 'I', { 0x0E, 0x04, 0x04, 0x04, 0x04, 0x04, 0x0E } }, { 'J', { 0x07, 0x02, 0x02, 0x02, 0x02, 0x12, 0x0C } },
+    { 'K', { 0x11, 0x12, 0x14, 0x18, 0x14, 0x12, 0x11 } }, { 'L', { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1F } },
+    { 'M', { 0x11, 0x1B, 0x15, 0x15, 0x11, 0x11, 0x11 } }, { 'N', { 0x11, 0x11, 0x19, 0x15, 0x13, 0x11, 0x11 } },
+    { 'O', { 0x0E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E } }, { 'P', { 0x1E, 0x11, 0x11, 0x1E, 0x10, 0x10, 0x10 } },
+    { 'Q', { 0x0E, 0x11, 0x11, 0x11, 0x15, 0x12, 0x0D } }, { 'R', { 0x1E, 0x11, 0x11, 0x1E, 0x14, 0x12, 0x11 } },
+    { 'S', { 0x0F, 0x10, 0x10, 0x0E, 0x01, 0x01, 0x1E } }, { 'T', { 0x1F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04 } },
+    { 'U', { 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E } }, { 'V', { 0x11, 0x11, 0x11, 0x11, 0x11, 0x0A, 0x04 } },
+    { 'W', { 0x11, 0x11, 0x11, 0x15, 0x15, 0x15, 0x0A } }, { 'X', { 0x11, 0x11, 0x0A, 0x04, 0x0A, 0x11, 0x11 } },
+    { 'Y', { 0x11, 0x11, 0x11, 0x0A, 0x04, 0x04, 0x04 } }, { 'Z', { 0x1F, 0x01, 0x02, 0x04, 0x08, 0x10, 0x1F } },
+    { '-', { 0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00 } }, { '.', { 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x0C } },
+    { ':', { 0x00, 0x0C, 0x0C, 0x00, 0x0C, 0x0C, 0x00 } }, { ',', { 0x00, 0x00, 0x00, 0x00, 0x0C, 0x04, 0x08 } },
+};
+
+static char s_overlay[256];
+
+extern "C" void pc_gl_set_overlay(const char* text)
+{
+    snprintf(s_overlay, sizeof(s_overlay), "%s", text ? text : "");
+}
+
+static void draw_overlay()
+{
+    if (!s_overlay[0])
+    {
+        return;
+    }
+    const int S = 3; // pixels per font pixel
+    glViewport(0, 0, s_winW, s_winH);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, s_winW, s_winH, 0, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_FOG);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_LIGHTING);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // Backing box, then the text.
+    int lines = 1, cols = 0, col = 0;
+    for (const char* p = s_overlay; *p; p++)
+    {
+        if (*p == '\n') { lines++; col = 0; } else if (++col > cols) cols = col;
+    }
+    glColor4f(0, 0, 0, 0.6f);
+    glBegin(GL_QUADS);
+    glVertex2i(4, 4);
+    glVertex2i(12 + cols * 6 * S, 4);
+    glVertex2i(12 + cols * 6 * S, 12 + lines * 9 * S);
+    glVertex2i(4, 12 + lines * 9 * S);
+    glEnd();
+    glColor4f(1, 1, 0.3f, 1);
+    glBegin(GL_QUADS);
+    int x0 = 8, x = x0, y = 8;
+    for (const char* p = s_overlay; *p; p++)
+    {
+        char c = *p >= 'a' && *p <= 'z' ? *p - 32 : *p;
+        if (c == '\n')
+        {
+            x = x0;
+            y += 9 * S;
+            continue;
+        }
+        for (size_t g = 0; g < sizeof(s_font) / sizeof(s_font[0]); g++)
+        {
+            if (s_font[g].c != c)
+            {
+                continue;
+            }
+            for (int r = 0; r < 7; r++)
+            {
+                for (int b = 0; b < 5; b++)
+                {
+                    if (s_font[g].rows[r] & (0x10 >> b))
+                    {
+                        int px = x + b * S, py = y + r * S;
+                        glVertex2i(px, py);
+                        glVertex2i(px + S, py);
+                        glVertex2i(px + S, py + S);
+                        glVertex2i(px, py + S);
+                    }
+                }
+            }
+            break;
+        }
+        x += 6 * S;
+    }
+    glEnd();
+    glDisable(GL_BLEND);
 }

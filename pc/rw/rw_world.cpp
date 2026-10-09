@@ -5,6 +5,7 @@
 #include <float.h>
 #include <math.h>
 #include <string.h>
+#include <algorithm>
 #include <vector>
 
 // World format flags (RpWorld.flags), same bits as geometry.
@@ -666,4 +667,131 @@ RpAtomic* RpAtomicForAllIntersections(RpAtomic* a, RpIntersection* isx, AtomicCo
     return a;
 }
 
+}
+
+// ---------------------------------------------------------------- debugging
+extern "C" {
+
+RpWorld* pc_current_world() { return (RpWorld*)rwGlobals()->curWorld; }
+
+// Bounds of the world polygons using material 'mat'; returns their count.
+int pc_world_material_bounds(RpWorld* w, int mat, float* out6)
+{
+    int n = 0;
+    if (!w)
+    {
+        return 0;
+    }
+    std::vector<RpWorldSector*>& v = *pc_world(w)->sectors;
+    for (size_t i = 0; i < v.size(); i++)
+    {
+        RpWorldSector* s = v[i];
+        for (RwInt32 p = 0; p < s->numPolygons && s->polygons; p++)
+        {
+            if (s->polygons[p].matIndex != mat)
+            {
+                continue;
+            }
+            if (n % 25 == 0)
+            {
+                const RwV3d& q0 = s->vertices[s->polygons[p].vertIndex[0]];
+                pc_log("[surf]   sample poly at %.1f %.1f %.1f", q0.x, q0.y, q0.z);
+            }
+            for (int k = 0; k < 3; k++)
+            {
+                const RwV3d& q = s->vertices[s->polygons[p].vertIndex[k]];
+                const float c[3] = { q.x, q.y, q.z };
+                for (int a = 0; a < 3; a++)
+                {
+                    if (!n || c[a] < out6[a]) out6[a] = c[a];
+                    if (!n || c[a] > out6[3 + a]) out6[3 + a] = c[a];
+                }
+            }
+            n++;
+        }
+    }
+    return n;
+}
+
+}
+
+extern "C" int pc_world_max_window_base(RpWorld* w)
+{
+    int m = 0;
+    std::vector<RpWorldSector*>& v = *pc_world(w)->sectors;
+    for (size_t i = 0; i < v.size(); i++)
+    {
+        m = v[i]->matListWindowBase > m ? v[i]->matListWindowBase : m;
+    }
+    return m;
+}
+
+// Debug: lists what a vertical ray at (x, z) hits in the current world.
+static RpCollisionTriangle* probe_cb(RpIntersection* isx, RpWorldSector* s, RpCollisionTriangle* t, float d, void*)
+{
+    const RwLine& l = isx->t.line;
+    pc_log("[probe]   hit y %.2f mat %d normal %.2f %.2f %.2f", l.start.y + (l.end.y - l.start.y) * d,
+           s ? s->polygons[t->index].matIndex : -1, t->normal.x, t->normal.y, t->normal.z);
+    return t;
+}
+
+extern "C" void pc_debug_probe(float x, float z)
+{
+    RpWorld* w = (RpWorld*)rwGlobals()->curWorld;
+    if (!w)
+    {
+        return;
+    }
+    RpIntersection isx;
+    memset(&isx, 0, sizeof(isx));
+    isx.type = rpINTERSECTLINE;
+    isx.t.line.start.x = x, isx.t.line.start.y = 20, isx.t.line.start.z = z;
+    isx.t.line.end.x = x, isx.t.line.end.y = -40, isx.t.line.end.z = z;
+    pc_log("[probe] (%.2f, %.2f)", x, z);
+    RpCollisionWorldForAllIntersections(w, &isx, probe_cb, NULL);
+}
+
+extern "C" void pc_debug_sectors()
+{
+    RpWorld* w = (RpWorld*)rwGlobals()->curWorld;
+    if (!w)
+    {
+        return;
+    }
+    std::vector<RpWorldSector*>& v = *pc_world(w)->sectors;
+    for (size_t i = 0; i < v.size(); i++)
+    {
+        RpWorldSector* s = v[i];
+        // Cross-check the polygon array against the BinMesh triangles.
+        std::vector<unsigned long long> tris;
+        if (s->mesh)
+        {
+            RpMesh* m = (RpMesh*)(s->mesh + 1);
+            bool strip = (s->mesh->flags & 1) != 0;
+            for (int k = 0; k < s->mesh->numMeshes; k++)
+            {
+                for (RwUInt32 j = 0; j + 2 < m[k].numIndices; j += strip ? 1 : 3)
+                {
+                    unsigned a = m[k].indices[j], b = m[k].indices[j + 1], c = m[k].indices[j + 2];
+                    if (a == b || b == c || a == c) continue;
+                    unsigned v[3] = { a, b, c };
+                    std::sort(v, v + 3);
+                    tris.push_back((unsigned long long)v[0] << 32 | v[1] << 16 | v[2]);
+                }
+            }
+        }
+        std::sort(tris.begin(), tris.end());
+        int found = 0;
+        for (RwInt32 p = 0; p < s->numPolygons && s->polygons; p++)
+        {
+            unsigned v[3] = { s->polygons[p].vertIndex[0], s->polygons[p].vertIndex[1], s->polygons[p].vertIndex[2] };
+            std::sort(v, v + 3);
+            found += std::binary_search(tris.begin(), tris.end(), (unsigned long long)v[0] << 32 | v[1] << 16 | v[2]);
+        }
+        pc_log("[sector] %u: %d of %d polygons match mesh triangles (%u mesh tris)", (unsigned)i, found, s->numPolygons,
+               (unsigned)tris.size());
+        pc_log("[sector] %u: polys %d (array %p) verts %d bbox (%.1f %.1f %.1f)-(%.1f %.1f %.1f)", (unsigned)i,
+               s->numPolygons, s->polygons, s->numVertices, s->boundingBox.inf.x, s->boundingBox.inf.y,
+               s->boundingBox.inf.z, s->boundingBox.sup.x, s->boundingBox.sup.y, s->boundingBox.sup.z);
+    }
 }

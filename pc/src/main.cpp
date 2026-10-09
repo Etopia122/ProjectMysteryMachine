@@ -6,6 +6,7 @@
 #include <string.h>
 #include <float.h>
 #include <windows.h>
+#include "pc_platform.h"
 
 void scooby_main();
 void pc_map_gc_memory();
@@ -33,6 +34,15 @@ extern "C" void pc_stub_hit(const char* name)
 extern "C" void pc_fptrap();
 void zGameStateSwitchEvent(signed int event);
 extern "C" void pc_debug_portal(int index);
+extern "C" void pc_debug_surfaces();
+extern "C" void pc_debug_teleport(float x, float y, float z);
+extern "C" void pc_debug_player_pos(float* out);
+extern "C" void pc_debug_probe(float x, float z);
+extern "C" void pc_debug_sectors();
+extern "C" unsigned int pc_debug_scene_id();
+extern "C" void pc_gl_set_overlay(const char* text);
+static bool s_teleportDone = !getenv("PC_TELEPORT");
+static bool teleportPending() { return !s_teleportDone; }
 
 // Writes crash.txt next to the executable: the exception and a frame-pointer
 // stack walk, with addresses relative to the default image base so
@@ -84,9 +94,63 @@ static LONG WINAPI crash_handler(EXCEPTION_POINTERS* ep)
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
+// ---------------------------------------------------------------- coordinate readout
+static bool s_showCoords = getenv("PC_COORDS") != NULL; // PC_COORDS=1 starts with it on
+
+static void scene_name(char* out)
+{
+    unsigned int id = pc_debug_scene_id();
+    for (int i = 0; i < 4; i++)
+    {
+        char c = (char)(id >> (24 - i * 8));
+        out[i] = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') ? c : '-';
+    }
+    out[4] = 0;
+}
+
+static void update_coords()
+{
+    if (!s_showCoords)
+    {
+        return;
+    }
+    char scene[5], text[128];
+    float p[3];
+    scene_name(scene);
+    pc_debug_player_pos(p);
+    snprintf(text, sizeof(text), "SCENE %s\nX %.2f\nY %.2f\nZ %.2f\nF4: SAVE", scene, p[0], p[1], p[2]);
+    pc_gl_set_overlay(text);
+}
+
+static float s_savedPos[3];
+static bool s_hasSaved;
+
+static void save_coords()
+{
+    char scene[5], line[128], path[MAX_PATH];
+    float p[3];
+    scene_name(scene);
+    pc_debug_player_pos(p);
+    memcpy(s_savedPos, p, sizeof(p));
+    s_hasSaved = true;
+    snprintf(line, sizeof(line), "%s %.2f,%.2f,%.2f", scene, p[0], p[1], p[2]);
+    char* base = SDL_GetBasePath();
+    snprintf(path, sizeof(path), "%scoords.txt", base ? base : "");
+    SDL_free(base);
+    FILE* f = fopen(path, "a");
+    if (f)
+    {
+        fprintf(f, "%s\n", line);
+        fclose(f);
+    }
+    SDL_SetClipboardText(line);
+    pc_log("[coords] %s (saved to coords.txt and the clipboard)", line);
+}
+
 // Window/system events; called once per presented frame.
 void pc_events_pump()
 {
+    update_coords();
     // Debug: PC_PORTAL=<seconds>:<index> takes a portal of the current scene.
     static const char* portal = getenv("PC_PORTAL");
     if (portal && SDL_GetTicks() >= (Uint32)(atof(portal) * 1000))
@@ -94,6 +158,54 @@ void pc_events_pump()
         const char* c = strchr(portal, ':');
         portal = NULL;
         pc_debug_portal(c ? atoi(c + 1) : 0);
+    }
+    // Debug: PC_PROBE=<sec>:x0,z0,x1,z1,n probes n vertical rays from (x0,z0) to (x1,z1).
+    static const char* probe = getenv("PC_PROBE");
+    if (probe && SDL_GetTicks() >= (Uint32)(atof(probe) * 1000))
+    {
+        float x0, z0, x1, z1;
+        int n = 1;
+        const char* c = strchr(probe, ':');
+        probe = NULL;
+        if (c && sscanf(c + 1, "%f,%f,%f,%f,%d", &x0, &z0, &x1, &z1, &n) >= 4)
+        {
+            pc_debug_sectors();
+            for (int i = 0; i < n; i++)
+            {
+                float t = n > 1 ? (float)i / (n - 1) : 0;
+                pc_debug_probe(x0 + (x1 - x0) * t, z0 + (z1 - z0) * t);
+            }
+        }
+    }
+    // Debug: PC_POSLOG=1 logs the player position every second (after a teleport).
+    static int posLog = getenv("PC_POSLOG") ? 1 : 0;
+    static Uint32 nextPos;
+    if (posLog && !teleportPending() && SDL_GetTicks() >= nextPos)
+    {
+        nextPos = SDL_GetTicks() + 1000;
+        float p[3];
+        pc_debug_player_pos(p);
+        pc_log("[pos] %.1fs %.2f %.2f %.2f", SDL_GetTicks() / 1000.0, p[0], p[1], p[2]);
+    }
+    // Debug: PC_TELEPORT=<seconds>:x,y,z moves the player there.
+    static const char* teleport = getenv("PC_TELEPORT");
+    if (teleport && SDL_GetTicks() >= (Uint32)(atof(teleport) * 1000))
+    {
+        float x = 0, y = 0, z = 0;
+        const char* c = strchr(teleport, ':');
+        teleport = NULL;
+        if (c && sscanf(c + 1, "%f,%f,%f", &x, &y, &z) == 3)
+        {
+            pc_debug_teleport(x, y, z);
+        }
+        s_teleportDone = true;
+    }
+    // Debug: PC_SURFDUMP=<seconds> lists the special surfaces of the world.
+    static const char* surfDump = getenv("PC_SURFDUMP");
+    if (surfDump && SDL_GetTicks() >= (Uint32)(atof(surfDump) * 1000))
+    {
+        surfDump = NULL;
+        pc_debug_surfaces();
     }
     // Debug: PC_FORCESAVE=<seconds> fires the event that opens the save screen.
     static const char* forceSave = getenv("PC_FORCESAVE");
@@ -115,6 +227,25 @@ void pc_events_pump()
         {
             SDL_Quit();
             exit(0);
+        }
+        // F3 toggles the position readout; F4 saves the position to coords.txt
+        // next to the exe and copies it to the clipboard.
+        if (e.type == SDL_KEYDOWN && !e.key.repeat && e.key.keysym.sym == SDLK_F3)
+        {
+            s_showCoords = !s_showCoords;
+            if (!s_showCoords)
+            {
+                pc_gl_set_overlay(NULL);
+            }
+        }
+        if (e.type == SDL_KEYDOWN && !e.key.repeat && e.key.keysym.sym == SDLK_F4)
+        {
+            save_coords();
+        }
+        // F5 teleports back to the last saved position.
+        if (e.type == SDL_KEYDOWN && !e.key.repeat && e.key.keysym.sym == SDLK_F5 && s_hasSaved)
+        {
+            pc_debug_teleport(s_savedPos[0], s_savedPos[1], s_savedPos[2]);
         }
         // Alt+Enter or F11 toggles borderless fullscreen.
         if (e.type == SDL_KEYDOWN && !e.key.repeat &&

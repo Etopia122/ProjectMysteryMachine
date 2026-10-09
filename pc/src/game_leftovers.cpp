@@ -318,3 +318,38 @@ unsigned int pc_debug_start_scene(unsigned int sceneID)
     }
     return sceneID;
 }
+
+// Debug (PC_SURFDUMP=<sec>): lists the world materials that map to special
+// surfaces (friction, sticky, type) with the bounds of the floor using them.
+class xSurface;
+xSurface* zSurfaceGetSurface(unsigned int mat_id);
+struct RpWorld;
+extern "C" RpWorld* pc_current_world();
+extern "C" int pc_world_material_bounds(RpWorld* w, int mat, float* out6);
+extern "C" int pc_world_max_window_base(RpWorld* w);
+
+extern "C" void pc_debug_surfaces()
+{
+    RpWorld* w = pc_current_world();
+    if (!w)
+    {
+        return;
+    }
+    int nmat = *(int*)((unsigned char*)w + 0x14); // matList.numMaterials
+    pc_log("[surf] %d world materials, max window base %d", nmat, pc_world_max_window_base(w));
+    for (int i = 0; i < nmat; i++)
+    {
+        unsigned char* surf = (unsigned char*)zSurfaceGetSurface((unsigned int)i);
+        unsigned char* props = *(unsigned char**)(surf + 0x24);
+        unsigned char* asset = props ? *(unsigned char**)props : NULL;
+        if (!asset)
+        {
+            continue;
+        }
+        float b[6] = { 0 };
+        int n = pc_world_material_bounds(w, i, b);
+        pc_log("[surf] mat %d -> surf %08x friction %.2f sticky %d type %d flags %x dmg %d: %d polys (%.1f %.1f %.1f)-(%.1f %.1f %.1f)",
+               i, *(unsigned int*)surf, *(float*)(asset + 0x10), asset[9], asset[0xB], asset[0xF], asset[8], n, b[0], b[1],
+               b[2], b[3], b[4], b[5]);
+    }
+}
