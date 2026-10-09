@@ -44,7 +44,9 @@ struct GpuState
     float fogStart, fogEnd;   // camera-space depth
     PcRaster* tex;            // NULL: untextured
     int filter, addrU, addrV; // rwFILTER*, rwTEXTUREADDRESS* values
-    RwRGBA matColor;          // multiplies the vertex colours (white: none)
+    // Vertex colours become clamp(colour + addColor) * matColor (alpha: times
+    // matColor's only); addColor black and matColor white leave them as they are.
+    RwRGBA addColor, matColor;
 };
 
 // Vertex arrays of one draw. Strides are in bytes.

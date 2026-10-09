@@ -43,6 +43,8 @@ static bool stats_on() { static int on = -1; if (on < 0) on = getenv("PC_STATS")
 // PC_PROF=1: per-second profile of the renderer's CPU work.
 enum { PROF_SKIN, PROF_LIGHT, PROF_COLOUR, PROF_DRAW, PROF_WORLD, PROF_IM, PROF_COUNT };
 static unsigned long long s_prof[PROF_COUNT];
+// Vertex colour work per frame: lit/prelit meshes and vertices, light types seen.
+static struct { int litMeshes, litVerts, prelitMeshes, prelitVerts, dirLights, pointLights; } s_profCol;
 static bool prof_on() { static int on = -1; if (on < 0) on = getenv("PC_PROF") != NULL; return on; }
 struct ProfScope
 {
@@ -82,6 +84,10 @@ static void prof_frame()
     pc_log("[prof] %.1f fps, %.1f ms/frame: skin %.1f light %.1f colour %.1f draw %.1f (world %.1f) im2d/3d %.1f",
            frames / secs, secs * 1000.0 / frames, ms[PROF_SKIN], ms[PROF_LIGHT], ms[PROF_COLOUR], ms[PROF_DRAW],
            ms[PROF_WORLD], ms[PROF_IM]);
+    pc_log("[prof] colours/frame: lit %d meshes %d verts, prelit %d meshes %d verts; lights dir %d point/spot %d",
+           s_profCol.litMeshes / frames, s_profCol.litVerts / frames, s_profCol.prelitMeshes / frames,
+           s_profCol.prelitVerts / frames, s_profCol.dirLights / frames, s_profCol.pointLights / frames);
+    memset(&s_profCol, 0, sizeof(s_profCol));
     start = now;
     frames = 0;
 }
@@ -204,6 +210,7 @@ static GpuState draw_state(bool alpha, PcRaster* tex, int filter, int addrU, int
     s.addrU = addrU;
     s.addrV = addrV;
     s.matColor = RwRGBA{ 255, 255, 255, 255 };
+    s.addColor = RwRGBA{ 0, 0, 0, 0 };
     return s;
 }
 
@@ -511,6 +518,7 @@ void pc_render_present()
 // (fixed-function lighting can't add the prelit colour as well).
 static std::vector<float> s_light; // per-vertex accumulated direct light (rgb), or empty when unlit
 static float s_amb[3];              // accumulated ambient light
+static bool s_lightUniform;         // only ambient light: every vertex gets the same light
 
 static void light_vertices(RpGeometry* g, const RwMatrix* ltm, const RwV3d* pos, const RwV3d* nrm)
 {
@@ -518,6 +526,7 @@ static void light_vertices(RpGeometry* g, const RwMatrix* ltm, const RwV3d* pos,
     RpWorld* w = (RpWorld*)rwGlobals()->curWorld;
     int nv = g->numVertices;
     s_light.assign(nv * 3, 0.0f);
+    s_lightUniform = true;
     s_amb[0] = s_amb[1] = s_amb[2] = 0;
     if (!w)
     {
@@ -561,6 +570,15 @@ static void light_vertices(RpGeometry* g, const RwMatrix* ltm, const RwV3d* pos,
                 continue;
             }
             const RwMatrix& lm = f->ltm;
+            s_lightUniform = false;
+            if (type == rpLIGHTDIRECTIONAL)
+            {
+                s_profCol.dirLights++;
+            }
+            else
+            {
+                s_profCol.pointLights++;
+            }
             for (int i = 0; i < nv; i++)
             {
                 // World-space normal.
@@ -679,7 +697,7 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
             }
             bool alpha = mc.alpha < 255;
             bool lit = !s_light.empty();
-            RwRGBA matColor = { 255, 255, 255, 255 };
+            RwRGBA matColor = { 255, 255, 255, 255 }, addColor = { 0, 0, 0, 0 };
             v.cacheKey = NULL;
             if (prelit && !lit && staticKey)
             {
@@ -691,9 +709,68 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                 matColor = mc;
                 alpha |= prelit_has_alpha(staticKey, prelit, nv);
             }
+            else if (lit && s_lightUniform)
+            {
+                // Only ambient light reaches it, the same for every vertex: the GPU
+                // adds it and applies the material colour (unskinned geometry keeps
+                // its arrays cached).
+                float ka = m ? m->surfaceProps.ambient : 1.0f;
+                if (m)
+                {
+                    mc = m->color;
+                }
+                float lc[3];
+                for (int c = 0; c < 3; c++)
+                {
+                    lc[c] = s_amb[c] * ka * 255.0f;
+                    lc[c] = lc[c] > 255 ? 255 : lc[c];
+                }
+                if (prelit)
+                {
+                    addColor = RwRGBA{ (RwUInt8)lc[0], (RwUInt8)lc[1], (RwUInt8)lc[2], 0 };
+                    matColor = mc;
+                    v.col = prelit;
+                    v.colStride = sizeof(RwRGBA);
+                    bool pa = false;
+                    if (staticKey)
+                    {
+                        pa = prelit_has_alpha(staticKey, prelit, nv);
+                    }
+                    else
+                    {
+                        for (int k = 0; k < nv && !pa; k++)
+                        {
+                            pa = prelit[k].alpha < 255;
+                        }
+                    }
+                    alpha |= pa;
+                }
+                else
+                {
+                    float r = lc[0] * mc.red / 255.0f, gr = lc[1] * mc.green / 255.0f, b = lc[2] * mc.blue / 255.0f;
+                    matColor.red = (RwUInt8)(r > 255 ? 255 : r);
+                    matColor.green = (RwUInt8)(gr > 255 ? 255 : gr);
+                    matColor.blue = (RwUInt8)(b > 255 ? 255 : b);
+                    matColor.alpha = mc.alpha;
+                    v.col = NULL;
+                    v.constCol = RwRGBA{ 255, 255, 255, 255 };
+                }
+                alpha |= mc.alpha < 255;
+                v.cacheKey = staticKey;
+            }
             else if (prelit || lit)
             {
                 ProfScope prof(PROF_COLOUR);
+                if (lit)
+                {
+                    s_profCol.litMeshes++;
+                    s_profCol.litVerts += nv;
+                }
+                else
+                {
+                    s_profCol.prelitMeshes++;
+                    s_profCol.prelitVerts += nv;
+                }
                 s_col.resize(nv);
                 float ka = m ? m->surfaceProps.ambient : 1.0f, kd = m ? m->surfaceProps.diffuse : 1.0f;
                 if (lit && m)
@@ -745,6 +822,7 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                                         rwTexAddrU(t), rwTexAddrV(t))
                            : draw_state(alpha, NULL, 0, 0, 0);
             s.matColor = matColor;
+            s.addColor = addColor;
             // Debug: PC_HILITE_MAT=<n> paints world material n bright red.
             static const char* hilite = getenv("PC_HILITE_MAT");
             RpWorld* cw = (RpWorld*)rwGlobals()->curWorld;
@@ -755,6 +833,7 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                 v.cacheKey = NULL;
                 v.constCol = RwRGBA{ 255, 0, 0, 255 };
                 s.matColor = RwRGBA{ 255, 255, 255, 255 };
+                s.addColor = RwRGBA{ 0, 0, 0, 0 };
                 s.tex = NULL;
                 s.fog = false;
             }
@@ -764,6 +843,7 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                 v.cacheKey = NULL;
                 v.constCol = RwRGBA{ 255, 255, 255, 255 };
                 s.matColor = RwRGBA{ 255, 255, 255, 255 };
+                s.addColor = RwRGBA{ 0, 0, 0, 0 };
             }
             ProfScope prof(PROF_DRAW);
             gpu_draw(s, v, prim, mesh[i].indices, (int)mesh[i].numIndices);
@@ -1290,6 +1370,7 @@ static void overlay_draw(const std::vector<float>& q, RwRGBA col)
     s.cull = PC_CULL_NONE;
     s.colorWrite = s.alphaWrite = true;
     s.matColor = RwRGBA{ 255, 255, 255, 255 };
+    s.addColor = RwRGBA{ 0, 0, 0, 0 };
     GpuVerts v;
     memset(&v, 0, sizeof(v));
     v.pos = q.data();
