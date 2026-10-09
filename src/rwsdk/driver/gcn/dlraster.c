@@ -392,8 +392,9 @@ RwUInt32 _rwDlRasterGetMipSize(RwRaster* raster, RwUInt8 level)
 
 #pragma dont_inline reset
 
-RwBool _rwDlRasterLock(void* pixelsOut, RwRaster* raster, RwInt32 flags)
+RwBool _rwDlRasterLock(void* pixelsOut, void* pRaster, RwInt32 flags)
 {
+    RwRaster* raster = (RwRaster*)pRaster;
     RwRaster* parent = raster->parent;
     RwDlRasterExt* rasterExt = RASTEREXTFROMRASTER(parent);
     RwUInt8 level = (flags >> 8) & 0xFF;
@@ -521,8 +522,9 @@ RwBool _rwDlRasterLock(void* pixelsOut, RwRaster* raster, RwInt32 flags)
     return TRUE;
 }
 
-RwBool _rwDlRasterUnlock(void* unused, RwRaster* raster, RwInt32 flags)
+RwBool _rwDlRasterUnlock(void* pOut, void* pRaster, RwInt32 flags)
 {
+    RwRaster* raster = (RwRaster*)pRaster;
     RwRaster* parent = raster->parent;
     RwDlRasterExt* rasterExt = RASTEREXTFROMRASTER(parent);
 
@@ -572,28 +574,31 @@ RwBool _rwDlRasterUnlock(void* unused, RwRaster* raster, RwInt32 flags)
     return TRUE;
 }
 
-RwBool _rwDlRasterLockPalette(void* paletteOut, RwRaster* raster, RwInt32 flags)
+RwBool _rwDlRasterLockPalette(void* paletteOut, void* pRaster, RwInt32 flags)
 {
+    RwRaster* raster = (RwRaster*)pRaster;
+
     switch (raster->cType & rwRASTERTYPEMASK) {
     case rwRASTERTYPECAMERA:
         return FALSE;
     case rwRASTERTYPENORMAL:
     case rwRASTERTYPETEXTURE:
     case rwRASTERTYPECAMERATEXTURE:
-        if (raster->parent == raster && raster->palette == NULL) {
+        if (raster == raster->parent && raster->palette == NULL) {
             RwDlRasterExt* rasterExt = RASTEREXTFROMRASTER(raster);
 
-            if (!(RwRasterGetFormat(raster) & (rwRASTERFORMATPAL4 | rwRASTERFORMATPAL8))) {
+            if (RwRasterGetFormat(raster) & (rwRASTERFORMATPAL4 | rwRASTERFORMATPAL8)) {
+                if (flags & rwRASTERLOCKREAD) {
+                    raster->privateFlags |= rwRASTERPALETTELOCKEDREAD;
+                }
+                if (flags & rwRASTERLOCKWRITE) {
+                    raster->privateFlags |= rwRASTERPALETTELOCKEDWRITE;
+                }
+                raster->palette = rasterExt->palette;
+                *(RwUInt8**)paletteOut = raster->palette;
+            } else {
                 return FALSE;
             }
-            if (flags & rwRASTERLOCKREAD) {
-                raster->privateFlags |= rwRASTERPALETTELOCKEDREAD;
-            }
-            if (flags & rwRASTERLOCKWRITE) {
-                raster->privateFlags |= rwRASTERPALETTELOCKEDWRITE;
-            }
-            raster->palette = rasterExt->palette;
-            *(RwUInt8**)paletteOut = raster->palette;
         }
         return TRUE;
     default:
@@ -601,8 +606,10 @@ RwBool _rwDlRasterLockPalette(void* paletteOut, RwRaster* raster, RwInt32 flags)
     }
 }
 
-RwBool _rwDlRasterUnlockPalette(void* unused, RwRaster* raster, RwInt32 flags)
+RwBool _rwDlRasterUnlockPalette(void* pOut, void* pRaster, RwInt32 flags)
 {
+    RwRaster* raster = (RwRaster*)pRaster;
+
     switch (raster->cType & rwRASTERTYPEMASK) {
     case rwRASTERTYPECAMERA:
         return FALSE;
@@ -914,8 +921,10 @@ RwBool _rwDlRasterCreate(void* unused, RwRaster* raster, RwInt32 flags)
     return TRUE;
 }
 
-RwBool _rwDlRasterDestroy(void* unused, RwRaster* raster, RwInt32 flags)
+RwBool _rwDlRasterDestroy(void* pOut, void* pRaster, RwInt32 flags)
 {
+    RwRaster* raster = (RwRaster*)pRaster;
+
     if (raster->parent == raster && !(raster->cFlags & rwRASTERDONTALLOCATE)) {
         switch (raster->cType) {
         case rwRASTERTYPENORMAL:

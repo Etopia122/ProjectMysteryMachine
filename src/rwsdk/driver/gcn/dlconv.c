@@ -520,13 +520,13 @@ void _rwDlImage32GetFromRaster(RwImage* image, RwRaster* raster)
     }
 }
 
-RwBool _rwDlImageGetFromRaster(RwImage* image, RwRaster* raster)
+RwBool _rwDlImageGetFromRaster(void* pImage, void* pRaster, RwInt32 flags)
 {
-    RwBool locked;
-    RwBool paletteLocked;
+    RwImage* image = (RwImage*)pImage;
+    RwRaster* raster = (RwRaster*)pRaster;
+    RwBool locked = FALSE;
+    RwBool paletteLocked = FALSE;
 
-    locked = FALSE;
-    paletteLocked = FALSE;
     if (!(raster->privateFlags & rwRASTERPIXELLOCKEDREAD)) {
         RwRasterLock(raster, 0, rwRASTERLOCKREAD);
         locked = TRUE;
@@ -771,15 +771,13 @@ void _rwDlRaster32SetFromImage(RwRaster* raster, RwImage* image)
     }
 }
 
-RwBool _rwDlRasterSetFromImage(RwRaster* raster, RwImage* image)
+RwBool _rwDlRasterSetFromImage(void* pRaster, void* pImage, RwInt32 flags)
 {
-    RwBool locked;
-    RwBool paletteLocked;
-    RwInt32 format;
-
-    locked = FALSE;
-    paletteLocked = FALSE;
-    format = RwRasterGetFormat(raster);
+    RwRaster* raster = (RwRaster*)pRaster;
+    RwImage* image = (RwImage*)pImage;
+    RwBool locked = FALSE;
+    RwBool paletteLocked = FALSE;
+    RwInt32 format = RwRasterGetFormat(raster);
 
     if (raster->privateFlags & rwRASTERPIXELLOCKEDWRITE) {
         locked = TRUE;
