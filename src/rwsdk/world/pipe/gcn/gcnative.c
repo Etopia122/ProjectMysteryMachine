@@ -272,12 +272,10 @@ RwInt32 _rpWorldSectorNativeSize(const RpWorldSector* sector)
 RwStream* _rpWorldSectorNativeWrite(RwStream* stream, const RpWorldSector* sector)
 {
     const RpWorld* world = RpWorldSectorGetWorld(sector);
-    RwInt32 numVertices;
 
     if (world->flags & rpGEOMETRYNATIVE) {
-        numVertices = RpWorldSectorGetNumVertices(sector);
         DlNativeDataStreamWrite(stream, (rxGCResEntry*)sector->repEntry, RpGameCubeWorldGetVtxFmt(world),
-                                ((rxGCMeshHeader*)sector->mesh)->numMeshes, numVertices);
+                                ((rxGCMeshHeader*)sector->mesh)->numMeshes, RpWorldSectorGetNumVertices(sector));
     }
     return stream;
 }
