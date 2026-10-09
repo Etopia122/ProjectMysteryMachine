@@ -373,7 +373,7 @@ void start_output()
     }
     pc_log("[audio] no output device; running silent");
     s_timerRunning = true;
-    std::thread(timer_thread).detach();
+    pc_thread_start(timer_thread, "audio timer");
 }
 
 } // namespace

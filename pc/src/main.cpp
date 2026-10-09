@@ -6,6 +6,7 @@
 #include <string.h>
 #include <float.h>
 #include <windows.h>
+#include <thread>
 #include "pc_platform.h"
 
 void scooby_main();
@@ -114,6 +115,11 @@ extern "C" const char* pc_base_path()
 extern "C" void pc_mkdir(const char* path)
 {
     CreateDirectoryA(path, NULL);
+}
+
+extern "C" void pc_thread_start(void (*fn)(void), const char* name)
+{
+    std::thread(fn).detach();
 }
 
 extern "C" unsigned int pc_ticks_ms()

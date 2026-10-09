@@ -43,7 +43,7 @@ void pc_irq_post(std::function<void()> fn)
         if (!started)
         {
             started = true;
-            std::thread(irq_thread).detach();
+            pc_thread_start(irq_thread, "irq");
         }
         s_queue.push_back(fn);
     }

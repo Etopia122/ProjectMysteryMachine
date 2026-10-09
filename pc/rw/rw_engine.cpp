@@ -8,7 +8,11 @@
 #include <string.h>
 #include <strings.h>
 #include <vector>
+#ifdef _WIN32
 #include <windows.h>
+#else
+#include <malloc.h>
+#endif
 
 extern "C" {
 RwUInt8* RwEngineInstance;
@@ -23,6 +27,7 @@ RwUInt32 lbl_8025E3F8[2] = { 0x0000FFFE, 0 };
 void pc_rw_device_open(void* displayID);
 void pc_rw_device_close();
 
+#ifdef _WIN32
 // Debug: PC_PAGEHEAP=1 gives every RenderWare allocation its own pages, ending
 // at a page boundary, and makes them inaccessible when freed, so overruns and
 // writes after free fault at the culprit. Uses a lot of address space.
@@ -74,6 +79,11 @@ static void pageheap_free(void* ptr)
     }
     VirtualFree(base, ((PageHeader*)base)->pages * 4096, MEM_DECOMMIT);
 }
+#else
+static int pageheap() { return 0; }
+static void* pageheap_alloc(size_t size) { return NULL; }
+static void pageheap_free(void* ptr) {}
+#endif
 
 void* rwMalloc(size_t size)
 {
@@ -139,12 +149,21 @@ struct PcFreeList { RwUInt32 entrySize; RwUInt32 alignment; };
 static void* freelist_alloc(void* fl)
 {
     PcFreeList* f = (PcFreeList*)fl;
-    return _aligned_malloc(f->entrySize ? f->entrySize : 1, f->alignment < 8 ? 8 : f->alignment);
+    size_t align = f->alignment < 8 ? 8 : f->alignment;
+#ifdef _WIN32
+    return _aligned_malloc(f->entrySize ? f->entrySize : 1, align);
+#else
+    return memalign(align, f->entrySize ? f->entrySize : 1);
+#endif
 }
 
 static void* freelist_free(void* fl, void* p)
 {
+#ifdef _WIN32
     _aligned_free(p);
+#else
+    free(p);
+#endif
     return fl;
 }
 

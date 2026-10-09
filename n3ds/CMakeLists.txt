@@ -28,3 +28,18 @@ target_compile_options(scoobygame PRIVATE
     -fsigned-char
     -fno-unreachable-traps
     -include ${PC}/include/pc_compat.h)
+
+# Platform code shared with the PC port, and the 3DS platform layer.
+set(SHARED_PC_SOURCES
+    ${PC}/src/aram.cpp ${PC}/src/asset_swap.cpp ${PC}/src/autopad.cpp ${PC}/src/audio.cpp ${PC}/src/card.cpp ${PC}/src/dvd.cpp
+    ${PC}/src/game_data.cpp ${PC}/src/game_leftovers.cpp ${PC}/src/irq.cpp ${PC}/src/msl_data.cpp
+    ${PC}/src/os_heap.cpp ${PC}/src/vi_time.cpp)
+file(GLOB PC_RW_SOURCES ${PC}/rw/*.cpp)
+list(FILTER PC_RW_SOURCES EXCLUDE REGEX "/gpu_gl[.]cpp$")
+file(GLOB N3DS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.S)
+
+add_executable(scooby ${SHARED_PC_SOURCES} ${PC_RW_SOURCES} ${N3DS_SOURCES})
+target_include_directories(scooby PRIVATE ${PC}/include ${PC}/rw)
+target_compile_options(scooby PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++17> -g -O2 -fsigned-char)
+target_link_libraries(scooby PRIVATE scoobygame citro3d ctru m)
+n3ds_add_3dsx(scooby "Scooby-Doo! Night of 100 Frights" "Experimental New 3DS port")

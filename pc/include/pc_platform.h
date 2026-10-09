@@ -30,6 +30,14 @@ void pc_mkdir(const char* path);
 // Shuts the platform down and ends the program.
 void pc_exit(int code);
 
+// Starts a detached helper thread (VI retrace, interrupts, audio timer). On
+// the 3DS these run above the game's priority: threads there aren't
+// time-sliced, and the game busy-waits on them.
+void pc_thread_start(void (*fn)(void), const char* name);
+
+// PC_AUTOPAD test script: adds its buttons and stick to the pad state.
+void pc_autopad(unsigned short* buttons, int* sx, int* sy);
+
 // Milliseconds since the program started.
 unsigned int pc_ticks_ms(void);
 

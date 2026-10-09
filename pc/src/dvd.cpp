@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <string>
 #include <sys/stat.h>
 #include <vector>
@@ -55,9 +56,11 @@ struct Entry
 {
     std::string key;  // lower-case path relative to the disc root, '/' separated
     std::string path; // host path
-    unsigned int size;
+    unsigned int size; // SIZE_UNKNOWN until the file is first opened
     FILE* fp;
 };
+
+static const unsigned int SIZE_UNKNOWN = 0xFFFFFFFFu;
 
 static std::vector<Entry> s_entries;
 static std::mutex s_fileLock;
@@ -96,6 +99,9 @@ const char* pc_data_dir(void)
 
 void pc_log(const char* fmt, ...)
 {
+#ifdef N3DS_PORT
+    fprintf(stderr, "%6.2f ", pc_ticks_ms() / 1000.0);
+#endif
     va_list ap;
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
@@ -134,12 +140,25 @@ static void scan(const std::string& host, const std::string& rel)
         }
         std::string hp = host + "/" + name;
         std::string rp = rel.empty() ? name : rel + "/" + name;
-        struct stat st;
-        if (stat(hp.c_str(), &st) != 0)
+        // The entry type, without a stat per file when the platform reports it
+        // (stat is slow on the 3DS SD card); sizes are read on first open.
+        bool dir;
+#ifdef DT_DIR
+        if (e->d_type != DT_UNKNOWN)
         {
-            continue;
+            dir = e->d_type == DT_DIR;
         }
-        if (S_ISDIR(st.st_mode))
+        else
+#endif
+        {
+            struct stat st;
+            if (stat(hp.c_str(), &st) != 0)
+            {
+                continue;
+            }
+            dir = S_ISDIR(st.st_mode);
+        }
+        if (dir)
         {
             scan(hp, rp);
         }
@@ -148,7 +167,7 @@ static void scan(const std::string& host, const std::string& rel)
             Entry en;
             en.key = normalize(rp.c_str());
             en.path = hp;
-            en.size = (unsigned int)st.st_size;
+            en.size = SIZE_UNKNOWN;
             en.fp = NULL;
             s_entries.push_back(en);
         }
@@ -176,6 +195,22 @@ static void ensure_ready()
 }
 
 // Reads from an entry; returns bytes read or -1.
+// Opens an entry's file (once) and learns its size; false if it can't be opened.
+static bool open_entry(Entry& e)
+{
+    if (!e.fp)
+    {
+        e.fp = fopen(e.path.c_str(), "rb");
+        if (!e.fp)
+        {
+            return false;
+        }
+        fseek(e.fp, 0, SEEK_END);
+        e.size = (unsigned int)ftell(e.fp);
+    }
+    return true;
+}
+
 static int read_entry(unsigned int entry, void* addr, int length, int offset)
 {
     std::lock_guard<std::mutex> lk(s_fileLock);
@@ -184,13 +219,9 @@ static int read_entry(unsigned int entry, void* addr, int length, int offset)
         return -1;
     }
     Entry& e = s_entries[entry];
-    if (!e.fp)
+    if (!open_entry(e))
     {
-        e.fp = fopen(e.path.c_str(), "rb");
-        if (!e.fp)
-        {
-            return -1;
-        }
+        return -1;
     }
     if (offset < 0 || (unsigned int)offset > e.size)
     {
@@ -237,8 +268,21 @@ int DVDFastOpen(int entrynum, DVDFileInfo* fi)
     {
         return 0;
     }
+    // Debug: PC_LOG_FILES=1 logs every file the game opens (a progress trace).
+    static bool logFiles = getenv("PC_LOG_FILES") != NULL;
+    if (logFiles)
+    {
+        pc_log("[dvd] %.1fs open %s", pc_ticks_ms() / 1000.0, s_entries[entrynum].key.c_str());
+    }
     memset(fi, 0, sizeof(*fi));
     fi->startAddr = (unsigned int)entrynum;
+    {
+        std::lock_guard<std::mutex> lk(s_fileLock);
+        if (!open_entry(s_entries[entrynum]))
+        {
+            return 0;
+        }
+    }
     fi->length = s_entries[entrynum].size;
     return 1;
 }

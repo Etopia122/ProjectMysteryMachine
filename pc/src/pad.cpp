@@ -151,42 +151,10 @@ unsigned int PADRead(PADStatus* status)
         if (lt > 200) b |= PAD_TRIGGER_L;
         if (rt > 200) b |= PAD_TRIGGER_R;
     }
-    // Test automation: PC_AUTOPAD="sec:hexmask[:sx:sy],..." holds buttons/stick from that time on.
-    static const char* script = getenv("PC_AUTOPAD");
-    if (script)
-    {
-        static Uint32 t0 = SDL_GetTicks();
-        float now = (SDL_GetTicks() - t0) / 1000.0f;
-        unsigned int mask = 0;
-        int ax = 0, ay = 0;
-        for (const char* q = script; q && *q;)
-        {
-            float t;
-            unsigned int m;
-            int x = 0, y = 0, n = 0;
-            if (sscanf(q, "%f:%x%n", &t, &m, &n) < 2)
-            {
-                break;
-            }
-            const char* r = q + n;
-            int n2 = 0;
-            if (sscanf(r, ":%d:%d%n", &x, &y, &n2) == 2)
-            {
-                r += n2;
-            }
-            if (t <= now)
-            {
-                mask = m;
-                ax = x;
-                ay = y;
-            }
-            q = strchr(r, ',');
-            q = q ? q + 1 : NULL;
-        }
-        b |= (unsigned short)mask;
-        if (ax) sx = ax;
-        if (ay) sy = ay;
-    }
+    int ax = sx, ay = sy;
+    pc_autopad(&b, &ax, &ay);
+    sx = ax;
+    sy = ay;
     p.button = b;
     p.stickX = (signed char)sx;
     p.stickY = (signed char)sy;

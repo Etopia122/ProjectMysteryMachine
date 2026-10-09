@@ -54,7 +54,7 @@ void VIInit()
     if (!started)
     {
         started = true;
-        std::thread(vi_thread).detach();
+        pc_thread_start(vi_thread, "vi");
     }
 }
 
@@ -93,7 +93,14 @@ unsigned long pc_local_seconds_since_2000()
 {
     time_t now = time(NULL);
     struct tm lt = *localtime(&now);
-    return (unsigned long)(_mkgmtime(&lt) - 946684800);
+    // Days since 2000-01-01 of the local calendar date (no timegm everywhere).
+    int y = lt.tm_year + 1900, days = 0;
+    for (int yy = 2000; yy < y; yy++)
+    {
+        days += (yy % 4 == 0 && (yy % 100 != 0 || yy % 400 == 0)) ? 366 : 365;
+    }
+    days += lt.tm_yday;
+    return (unsigned long)days * 86400 + lt.tm_hour * 3600 + lt.tm_min * 60 + lt.tm_sec;
 }
 
 // OS time: timer ticks since the 2000 epoch, like the hardware.
