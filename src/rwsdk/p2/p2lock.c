@@ -383,11 +383,11 @@ static inline RwBool PipelineSuperBlockResize(RxPipeline* pipeline, RwUInt32 siz
                     (RxPipelineNodeTopSortData*)((RwUInt8*)pipeline->nodes[i].topSortData + delta);
             }
         }
-        return TRUE;
+    } else {
+        RWERROR((E_RW_NOMEM, size));
+        return FALSE;
     }
-
-    RWERROR((E_RW_NOMEM, size));
-    return FALSE;
+    return TRUE;
 }
 
 RxPipeline* RxLockedPipeUnlock(RxLockedPipe* pipeline)
@@ -630,10 +630,14 @@ RxPipeline* RxLockedPipeUnlock(RxLockedPipe* pipeline)
 
 RxPipeline* RxPipelineLock(RxPipeline* pipeline)
 {
+    RwUInt32 size;
+    RxNodeDefinition* nodeDef;
+    RwUInt32 i;
+
     if (!pipeline->locked) {
-        RwUInt32 size = RXPIPELINEGLOBAL(maxNodesPerPipe) *
-                        (sizeof(RxPipelineNode) + rxPIPELINEMAXOUTPUTS * sizeof(RwUInt32) +
-                         sizeof(RxPipelineNodeTopSortData));
+        size = RXPIPELINEGLOBAL(maxNodesPerPipe) * sizeof(RxPipelineNode) +
+                        RXPIPELINEGLOBAL(maxNodesPerPipe) * rxPIPELINEMAXOUTPUTS * sizeof(RwUInt32) +
+                        RXPIPELINEGLOBAL(maxNodesPerPipe) * sizeof(RxPipelineNodeTopSortData);
 
         if (pipeline->nodes) {
             if (size > pipeline->superBlockSize) {
@@ -657,10 +661,8 @@ RxPipeline* RxPipelineLock(RxPipeline* pipeline)
         pipeline->locked = TRUE;
 
         if (pipeline->nodes) {
-            RwUInt32 i;
-
             for (i = 0; i < pipeline->numNodes; i++) {
-                RxNodeDefinition* nodeDef = pipeline->nodes[i].nodeDef;
+                nodeDef = pipeline->nodes[i].nodeDef;
 
                 if (nodeDef->nodeMethods.pipelineNodeTerm) {
                     ((rxPipelineNodeTermFn)nodeDef->nodeMethods.pipelineNodeTerm)(&pipeline->nodes[i]);
