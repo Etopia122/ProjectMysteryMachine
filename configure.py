@@ -782,6 +782,7 @@ config.libs = [
             Object(Matching, "rwsdk/plugin/collis/rpcollis.c"),
             Object(NonMatching, "rwsdk/plugin/hanim/rphanim.c"),
             Object(NonMatching, "rwsdk/plugin/matfx/rpmatfx.c"),
+            Object(NonMatching, "rwsdk/plugin/multitex/rpmultitex.c"),
             Object(Matching, "rwsdk/plugin/skin/rpskin.c"),
             Object(NonMatching, "rwsdk/plugin/userdata/rpusrdat.c"),
             Object(Matching, "rwsdk/world/babinwor.c"),
