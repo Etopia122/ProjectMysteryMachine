@@ -7,11 +7,12 @@
 // sample-rate ratio, the current play address), so voices here use the same
 // layout and the mixer treats the VPB as the source of truth, like the DSP.
 //
-// Frames are produced on the SDL audio thread; with no audio device a timer
-// thread produces them at the same rate so the game's frame counter still runs.
+// Frames are produced on the platform's audio thread (pc_audio_mix); with no
+// audio device a timer thread produces them at the same rate so the game's
+// frame counter still runs.
 #include "pc_platform.h"
 
-#include <SDL.h>
+#include <stdint.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -285,7 +286,7 @@ int s_pendingPos = FRAME_SAMPLES;
 FILE* s_wav;
 unsigned int s_wavBytes;
 
-void wav_write(const Sint16* data, int bytes)
+void wav_write(const int16_t* data, int bytes)
 {
     static int state = -1;
     if (state < 0)
@@ -319,10 +320,12 @@ void wav_write(const Sint16* data, int bytes)
     fflush(s_wav);
 }
 
-void SDLCALL sdl_callback(void*, Uint8* stream, int len)
+} // namespace
+
+// Fills n stereo frames of 16-bit output at 32 kHz (called by the platform's
+// audio thread).
+extern "C" void pc_audio_mix(int16_t* o, int n)
 {
-    Sint16* o = (Sint16*)stream;
-    int n = len / 4;
     for (int i = 0; i < n; i++)
     {
         if (s_pendingPos >= FRAME_SAMPLES)
@@ -333,12 +336,15 @@ void SDLCALL sdl_callback(void*, Uint8* stream, int len)
         for (int c = 0; c < 2; c++)
         {
             float f = s_pending[s_pendingPos * 2 + c] * 32767.0f;
-            o[i * 2 + c] = (Sint16)(f > 32767 ? 32767 : f < -32768 ? -32768 : f);
+            o[i * 2 + c] = (int16_t)(f > 32767 ? 32767 : f < -32768 ? -32768 : f);
         }
         s_pendingPos++;
     }
     wav_write(o, n * 4);
 }
+
+namespace
+{
 
 void timer_thread()
 {
@@ -361,23 +367,11 @@ void start_output()
         return;
     }
     s_inited = true;
-    if (SDL_InitSubSystem(SDL_INIT_AUDIO) == 0)
+    if (pc_audio_output_open(OUT_RATE))
     {
-        SDL_AudioSpec want = {}, have = {};
-        want.freq = OUT_RATE;
-        want.format = AUDIO_S16SYS;
-        want.channels = 2;
-        want.samples = 512;
-        want.callback = sdl_callback;
-        SDL_AudioDeviceID dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
-        if (dev)
-        {
-            pc_log("[audio] %d Hz, %d channels", have.freq, have.channels);
-            SDL_PauseAudioDevice(dev, 0);
-            return;
-        }
-        pc_log("[audio] no output device (%s); running silent", SDL_GetError());
+        return;
     }
+    pc_log("[audio] no output device; running silent");
     s_timerRunning = true;
     std::thread(timer_thread).detach();
 }

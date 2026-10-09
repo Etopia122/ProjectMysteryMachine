@@ -36,6 +36,11 @@ unsigned int pc_ticks_ms(void);
 // ARAM contents (audio RAM), addressed in bytes.
 unsigned char* pc_aram_ptr(unsigned long addr);
 
+// Audio output (per platform): opens a 16-bit stereo stream at 'rate' Hz
+// that pulls samples with pc_audio_mix; false when there is no device.
+int pc_audio_output_open(int rate);
+void pc_audio_mix(short* out, int frames);
+
 // Movie playback support (audio.cpp, pc_gl.cpp).
 void pc_audio_fmv_queue(const float* samples, int frames);
 double pc_audio_fmv_queued(void);
