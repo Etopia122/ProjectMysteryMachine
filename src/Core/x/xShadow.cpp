@@ -186,8 +186,8 @@ RpWorld* RpCollisionWorldForAllIntersections(
 RwMatrixTag* RwMatrixInvert(RwMatrixTag* dst, const RwMatrixTag* src);
 RwMatrixTag* RwMatrixScale(RwMatrixTag* matrix, const RwV3d* scale, signed int combineOp);
 RwMatrixTag* RwMatrixTranslate(RwMatrixTag* matrix, const RwV3d* translation, signed int combineOp);
-// TODO: unidentified GameCube RenderWare function (copies the frame buffer into a raster)
-void fn_80178A3C(RwRaster* raster);
+// GameCube RenderWare driver: copies the frame buffer into a raster (dlraster.c)
+void _rwDlRasterCopyEFB(RwRaster* raster);
 extern RwEngineInstanceType* RwEngineInstance;
 }
 
@@ -249,7 +249,7 @@ static inline void ShadowCameraUpdate(RwCamera* shadowCamera, void* model)
     {
         RwCameraEndUpdate(camera);
     }
-    fn_80178A3C(gc_saveraster);
+    _rwDlRasterCopyEFB(gc_saveraster);
     RwCameraClear(shadowCamera, &bgColor, 1);
     if (RwCameraBeginUpdate(shadowCamera))
     {
@@ -259,7 +259,7 @@ static inline void ShadowCameraUpdate(RwCamera* shadowCamera, void* model)
         modelRenderCB(model);
         InvertRaster(shadowCamera);
         RwCameraEndUpdate(shadowCamera);
-        fn_80178A3C(shadowCamera->frameBuffer);
+        _rwDlRasterCopyEFB(shadowCamera->frameBuffer);
     }
     if (camera != NULL)
     {

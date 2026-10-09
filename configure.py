@@ -800,6 +800,7 @@ config.libs = [
             Object(Matching, "rwsdk/driver/gcn/im3dpipe.c"),
             Object(Matching, "rwsdk/driver/gcn/im3dnodes.c"),
             Object(NonMatching, "rwsdk/driver/gcn/dlconv.c"),
+            Object(NonMatching, "rwsdk/driver/gcn/dlraster.c"),
         ],
     },
     {
