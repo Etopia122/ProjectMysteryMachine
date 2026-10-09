@@ -21,6 +21,7 @@
 #include <deque>
 #include <mutex>
 #include <chrono>
+#include <string>
 #include <thread>
 
 namespace {
@@ -109,6 +110,17 @@ inline float db_to_gain(int db10)
     return powf(10.0f, db10 / 200.0f);
 }
 
+// Debug: PC_LOG_AUDIO=1 logs voice starts and stops.
+bool log_audio()
+{
+    static int on = -1;
+    if (on < 0)
+    {
+        on = getenv("PC_LOG_AUDIO") ? 1 : 0;
+    }
+    return on != 0;
+}
+
 // Decodes the next ADPCM sample of a voice and advances its address
 // (in nibbles; the first two nibbles of each 8-byte frame are the header).
 float next_sample(Voice& v)
@@ -166,6 +178,10 @@ float next_sample(Voice& v)
             // Like the DSP: the play position moves to the loop address and the
             // voice stops. The game points one-shots' and streams' loop address at a
             // silent buffer and frees the voice once the position lands there.
+            if (log_audio())
+            {
+                pc_log("[audio] voice %d ended at %08x (no loop)", (int)(&v - s_voices), a);
+            }
             v.running = false;
             set_current(pb, addr32(pb.addr.loopAddressHi, pb.addr.loopAddressLo));
             return s / 32768.0f;
@@ -282,7 +298,7 @@ void run_frame(float* out)
 float s_pending[FRAME_SAMPLES * 2];
 int s_pendingPos = FRAME_SAMPLES;
 
-// Debug: PC_WAV=1 records the mixed output to build/pc/audio.wav.
+// Debug: PC_WAV=1 records the mixed output to audio.wav next to the program.
 FILE* s_wav;
 unsigned int s_wavBytes;
 
@@ -294,7 +310,8 @@ void wav_write(const int16_t* data, int bytes)
         state = getenv("PC_WAV") ? 1 : 0;
         if (state)
         {
-            s_wav = fopen("build/pc/audio.wav", "wb");
+            std::string path = std::string(pc_base_path()) + "audio.wav";
+            s_wav = fopen(path.c_str(), "wb");
             unsigned char hdr[44] = { 'R', 'I', 'F', 'F', 0, 0, 0, 0, 'W', 'A', 'V', 'E', 'f', 'm', 't', ' ', 16, 0, 0, 0, 1, 0, 2, 0,
                                       0x00, 0x7D, 0, 0, 0x00, 0xF4, 0x01, 0, 4, 0, 16, 0, 'd', 'a', 't', 'a', 0, 0, 0, 0 };
             if (s_wav)
@@ -479,6 +496,15 @@ void AXSetVoiceState(AXVPB* p, unsigned short state)
     }
     pc_irq_run([p, state]() {
         Voice* v = voice_of(p);
+        if (log_audio())
+        {
+            AXPB& pb = p->pb;
+            pc_log("[audio] voice %d state %d: addr %08x loop %08x end %08x loopflag %d format %d ratio %d.%05d",
+                   (int)(v - s_voices), state, addr32(pb.addr.currentAddressHi, pb.addr.currentAddressLo),
+                   addr32(pb.addr.loopAddressHi, pb.addr.loopAddressLo),
+                   addr32(pb.addr.endAddressHi, pb.addr.endAddressLo), pb.addr.loopFlag, pb.addr.format, pb.ratioHi,
+                   pb.ratioLo);
+        }
         if (state && !v->running)
         {
             v->frac = 0;

@@ -36,6 +36,9 @@ target_compile_options(scoobygame PRIVATE
     -w -g -O2 -fno-strict-aliasing -fwrapv -fno-delete-null-pointer-checks -fno-aggressive-loop-optimizations
     # The PC build (x86) has signed char; keep the same behaviour on ARM.
     -fsigned-char
+    # Bare-metal ARM makes enums as small as their values; the game's structs
+    # and asset layouts have 4-byte enums (as on GameCube and PC).
+    -fno-short-enums
     -fno-unreachable-traps
     -include ${PC}/include/pc_compat.h)
 
@@ -52,5 +55,9 @@ add_executable(scooby ${SHARED_PC_SOURCES} ${PC_RW_SOURCES} ${N3DS_SOURCES})
 target_include_directories(scooby PRIVATE ${PC}/include ${PC}/rw)
 target_compile_options(scooby PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++17> -g -O2 -fsigned-char)
 n3ds_add_shader(scooby ${CMAKE_CURRENT_SOURCE_DIR}/src/scene.v.pica)
-target_link_libraries(scooby PRIVATE scoobygame citro3d ctru m)
+target_link_libraries(scooby PRIVATE scoobygame citro3d ctru m -Wl,--no-enum-size-warning)
+# Shared platform and RenderWare code shares structs with the game: 4-byte
+# enums too. n3ds/src keeps the toolchain default, which libctru and citro3d
+# (with enum fields in their structs) are built with.
+set_source_files_properties(${SHARED_PC_SOURCES} ${PC_RW_SOURCES} PROPERTIES COMPILE_OPTIONS "-fno-short-enums")
 n3ds_add_3dsx(scooby "Scooby-Doo! Night of 100 Frights" "Experimental New 3DS port")
