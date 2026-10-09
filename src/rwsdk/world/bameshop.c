@@ -117,7 +117,7 @@ static rpTriStripGlobals TriStripGlobals = { { 0, 0, 0, 0, 0 }, RpBuildMeshGener
 
 /* A triangle is free when it exists and is not used (in the test or the real pass). */
 #define TRIFREE(tri, field) ((tri) != NULL && !(tri)->field)
-#define EDGEFREECOUNT(edge, field) (TRIFREE((edge)->tris[1], field) + TRIFREE((edge)->tris[0], field))
+#define EDGEFREECOUNT(edge, field) (TRIFREE((edge)->tris[0], field) + TRIFREE((edge)->tris[1], field))
 
 #define TRIBINREMOVE(bins, tri)                                     \
     do {                                                            \
@@ -361,37 +361,110 @@ void TriStripMarkTriUsed(RpTriStripTriangle* tri, RpTriStripTriangle** bins, RwI
     }
 }
 
+static inline RpTriStripEdge* TriStripTriFindEdge(RpTriStripTriangle* tri, RwUInt16 a, RwUInt16 b)
+{
+    RpTriStripEdge* edge;
+
+    edge = tri->edges[0];
+    if ((edge->vert[0] == a && edge->vert[1] == b) || (edge->vert[0] == b && edge->vert[1] == a)) {
+        return edge;
+    }
+    edge = tri->edges[1];
+    if ((edge->vert[0] == a && edge->vert[1] == b) || (edge->vert[0] == b && edge->vert[1] == a)) {
+        return edge;
+    }
+    edge = tri->edges[2];
+    if ((edge->vert[0] == a && edge->vert[1] == b) || (edge->vert[0] == b && edge->vert[1] == a)) {
+        return edge;
+    }
+    return NULL;
+}
+
+static inline RwBool TriStripEdgeNoTestFree(RpTriStripEdge* edge)
+{
+    return edge == NULL || EDGEFREECOUNT(edge, testUsed) == 0;
+}
+
+static inline RwBool TriStripEdgeNoFree(RpTriStripEdge* edge)
+{
+    return edge == NULL || EDGEFREECOUNT(edge, used) == 0;
+}
+
+static inline RwBool TriStripEdgeTestFree(RpTriStripEdge* edge)
+{
+    return edge != NULL && EDGEFREECOUNT(edge, testUsed) != 0;
+}
+
+static inline RwBool TriStripEdgeFree(RpTriStripEdge* edge)
+{
+    return edge != NULL && EDGEFREECOUNT(edge, used) != 0;
+}
+
+static inline RwBool TriStripEdgeIsTestEnd(RpTriStripEdge* edge)
+{
+    RwBool result = TRUE;
+
+    if (!TriStripEdgeNoTestFree(edge)) {
+        result = FALSE;
+    }
+    return result;
+}
+
+static inline RwBool TriStripEdgeIsRealEnd(RpTriStripEdge* edge)
+{
+    RwBool result = TRUE;
+
+    if (!TriStripEdgeNoFree(edge)) {
+        result = FALSE;
+    }
+    return result;
+}
+
 static inline RwBool TriStripEdgeIsEnd(RpTriStripEdge* edge, RwInt32 pass)
 {
-    RwBool end = TRUE;
+    if (pass < rpTRISTRIPTESTPASSES) {
+        return TriStripEdgeIsTestEnd(edge);
+    }
+    return TriStripEdgeIsRealEnd(edge);
+}
+
+static inline RwBool TriStripEdgeIsOpen(RpTriStripEdge* edge, RwInt32 pass)
+{
+    RwBool result;
 
     if (pass < rpTRISTRIPTESTPASSES) {
-        if (edge && EDGEFREECOUNT(edge, testUsed)) {
-            end = FALSE;
+        result = FALSE;
+        if (TriStripEdgeTestFree(edge)) {
+            result = TRUE;
         }
     } else {
-        if (edge && EDGEFREECOUNT(edge, used)) {
-            end = FALSE;
+        result = FALSE;
+        if (TriStripEdgeFree(edge)) {
+            result = TRUE;
         }
     }
-    return end;
+    return result;
 }
 
 RwUInt32 TriStripFollow(RpTriStrip* strip, RpTriStripEdge* edge, RpTriStripTriangle** bins, RpBuildMeshTriangle* tris,
                         RwInt32 pass)
 {
-    RwUInt32 numAdded = 0;
-    RpTriStripEdge* otherEdge = NULL;
+    RwUInt16 vB;
+    RpTriStripEdge* lastEdge;
+    RwUInt16 newVert;
+    RpTriStripEdge* nextEdge;
+    RpTriStripTriangle* tri;
+    RwUInt16* vi;
+    RwUInt16 vA;
+    RwBool isEnd;
+    RwUInt32 numAdded;
+    RpTriStripEdge* otherEdge;
 
+    numAdded = 0;
+    otherEdge = NULL;
     while (edge) {
-        RpTriStripTriangle* tri = NULL;
-        RwUInt16 newVert = 0;
-        RwUInt16 vA;
-        RwUInt16 vB;
-        RwUInt16* vi;
-        RpTriStripEdge* lastEdge;
-        RpTriStripEdge* nextEdge;
-        RxVertexIndex last;
+        tri = NULL;
+        newVert = 0;
 
         if (strip->numIndices & 1) {
             vA = strip->indices[strip->numIndices - 1];
@@ -434,26 +507,15 @@ RwUInt32 TriStripFollow(RpTriStrip* strip, RpTriStripEdge* edge, RpTriStripTrian
         }
 
         lastEdge = edge;
-        last = strip->indices[strip->numIndices - 1];
-        nextEdge = tri->edges[0];
-        if (!((nextEdge->vert[0] == last && nextEdge->vert[1] == newVert) ||
-              (nextEdge->vert[0] == newVert && nextEdge->vert[1] == last))) {
-            nextEdge = tri->edges[1];
-            if (!((nextEdge->vert[0] == last && nextEdge->vert[1] == newVert) ||
-                  (nextEdge->vert[0] == newVert && nextEdge->vert[1] == last))) {
-                nextEdge = tri->edges[2];
-                if (!((nextEdge->vert[0] == last && nextEdge->vert[1] == newVert) ||
-                      (nextEdge->vert[0] == newVert && nextEdge->vert[1] == last))) {
-                    nextEdge = NULL;
-                }
-            }
-        }
-
+        nextEdge = TriStripTriFindEdge(tri, strip->indices[strip->numIndices - 1], newVert);
         edge = nextEdge;
 
-        if (TriStripEdgeIsEnd(nextEdge, pass)) {
-            RwBool otherFree;
-
+        if (pass < rpTRISTRIPTESTPASSES) {
+            isEnd = TriStripEdgeIsTestEnd(nextEdge);
+        } else {
+            isEnd = TriStripEdgeIsRealEnd(nextEdge);
+        }
+        if (isEnd) {
             if (tri->edges[0] != lastEdge && tri->edges[0] != nextEdge) {
                 otherEdge = tri->edges[0];
             } else if (tri->edges[1] != lastEdge && tri->edges[1] != nextEdge) {
@@ -462,18 +524,7 @@ RwUInt32 TriStripFollow(RpTriStrip* strip, RpTriStripEdge* edge, RpTriStripTrian
                 otherEdge = tri->edges[2];
             }
 
-            otherFree = FALSE;
-            if (pass < rpTRISTRIPTESTPASSES) {
-                if (otherEdge && EDGEFREECOUNT(otherEdge, testUsed)) {
-                    otherFree = TRUE;
-                }
-            } else {
-                if (otherEdge && EDGEFREECOUNT(otherEdge, used)) {
-                    otherFree = TRUE;
-                }
-            }
-
-            if (otherFree) {
+            if (TriStripEdgeIsOpen(otherEdge, pass)) {
                 if (strip->numIndices & 1) {
                     strip->indices[strip->numIndices] = newVert;
                     edge = NULL;
