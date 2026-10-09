@@ -383,7 +383,7 @@ signed int RwRenderStateSet(signed int state, void* value);
 signed int RpWorldPluginAttach();
 signed int RpCollisionPluginAttach();
 signed int RpSkinPluginAttach();
-signed int fn_8013D854(); // RpHAnimPluginAttach
+signed int RpHAnimPluginAttach();
 signed int RpMatFXPluginAttach();
 signed int RpUserDataPluginAttach();
 extern signed int lbl_8025F870; // _RwGameCubeRasterExtOffset
@@ -598,7 +598,7 @@ static unsigned int RWAttachPlugins()
     {
         return 1;
     }
-    if (!fn_8013D854())
+    if (!RpHAnimPluginAttach())
     {
         return 1;
     }

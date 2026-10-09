@@ -1435,6 +1435,12 @@ rwsdk/plugin/collis/rpcollis.c:
 	.text       start:0x8013B850 end:0x8013BD2C
 	.sbss       start:0x8025F650 end:0x8025F668
 
+rwsdk/plugin/hanim/rphanim.c:
+	.text       start:0x8013CD48 end:0x8013D90C
+	.bss        start:0x8025D6C8 end:0x8025D958
+	.sbss       start:0x8025F668 end:0x8025F670
+	.sdata2     start:0x80262860 end:0x80262868
+
 rwsdk/plugin/userdata/rpusrdat.c:
 	.text       start:0x80145EB8 end:0x8014707C
 	.sbss       start:0x8025F6B0 end:0x8025F6F0
