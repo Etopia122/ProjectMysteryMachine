@@ -129,7 +129,8 @@ static void begin_frame()
         return;
     }
     u64 t0 = svcGetSystemTick();
-    C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+    // No vblank sync here: the game paces itself on the VI retrace count.
+    C3D_FrameBegin(0);
     s_prof.beginTicks += svcGetSystemTick() - t0;
     s_inFrame = true;
     s_arenaIdx ^= 1;

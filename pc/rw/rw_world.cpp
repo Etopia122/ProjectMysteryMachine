@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
+#include <unordered_map>
 #include <vector>
 
 // World format flags (RpWorld.flags), same bits as geometry.
@@ -247,6 +248,9 @@ RpWorld* RpWorldStreamRead(RwStream* s)
 
 RwInt32 RpMaterialDestroy(RpMaterial* m);
 
+// Collision polygon bounding boxes per sector (see poly_boxes).
+static std::unordered_map<const RpWorldSector*, std::vector<float> > s_polyBoxes;
+
 static void free_sector(RpSector* s)
 {
     if (!s)
@@ -257,6 +261,7 @@ static void free_sector(RpSector* s)
     {
         RpWorldSector* w = (RpWorldSector*)s;
         pc_render_forget(w);
+        s_polyBoxes.erase(w);
         rwFree(w->polygons);
         rwFree(w->vertices);
         rwFree(w->normals);
@@ -524,6 +529,34 @@ static bool box_overlap(const RwBBox& b, const RwV3d& mn, const RwV3d& mx)
     return !(mx.x < b.inf.x || mn.x > b.sup.x || mx.y < b.inf.y || mn.y > b.sup.y || mx.z < b.inf.z || mn.z > b.sup.z);
 }
 
+// Bounding boxes of a sector's polygons (inf xyz, sup xyz), built on first
+// use: collision queries skip polygons whose box misses the query's before
+// the exact test.
+
+static const float* poly_boxes(const RpWorldSector* s)
+{
+    std::vector<float>& b = s_polyBoxes[s];
+    if (b.empty() && s->numPolygons > 0)
+    {
+        b.resize((size_t)s->numPolygons * 6);
+        for (RwInt32 p = 0; p < s->numPolygons; p++)
+        {
+            const RpPolygon& poly = s->polygons[p];
+            const RwV3d& a = s->vertices[poly.vertIndex[0]];
+            const RwV3d& c1 = s->vertices[poly.vertIndex[1]];
+            const RwV3d& c2 = s->vertices[poly.vertIndex[2]];
+            float* o = &b[(size_t)p * 6];
+            o[0] = fminf(a.x, fminf(c1.x, c2.x));
+            o[1] = fminf(a.y, fminf(c1.y, c2.y));
+            o[2] = fminf(a.z, fminf(c1.z, c2.z));
+            o[3] = fmaxf(a.x, fmaxf(c1.x, c2.x));
+            o[4] = fmaxf(a.y, fmaxf(c1.y, c2.y));
+            o[5] = fmaxf(a.z, fmaxf(c1.z, c2.z));
+        }
+    }
+    return b.data();
+}
+
 // Bounds of an intersection primitive.
 static void isx_bounds(const RpIntersection* isx, RwV3d* mn, RwV3d* mx)
 {
@@ -639,9 +672,15 @@ RpWorld* RpCollisionWorldForAllIntersections(RpWorld* w, RpIntersection* isx, Wo
         {
             continue;
         }
-        s_cprof.tris += s->numPolygons;
+        const float* boxes = poly_boxes(s);
         for (RwInt32 p = 0; p < s->numPolygons; p++)
         {
+            const float* pb = boxes + (size_t)p * 6;
+            if (mx.x < pb[0] || mn.x > pb[3] || mx.y < pb[1] || mn.y > pb[4] || mx.z < pb[2] || mn.z > pb[5])
+            {
+                continue;
+            }
+            s_cprof.tris++;
             RpPolygon& poly = s->polygons[p];
             RwV3d* a = &s->vertices[poly.vertIndex[0]];
             RwV3d* b = &s->vertices[poly.vertIndex[1]];
