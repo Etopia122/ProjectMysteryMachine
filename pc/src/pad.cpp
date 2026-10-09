@@ -12,6 +12,7 @@
 #include <string.h>
 
 extern "C" {
+int pc_debug_menu_active();
 
 struct PADStatus
 {
@@ -92,6 +93,10 @@ unsigned int PADRead(PADStatus* status)
     SDL_PumpEvents();
     open_controller();
     PADStatus& p = status[0];
+    if (pc_debug_menu_active())
+    {
+        return 0x80000000; // the debug menu has the keyboard and controller
+    }
     const Uint8* k = SDL_GetKeyboardState(NULL);
     int sx = 0, sy = 0, cx = 0, cy = 0;
     if (k[SDL_SCANCODE_A] || k[SDL_SCANCODE_LEFT]) sx -= 127;

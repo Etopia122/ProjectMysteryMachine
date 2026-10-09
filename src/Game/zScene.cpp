@@ -1703,6 +1703,18 @@ void zSceneSwitch(_zPortal* p)
 }
 
 #ifdef PC_PORT
+// Debug menu: level names and their scene IDs (30 entries; 0 is empty).
+extern "C" int pc_debug_area(int i, const char** name, const unsigned int** scenes)
+{
+    if (i < 0 || i >= (int)(sizeof(sAreaTable) / sizeof(sAreaTable[0])))
+    {
+        return 0;
+    }
+    *name = sAreaTable[i].desc;
+    *scenes = sAreaTable[i].sceneIDs;
+    return 1;
+}
+
 extern "C" unsigned int pc_debug_scene_id()
 {
     return globals.sceneCur ? globals.sceneCur->sceneID : 0;

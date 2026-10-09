@@ -1,0 +1,365 @@
+// Debug menu and position readout (keyboard F1/F3/F4/F5, controller Back).
+//
+// F1 (or the controller's Back/Select button) opens a menu: warp to any level,
+// all upgrades, unlock warp gates, refill, snacks, infinite health, unlock
+// extras, coordinate readout. Up/Down choose, Left/Right pick a level's scene,
+// Enter/Space (A) selects, Esc/Backspace (B) goes back. Game input is ignored
+// while the menu is open.
+// F3 toggles the scene/position readout, F4 saves the position to coords.txt
+// next to the exe (and the clipboard), F5 teleports back to it.
+#include "pc_platform.h"
+
+#include <SDL.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <string>
+
+extern "C" {
+// Game side (src/Game/zPCDebug.cpp, zScene.cpp).
+int pc_dbg_warp(unsigned int sceneID);
+void pc_dbg_all_upgrades();
+void pc_dbg_all_warps();
+void pc_dbg_unlock_extras();
+void pc_dbg_refill();
+void pc_dbg_add_snacks(unsigned int n);
+int pc_dbg_toggle_infinite_health();
+void pc_dbg_frame();
+int pc_debug_area(int i, const char** name, const unsigned int** scenes);
+unsigned int pc_debug_scene_id();
+void pc_debug_player_pos(float* out);
+void pc_debug_teleport(float x, float y, float z);
+void pc_gl_set_overlay(const char* text);
+}
+
+namespace {
+
+enum Page { MAIN, LEVELS };
+enum Item { WARP, UPGRADES, GATES, REFILL, SNACKS, INFHEALTH, EXTRAS, COORDS, CLOSE, ITEM_COUNT };
+
+bool s_open;
+Page s_page = MAIN;
+int s_cursor;          // main menu row
+int s_levelCursor = 1; // area row (area 0 is empty)
+int s_sceneSel[32];    // chosen scene per area
+bool s_infHealth;
+bool s_showCoords = getenv("PC_COORDS") != NULL; // PC_COORDS=1 starts with the readout on
+std::string s_status;
+Uint32 s_statusUntil;
+
+float s_savedPos[3];
+bool s_hasSaved;
+
+void scene_text(unsigned int id, char* out)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        char c = (char)(id >> (24 - i * 8));
+        out[i] = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') ? c : '-';
+    }
+    out[4] = 0;
+}
+
+void status(const char* msg)
+{
+    s_status = msg;
+    s_statusUntil = SDL_GetTicks() + 2500;
+    pc_log("[debug] %s", msg);
+}
+
+int area_count()
+{
+    const char* n;
+    const unsigned int* s;
+    int i = 0;
+    while (pc_debug_area(i, &n, &s))
+    {
+        i++;
+    }
+    return i;
+}
+
+int area_scene_count(int area)
+{
+    const char* n;
+    const unsigned int* s;
+    if (!pc_debug_area(area, &n, &s))
+    {
+        return 0;
+    }
+    int c = 0;
+    while (c < 4 && s[c])
+    {
+        c++;
+    }
+    return c;
+}
+
+void save_coords()
+{
+    char scene[5], line[128];
+    float p[3];
+    scene_text(pc_debug_scene_id(), scene);
+    pc_debug_player_pos(p);
+    memcpy(s_savedPos, p, sizeof(p));
+    s_hasSaved = true;
+    snprintf(line, sizeof(line), "%s %.2f,%.2f,%.2f", scene, p[0], p[1], p[2]);
+    char* base = SDL_GetBasePath();
+    std::string path = std::string(base ? base : "") + "coords.txt";
+    SDL_free(base);
+    if (FILE* f = fopen(path.c_str(), "a"))
+    {
+        fprintf(f, "%s\n", line);
+        fclose(f);
+    }
+    SDL_SetClipboardText(line);
+    pc_log("[coords] %s (saved to coords.txt and the clipboard)", line);
+    status("POSITION SAVED TO COORDS.TXT");
+}
+
+void activate()
+{
+    switch (s_cursor)
+    {
+    case WARP:
+        s_page = LEVELS;
+        break;
+    case UPGRADES:
+        pc_dbg_all_upgrades();
+        status("ALL UPGRADES GIVEN");
+        break;
+    case GATES:
+        pc_dbg_all_warps();
+        status("ALL WARP GATES UNLOCKED");
+        break;
+    case REFILL:
+        pc_dbg_refill();
+        status("HEALTH, CHANCES AND AMMO REFILLED");
+        break;
+    case SNACKS:
+        pc_dbg_add_snacks(100);
+        status("100 SCOOBY SNACKS ADDED");
+        break;
+    case INFHEALTH:
+        s_infHealth = pc_dbg_toggle_infinite_health() != 0;
+        status(s_infHealth ? "INFINITE HEALTH ON" : "INFINITE HEALTH OFF");
+        break;
+    case EXTRAS:
+        pc_dbg_unlock_extras();
+        status("MOVIES AND CREDITS UNLOCKED");
+        break;
+    case COORDS:
+        s_showCoords = !s_showCoords;
+        break;
+    case CLOSE:
+        s_open = false;
+        break;
+    }
+}
+
+void warp_selected()
+{
+    const char* name;
+    const unsigned int* scenes;
+    if (!pc_debug_area(s_levelCursor, &name, &scenes))
+    {
+        return;
+    }
+    unsigned int id = scenes[s_sceneSel[s_levelCursor]];
+    char sc[5];
+    scene_text(id, sc);
+    if (id && pc_dbg_warp(id))
+    {
+        std::string msg = std::string("WARPING TO ") + sc;
+        status(msg.c_str());
+        s_open = false;
+        s_page = MAIN;
+    }
+    else
+    {
+        status("CAN ONLY WARP DURING GAMEPLAY");
+    }
+}
+
+enum Key { K_UP, K_DOWN, K_LEFT, K_RIGHT, K_OK, K_BACK };
+
+void navigate(Key k)
+{
+    if (s_page == MAIN)
+    {
+        if (k == K_UP) s_cursor = (s_cursor + ITEM_COUNT - 1) % ITEM_COUNT;
+        if (k == K_DOWN) s_cursor = (s_cursor + 1) % ITEM_COUNT;
+        if (k == K_OK) activate();
+        if (k == K_BACK) s_open = false;
+        return;
+    }
+    int n = area_count();
+    if (k == K_UP) s_levelCursor = s_levelCursor > 1 ? s_levelCursor - 1 : n - 1;
+    if (k == K_DOWN) s_levelCursor = s_levelCursor < n - 1 ? s_levelCursor + 1 : 1;
+    int sc = area_scene_count(s_levelCursor);
+    if (sc > 0 && k == K_LEFT) s_sceneSel[s_levelCursor] = (s_sceneSel[s_levelCursor] + sc - 1) % sc;
+    if (sc > 0 && k == K_RIGHT) s_sceneSel[s_levelCursor] = (s_sceneSel[s_levelCursor] + 1) % sc;
+    if (k == K_OK) warp_selected();
+    if (k == K_BACK) s_page = MAIN;
+}
+
+void build_overlay()
+{
+    std::string t;
+    char buf[160];
+    if (s_open && s_page == MAIN)
+    {
+        t = "DEBUG MENU  (F1 CLOSE)\n\n";
+        const char* labels[ITEM_COUNT] = {
+            "WARP TO LEVEL",          "ALL UPGRADES",           "UNLOCK ALL WARP GATES",
+            "REFILL HEALTH AND AMMO", "ADD 100 SCOOBY SNACKS",  s_infHealth ? "INFINITE HEALTH: ON" : "INFINITE HEALTH: OFF",
+            "UNLOCK MOVIES, CREDITS", s_showCoords ? "COORDINATES: ON" : "COORDINATES: OFF", "CLOSE",
+        };
+        for (int i = 0; i < ITEM_COUNT; i++)
+        {
+            snprintf(buf, sizeof(buf), "%s %s\n", i == s_cursor ? ">" : " ", labels[i]);
+            t += buf;
+        }
+    }
+    else if (s_open && s_page == LEVELS)
+    {
+        t = "WARP TO LEVEL  (LEFT/RIGHT: SCENE)\n\n";
+        int n = area_count();
+        const int rows = 14;
+        int first = s_levelCursor - rows / 2;
+        if (first < 1) first = 1;
+        if (first > n - rows) first = n - rows > 1 ? n - rows : 1;
+        for (int i = first; i < n && i < first + rows; i++)
+        {
+            const char* name;
+            const unsigned int* scenes;
+            pc_debug_area(i, &name, &scenes);
+            char sc[5];
+            scene_text(scenes[s_sceneSel[i]], sc);
+            snprintf(buf, sizeof(buf), "%s %-32.32s %s\n", i == s_levelCursor ? ">" : " ", name, sc);
+            t += buf;
+        }
+    }
+    if (s_showCoords)
+    {
+        char scene[5];
+        float p[3];
+        scene_text(pc_debug_scene_id(), scene);
+        pc_debug_player_pos(p);
+        snprintf(buf, sizeof(buf), "%sSCENE %s  X %.2f  Y %.2f  Z %.2f\nF4 SAVE  F5 RETURN\n", t.empty() ? "" : "\n",
+                 scene, p[0], p[1], p[2]);
+        t += buf;
+    }
+    if (!s_status.empty() && SDL_GetTicks() < s_statusUntil)
+    {
+        t += (t.empty() ? "" : "\n") + s_status;
+    }
+    while (!t.empty() && t.back() == '\n')
+    {
+        t.pop_back();
+    }
+    pc_gl_set_overlay(t.c_str());
+}
+
+} // namespace
+
+extern "C" int pc_debug_menu_active() { return s_open; }
+
+// Handles one SDL event; returns true if it was consumed.
+bool pc_debug_menu_event(const SDL_Event& e)
+{
+    if (e.type == SDL_KEYDOWN)
+    {
+        SDL_Keycode k = e.key.keysym.sym;
+        if (k == SDLK_F1 && !e.key.repeat)
+        {
+            s_open = !s_open;
+            s_page = MAIN;
+            return true;
+        }
+        if (k == SDLK_F3 && !e.key.repeat)
+        {
+            s_showCoords = !s_showCoords;
+            return true;
+        }
+        if (k == SDLK_F4 && !e.key.repeat)
+        {
+            save_coords();
+            return true;
+        }
+        if (k == SDLK_F5 && !e.key.repeat)
+        {
+            if (s_hasSaved)
+            {
+                pc_debug_teleport(s_savedPos[0], s_savedPos[1], s_savedPos[2]);
+                status("RETURNED TO SAVED POSITION");
+            }
+            return true;
+        }
+        if (!s_open)
+        {
+            return false;
+        }
+        switch (k)
+        {
+        case SDLK_UP: navigate(K_UP); break;
+        case SDLK_DOWN: navigate(K_DOWN); break;
+        case SDLK_LEFT: navigate(K_LEFT); break;
+        case SDLK_RIGHT: navigate(K_RIGHT); break;
+        case SDLK_RETURN: case SDLK_SPACE: navigate(K_OK); break;
+        case SDLK_ESCAPE: case SDLK_BACKSPACE: navigate(K_BACK); break;
+        default: break;
+        }
+        return true;
+    }
+    if (e.type == SDL_CONTROLLERBUTTONDOWN)
+    {
+        if (e.cbutton.button == SDL_CONTROLLER_BUTTON_BACK)
+        {
+            s_open = !s_open;
+            s_page = MAIN;
+            return true;
+        }
+        if (!s_open)
+        {
+            return false;
+        }
+        switch (e.cbutton.button)
+        {
+        case SDL_CONTROLLER_BUTTON_DPAD_UP: navigate(K_UP); break;
+        case SDL_CONTROLLER_BUTTON_DPAD_DOWN: navigate(K_DOWN); break;
+        case SDL_CONTROLLER_BUTTON_DPAD_LEFT: navigate(K_LEFT); break;
+        case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: navigate(K_RIGHT); break;
+        case SDL_CONTROLLER_BUTTON_A: navigate(K_OK); break;
+        case SDL_CONTROLLER_BUTTON_B: navigate(K_BACK); break;
+        default: break;
+        }
+        return true;
+    }
+    return false;
+}
+
+// Once per presented frame.
+void pc_debug_menu_frame()
+{
+    // Testing: PC_MENU=main|levels opens the menu; PC_WARP=<sec>:<scene> warps.
+    static const char* menu = getenv("PC_MENU");
+    if (menu)
+    {
+        s_open = true;
+        s_page = strcmp(menu, "levels") ? MAIN : LEVELS;
+        menu = NULL;
+    }
+    static const char* warp = getenv("PC_WARP");
+    if (warp && SDL_GetTicks() >= (Uint32)(atof(warp) * 1000))
+    {
+        const char* c = strchr(warp, ':');
+        if (c && strlen(c + 1) == 4 &&
+            pc_dbg_warp((unsigned int)c[1] << 24 | (unsigned int)c[2] << 16 | (unsigned int)c[3] << 8 | (unsigned char)c[4]))
+        {
+            warp = NULL;
+        }
+    }
+    pc_dbg_frame();
+    build_overlay();
+}

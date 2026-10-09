@@ -94,63 +94,13 @@ static LONG WINAPI crash_handler(EXCEPTION_POINTERS* ep)
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
-// ---------------------------------------------------------------- coordinate readout
-static bool s_showCoords = getenv("PC_COORDS") != NULL; // PC_COORDS=1 starts with it on
-
-static void scene_name(char* out)
-{
-    unsigned int id = pc_debug_scene_id();
-    for (int i = 0; i < 4; i++)
-    {
-        char c = (char)(id >> (24 - i * 8));
-        out[i] = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') ? c : '-';
-    }
-    out[4] = 0;
-}
-
-static void update_coords()
-{
-    if (!s_showCoords)
-    {
-        return;
-    }
-    char scene[5], text[128];
-    float p[3];
-    scene_name(scene);
-    pc_debug_player_pos(p);
-    snprintf(text, sizeof(text), "SCENE %s\nX %.2f\nY %.2f\nZ %.2f\nF4 SAVE  F5 RETURN", scene, p[0], p[1], p[2]);
-    pc_gl_set_overlay(text);
-}
-
-static float s_savedPos[3];
-static bool s_hasSaved;
-
-static void save_coords()
-{
-    char scene[5], line[128], path[MAX_PATH];
-    float p[3];
-    scene_name(scene);
-    pc_debug_player_pos(p);
-    memcpy(s_savedPos, p, sizeof(p));
-    s_hasSaved = true;
-    snprintf(line, sizeof(line), "%s %.2f,%.2f,%.2f", scene, p[0], p[1], p[2]);
-    char* base = SDL_GetBasePath();
-    snprintf(path, sizeof(path), "%scoords.txt", base ? base : "");
-    SDL_free(base);
-    FILE* f = fopen(path, "a");
-    if (f)
-    {
-        fprintf(f, "%s\n", line);
-        fclose(f);
-    }
-    SDL_SetClipboardText(line);
-    pc_log("[coords] %s (saved to coords.txt and the clipboard)", line);
-}
+bool pc_debug_menu_event(const SDL_Event& e);
+void pc_debug_menu_frame();
 
 // Window/system events; called once per presented frame.
 void pc_events_pump()
 {
-    update_coords();
+    pc_debug_menu_frame();
     // Debug: PC_PORTAL=<seconds>:<index> takes a portal of the current scene.
     static const char* portal = getenv("PC_PORTAL");
     if (portal && SDL_GetTicks() >= (Uint32)(atof(portal) * 1000))
@@ -228,24 +178,9 @@ void pc_events_pump()
             SDL_Quit();
             exit(0);
         }
-        // F3 toggles the position readout; F4 saves the position to coords.txt
-        // next to the exe and copies it to the clipboard.
-        if (e.type == SDL_KEYDOWN && !e.key.repeat && e.key.keysym.sym == SDLK_F3)
+        if (pc_debug_menu_event(e))
         {
-            s_showCoords = !s_showCoords;
-            if (!s_showCoords)
-            {
-                pc_gl_set_overlay(NULL);
-            }
-        }
-        if (e.type == SDL_KEYDOWN && !e.key.repeat && e.key.keysym.sym == SDLK_F4)
-        {
-            save_coords();
-        }
-        // F5 teleports back to the last saved position.
-        if (e.type == SDL_KEYDOWN && !e.key.repeat && e.key.keysym.sym == SDLK_F5 && s_hasSaved)
-        {
-            pc_debug_teleport(s_savedPos[0], s_savedPos[1], s_savedPos[2]);
+            continue;
         }
         // Alt+Enter or F11 toggles borderless fullscreen.
         if (e.type == SDL_KEYDOWN && !e.key.repeat &&
