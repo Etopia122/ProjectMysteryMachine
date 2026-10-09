@@ -784,6 +784,7 @@ config.libs = [
             Object(NonMatching, "rwsdk/plugin/matfx/rpmatfx.c"),
             Object(NonMatching, "rwsdk/plugin/multitex/rpmultitex.c"),
             Object(NonMatching, "rwsdk/plugin/multitex/rpmteffect.c"),
+            Object(NonMatching, "rwsdk/plugin/multitex/gcn/effectgcn.c"),
             Object(Matching, "rwsdk/plugin/skin/rpskin.c"),
             Object(NonMatching, "rwsdk/plugin/skin/gcn/skingcn.c"),
             Object(NonMatching, "rwsdk/plugin/userdata/rpusrdat.c"),

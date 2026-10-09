@@ -1448,6 +1448,9 @@ rwsdk/plugin/matfx/rpmatfx.c:
 	.sbss       start:0x8025F670 end:0x8025F680
 	.sdata2     start:0x80262868 end:0x80262888
 
+rwsdk/plugin/multitex/gcn/effectgcn.c:
+	.text       start:0x80140D40 end:0x80141910
+
 rwsdk/plugin/multitex/rpmultitex.c:
 	.text       start:0x80142C94 end:0x8014366C
 	.bss        start:0x8025D9C8 end:0x8025DA58
