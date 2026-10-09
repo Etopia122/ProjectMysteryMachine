@@ -550,16 +550,14 @@ RwUInt32 TriStripFollow(RpTriStrip* strip, RpTriStripEdge* edge, RpTriStripTrian
     return numAdded;
 }
 
-static inline RwBool TriStripEdgeHasFree(RpTriStripEdge* edge, RwInt32 pass)
+static inline RwInt32 TriStripEdgeTestCount(RpTriStripEdge* edge)
 {
-    RwInt32 count;
+    return EDGEFREECOUNT(edge, testUsed);
+}
 
-    if (pass < rpTRISTRIPTESTPASSES) {
-        count = EDGEFREECOUNT(edge, testUsed);
-    } else {
-        count = EDGEFREECOUNT(edge, used);
-    }
-    return count > 0;
+static inline RwInt32 TriStripEdgeCount(RpTriStripEdge* edge)
+{
+    return EDGEFREECOUNT(edge, used);
 }
 
 RwBool TriStripStripTris(RpBuildMeshTriangle* tris, RwUInt32 numTris, RpTriStrip** stripList, RwInt32 testPasses)
@@ -609,6 +607,7 @@ RwBool TriStripStripTris(RpBuildMeshTriangle* tris, RwUInt32 numTris, RpTriStrip
         RwInt32 rot1;
         RwInt32 rot2;
         RwUInt32 numDoneStart;
+        RwBool hasFree;
 
         if (bins[0]) {
             RwUInt32 index = bins[0]->index;
@@ -638,24 +637,21 @@ RwBool TriStripStripTris(RpBuildMeshTriangle* tris, RwUInt32 numTris, RpTriStrip
 
         {
             RpTriStripTriangle* tri = bins[bin];
-            RpTriStripEdge* e0 = tri->edges[0];
-            RpTriStripEdge* e1 = tri->edges[1];
-            RpTriStripEdge* e2 = tri->edges[2];
 
-            if (EDGEFREECOUNT(e2, used) >= 2 && EDGEFREECOUNT(e1, used) >= 2) {
+            if (EDGEFREECOUNT(tri->edges[2], used) >= 2 && EDGEFREECOUNT(tri->edges[1], used) >= 2) {
                 start = 1;
-            } else if (EDGEFREECOUNT(e0, used) >= 2 && EDGEFREECOUNT(e2, used) >= 2) {
+            } else if (EDGEFREECOUNT(tri->edges[0], used) >= 2 && EDGEFREECOUNT(tri->edges[2], used) >= 2) {
                 start = 2;
-            } else if (EDGEFREECOUNT(e1, used) >= 2 && EDGEFREECOUNT(e0, used) >= 2) {
+            } else if (EDGEFREECOUNT(tri->edges[1], used) >= 2 && EDGEFREECOUNT(tri->edges[0], used) >= 2) {
                 start = 0;
-            } else if (EDGEFREECOUNT(e0, used) > EDGEFREECOUNT(e1, used)) {
-                if (EDGEFREECOUNT(e0, used) > EDGEFREECOUNT(e2, used)) {
+            } else if (EDGEFREECOUNT(tri->edges[0], used) > EDGEFREECOUNT(tri->edges[1], used)) {
+                if (EDGEFREECOUNT(tri->edges[0], used) > EDGEFREECOUNT(tri->edges[2], used)) {
                     start = 2;
                 } else {
                     start = 1;
                 }
             } else {
-                if (EDGEFREECOUNT(e1, used) > EDGEFREECOUNT(e2, used)) {
+                if (EDGEFREECOUNT(tri->edges[1], used) > EDGEFREECOUNT(tri->edges[2], used)) {
                     start = 0;
                 } else {
                     start = 1;
@@ -665,13 +661,13 @@ RwBool TriStripStripTris(RpBuildMeshTriangle* tris, RwUInt32 numTris, RpTriStrip
 
         numDoneStart = numDone;
         bestStart = start;
-        rot0 = start % 3;
-        rot1 = (start + 1) % 3;
-        rot2 = (start + 2) % 3;
+        rot0 = start % 3U;
+        rot1 = (start + 1) % 3U;
+        rot2 = (start + 2) % 3U;
 
-        do {
+        for (;;) {
             RwUInt32 count;
-            RpTriStripTriangle* tri;
+            RwUInt16* vi;
 
             for (i = 0; i < numTris; i++) {
                 triArray[i]->testUsed = triArray[i]->used;
@@ -707,10 +703,10 @@ RwBool TriStripStripTris(RpBuildMeshTriangle* tris, RwUInt32 numTris, RpTriStrip
                 break;
             }
 
-            tri = bins[bin];
-            forward->indices[0] = tris[tri->index].vertIndex[start % 3];
-            forward->indices[1] = tris[tri->index].vertIndex[(start + 1) % 3];
-            forward->indices[2] = tris[tri->index].vertIndex[(start + 2) % 3];
+            vi = tris[bins[bin]->index].vertIndex;
+            forward->indices[0] = vi[start % 3U];
+            forward->indices[1] = vi[(start + 1) % 3U];
+            forward->indices[2] = vi[(start + 2) % 3U];
             forward->numIndices = 3;
             TriStripMarkTriUsed(bins[bin], bins, pass);
 
@@ -718,7 +714,12 @@ RwBool TriStripStripTris(RpBuildMeshTriangle* tris, RwUInt32 numTris, RpTriStrip
             count += TriStripFollow(forward, forwardEdge, bins, tris, pass);
             numDone = count;
 
-            if (TriStripEdgeHasFree(backwardEdge, pass)) {
+            if (pass < rpTRISTRIPTESTPASSES) {
+                hasFree = TriStripEdgeTestCount(backwardEdge) > 0;
+            } else {
+                hasFree = TriStripEdgeCount(backwardEdge) > 0;
+            }
+            if (hasFree) {
                 backward->indices[0] = forward->indices[1];
                 backward->indices[1] = forward->indices[0];
                 backward->numIndices = 2;
@@ -770,7 +771,7 @@ RwBool TriStripStripTris(RpBuildMeshTriangle* tris, RwUInt32 numTris, RpTriStrip
                     break;
                 }
             }
-        } while (pass < rpTRISTRIPTESTPASSES + 1);
+        }
     }
 
     RwFree(backward->indices);
