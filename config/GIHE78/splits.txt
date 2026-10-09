@@ -1683,6 +1683,12 @@ rwsdk/driver/gcn/dlraster.c:
 	.data       start:0x801DE0A0 end:0x801DE390
 	.sbss       start:0x8025F870 end:0x8025F878
 
+rwsdk/driver/gcn/dltexture.c:
+	.text       start:0x8017C95C end:0x8017DBB8
+	.data       start:0x801DE5B8 end:0x801DE628
+	.sbss       start:0x8025F888 end:0x8025F890
+	.sdata2     start:0x80262BB8 end:0x80262BD8
+
 rwsdk/p2/p2core.c:
 	.text       start:0x801869A8 end:0x80187438
 	.sdata      start:0x8025E850 end:0x8025E858

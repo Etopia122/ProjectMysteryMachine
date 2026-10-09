@@ -110,7 +110,7 @@ RwInt32 _rwDlRasterExtOffset;
 extern volatile RwUInt16 lbl_8025E800;
 extern RwUInt16 lbl_8025F890;
 extern RwTexture* lbl_8025F87C;
-extern RwInt32 lbl_8025F888;
+extern RwInt32 _rwDlTextureExtOffset;
 extern RwBool lbl_8025F7F8;
 extern GXRenderModeObj* lbl_8025F860;
 
@@ -1022,7 +1022,7 @@ RwBool _rwDlRasterDestroy(void* pOut, void* pRaster, RwInt32 flags)
 RwBool _rwDlTextureSetRaster(RwTexture* texture, RwRaster* raster, RwInt32 flags)
 {
     texture->raster = raster;
-    *(RwUInt32*)((RwUInt8*)texture + lbl_8025F888 + 0x20) = 0x01000000;
+    *(RwUInt32*)((RwUInt8*)texture + _rwDlTextureExtOffset + 0x20) = 0x01000000;
     return TRUE;
 }
 

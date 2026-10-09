@@ -801,6 +801,7 @@ config.libs = [
             Object(Matching, "rwsdk/driver/gcn/im3dnodes.c"),
             Object(NonMatching, "rwsdk/driver/gcn/dlconv.c"),
             Object(NonMatching, "rwsdk/driver/gcn/dlraster.c"),
+            Object(NonMatching, "rwsdk/driver/gcn/dltexture.c"),
         ],
     },
     {
