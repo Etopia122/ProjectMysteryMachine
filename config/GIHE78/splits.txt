@@ -1462,6 +1462,12 @@ rwsdk/plugin/skin/rpskin.c:
 	.text       start:0x80144154 end:0x80144D5C
 	.data       start:0x801DD460 end:0x801DD498
 
+rwsdk/plugin/skin/gcn/skingcn.c:
+	.text       start:0x80144D5C end:0x80145EB8
+	.rodata     start:0x801AD280 end:0x801AD298
+	.sbss       start:0x8025F6A8 end:0x8025F6B0
+	.sdata2     start:0x802628B0 end:0x802628C8
+
 rwsdk/plugin/userdata/rpusrdat.c:
 	.text       start:0x80145EB8 end:0x8014707C
 	.sbss       start:0x8025F6B0 end:0x8025F6F0
