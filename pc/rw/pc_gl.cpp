@@ -872,13 +872,18 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                     float r, gr, b;
                     if (lit)
                     {
-                        r = (s_amb[0] * ka + s_light[k * 3] * kd) * mc.red;
-                        gr = (s_amb[1] * ka + s_light[k * 3 + 1] * kd) * mc.green;
-                        b = (s_amb[2] * ka + s_light[k * 3 + 2] * kd) * mc.blue;
+                        // (prelit + ambient + lights), then the material colour, as the
+                        // GameCube renders it (Scooby's brown material on the title screen).
+                        r = (s_amb[0] * ka + s_light[k * 3] * kd) * 255.0f;
+                        gr = (s_amb[1] * ka + s_light[k * 3 + 1] * kd) * 255.0f;
+                        b = (s_amb[2] * ka + s_light[k * 3 + 2] * kd) * 255.0f;
                         if (prelit)
                         {
                             r += prelit[k].red, gr += prelit[k].green, b += prelit[k].blue;
                         }
+                        r = (r > 255 ? 255 : r) * mc.red / 255.0f;
+                        gr = (gr > 255 ? 255 : gr) * mc.green / 255.0f;
+                        b = (b > 255 ? 255 : b) * mc.blue / 255.0f;
                     }
                     else
                     {
