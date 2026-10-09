@@ -785,6 +785,7 @@ config.libs = [
             Object(Matching, "rwsdk/p2/p2renderstate.c"),
             Object(Matching, "rwsdk/p2/p2radixsort.c"),
             Object(Matching, "rwsdk/driver/gcn/im3dpipe.c"),
+            Object(Matching, "rwsdk/driver/gcn/im3dnodes.c"),
         ],
     },
     {
