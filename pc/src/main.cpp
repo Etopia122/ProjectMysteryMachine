@@ -118,7 +118,7 @@ static void update_coords()
     float p[3];
     scene_name(scene);
     pc_debug_player_pos(p);
-    snprintf(text, sizeof(text), "SCENE %s\nX %.2f\nY %.2f\nZ %.2f\nF4: SAVE", scene, p[0], p[1], p[2]);
+    snprintf(text, sizeof(text), "SCENE %s\nX %.2f\nY %.2f\nZ %.2f\nF4 SAVE  F5 RETURN", scene, p[0], p[1], p[2]);
     pc_gl_set_overlay(text);
 }
 
