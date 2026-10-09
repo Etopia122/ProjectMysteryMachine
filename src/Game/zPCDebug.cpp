@@ -13,6 +13,7 @@ xBase* zSceneFindObject(unsigned int gameID);
 void* xSTFindAsset(unsigned int aid, unsigned int* size);
 extern "C" void pc_log(const char* fmt, ...);
 extern "C" void pc_rw_atomic_spheres(void* atomic, float* out8);
+extern "C" const char* pc_dbg_ent_anim(_xEnt* ent);
 
 class zPortalAsset : public p2BaseAsset
 {
@@ -174,6 +175,8 @@ void pc_dbg_ent_info(const char* name)
         return;
     }
     xModelInstance* m = e->model;
+    pc_log("[ent] %s anim %s pos %.2f %.2f %.2f", name, pc_dbg_ent_anim(e), e->frame ? e->frame->mat.pos.x : 0,
+           e->frame ? e->frame->mat.pos.y : 0, e->frame ? e->frame->mat.pos.z : 0);
     pc_log("[ent] %s type %d baseFlags %x flags %x pflags %x moreFlags %x collType %x alpha %.2f model %p render %p", name,
            e->baseType, e->baseFlags, e->flags, e->pflags, e->moreFlags, e->collType, e->material_alpha, m, e->render);
     for (int i = 0; m && i < 4; i++, m = m->Next)

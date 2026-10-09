@@ -8749,6 +8749,13 @@ extern "C" void pc_dbg_player_anim(const char** name, unsigned int* userFlags, u
     *speed = globals.player.Speed;
 }
 
+// Debug: the name of an entity's current animation state.
+extern "C" const char* pc_dbg_ent_anim(_xEnt* ent)
+{
+    xAnimSingle* single = (ent && ent->model && ent->model->Anim) ? ent->model->Anim->Single : NULL;
+    return (single && single->State) ? single->State->Name : "-";
+}
+
 extern "C" void pc_log(const char* fmt, ...);
 // Debug (PC_POSLOG=3): the player's current collisions.
 extern "C" void pc_dbg_player_colls()
