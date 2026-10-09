@@ -790,6 +790,7 @@ config.libs = [
             Object(NonMatching, "rwsdk/world/baclump.c"),
             Object(Matching, "rwsdk/world/bageomet.c"),
             Object(NonMatching, "rwsdk/p2/p2core.c"),
+            Object(NonMatching, "rwsdk/p2/p2lock.c"),
             Object(NonMatching, "rwsdk/p2/p2heap.c"),
             Object(Matching, "rwsdk/p2/p2renderstate.c"),
             Object(Matching, "rwsdk/p2/p2radixsort.c"),
