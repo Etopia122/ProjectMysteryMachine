@@ -76,9 +76,24 @@ typedef struct DlNativeRasterHeader {
 #define RASTEREXTFROMRASTER(raster) ((RwDlRasterExt*)((RwUInt8*)(raster) + _rwDlRasterExtOffset))
 #define TEXTUREEXTFROMTEXTURE(texture) ((RwDlTextureExt*)((RwUInt8*)(texture) + _rwDlTextureExtOffset))
 
-#define RwTextureGetFilterMode(tex) ((tex)->filterAddressing & 0xFF)
+#define RwTextureGetFilterMode(tex) ((RwInt32)((tex)->filterAddressing & 0xFF))
 #define RwTextureGetAddressingU(tex) (((tex)->filterAddressing >> 8) & 0xF)
 #define RwTextureGetAddressingV(tex) (((tex)->filterAddressing >> 12) & 0xF)
+
+static inline RwInt32 DlTextureGetFilterMode(const RwTexture* texture)
+{
+    return texture->filterAddressing & 0xFF;
+}
+
+static inline RwInt32 DlTextureGetAddressingU(const RwTexture* texture)
+{
+    return (texture->filterAddressing & 0xF00) >> 8;
+}
+
+static inline RwInt32 DlTextureGetAddressingV(const RwTexture* texture)
+{
+    return (texture->filterAddressing & 0xF000) >> 12;
+}
 
 RwInt32 _rwDlTextureExtOffset;
 
@@ -155,8 +170,8 @@ RwBool _rwDlNativeTextureWrite(void* pStream, void* pTexture, RwInt32 flags)
 {
     RwStream* stream = (RwStream*)pStream;
     RwTexture* texture = (RwTexture*)pTexture;
-    RwInt32 size;
     RwUInt32 dataSize;
+    RwInt32 size;
     DlNativeRasterHeader rasterHeader;
     DlNativeTextureHeader header;
     RwDlTextureExt* textureExt;
@@ -326,7 +341,7 @@ RwReal DlTextureGetLODBias(GXTexObj* texObj)
     if (bias < 0.0f) {
         return (4096.0f + bias) / -1024.0f;
     }
-    return bias * (1.0f / 1024.0f);
+    return bias / 1024.0f;
 }
 
 void* _rwDlTextureConst(void* texture, RwInt32 offset, RwInt32 size)
@@ -387,8 +402,7 @@ static inline void DlTextureInitTexObj(RwTexture* texture, RwUInt32 tlutName, Rw
 
     GXInitTexObjLOD(&textureExt->texObj, minFilter, magFilter, 0.0f, rasterExt->maxLevel, lodBias, biasClamp, edgeLOD,
                     maxAniso);
-    textureExt->flags = (textureExt->flags & 0xFFFF0000) | (texture->filterAddressing & 0xFFFF);
-    textureExt->flags &= ~rwDLTEXTUREDIRTY;
+    textureExt->flags = ((textureExt->flags & 0xFFFF0000) | (texture->filterAddressing & 0xFFFF)) & ~rwDLTEXTUREDIRTY;
 }
 
 static inline void DlTextureRebuildTexObj(RwTexture* texture, RwDlTextureExt* textureExt, RwUInt32 tlutName)
