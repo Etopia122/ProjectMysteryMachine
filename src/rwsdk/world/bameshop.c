@@ -754,6 +754,14 @@ RwBool TriStripStripTris(RpBuildMeshTriangle* tris, RwUInt32 numTris, RpTriStrip
     return TRUE;
 }
 
+static inline RpTriStrip* TriStripFree(RpTriStrip* strip)
+{
+    RpTriStrip* next = strip->next;
+
+    RwFreeListFree(RWMESHGLOBAL(stripFreeList), strip);
+    return next;
+}
+
 RwBool TriStripJoin(RpTriStrip** stripList, RwBool joinOdd)
 {
     RpTriStrip* joined;
@@ -780,8 +788,7 @@ RwBool TriStripJoin(RpTriStrip** stripList, RwBool joinOdd)
     }
     RwFree(strip->indices);
     strip->indices = NULL;
-    remaining = strip->next;
-    RwFreeListFree(RWMESHGLOBAL(stripFreeList), strip);
+    remaining = TriStripFree(strip);
 
     while (remaining) {
         RxVertexIndex* end;
@@ -816,17 +823,17 @@ RwBool TriStripJoin(RpTriStrip** stripList, RwBool joinOdd)
 
         if (strip == NULL) {
             strip = remaining;
-            if ((joined->numIndices & 1) && joinOdd) {
+            if (!(joined->numIndices & 1) || !joinOdd) {
+                end = &joined->indices[joined->numIndices];
+                end[0] = end[-1];
+                joined->indices[joined->numIndices + 1] = remaining->indices[0];
+                joined->numIndices += 2;
+            } else {
                 end = &joined->indices[joined->numIndices];
                 end[0] = end[-1];
                 joined->indices[joined->numIndices + 1] = remaining->indices[0];
                 joined->indices[joined->numIndices + 2] = remaining->indices[0];
                 joined->numIndices += 3;
-            } else {
-                end = &joined->indices[joined->numIndices];
-                end[0] = end[-1];
-                joined->indices[joined->numIndices + 1] = remaining->indices[0];
-                joined->numIndices += 2;
             }
         }
 
@@ -864,13 +871,13 @@ typedef struct TriStripMeshInfo {
 
 RpMeshHeader* TriStripMeshGenerate(RpBuildMesh* buildMesh, RwInt32 testPasses, RwBool joinOdd)
 {
-    RpBuildMeshTriangle** triPointers;
-    RpMesh** meshes;
+    RwUInt32 numInfos;
     TriStripMeshInfo* infos;
     RpMeshHeader* meshHeader;
-    RwUInt16 numMeshes = 0;
-    RwUInt32 numInfos;
+    RpBuildMeshTriangle** triPointers;
     RwUInt32 i;
+    RwUInt16 numMeshes = 0;
+    RpMesh** meshes;
 
     triPointers = (RpBuildMeshTriangle**)RwMalloc(buildMesh->numTriangles * sizeof(RpBuildMeshTriangle*));
     if (triPointers == NULL) {
@@ -925,12 +932,16 @@ RpMeshHeader* TriStripMeshGenerate(RpBuildMesh* buildMesh, RwInt32 testPasses, R
         RWMESHGLOBAL(stripFreeList) = RwFreeListCreate(sizeof(RpTriStrip), buildMesh->numTriangles / 10 + 5, 0);
 
         {
-            RpTriStrip* stripList = NULL;
-            RpBuildMeshTriangle** src = triPointers;
-            TriStripMeshInfo* info = infos;
+            RpTriStrip* stripList;
+            RpBuildMeshTriangle** src;
+            TriStripMeshInfo* info;
             RwUInt32 m;
 
-            for (m = 0; m < numFound; m++, info++) {
+            m = 0;
+            src = triPointers;
+            info = infos;
+            stripList = NULL;
+            for (; m < numFound; info++, m++) {
                 RpBuildMeshTriangle* tris =
                     (RpBuildMeshTriangle*)RwMalloc(info->numTris * sizeof(RpBuildMeshTriangle));
                 RpTriStrip* strip;
@@ -1026,9 +1037,9 @@ RpMeshHeader* _rpTriListMeshGenerate(RpBuildMesh* buildMesh, void* data)
 
     triPointers = (RpBuildMeshTriangle**)RwMalloc(buildMesh->numTriangles * sizeof(RpBuildMeshTriangle*));
     if (triPointers) {
+        RpBuildMeshTriangle** tri;
         RpMesh* mesh;
         RxVertexIndex* indices;
-        RpBuildMeshTriangle** tri;
 
         for (i = 0; i < buildMesh->numTriangles; i++) {
             triPointers[i] = &buildMesh->meshTriangles[i];
@@ -1048,7 +1059,7 @@ RpMeshHeader* _rpTriListMeshGenerate(RpBuildMesh* buildMesh, void* data)
             }
         }
 
-        size = sizeof(RpMeshHeader) + numMeshes * sizeof(RpMesh) + buildMesh->numTriangles * 3 * sizeof(RxVertexIndex);
+        size = sizeof(RpMeshHeader) + sizeof(RpMesh) * numMeshes + sizeof(RxVertexIndex) * 3 * buildMesh->numTriangles;
         meshHeader = _rpMeshHeaderCreate(size);
         if (meshHeader == NULL) {
             RwFree(triPointers);
@@ -1070,7 +1081,8 @@ RpMeshHeader* _rpTriListMeshGenerate(RpBuildMesh* buildMesh, void* data)
         mesh->indices = indices;
 
         tri = triPointers;
-        for (i = 0; i < buildMesh->numTriangles; i++) {
+        i = 0;
+        do {
             if ((*tri)->material != mesh->material) {
                 mesh[1].numIndices = 0;
                 mesh[1].material = (*tri)->material;
@@ -1085,7 +1097,8 @@ RpMeshHeader* _rpTriListMeshGenerate(RpBuildMesh* buildMesh, void* data)
             tri++;
             indices += 3;
             mesh->numIndices += 3;
-        }
+            i++;
+        } while (i < buildMesh->numTriangles);
 
         _rpMeshHeaderForAllMeshes(meshHeader, SortPolygonsInTriListMesh, NULL);
         RwFree(triPointers);
