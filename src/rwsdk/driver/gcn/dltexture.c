@@ -186,7 +186,7 @@ RwBool _rwDlNativeTextureWrite(void* pStream, void* pTexture, RwInt32 flags)
 
     header.platform = rpTEXTURENATIVEPLATFORM;
     textureExt = TEXTUREEXTFROMTEXTURE(texture);
-    header.filterAddressing = RwTextureGetFilterMode(texture) | (RwTextureGetAddressingU(texture) << 8) |
+    header.filterAddressing = (RwTextureGetAddressingU(texture) << 8) | RwTextureGetFilterMode(texture) |
                               (RwTextureGetAddressingV(texture) << 12);
 
     if (textureExt->flags & rwDLTEXTUREDIRTY) {
@@ -209,9 +209,9 @@ RwBool _rwDlNativeTextureWrite(void* pStream, void* pTexture, RwInt32 flags)
     }
 
     raster = texture->raster;
-    rasterHeader.format = raster->cType | (raster->cFormat << 8);
     size -= sizeof(header);
     rasterExt = RASTEREXTFROMRASTER(raster);
+    rasterHeader.format = raster->cType | (raster->cFormat << 8);
     rasterHeader.width = raster->width;
     rasterHeader.height = raster->height;
     rasterHeader.depth = raster->depth;
