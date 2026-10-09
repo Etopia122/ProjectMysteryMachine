@@ -50,11 +50,6 @@ typedef struct RwDlRasterExt {
 typedef void (*RwDlConvToRGBFn)(RwRGBA* rgb, RwUInt32 pixel);
 typedef RwUInt32 (*RwDlConvFromRGBFn)(const RwRGBA* rgb);
 
-typedef union RwDlPixelConv {
-    RwDlConvToRGBFn toRGB;
-    RwDlConvFromRGBFn fromRGB;
-} RwDlPixelConv;
-
 #define RASTEREXTFROMRASTER(raster) ((RwDlRasterExt*)((RwUInt8*)(raster) + _rwDlRasterExtOffset))
 
 extern RwInt32 _rwDlRasterExtOffset;
@@ -168,7 +163,10 @@ RwUInt32 _rwDlConv8888To565(const RwRGBA* rgb)
 
 RwUInt32 _rwDlConv8888To555or3444(const RwRGBA* rgb)
 {
-    return DLCONV8888TO555OR3444(rgb);
+    if (rgb->alpha != 0xFF) {
+        return ((rgb->alpha << 7) & 0x7000) | ((rgb->red << 4) & 0xF00) | (rgb->green & 0xF0) | ((rgb->blue >> 4) & 0xF);
+    }
+    return DLCONV8888TO555(rgb);
 }
 
 RwUInt32 _rwDlConv8888ToDl888(const RwRGBA* rgb)
@@ -185,7 +183,7 @@ RwUInt32 _rwDlConv8888ToDl8888(const RwRGBA* rgb)
 
 RwBool _rwDlRGBToPixel(void* pixel, const RwRGBA* rgb, RwInt32 format)
 {
-    RwUInt32 value;
+    volatile RwUInt32 value;
 
     switch (format & rwRASTERFORMATPIXELFORMATMASK) {
     case rwRASTERFORMATDEFAULT:
@@ -288,81 +286,90 @@ RwBool _rwDlPixelToRGB(RwRGBA* rgb, const void* pixel, RwInt32 format)
     return TRUE;
 }
 
-#define DLGETCONVTORGB(_fn, _raster)                                                \
-    switch (RwRasterGetFormat(_raster) & rwRASTERFORMATPIXELFORMATMASK) {          \
-    case rwRASTERFORMATLUM8:                                                        \
-        RWERROR((E_RW_DLNOTSUPPORTED, "rwRASTERFORMATLUM8 not yet supported"));     \
-        break;                                                                      \
-    case rwRASTERFORMAT555:                                                         \
-        _fn = _rwDlConv555To8888;                                                   \
-        break;                                                                      \
-    case rwRASTERFORMAT565:                                                         \
-        _fn = _rwDlConv565To8888;                                                   \
-        break;                                                                      \
-    case rwRASTERFORMAT1555:                                                        \
-        _fn = _rwDlConv1555To8888;                                                  \
-        break;                                                                      \
-    case rwRASTERFORMAT4444:                                                        \
-        _fn = _rwDlConv4444To8888;                                                  \
-        break;                                                                      \
-    case rwRASTERFORMAT8888:                                                        \
-        _fn = _rwDlConvDl8888To8888;                                                \
-        break;                                                                      \
-    case rwRASTERFORMAT888:                                                         \
-        _fn = _rwDlConvDl888To8888;                                                 \
-        break;                                                                      \
-    default:                                                                        \
-        RWERROR((E_RW_INVRASTERFORMAT));                                            \
-        break;                                                                      \
-    }
+static inline RwDlConvToRGBFn DlRasterGetConvToRGB(RwRaster* raster)
+{
+    RwDlConvToRGBFn convFn = NULL;
 
-#define DLGETCONVFROMRGB(_fn, _raster)                                              \
-    switch (RwRasterGetFormat(_raster) & rwRASTERFORMATPIXELFORMATMASK) {          \
-    case rwRASTERFORMATLUM8:                                                        \
-        RWERROR((E_RW_DLNOTSUPPORTED, "rwRASTERFORMATLUM8 not yet supported"));     \
-        break;                                                                      \
-    case rwRASTERFORMAT555:                                                         \
-        _fn = _rwDlConv8888To555;                                                   \
-        break;                                                                      \
-    case rwRASTERFORMAT565:                                                         \
-        _fn = _rwDlConv8888To565;                                                   \
-        break;                                                                      \
-    case rwRASTERFORMAT1555:                                                        \
-    case rwRASTERFORMAT4444:                                                        \
-        _fn = _rwDlConv8888To555or3444;                                             \
-        break;                                                                      \
-    case rwRASTERFORMAT888:                                                         \
-        _fn = _rwDlConv8888ToDl888;                                                 \
-        break;                                                                      \
-    case rwRASTERFORMAT8888:                                                        \
-        _fn = _rwDlConv8888ToDl8888;                                                \
-        break;                                                                      \
-    default:                                                                        \
-        RWERROR((E_RW_INVRASTERFORMAT));                                            \
-        break;                                                                      \
+    switch (RwRasterGetFormat(raster) & rwRASTERFORMATPIXELFORMATMASK) {
+    case rwRASTERFORMATLUM8:
+        RWERROR((E_RW_DLNOTSUPPORTED, "rwRASTERFORMATLUM8 not yet supported"));
+        break;
+    case rwRASTERFORMAT555:
+        convFn = _rwDlConv555To8888;
+        break;
+    case rwRASTERFORMAT565:
+        convFn = _rwDlConv565To8888;
+        break;
+    case rwRASTERFORMAT1555:
+        convFn = _rwDlConv1555To8888;
+        break;
+    case rwRASTERFORMAT4444:
+        convFn = _rwDlConv4444To8888;
+        break;
+    case rwRASTERFORMAT8888:
+        convFn = _rwDlConvDl8888To8888;
+        break;
+    case rwRASTERFORMAT888:
+        convFn = _rwDlConvDl888To8888;
+        break;
+    default:
+        RWERROR((E_RW_INVRASTERFORMAT));
+        break;
     }
+    return convFn;
+}
+
+static inline RwDlConvFromRGBFn DlRasterGetConvFromRGB(RwRaster* raster)
+{
+    RwDlConvFromRGBFn convFn = NULL;
+
+    switch (RwRasterGetFormat(raster) & rwRASTERFORMATPIXELFORMATMASK) {
+    case rwRASTERFORMATLUM8:
+        RWERROR((E_RW_DLNOTSUPPORTED, "rwRASTERFORMATLUM8 not yet supported"));
+        break;
+    case rwRASTERFORMAT555:
+        convFn = _rwDlConv8888To555;
+        break;
+    case rwRASTERFORMAT565:
+        convFn = _rwDlConv8888To565;
+        break;
+    case rwRASTERFORMAT1555:
+    case rwRASTERFORMAT4444:
+        convFn = _rwDlConv8888To555or3444;
+        break;
+    case rwRASTERFORMAT888:
+        convFn = _rwDlConv8888ToDl888;
+        break;
+    case rwRASTERFORMAT8888:
+        convFn = _rwDlConv8888ToDl8888;
+        break;
+    default:
+        RWERROR((E_RW_INVRASTERFORMAT));
+        break;
+    }
+    return convFn;
+}
 
 void _rwDlImage4GetFromRaster(RwImage* image, RwRaster* raster)
 {
-    RwDlPixelConv conv;
+    RwDlConvToRGBFn convFn;
     RwInt32 i;
-    RwInt32 x;
     RwInt32 y;
+    RwInt32 x;
 
-    conv.toRGB = NULL;
-    DLGETCONVTORGB(conv.toRGB, raster);
+    convFn = DlRasterGetConvToRGB(raster);
 
     switch (raster->depth) {
     case 4:
         for (i = 0; i < 16; i++) {
-            conv.toRGB(&image->palette[i], ((RwUInt16*)raster->palette)[i]);
+            convFn(&image->palette[i], ((RwUInt16*)raster->palette)[i]);
         }
         for (y = 0; y < raster->height; y++) {
             RwUInt8* dst = image->cpPixels + image->stride * y;
             RwUInt8* src = raster->cpPixels + raster->stride * y;
 
             for (x = 0; x < raster->width; x += 2) {
-                dst[0] = *src >> 4;
+                dst[0] = (*src >> 4) & 0xF;
                 dst[1] = *src & 0xF;
                 src++;
                 dst += 2;
@@ -383,25 +390,24 @@ void _rwDlImage4GetFromRaster(RwImage* image, RwRaster* raster)
 
 void _rwDlImage8GetFromRaster(RwImage* image, RwRaster* raster)
 {
-    RwDlPixelConv conv;
+    RwDlConvToRGBFn convFn;
     RwInt32 i;
-    RwInt32 x;
     RwInt32 y;
+    RwInt32 x;
 
-    conv.toRGB = NULL;
-    DLGETCONVTORGB(conv.toRGB, raster);
+    convFn = DlRasterGetConvToRGB(raster);
 
     switch (raster->depth) {
     case 4:
         for (i = 0; i < 16; i++) {
-            conv.toRGB(&image->palette[i], ((RwUInt16*)raster->palette)[i]);
+            convFn(&image->palette[i], ((RwUInt16*)raster->palette)[i]);
         }
         for (y = 0; y < raster->height; y++) {
             RwUInt8* dst = image->cpPixels + image->stride * y;
             RwUInt8* src = raster->cpPixels + raster->stride * y;
 
             for (x = 0; x < raster->width; x += 2) {
-                dst[0] = *src >> 4;
+                dst[0] = (*src >> 4) & 0xF;
                 dst[1] = *src & 0xF;
                 src++;
                 dst += 2;
@@ -410,14 +416,16 @@ void _rwDlImage8GetFromRaster(RwImage* image, RwRaster* raster)
         break;
     case 8:
         for (i = 0; i < 256; i++) {
-            conv.toRGB(&image->palette[i], ((RwUInt16*)raster->palette)[i]);
+            convFn(&image->palette[i], ((RwUInt16*)raster->palette)[i]);
         }
         for (y = 0; y < raster->height; y++) {
             RwUInt8* src = raster->cpPixels + raster->stride * y;
             RwUInt8* dst = image->cpPixels + image->stride * y;
 
             for (x = 0; x < raster->width; x++) {
-                *dst++ = *src++;
+                *dst = *src;
+                src++;
+                dst++;
             }
         }
         break;
@@ -434,20 +442,19 @@ void _rwDlImage8GetFromRaster(RwImage* image, RwRaster* raster)
 
 void _rwDlImage32GetFromRaster(RwImage* image, RwRaster* raster)
 {
-    RwDlPixelConv conv;
+    RwDlConvToRGBFn convFn;
     RwInt32 i;
-    RwInt32 x;
     RwInt32 y;
+    RwInt32 x;
 
-    conv.toRGB = NULL;
-    DLGETCONVTORGB(conv.toRGB, raster);
+    convFn = DlRasterGetConvToRGB(raster);
 
     switch (raster->depth) {
     case 4: {
         RwRGBA palette[16];
 
         for (i = 0; i < 16; i++) {
-            conv.toRGB(&palette[i], ((RwUInt16*)raster->palette)[i]);
+            convFn(&palette[i], ((RwUInt16*)raster->palette)[i]);
         }
         for (y = 0; y < raster->height; y++) {
             RwRGBA* dst = (RwRGBA*)(image->cpPixels + image->stride * y);
@@ -466,14 +473,16 @@ void _rwDlImage32GetFromRaster(RwImage* image, RwRaster* raster)
         RwRGBA palette[256];
 
         for (i = 0; i < 256; i++) {
-            conv.toRGB(&palette[i], ((RwUInt16*)raster->palette)[i]);
+            convFn(&palette[i], ((RwUInt16*)raster->palette)[i]);
         }
         for (y = 0; y < raster->height; y++) {
             RwUInt8* src = raster->cpPixels + raster->stride * y;
             RwRGBA* dst = (RwRGBA*)(image->cpPixels + image->stride * y);
 
             for (x = 0; x < raster->width; x++) {
-                *dst++ = palette[*src++];
+                *dst = palette[*src];
+                src++;
+                dst++;
             }
         }
         break;
@@ -484,7 +493,7 @@ void _rwDlImage32GetFromRaster(RwImage* image, RwRaster* raster)
             RwRGBA* dst = (RwRGBA*)(image->cpPixels + image->stride * y);
 
             for (x = 0; x < raster->width; x++) {
-                conv.toRGB(dst, *src);
+                convFn(dst, *src);
                 dst++;
                 src++;
             }
@@ -499,7 +508,7 @@ void _rwDlImage32GetFromRaster(RwImage* image, RwRaster* raster)
             RwRGBA* dst = (RwRGBA*)(image->cpPixels + image->stride * y);
 
             for (x = 0; x < raster->width; x++) {
-                conv.toRGB(dst, *src);
+                convFn(dst, *src);
                 dst++;
                 src++;
             }
@@ -575,13 +584,12 @@ static inline RwImage* DlImagePalettize(RwImage* image, RwInt32 depth)
 void _rwDlRasterPalletized4SetFromImage(RwRaster* raster, RwImage* image)
 {
     RwDlRasterExt* rasterExt = RASTEREXTFROMRASTER(raster->parent);
-    RwDlPixelConv conv;
+    RwDlConvFromRGBFn convFn;
     RwInt32 i;
-    RwInt32 x;
     RwInt32 y;
+    RwInt32 x;
 
-    conv.fromRGB = NULL;
-    DLGETCONVFROMRGB(conv.fromRGB, raster);
+    convFn = DlRasterGetConvFromRGB(raster);
 
     switch (image->depth) {
     case 4:
@@ -598,7 +606,7 @@ void _rwDlRasterPalletized4SetFromImage(RwRaster* raster, RwImage* image)
             RwUInt16* palette = (RwUInt16*)raster->palette;
 
             for (i = 0; i < 16; i++) {
-                *palette++ = conv.fromRGB(&image->palette[i]);
+                *palette++ = convFn(&image->palette[i]);
             }
         }
         break;
@@ -620,13 +628,12 @@ void _rwDlRasterPalletized4SetFromImage(RwRaster* raster, RwImage* image)
 
 void _rwDlRasterPalletized8SetFromImage(RwRaster* raster, RwImage* image)
 {
-    RwDlPixelConv conv;
+    RwDlConvFromRGBFn convFn;
     RwInt32 i;
-    RwInt32 x;
     RwInt32 y;
+    RwInt32 x;
 
-    conv.fromRGB = NULL;
-    DLGETCONVFROMRGB(conv.fromRGB, raster);
+    convFn = DlRasterGetConvFromRGB(raster);
 
     switch (image->depth) {
     case 4:
@@ -638,14 +645,16 @@ void _rwDlRasterPalletized8SetFromImage(RwRaster* raster, RwImage* image)
             RwUInt8* dst = raster->cpPixels + raster->stride * y;
 
             for (x = 0; x < raster->width; x++) {
-                *dst++ = *src++;
+                *dst = *src;
+                src++;
+                dst++;
             }
         }
         if (!rasterExt->customPalette) {
             RwUInt16* palette = (RwUInt16*)raster->palette;
 
             for (i = 0; i < (1 << image->depth); i++) {
-                *palette++ = conv.fromRGB(&image->palette[i]);
+                *palette++ = convFn(&image->palette[i]);
             }
         }
         break;
@@ -667,13 +676,12 @@ void _rwDlRasterPalletized8SetFromImage(RwRaster* raster, RwImage* image)
 
 void _rwDlRaster16SetFromImage(RwRaster* raster, RwImage* image)
 {
-    RwDlPixelConv conv;
+    RwDlConvFromRGBFn convFn;
     RwInt32 i;
-    RwInt32 x;
     RwInt32 y;
+    RwInt32 x;
 
-    conv.fromRGB = NULL;
-    DLGETCONVFROMRGB(conv.fromRGB, raster);
+    convFn = DlRasterGetConvFromRGB(raster);
 
     switch (image->depth) {
     case 4:
@@ -681,14 +689,16 @@ void _rwDlRaster16SetFromImage(RwRaster* raster, RwImage* image)
         RwUInt16 palette[256];
 
         for (i = 0; i < (1 << image->depth); i++) {
-            palette[i] = conv.fromRGB(&image->palette[i]);
+            palette[i] = convFn(&image->palette[i]);
         }
         for (y = 0; y < raster->height; y++) {
             RwUInt8* src = image->cpPixels + image->stride * y;
             RwUInt16* dst = (RwUInt16*)(raster->cpPixels + raster->stride * y);
 
             for (x = 0; x < raster->width; x++) {
-                *dst++ = palette[*src++];
+                *dst = palette[*src];
+                src++;
+                dst++;
             }
         }
         break;
@@ -699,7 +709,7 @@ void _rwDlRaster16SetFromImage(RwRaster* raster, RwImage* image)
             RwUInt16* dst = (RwUInt16*)(raster->cpPixels + raster->stride * y);
 
             for (x = 0; x < raster->width; x++) {
-                *dst = conv.fromRGB(src);
+                *dst = convFn(src);
                 dst++;
                 src++;
             }
@@ -713,13 +723,12 @@ void _rwDlRaster16SetFromImage(RwRaster* raster, RwImage* image)
 
 void _rwDlRaster32SetFromImage(RwRaster* raster, RwImage* image)
 {
-    RwDlPixelConv conv;
+    RwDlConvFromRGBFn convFn;
     RwInt32 i;
-    RwInt32 x;
     RwInt32 y;
+    RwInt32 x;
 
-    conv.fromRGB = NULL;
-    DLGETCONVFROMRGB(conv.fromRGB, raster);
+    convFn = DlRasterGetConvFromRGB(raster);
 
     switch (image->depth) {
     case 4:
@@ -727,14 +736,16 @@ void _rwDlRaster32SetFromImage(RwRaster* raster, RwImage* image)
         RwUInt32 palette[256];
 
         for (i = 0; i < (1 << image->depth); i++) {
-            palette[i] = conv.fromRGB(&image->palette[i]);
+            palette[i] = convFn(&image->palette[i]);
         }
         for (y = 0; y < raster->height; y++) {
             RwUInt8* src = image->cpPixels + image->stride * y;
             RwUInt32* dst = (RwUInt32*)(raster->cpPixels + raster->stride * y);
 
             for (x = 0; x < raster->width; x++) {
-                *dst++ = palette[*src++];
+                *dst = palette[*src];
+                src++;
+                dst++;
             }
         }
         break;
@@ -745,7 +756,7 @@ void _rwDlRaster32SetFromImage(RwRaster* raster, RwImage* image)
             RwUInt32* dst = (RwUInt32*)(raster->cpPixels + raster->stride * y);
 
             for (x = 0; x < raster->width; x++) {
-                *dst = conv.fromRGB(src);
+                *dst = convFn(src);
                 dst++;
                 src++;
             }
