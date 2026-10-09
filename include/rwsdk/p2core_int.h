@@ -105,6 +105,7 @@ struct RxPipeline {
     /* 0x14 */ RxPacket* embeddedPacket;
     /* 0x18 */ RwUInt8 pad18[0x2C - 0x18];
     /* 0x2C */ RwUInt32 pluginId;
+    /* 0x30 */ RwUInt32 pluginData;
 };
 
 typedef struct RxExecutionContext {
