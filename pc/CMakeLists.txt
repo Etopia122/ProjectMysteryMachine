@@ -54,7 +54,25 @@ add_executable(scooby ${PC_SOURCES})
 # PC_EXE_NAME lets a test build link while the normal exe is running.
 set(PC_EXE_NAME "scooby" CACHE STRING "Output name of the executable")
 set_target_properties(scooby PROPERTIES OUTPUT_NAME ${PC_EXE_NAME})
+# FFmpeg: the minimal static Bink-only build from pc/tools/build_ffmpeg.sh if
+# present (no FFmpeg DLLs), else MSYS2's full shared FFmpeg.
+set(PC_FFMPEG_DIR "${ROOT}/build/ffmpeg/install" CACHE PATH "Minimal static FFmpeg install prefix")
+if(EXISTS "${PC_FFMPEG_DIR}/lib/libavcodec.a")
+    message(STATUS "FFmpeg: static from ${PC_FFMPEG_DIR}")
+    set(PC_FFMPEG_INCLUDE "${PC_FFMPEG_DIR}/include")
+    set(PC_FFMPEG_LIBS
+        ${PC_FFMPEG_DIR}/lib/libavformat.a ${PC_FFMPEG_DIR}/lib/libavcodec.a
+        ${PC_FFMPEG_DIR}/lib/libswscale.a ${PC_FFMPEG_DIR}/lib/libswresample.a
+        ${PC_FFMPEG_DIR}/lib/libavutil.a ole32 user32 bcrypt -l:libatomic.a)
+else()
+    message(STATUS "FFmpeg: shared from MSYS2")
+    set(PC_FFMPEG_INCLUDE "")
+    set(PC_FFMPEG_LIBS avformat avcodec swscale swresample avutil)
+endif()
 target_link_libraries(scooby PRIVATE scoobygame SDL2::SDL2 opengl32
-    avformat avcodec swscale swresample avutil -pthread -Wl,--large-address-aware)
-target_include_directories(scooby PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/rw)
+    ${PC_FFMPEG_LIBS} -Wl,--large-address-aware)
+# Link the GCC runtime statically so only SDL2.dll ships next to the exe.
+target_link_options(scooby PRIVATE -static-libgcc -static-libstdc++
+    -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive,-Bdynamic)
+target_include_directories(scooby PRIVATE ${PC_FFMPEG_INCLUDE} ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/rw)
 target_compile_options(scooby PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++17> -g -O0 -pthread)

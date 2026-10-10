@@ -59,10 +59,17 @@ native PC program. Game assets are not included: the player supplies their own d
 ## Running
 
 ```
+sh pc/tools/build_ffmpeg.sh     # once: minimal static FFmpeg (Bink only) in build/ffmpeg
 sh pc/tools/rebuild.sh          # build
-python pc/tools/deploy.py       # copy the MinGW/SDL2/FFmpeg DLLs next to the exe
+python pc/tools/deploy.py       # copy SDL2.dll next to the exe
 build/pc/scooby.exe             # data from SCOOBY_DATA or game/files
 ```
+
+`build_ffmpeg.sh` downloads the FFmpeg source release from ffmpeg.org, checks
+its signature and builds only the Bink demuxer and decoders (LGPL, no external
+libraries; needs `pacman -S make diffutils`). It is linked statically, as are
+libgcc, libstdc++ and winpthread, so SDL2.dll is the only DLL that ships.
+Without it CMake falls back to MSYS2's shared FFmpeg (~70 DLLs).
 
 Controls: a game controller (A/B/X/Y, triggers, sticks as on GameCube), or
 keyboard: WASD/arrows move, IJKL camera, Space = A, Shift = B, E = X, R = Y,
@@ -101,7 +108,6 @@ and the `PC_FPCHECK` CMake option finds x87 stack leaks.
 
 - **Gameplay testing:** play through levels and compare with the GameCube
   build; saving in-game hasn't been exercised yet.
-- **Trim FFmpeg:** the MSYS2 build pulls in ~70 DLLs; a Bink-only build would do.
 
 - **PS2 assets as an alternative source.** PS2 data is little-endian and librw
   already reads PS2-native geometry and textures. Supporting a PS2 disc needs

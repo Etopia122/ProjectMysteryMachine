@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copy the MinGW/SDL2/FFmpeg DLLs scooby.exe needs next to it, so it runs
+# Copy the MinGW/SDL2 DLLs scooby.exe needs next to it, so it runs
 # outside the MSYS2 shell (from Explorer or a plain terminal).
 # usage: python pc/tools/deploy.py
 import re, shutil, subprocess
@@ -21,4 +21,8 @@ while todo:
         done.add(name.lower())
         shutil.copy2(src, OUT / name)
         todo.append(src)
-print('%d DLLs copied to %s' % (len(done), OUT))
+# Remove MinGW DLLs an earlier build needed but this one doesn't.
+stale = [p for p in OUT.glob('*.dll') if p.name.lower() not in done and (BIN / p.name).exists()]
+for p in stale:
+    p.unlink()
+print('%d DLLs copied to %s, %d stale removed' % (len(done), OUT, len(stale)))
