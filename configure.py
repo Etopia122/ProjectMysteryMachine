@@ -823,6 +823,7 @@ config.libs = [
             Object(Matching, "rwsdk/p2/baim3d.c"),
             Object(Matching, "rwsdk/p2/bapipe.c"),
             Object(NonMatching, "rwsdk/p2/generic/nodeClipLine.c"),
+            Object(NonMatching, "rwsdk/p2/generic/nodeClipTriangle.c"),
             Object(NonMatching, "rwsdk/p2/generic/nodeCullTriangle.c"),
             Object(Matching, "rwsdk/p2/generic/nodeImmInstance.c"),
             Object(NonMatching, "rwsdk/p2/generic/nodeImmMangleLineIndices.c"),
