@@ -25,6 +25,11 @@
 #define GX_U16 2
 #define GX_S16 3
 
+#define GX_VA_NBT 25
+#define GX_NRM_XYZ 0
+#define GX_NRM_NBT 1
+#define GX_CLR_RGB 0
+
 #define GX_RGB565 0
 #define GX_RGB8 1
 #define GX_RGBX8 2
@@ -119,9 +124,18 @@ typedef struct RxGameCubeDisplayList {
 
 /* Resource entry payload of an instanced atomic or world sector. */
 typedef struct RxGameCubeInstanceData {
-    /* 0x00 */ RwUInt8 unk00[4];
+    /* 0x00 */ RwUInt8 unk00[2];
+    /* 0x02 */ RwUInt16 descType;
     /* 0x04 */ RwUInt16 token;
-    /* 0x06 */ RwUInt8 unk06[0x3E];
+    /* 0x06 */ RwUInt8 posStride;
+    /* 0x07 */ RwUInt8 nrmStride;
+    /* 0x08 */ RwUInt8 clrStride;
+    /* 0x09 */ RwUInt8 texStride[8];
+    /* 0x11 */ RwUInt8 pad11[7];
+    /* 0x18 */ void* posData;
+    /* 0x1C */ void* nrmData;
+    /* 0x20 */ void* clrData;
+    /* 0x24 */ void* texData[8];
     /* 0x44 */ RxGameCubeDisplayList displayLists[1];
 } RxGameCubeInstanceData;
 
@@ -157,7 +171,8 @@ void _rwDlTextureRasterFlush(RwInt32 mode);
 RwMatrix* RwFrameGetLTM(RwFrame* frame);
 RpGameCubeVtxFmt* RpGameCubeGeometryGetVtxFmt(RpGeometry* geometry);
 RpGameCubeVtxFmt* RpGameCubeWorldGetVtxFmt(RpWorld* world);
-void fn_8015D314(RpGameCubeVtxFmt* fmt, RxGameCubeRenderData* data);
+void _rxGCSetVtxDescs(RpGameCubeVtxFmt* fmt, RxGameCubeRenderData* data);
+RwInt32 RpWorldSectorGetNumVertices(const RpWorldSector* sector);
 
 void GXSetDrawSync(RwUInt16 token);
 void GXInvalidateVtxCache(void);
@@ -168,6 +183,7 @@ void GXSetTevAlphaIn(RwInt32 stage, RwInt32 a, RwInt32 b, RwInt32 c, RwInt32 d);
 void GXSetTevColorOp(RwInt32 stage, RwInt32 op, RwInt32 bias, RwInt32 scale, RwUInt8 clamp, RwInt32 outReg);
 void GXSetTevAlphaOp(RwInt32 stage, RwInt32 op, RwInt32 bias, RwInt32 scale, RwUInt8 clamp, RwInt32 outReg);
 void GXCallDisplayList(void* list, RwUInt32 nbytes);
+void GXSetArray(RwInt32 attr, void* base, RwUInt8 stride);
 
 static const GXColor opaqueWhite = { 255, 255, 255, 255 };
 static const GXColor opaqueBlack = { 0, 0, 0, 255 };
@@ -189,7 +205,7 @@ void _rxGCResEntryWaitDone(RwResEntry* entry)
     GXInvalidateVtxCache();
 }
 
-void fn_801588E8(RxGameCubeRenderData* data)
+void _rxGCSetupLighting(RxGameCubeRenderData* data)
 {
     RwUInt32 flags = data->flags;
     RwInt32 ambSrc;
@@ -244,7 +260,7 @@ void fn_801588E8(RxGameCubeRenderData* data)
     }
 }
 
-void fn_80158B20(RxGameCubeRenderData* data, RpMaterial* material)
+void _rxGCSetupMaterialColor(RxGameCubeRenderData* data, RpMaterial* material)
 {
     GXColor color;
 
@@ -337,7 +353,7 @@ void _rxGCDefaultRenderCallback(RxGameCubeRenderData* data)
     }
 }
 
-void* fn_80158FB0(void* object, RxGameCubeRenderData* data)
+void* _rxGCDefaultRender(void* object, RxGameCubeRenderData* data)
 {
     RxGameCubeDisplayList* dl = RESENTRYDATA(data->repEntry)->displayLists;
     RwBool setMaterial;
@@ -350,13 +366,13 @@ void* fn_80158FB0(void* object, RxGameCubeRenderData* data)
     RESENTRYDATA(data->repEntry)->token = lbl_8025E800;
     if (((RwObject*)object)->type == rpATOMIC) {
         ltm = RwFrameGetLTM((RwFrame*)((RpAtomic*)object)->object.object.parent);
-        fn_8015D314(RpGameCubeGeometryGetVtxFmt(((RpAtomic*)object)->geometry), data);
+        _rxGCSetVtxDescs(RpGameCubeGeometryGetVtxFmt(((RpAtomic*)object)->geometry), data);
     } else {
         ltm = NULL;
-        fn_8015D314(RpGameCubeWorldGetVtxFmt((RpWorld*)RWSRCGLOBAL(curWorld)), data);
+        _rxGCSetVtxDescs(RpGameCubeWorldGetVtxFmt((RpWorld*)RWSRCGLOBAL(curWorld)), data);
     }
     _rwDlTransformSetup(ltm, (data->flags & rxGEOMETRY_NORMALS) >> 4);
-    fn_801588E8(data);
+    _rxGCSetupLighting(data);
     _rxGCDefaultRenderCallback(data);
 
     flags = data->flags;
@@ -386,7 +402,7 @@ void* fn_80158FB0(void* object, RxGameCubeRenderData* data)
             }
             _rwDlTextureRasterFlush(mode);
             if (setMaterial) {
-                fn_80158B20(data, mesh->material);
+                _rxGCSetupMaterialColor(data, mesh->material);
             }
             GXCallDisplayList(dl->list, dl->size);
             mesh++;
@@ -394,7 +410,7 @@ void* fn_80158FB0(void* object, RxGameCubeRenderData* data)
         }
     } else if (setMaterial) {
         while (numMeshes--) {
-            fn_80158B20(data, mesh->material);
+            _rxGCSetupMaterialColor(data, mesh->material);
             GXCallDisplayList(dl->list, dl->size);
             mesh++;
             dl++;
@@ -434,7 +450,7 @@ void RxGameCubeAllInOneSetRenderCallBack(RxPipelineNode* node, void* callback)
     ((RxGameCubeAllInOnePvtData*)node->privateData)->renderCB = callback;
 }
 
-RwUInt32 fn_80159380(const RpGameCubeVtxFmt* fmt, RwUInt32 flags, RwUInt32 numVerts, RwUInt8 numTexCoords)
+RwUInt32 _rxGCVertexArraySize(RpGameCubeVtxFmt* fmt, RwUInt32 flags, RwUInt32 numVerts, RwUInt8 numTexCoords)
 {
     RwUInt32 size = 0;
     RwInt32 i;
@@ -480,7 +496,7 @@ RwUInt32 fn_80159380(const RpGameCubeVtxFmt* fmt, RwUInt32 flags, RwUInt32 numVe
     return size;
 }
 
-RwUInt32 fn_801597AC(const RpGameCubeVtxFmt* fmt, void* dst, const RwV3d* src, RwInt32 numVerts, RwUInt8 stride)
+RwUInt32 _rwGCNVtxFmtInstPos(RpGameCubeVtxFmt* fmt, void* dst, const RwV3d* src, RwInt32 numVerts, RwUInt8 stride)
 {
     RwInt32 i;
 
@@ -566,7 +582,7 @@ RwUInt32 fn_801597AC(const RpGameCubeVtxFmt* fmt, void* dst, const RwV3d* src, R
     return (numVerts * compSizes[fmt->posType] * 3 + 31) & ~31;
 }
 
-RwUInt32 _rwGCNVtxFmtInstNrm(const RpGameCubeVtxFmt* fmt, void* dst, const RwV3d* src, RwInt32 numVerts,
+RwUInt32 _rwGCNVtxFmtInstNrm(RpGameCubeVtxFmt* fmt, void* dst, const RwV3d* src, RwInt32 numVerts,
                              RwUInt8 stride)
 {
     if (!fmt) {
@@ -628,7 +644,7 @@ RwUInt32 _rwGCNVtxFmtInstNrm(const RpGameCubeVtxFmt* fmt, void* dst, const RwV3d
     return ((fmt->nbt ? 9 : 3) * (numVerts * compSizes[fmt->nrmType]) + 31) & ~31;
 }
 
-RwUInt32 _rwGCNVtxFmtInstNrmCmp(const RpGameCubeVtxFmt* fmt, void* dst, const RpVertexNormal* src, RwInt32 numVerts,
+RwUInt32 _rwGCNVtxFmtInstNrmCmp(RpGameCubeVtxFmt* fmt, void* dst, const RpVertexNormal* src, RwInt32 numVerts,
                                 RwUInt8 stride)
 {
     if (!fmt) {
@@ -697,7 +713,7 @@ RwUInt32 _rwGCNVtxFmtInstNrmCmp(const RpGameCubeVtxFmt* fmt, void* dst, const Rp
     return ((fmt->nbt ? 9 : 3) * (numVerts * compSizes[fmt->nrmType]) + 31) & ~31;
 }
 
-RwUInt32 _rwGCNVtxFmtInstNBT(const RpGameCubeVtxFmt* fmt, void* dst, const RwRGBA* src, RwInt32 numVerts,
+RwUInt32 _rwGCNVtxFmtInstNBT(RpGameCubeVtxFmt* fmt, void* dst, const RwRGBA* src, RwInt32 numVerts,
                              RwUInt8 stride)
 {
     if (!fmt) {
@@ -775,4 +791,259 @@ RwUInt32 _rwGCNVtxFmtInstNBT(const RpGameCubeVtxFmt* fmt, void* dst, const RwRGB
         return colorSizes[fmt->clrType];
     }
     return (numVerts * colorSizes[fmt->clrType] + 31) & ~31;
+}
+
+RwUInt32 _rwGCNVtxFmtInstTex(RpGameCubeVtxFmt* fmt, RwInt32 index, void* dst, const RwTexCoords* src, RwInt32 numVerts,
+                     RwUInt8 stride)
+{
+    RwInt32 i;
+    const RwUInt8* type;
+
+    if (!fmt) {
+        fmt = &DlDefaultVtxFmt;
+    }
+
+    type = fmt->texType + index;
+    switch (*type) {
+    case GX_U8: {
+        RwReal scale = (RwReal)(1 << fmt->texFrac[index]);
+        RwUInt8* d = (RwUInt8*)dst;
+        RwInt32 j;
+
+        for (j = 0; j < numVerts; j++) {
+            d[0] = src->u * scale;
+            d[1] = src->v * scale;
+            src++;
+            d += stride;
+        }
+        break;
+    }
+    case GX_S8: {
+        RwReal scale = (RwReal)(1 << fmt->texFrac[index]);
+        RwInt8* d = (RwInt8*)dst;
+        RwInt32 j;
+
+        for (j = 0; j < numVerts; j++) {
+            d[0] = src->u * scale;
+            d[1] = src->v * scale;
+            src++;
+            d += stride;
+        }
+        break;
+    }
+    case GX_U16: {
+        RwReal scale = (RwReal)(1 << fmt->texFrac[index]);
+        RwUInt16* d = (RwUInt16*)dst;
+        RwInt32 j;
+
+        for (j = 0; j < numVerts; j++) {
+            d[0] = src->u * scale;
+            d[1] = src->v * scale;
+            src++;
+            d = (RwUInt16*)((RwUInt8*)d + stride);
+        }
+        break;
+    }
+    case GX_S16: {
+        RwReal scale = (RwReal)(1 << fmt->texFrac[index]);
+        RwInt16* d = (RwInt16*)dst;
+        RwInt32 j;
+
+        for (j = 0; j < numVerts; j++) {
+            d[0] = src->u * scale;
+            d[1] = src->v * scale;
+            src++;
+            d = (RwInt16*)((RwUInt8*)d + stride);
+        }
+        break;
+    }
+    case GX_F32:
+        if (fmt->flags & rpGCVTXFMTINTERLEAVED) {
+            RwTexCoords* d = (RwTexCoords*)dst;
+
+            for (i = 0; i < numVerts; i++) {
+                *d = *src;
+                src++;
+                d = (RwTexCoords*)((RwUInt8*)d + stride);
+            }
+        } else {
+            memcpy(dst, src, numVerts * compSizes[*type] * 2);
+        }
+        break;
+    }
+
+    if (fmt->flags & rpGCVTXFMTINTERLEAVED) {
+        return compSizes[*type] * 2;
+    }
+    return (numVerts * compSizes[*type] * 2 + 31) & ~31;
+}
+
+static inline RwTexCoords* RpGeometryGetVertexTexCoords(const RpGeometry* geometry, RwInt32 uvIndex)
+{
+    return geometry->texCoords[uvIndex - 1];
+}
+
+/* Each vertex array's stride; interleaved formats share the whole vertex. */
+static inline void GCSetupStrides(RpGameCubeVtxFmt* fmt, RxGameCubeInstanceData* data, RwUInt32 flags,
+                                  RwUInt8 numTexCoords)
+{
+    RwUInt32 stride = 0;
+    RwUInt32 i;
+
+    if (!fmt) {
+        fmt = &DlDefaultVtxFmt;
+    }
+
+    if (flags & rpGEOMETRYPOSITIONS) {
+        data->posStride = compSizes[fmt->posType] * 3;
+        stride = data->posStride;
+    }
+    if (flags & rxGEOMETRY_NORMALS) {
+        data->nrmStride = compSizes[fmt->nrmType] * (fmt->nbt ? 9 : 3);
+        stride += data->nrmStride;
+    }
+    if (flags & rxGEOMETRY_PRELIT) {
+        data->clrStride = colorSizes[fmt->clrType];
+        stride += data->clrStride;
+    }
+    if (flags & (rxGEOMETRY_TEXTURED | rxGEOMETRY_TEXTURED2)) {
+        for (i = 0; i < numTexCoords; i++) {
+            data->texStride[i] = compSizes[fmt->texType[i]] * 2;
+            stride += data->texStride[i];
+        }
+    }
+
+    if (fmt->flags & rpGCVTXFMTINTERLEAVED) {
+        data->posStride = stride;
+        data->nrmStride = stride;
+        data->clrStride = stride;
+        for (i = 0; i < numTexCoords; i++) {
+            data->texStride[i] = stride;
+        }
+    }
+}
+
+void _rxGCInstanceGeometryArrays(RpGeometry* geometry, RxGameCubeInstanceData* data, RpGameCubeVtxFmt* fmt, RwUInt32 flags,
+                 RwUInt8 numTexCoords, RwUInt8* dst)
+{
+    RwInt32 numVerts = geometry->numVertices;
+
+    if (!fmt) {
+        fmt = &DlDefaultVtxFmt;
+    }
+    GCSetupStrides(fmt, data, flags, numTexCoords);
+
+    if (flags & rpGEOMETRYPOSITIONS) {
+        RwUInt32 size = _rwGCNVtxFmtInstPos(fmt, dst, geometry->morphTarget->verts, numVerts, data->posStride);
+
+        data->posData = dst;
+        dst += size;
+    }
+    if (flags & rxGEOMETRY_NORMALS) {
+        RwUInt32 size = _rwGCNVtxFmtInstNrm(fmt, dst, geometry->morphTarget->normals, numVerts, data->nrmStride);
+
+        data->nrmData = dst;
+        dst += size;
+    }
+    if (flags & rxGEOMETRY_PRELIT) {
+        RwUInt32 size = _rwGCNVtxFmtInstNBT(fmt, dst, geometry->preLitLum, numVerts, data->clrStride);
+
+        data->clrData = dst;
+        dst += size;
+    }
+    if (flags & (rxGEOMETRY_TEXTURED | rxGEOMETRY_TEXTURED2)) {
+        RwInt32 i;
+
+        for (i = 0; i < numTexCoords; i++) {
+            RwUInt32 size = _rwGCNVtxFmtInstTex(fmt, i, dst, RpGeometryGetVertexTexCoords(geometry, i + 1), numVerts, data->texStride[i]);
+
+            data->texData[i] = dst;
+            dst += size;
+        }
+    }
+}
+
+void _rxGCInstanceWorldSectorArrays(RpWorldSector* sector, RxGameCubeInstanceData* data, RpGameCubeVtxFmt* fmt, RwUInt32 flags,
+                 RwUInt8 numTexCoords, RwUInt8* dst)
+{
+    RwInt32 numVerts = RpWorldSectorGetNumVertices(sector);
+
+    if (!fmt) {
+        fmt = &DlDefaultVtxFmt;
+    }
+    GCSetupStrides(fmt, data, flags, numTexCoords);
+
+    if (flags & rpGEOMETRYPOSITIONS) {
+        RwUInt32 size = _rwGCNVtxFmtInstPos(fmt, dst, sector->vertices, numVerts, data->posStride);
+
+        data->posData = dst;
+        dst += size;
+    }
+    if (flags & rxGEOMETRY_NORMALS) {
+        RwUInt32 size =
+            _rwGCNVtxFmtInstNrmCmp(fmt, dst, (RpVertexNormal*)sector->normals, numVerts, data->nrmStride);
+
+        data->nrmData = dst;
+        dst += size;
+    }
+    if (flags & rxGEOMETRY_PRELIT) {
+        RwUInt32 size = _rwGCNVtxFmtInstNBT(fmt, dst, sector->preLitLum, numVerts, data->clrStride);
+
+        data->clrData = dst;
+        dst += size;
+    }
+    if (flags & (rxGEOMETRY_TEXTURED | rxGEOMETRY_TEXTURED2)) {
+        RwInt32 i;
+
+        for (i = 0; i < numTexCoords; i++) {
+            RwUInt32 size = _rwGCNVtxFmtInstTex(fmt, i, dst, sector->texCoords[i], numVerts, data->texStride[i]);
+
+            data->texData[i] = dst;
+            dst += size;
+        }
+    }
+}
+
+void _rxGCSetVtxDescs(RpGameCubeVtxFmt* fmt, RxGameCubeRenderData* renderData)
+{
+    RwInt32 attr;
+    RxGameCubeInstanceData* data;
+    RwInt32 i;
+
+    if (!fmt) {
+        fmt = &DlDefaultVtxFmt;
+    }
+    data = RESENTRYDATA(renderData->repEntry);
+
+    GXClearVtxDesc();
+    GXSetVtxDesc(GX_VA_POS, data->descType);
+    GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, fmt->posType, fmt->posFrac);
+    GXSetArray(GX_VA_POS, data->posData, data->posStride);
+
+    if (renderData->flags & rxGEOMETRY_NORMALS) {
+        if (fmt->nbt) {
+            GXSetVtxDesc(GX_VA_NBT, data->descType);
+            GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_NBT, GX_NRM_NBT, fmt->nrmType, 0);
+            GXSetArray(GX_VA_NBT, data->nrmData, data->nrmStride);
+        } else {
+            GXSetVtxDesc(GX_VA_NRM, data->descType);
+            GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_NRM, GX_NRM_XYZ, fmt->nrmType, 0);
+            GXSetArray(GX_VA_NRM, data->nrmData, data->nrmStride);
+        }
+    }
+
+    if (renderData->flags & rxGEOMETRY_PRELIT) {
+        GXSetVtxDesc(GX_VA_CLR0, data->descType);
+        GXSetVtxAttrFmt(GX_VTXFMT0, GX_VA_CLR0, fmt->clrType > GX_RGBX8 ? GX_CLR_RGBA : GX_CLR_RGB, fmt->clrType, 0);
+        GXSetArray(GX_VA_CLR0, data->clrData, data->clrStride);
+    }
+
+    if (renderData->flags & (rxGEOMETRY_TEXTURED | rxGEOMETRY_TEXTURED2)) {
+        for (i = 0; i < 8 && data->texData[i]; i++) {
+            attr = GX_VA_TEX0 + i;
+            GXSetVtxDesc(attr, data->descType);
+            GXSetVtxAttrFmt(GX_VTXFMT0, attr, GX_TEX_ST, fmt->texType[i], fmt->texFrac[i]);
+            GXSetArray(attr, data->texData[i], data->texStride[i]);
+        }
+    }
 }
