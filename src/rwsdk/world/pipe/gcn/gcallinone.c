@@ -19,6 +19,19 @@
 #define rxGEOMETRY_TEXTURED2 0x80
 
 #define GX_COLOR1A1 5
+
+#define GX_U8 0
+#define GX_S8 1
+#define GX_U16 2
+#define GX_S16 3
+
+#define GX_RGB565 0
+#define GX_RGB8 1
+#define GX_RGBX8 2
+#define GX_RGBA4 3
+#define GX_RGBA6 4
+
+void* memcpy(void* dst, const void* src, RwUInt32 n);
 #define GX_DF_CLAMP 2
 #define GX_AF_SPOT 1
 
@@ -89,6 +102,14 @@ typedef struct RpGameCubeVtxFmt {
 } RpGameCubeVtxFmt;
 
 #define rpGCVTXFMTINTERLEAVED 0x02
+
+/* World sector normals are packed into signed bytes. */
+typedef struct RpVertexNormal {
+    RwInt8 x;
+    RwInt8 y;
+    RwInt8 z;
+    RwUInt8 pad;
+} RpVertexNormal;
 
 /* A display list replayed for one mesh. */
 typedef struct RxGameCubeDisplayList {
@@ -457,4 +478,301 @@ RwUInt32 fn_80159380(const RpGameCubeVtxFmt* fmt, RwUInt32 flags, RwUInt32 numVe
     }
 
     return size;
+}
+
+RwUInt32 fn_801597AC(const RpGameCubeVtxFmt* fmt, void* dst, const RwV3d* src, RwInt32 numVerts, RwUInt8 stride)
+{
+    RwInt32 i;
+
+    if (!fmt) {
+        fmt = &DlDefaultVtxFmt;
+    }
+
+    switch (fmt->posType) {
+    case GX_U8: {
+        RwReal scale = (RwReal)(1 << fmt->posFrac);
+        RwUInt8* d = (RwUInt8*)dst;
+        RwInt32 j;
+
+        for (j = 0; j < numVerts; j++) {
+            d[0] = src->x * scale;
+            d[1] = src->y * scale;
+            d[2] = src->z * scale;
+            src++;
+            d += stride;
+        }
+        break;
+    }
+    case GX_S8: {
+        RwReal scale = (RwReal)(1 << fmt->posFrac);
+        RwInt8* d = (RwInt8*)dst;
+        RwInt32 j;
+
+        for (j = 0; j < numVerts; j++) {
+            d[0] = src->x * scale;
+            d[1] = src->y * scale;
+            d[2] = src->z * scale;
+            src++;
+            d += stride;
+        }
+        break;
+    }
+    case GX_U16: {
+        RwReal scale = (RwReal)(1 << fmt->posFrac);
+        RwUInt16* d = (RwUInt16*)dst;
+        RwInt32 j;
+
+        for (j = 0; j < numVerts; j++) {
+            d[0] = src->x * scale;
+            d[1] = src->y * scale;
+            d[2] = src->z * scale;
+            src++;
+            d = (RwUInt16*)((RwUInt8*)d + stride);
+        }
+        break;
+    }
+    case GX_S16: {
+        RwReal scale = (RwReal)(1 << fmt->posFrac);
+        RwInt16* d = (RwInt16*)dst;
+        RwInt32 j;
+
+        for (j = 0; j < numVerts; j++) {
+            d[0] = src->x * scale;
+            d[1] = src->y * scale;
+            d[2] = src->z * scale;
+            src++;
+            d = (RwInt16*)((RwUInt8*)d + stride);
+        }
+        break;
+    }
+    case GX_F32:
+        if (fmt->flags & rpGCVTXFMTINTERLEAVED) {
+            RwV3d* d = (RwV3d*)dst;
+
+            for (i = 0; i < numVerts; i++) {
+                *d = *src;
+                src++;
+                d = (RwV3d*)((RwUInt8*)d + stride);
+            }
+        } else {
+            memcpy(dst, src, numVerts * compSizes[fmt->posType] * 3);
+        }
+        break;
+    }
+
+    if (fmt->flags & rpGCVTXFMTINTERLEAVED) {
+        return compSizes[fmt->posType] * 3;
+    }
+    return (numVerts * compSizes[fmt->posType] * 3 + 31) & ~31;
+}
+
+RwUInt32 _rwGCNVtxFmtInstNrm(const RpGameCubeVtxFmt* fmt, void* dst, const RwV3d* src, RwInt32 numVerts,
+                             RwUInt8 stride)
+{
+    if (!fmt) {
+        fmt = &DlDefaultVtxFmt;
+    }
+
+    switch (fmt->nrmType) {
+    case GX_U8:
+        break;
+    case GX_S8: {
+        RwReal scale = 64.0f;
+        RwInt8* d = (RwInt8*)dst;
+        RwInt32 i;
+
+        for (i = 0; i < numVerts; i++) {
+            d[0] = src->x * scale;
+            d[1] = src->y * scale;
+            d[2] = src->z * scale;
+            src++;
+            d += stride;
+        }
+        break;
+    }
+    case GX_U16:
+        break;
+    case GX_S16: {
+        RwReal scale = 16384.0f;
+        RwInt16* d = (RwInt16*)dst;
+        RwInt32 i;
+
+        for (i = 0; i < numVerts; i++) {
+            d[0] = src->x * scale;
+            d[1] = src->y * scale;
+            d[2] = src->z * scale;
+            src++;
+            d = (RwInt16*)((RwUInt8*)d + stride);
+        }
+        break;
+    }
+    case GX_F32:
+        if ((fmt->flags & rpGCVTXFMTINTERLEAVED) || fmt->nbt) {
+            RwV3d* d = (RwV3d*)dst;
+            RwInt32 i;
+
+            for (i = 0; i < numVerts; i++) {
+                *d = *src;
+                src++;
+                d = (RwV3d*)((RwUInt8*)d + stride);
+            }
+        } else {
+            memcpy(dst, src, numVerts * compSizes[fmt->nrmType] * 3);
+        }
+        break;
+    }
+
+    if (fmt->flags & rpGCVTXFMTINTERLEAVED) {
+        return compSizes[fmt->nrmType] * (fmt->nbt ? 9 : 3);
+    }
+    return ((fmt->nbt ? 9 : 3) * (numVerts * compSizes[fmt->nrmType]) + 31) & ~31;
+}
+
+RwUInt32 _rwGCNVtxFmtInstNrmCmp(const RpGameCubeVtxFmt* fmt, void* dst, const RpVertexNormal* src, RwInt32 numVerts,
+                                RwUInt8 stride)
+{
+    if (!fmt) {
+        fmt = &DlDefaultVtxFmt;
+    }
+
+    switch (fmt->nrmType) {
+    case GX_U8:
+        break;
+    case GX_S8: {
+        RwInt32 i;
+        RwInt8* d = (RwInt8*)dst;
+        RwReal scale = 64.0f;
+
+        for (i = numVerts; i > 0; i--) {
+            RwInt8 x = src->x * (1.0f / 128.0f);
+            RwInt8 y = src->y * (1.0f / 128.0f);
+            RwInt8 z = src->z * (1.0f / 128.0f);
+
+            d[0] = x * scale;
+            d[1] = y * scale;
+            d[2] = z * scale;
+            src++;
+            d += stride;
+        }
+        break;
+    }
+    case GX_U16:
+        break;
+    case GX_S16: {
+        RwInt32 i;
+        RwInt16* d = (RwInt16*)dst;
+        RwReal scale = 16384.0f;
+
+        for (i = numVerts; i > 0; i--) {
+            RwInt8 x = src->x * (1.0f / 128.0f);
+            RwInt8 y = src->y * (1.0f / 128.0f);
+            RwInt8 z = src->z * (1.0f / 128.0f);
+
+            d[0] = x * scale;
+            d[1] = y * scale;
+            d[2] = z * scale;
+            src++;
+            d = (RwInt16*)((RwUInt8*)d + stride);
+        }
+        break;
+    }
+    case GX_F32: {
+        RwInt32 i;
+        RwV3d* d = (RwV3d*)dst;
+
+        for (i = 0; i < numVerts; i++) {
+            d->x = src->x * (1.0f / 128.0f);
+            d->y = src->y * (1.0f / 128.0f);
+            d->z = src->z * (1.0f / 128.0f);
+            src++;
+            d = (RwV3d*)((RwUInt8*)d + stride);
+        }
+        break;
+    }
+    }
+
+    if (fmt->flags & rpGCVTXFMTINTERLEAVED) {
+        return compSizes[fmt->nrmType] * (fmt->nbt ? 9 : 3);
+    }
+    return ((fmt->nbt ? 9 : 3) * (numVerts * compSizes[fmt->nrmType]) + 31) & ~31;
+}
+
+RwUInt32 _rwGCNVtxFmtInstNBT(const RpGameCubeVtxFmt* fmt, void* dst, const RwRGBA* src, RwInt32 numVerts,
+                             RwUInt8 stride)
+{
+    if (!fmt) {
+        fmt = &DlDefaultVtxFmt;
+    }
+
+    switch (fmt->clrType) {
+    case GX_RGB565: {
+        RwUInt16* d = (RwUInt16*)dst;
+        RwInt32 i;
+
+        for (i = 0; i < numVerts; i++) {
+            *d = ((src->red << 8) & 0xF800) | ((src->green << 3) & 0x07E0) | ((src->blue >> 3) & 0x001F);
+            src++;
+            d = (RwUInt16*)((RwUInt8*)d + stride);
+        }
+        break;
+    }
+    case GX_RGB8: {
+        RwUInt8* d = (RwUInt8*)dst;
+        RwInt32 i;
+
+        for (i = 0; i < numVerts; i++) {
+            d[0] = src->red;
+            d[1] = src->green;
+            d[2] = src->blue;
+            src++;
+            d += stride;
+        }
+        break;
+    }
+    case GX_RGBA4: {
+        RwUInt16* d = (RwUInt16*)dst;
+        RwInt32 i;
+
+        for (i = 0; i < numVerts; i++) {
+            *d = ((src->red << 8) & 0xF000) | ((src->green << 4) & 0x0F00) | (src->blue & 0x00F0) |
+                 ((src->alpha >> 4) & 0x000F);
+            src++;
+            d = (RwUInt16*)((RwUInt8*)d + stride);
+        }
+        break;
+    }
+    case GX_RGBA6: {
+        RwUInt8* d = (RwUInt8*)dst;
+        RwInt32 i;
+
+        for (i = 0; i < numVerts; i++) {
+            d[0] = (src->red & 0xFC) | ((src->green >> 6) & 0x03);
+            d[1] = ((src->green << 2) & 0xF0) | ((src->blue >> 4) & 0x0F);
+            d[2] = ((src->blue << 4) & 0xC0) | ((src->alpha >> 2) & 0x3F);
+            src++;
+            d += stride;
+        }
+        break;
+    }
+    case GX_RGBX8:
+    case GX_RGBA8:
+        if (fmt->flags & rpGCVTXFMTINTERLEAVED) {
+            RwUInt32* d = (RwUInt32*)dst;
+            RwInt32 i;
+
+            for (i = 0; i < numVerts; i++) {
+                *d = *(const RwUInt32*)src;
+                src++;
+                d = (RwUInt32*)((RwUInt8*)d + stride);
+            }
+        } else {
+            memcpy(dst, src, numVerts * colorSizes[fmt->clrType]);
+        }
+        break;
+    }
+
+    if (fmt->flags & rpGCVTXFMTINTERLEAVED) {
+        return colorSizes[fmt->clrType];
+    }
+    return (numVerts * colorSizes[fmt->clrType] + 31) & ~31;
 }
