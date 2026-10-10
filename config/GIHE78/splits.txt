@@ -1541,6 +1541,12 @@ rwsdk/world/pipe/nodeAtomicEnumerateLights.c:
 	.data       start:0x801DD568 end:0x801DD5F0
 	.sdata      start:0x8025E798 end:0x8025E7A0
 
+rwsdk/world/pipe/nodePostLight.c:
+	.text       start:0x801571CC end:0x80157880
+	.data       start:0x801DD838 end:0x801DD8E8
+	.sdata      start:0x8025E7A8 end:0x8025E7B0
+	.sdata2     start:0x80262960 end:0x80262970
+
 rwsdk/world/pipe/nodeWorldSectorEnumerateLights.c:
 	.text       start:0x80157880 end:0x80157A3C
 	.data       start:0x801DD8E8 end:0x801DD970
