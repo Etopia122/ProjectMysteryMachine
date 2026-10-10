@@ -776,6 +776,7 @@ config.libs = [
             Object(Matching, "rwsdk/world/baworobj.c"),
             Object(Matching, "rwsdk/world/pipe/wrldpipe.c"),
             Object(Matching, "rwsdk/world/pipe/nodeAtomicEnumerateLights.c"),
+            Object(Matching, "rwsdk/world/pipe/nodeMaterialScatter.c"),
             Object(NonMatching, "rwsdk/world/pipe/nodePostLight.c"),
             Object(NonMatching, "rwsdk/world/pipe/nodeWorldSectorEnumerateLights.c"),
             Object(Matching, "rwsdk/world/pipe/gcn/gcvtxfmt.c"),
