@@ -21,8 +21,12 @@ The game data comes from the player's own GameCube disc and lives on the SD card
   copied to `sdmc:/scooby/fmv`. Theora decodes in software (~3-6 ms a frame);
   the hardware Y2R unit converts each picture straight into the GPU texture
   (0.6 ms; `PC_FMV_CPU=1` uses the CPU instead). Full 29.97 fps with sound.
-- Not done yet: lines/points (no such primitives), bottom
-  screen use, real-hardware testing.
+- HUD on the bottom screen: `zHud_Render` draws there (its 640x480 space at
+  half size), and the HUD stays up during play instead of sliding away after
+  two seconds; it still hides for cutscenes. `PC_HUD_TOP=1` puts it back on
+  the top screen with the original timing (the bottom screen then shows the
+  text console).
+- Not done yet: lines/points (no such primitives), real-hardware testing.
 
 ## Layout
 

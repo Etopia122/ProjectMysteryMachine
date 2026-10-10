@@ -76,6 +76,12 @@ bool gpu_ready();
 void gpu_set_target(PcRaster* target);
 PcRaster* gpu_target();
 
+// A second screen (the 3DS bottom screen) for the HUD: while it is selected,
+// screen draws (no target) go to it, with the same 640x480 space. Each frame
+// starts on the main screen.
+bool gpu_second_screen();
+void gpu_select_screen(int screen); // 0 main, 1 second
+
 void gpu_set_projection(const float* m);
 void gpu_set_modelview(const float* m);
 

@@ -627,6 +627,12 @@ void zHud_Init()
     sShakeSnackCounter = 0;
 }
 
+#ifdef PC_PORT
+// The port's renderer: a second screen for the HUD (the New 3DS bottom screen).
+extern "C" int pc_render_hud_second_screen();
+extern "C" void pc_render_hud_screen(int on);
+#endif
+
 void zHud_Setup(_xScene* sc)
 {
     for (signed int i = 0; i < eHudCount; i++)
@@ -652,6 +658,15 @@ void zHud_Update(_xScene* sc, float dt)
     {
         zHudShow();
     }
+
+#ifdef PC_PORT
+    // On its own screen the HUD stays up, as if Y were held (it still hides for
+    // cutscenes below).
+    if (pc_render_hud_second_screen())
+    {
+        zHudShow();
+    }
+#endif
 
     if (zGameModeGet() == 2 || xScrFxIsLetterbox() || globals.cmgr != NULL)
     {
@@ -688,11 +703,17 @@ void zHud_Update(_xScene* sc, float dt)
 
 void zHud_Render()
 {
+#ifdef PC_PORT
+    pc_render_hud_screen(1);
+#endif
     RwCameraClear(RwEngineInstance->curCamera, NULL, 2);
     for (signed int i = 0; i < eHudCount; i++)
     {
         sHudElements[i].hudRender();
     }
+#ifdef PC_PORT
+    pc_render_hud_screen(0);
+#endif
 }
 
 void zHudElementsCB_PlayerStatusInit()

@@ -132,6 +132,20 @@ void pc_events_pump()
 
 extern "C" void pc_set_clipboard(const char* text) {}
 
+// The renderer takes the bottom screen for the HUD: the text console stops
+// there (anything printed goes to the log) and the screen gets the renderer's
+// format back.
+extern "C" void n3ds_console_off()
+{
+    fflush(stdout);
+    if (freopen(N3DS_BASE "log.txt", "a", stdout))
+    {
+        setvbuf(stdout, NULL, _IOLBF, 1024);
+    }
+    gfxSetScreenFormat(GFX_BOTTOM, GSP_BGR8_OES);
+    gfxSetDoubleBuffering(GFX_BOTTOM, true);
+}
+
 extern "C" const char* pc_debug_key_hint(int which)
 {
     return which == PC_HINT_MENU ? "SELECT" : which == PC_HINT_SAVE ? "ZL+X" : "ZL+Y";

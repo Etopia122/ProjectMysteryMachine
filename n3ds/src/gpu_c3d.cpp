@@ -3,6 +3,9 @@
 // The game's 640x480 frame is drawn into a 320x240 4:3 area in the middle of
 // the 400x240 top screen. The top screen's framebuffer is mounted sideways,
 // so screen draws get a quarter-turn rotation on top of the projection.
+// The HUD goes to the bottom screen instead (gpu_select_screen): the same
+// 640x480 space at half size fills its 320x240. PC_HUD_TOP=1 keeps it on top
+// (and the bottom screen for the text console).
 // Vertex data is copied per draw into a per-frame arena in linear memory.
 #include <3ds.h>
 #include <citro3d.h>
@@ -14,12 +17,14 @@
 #include "pc_platform.h"
 #include "scene_shbin.h"
 
+extern "C" void n3ds_console_off(); // main.cpp
+
 #define DISPLAY_TRANSFER_FLAGS \
     (GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
      GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
      GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
 
-enum { SCREEN_W = 400, SCREEN_H = 240, GAME_W = 320, GAME_H = 240 };
+enum { SCREEN_W = 400, SCREEN_H = 240, GAME_W = 320, GAME_H = 240, BOTTOM_W = 320 };
 
 struct Vert
 {
@@ -38,6 +43,8 @@ struct C3dRaster
 };
 
 static C3D_RenderTarget* s_top;
+static C3D_RenderTarget* s_bottom; // NULL: the HUD stays on the top screen
+static int s_screen;               // where screen draws go: 0 top, 1 bottom
 static DVLB_s* s_dvlb;
 static shaderProgram_s s_program;
 static int s_uMvp, s_uUvScale;
@@ -92,6 +99,16 @@ bool gpu_open()
     C3D_Init(C3D_DEFAULT_CMDBUF_SIZE * 8);
     s_top = C3D_RenderTargetCreate(SCREEN_H, SCREEN_W, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
     C3D_RenderTargetSetOutput(s_top, GFX_TOP, GFX_LEFT, DISPLAY_TRANSFER_FLAGS);
+    const char* hudTop = getenv("PC_HUD_TOP");
+    if (!hudTop || !atoi(hudTop))
+    {
+        s_bottom = C3D_RenderTargetCreate(SCREEN_H, BOTTOM_W, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
+        if (s_bottom)
+        {
+            n3ds_console_off();
+            C3D_RenderTargetSetOutput(s_bottom, GFX_BOTTOM, GFX_LEFT, DISPLAY_TRANSFER_FLAGS);
+        }
+    }
     s_dvlb = DVLB_ParseFile((u32*)scene_shbin, scene_shbin_size);
     shaderProgramInit(&s_program);
     shaderProgramSetVsh(&s_program, &s_dvlb->DVLE[0]);
@@ -121,6 +138,11 @@ void gpu_close()
 
 bool gpu_ready() { return s_top != NULL; }
 
+bool gpu_second_screen() { return s_bottom != NULL; }
+
+// Where screen draws (no render target) go.
+static C3D_RenderTarget* screen_target() { return s_screen && s_bottom ? s_bottom : s_top; }
+
 static void begin_frame()
 {
     if (s_inFrame)
@@ -137,6 +159,13 @@ static void begin_frame()
     s_arenaFull = false;
     s_lastDyn.out = NULL;
     s_target = NULL;
+    s_screen = 0;
+    if (s_bottom)
+    {
+        // A blank bottom screen in frames that draw no HUD (menus, movies).
+        C3D_RenderTargetClear(s_bottom, C3D_CLEAR_ALL, 0x000000FF, 0);
+        C3D_FrameDrawOn(s_bottom);
+    }
     C3D_FrameDrawOn(s_top);
 }
 
@@ -296,6 +325,11 @@ static void set_viewport()
         // the padded texture.
         C3D_SetViewport(0, c->tex.height - s_target->r.height, s_target->r.width, s_target->r.height);
     }
+    else if (screen_target() == s_bottom)
+    {
+        // The whole bottom screen (rotated: 240 wide, 320 tall).
+        C3D_SetViewport(0, 0, SCREEN_H, BOTTOM_W);
+    }
     else
     {
         // The rotated framebuffer is 240 wide and 400 tall.
@@ -315,7 +349,7 @@ static void bind_target(PcRaster* p)
         }
     }
     s_target = p;
-    C3D_FrameDrawOn(p ? ((C3dRaster*)p->gpu)->target : s_top);
+    C3D_FrameDrawOn(p ? ((C3dRaster*)p->gpu)->target : screen_target());
     set_viewport();
     s_mvpDirty = true;
 }
@@ -326,6 +360,16 @@ void gpu_set_target(PcRaster* target)
 }
 
 PcRaster* gpu_target() { return s_target; }
+
+void gpu_select_screen(int screen)
+{
+    begin_frame();
+    s_screen = screen;
+    if (!s_target)
+    {
+        bind_target(NULL);
+    }
+}
 
 void gpu_set_projection(const float* m)
 {
@@ -395,7 +439,7 @@ static void load_mvp()
 void gpu_clear(PcRaster* target, const RwRGBA* col, bool depth)
 {
     begin_frame();
-    C3D_RenderTarget* t = s_top;
+    C3D_RenderTarget* t = screen_target();
     if (target)
     {
         create_target(target);
@@ -731,6 +775,7 @@ static void draw_converted(const GpuState& s, Vert* out, GpuPrim prim, GPU_Primi
 int gpu_overlay_begin(int* width, int* height)
 {
     // The overlay uses the game area (640x480 pixels at half size on screen).
+    s_screen = 0;
     gpu_set_target(NULL);
     *width = 640;
     *height = 480;

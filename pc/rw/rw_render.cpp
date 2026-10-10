@@ -441,6 +441,20 @@ void pc_render_end_camera(RwCamera* c)
     gpu_set_target(NULL);
 }
 
+// The HUD (zHud_Render) on a second screen, when the backend has one.
+extern "C" int pc_render_hud_second_screen()
+{
+    return s_open && gpu_second_screen();
+}
+
+extern "C" void pc_render_hud_screen(int on)
+{
+    if (pc_render_hud_second_screen())
+    {
+        gpu_select_screen(on ? 1 : 0);
+    }
+}
+
 void pc_render_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
 {
     if (!s_open)
