@@ -1150,6 +1150,10 @@ static GpuVerts im2d_verts(RwIm2DVertex* v, int n)
 // their winding, so no culling either.
 static GpuState im2d_state(RwIm2DVertex* v, int n)
 {
+    // RenderWare's 2D path sets its own alpha compare on GameCube, ending one
+    // the game set through GX (the alpha models' "alpha >= 128" would hide the
+    // half-transparent unselected menu items).
+    pc_render_reset_gx_alpha();
     PcRaster* tex = use_texture(s_rs.raster);
     GpuState s = draw_state(im2d_alpha(v, n), tex, s_rs.filter, s_rs.addrU, s_rs.addrV);
     s.zTest = false;
@@ -1185,10 +1189,11 @@ RwInt32 RwIm2DRenderPrimitive(RwInt32 primType, RwIm2DVertex* v, RwInt32 n)
     s_st.im2d++;
     if (trace_frame())
     {
-        pc_log("[trace] im2d prim %d n %d raster %p (%.0f,%.0f)-(%.0f,%.0f) col %02x%02x%02x%02x blend %d/%d va %d",
+        pc_log("[trace] im2d prim %d n %d raster %p (%.0f,%.0f)-(%.0f,%.0f) col %02x%02x%02x%02x blend %d/%d va %d "
+               "atest %d/%d gx %d/%d",
                primType, n, s_rs.raster, v[0].x, v[0].y, v[n - 1].x, v[n - 1].y, v[0].emissiveColor.red,
                v[0].emissiveColor.green, v[0].emissiveColor.blue, v[0].emissiveColor.alpha, s_rs.srcBlend,
-               s_rs.dstBlend, s_rs.vertexAlpha);
+               s_rs.dstBlend, s_rs.vertexAlpha, s_rs.alphaFunc, s_rs.alphaRef, s_gxAlphaFunc, s_gxAlphaRef);
     }
     ProfScope prof(PROF_IM);
     begin_2d();
