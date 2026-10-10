@@ -1673,6 +1673,11 @@ rwsdk/src/batextur.c:
 rwsdk/src/baobject.c:
 	.text       start:0x80171450 end:0x801714EC
 
+rwsdk/src/palquant.c:
+	.text       start:0x801714EC end:0x80173D28
+	.bss        start:0x8025DE90 end:0x8025E290
+	.sdata2     start:0x80262B18 end:0x80262B30
+
 rwsdk/driver/gcn/dlim2d.c:
 	.text       start:0x80173D28 end:0x801753BC
 	.data       start:0x801DDCC0 end:0x801DDD10
