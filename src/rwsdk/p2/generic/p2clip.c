@@ -141,14 +141,14 @@ static RwUInt32 ClipPolygonPlaneSimple(RxCluster* camVerts, RxCluster* devVerts,
     return (out - cur) & (rxCLIPRINGSIZE - 1);
 }
 
-RwUInt32 _rxClipPolygonPlane(RxCluster* camVerts, RxCluster* devVerts, RxCluster* interps, RxVertexIndex* ring,
+RwInt32 _rxClipPolygonPlane(RxCluster* camVerts, RxCluster* devVerts, RxCluster* interps, RxVertexIndex* ring,
                              RwUInt32* start, RwUInt32* end, RwUInt32 plane, RxClipPlaneFn clipFn)
 {
     return (interps ? ClipPolygonPlaneInterp : ClipPolygonPlaneSimple)(camVerts, devVerts, interps, ring, start, end,
                                                                       plane, clipFn);
 }
 
-RwUInt32 _rxClipLinePlane(RxCluster* camVerts, RxCluster* devVerts, RxVertexIndex* ring, RwUInt32* start,
+RwInt32 _rxClipLinePlane(RxCluster* camVerts, RxCluster* devVerts, RxVertexIndex* ring, RwUInt32* start,
                           RwUInt32* end, RwUInt32 plane, RxClipPlaneFn clipFn)
 {
     RxScrSpace2DVertex* dev1;

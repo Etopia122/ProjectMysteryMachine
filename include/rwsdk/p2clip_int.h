@@ -72,9 +72,9 @@ typedef RwReal (*RxClipPlaneFn)(RxCamSpace3DVertex* out, RxCamSpace3DVertex* in1
 #define rxCLIPRINGSIZE 16
 #define rxCLIPRINGNEXT(i) (((i) + 1) & (rxCLIPRINGSIZE - 1))
 
-RwUInt32 _rxClipPolygonPlane(RxCluster* camVerts, RxCluster* devVerts, RxCluster* interps, RxVertexIndex* ring,
+RwInt32 _rxClipPolygonPlane(RxCluster* camVerts, RxCluster* devVerts, RxCluster* interps, RxVertexIndex* ring,
                              RwUInt32* start, RwUInt32* end, RwUInt32 plane, RxClipPlaneFn clipFn);
-RwUInt32 _rxClipLinePlane(RxCluster* camVerts, RxCluster* devVerts, RxVertexIndex* ring, RwUInt32* start,
+RwInt32 _rxClipLinePlane(RxCluster* camVerts, RxCluster* devVerts, RxVertexIndex* ring, RwUInt32* start,
                           RwUInt32* end, RwUInt32 plane, RxClipPlaneFn clipFn);
 
 RwReal _rxClipZLoPersp(RxCamSpace3DVertex* out, RxCamSpace3DVertex* in1, RxCamSpace3DVertex* in2,
