@@ -5,7 +5,7 @@
  * second output.
  */
 
-#include "rwsdk/baim3d_int.h"
+#include "rwsdk/p2clip_int.h"
 #include "rwsdk/rpworld_int.h"
 
 extern RxClusterDefinition RxClObjSpace3DVertices;
@@ -18,52 +18,6 @@ extern RxClusterDefinition RxClMeshState;
 #define rxGEOMETRY_TEXTURED 0x04
 #define rxGEOMETRY_PRELIT 0x08
 #define rxGEOMETRY_COLORED 0x100
-
-#define rwXLOCLIP 0x01
-#define rwXHICLIP 0x02
-#define rwYLOCLIP 0x04
-#define rwYHICLIP 0x08
-#define rwZLOCLIP 0x10
-#define rwZHICLIP 0x20
-
-typedef struct RwRGBAReal {
-    RwReal red;
-    RwReal green;
-    RwReal blue;
-    RwReal alpha;
-} RwRGBAReal;
-
-typedef struct RxCamSpace3DVertex {
-    /* 0x00 */ RwV3d cameraVertex;
-    /* 0x0C */ RwUInt8 clipFlags;
-    /* 0x0D */ RwUInt8 pad[3];
-    /* 0x10 */ RwRGBAReal col;
-    /* 0x20 */ RwReal u;
-    /* 0x24 */ RwReal v;
-} RxCamSpace3DVertex;
-
-typedef struct RxScrSpace2DVertex {
-    /* 0x00 */ RwReal x;
-    /* 0x04 */ RwReal y;
-    /* 0x08 */ RwReal z;
-    /* 0x0C */ RwRGBA color;
-    /* 0x10 */ RwReal u;
-    /* 0x14 */ RwReal v;
-    /* 0x18 */ RwReal recipZ;
-} RxScrSpace2DVertex;
-
-/* The camera's viewport and clip planes, captured once per packet. */
-typedef struct rwTransformCamera {
-    /* 0x00 */ RwReal zScale;
-    /* 0x04 */ RwReal zShift;
-    /* 0x08 */ RwReal nearClip;
-    /* 0x0C */ RwReal farClip;
-    /* 0x10 */ RwReal xScale;
-    /* 0x14 */ RwReal yScale;
-    /* 0x18 */ RwReal xOffset;
-    /* 0x1C */ RwReal yOffset;
-    /* 0x20 */ RwUInt8 pad[8];
-} rwTransformCamera;
 
 rwTransformCamera _rxTransformCamera;
 
