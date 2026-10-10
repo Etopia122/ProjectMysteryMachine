@@ -248,8 +248,10 @@ RpWorld* RpWorldStreamRead(RwStream* s)
 
 RwInt32 RpMaterialDestroy(RpMaterial* m);
 
-// Collision polygon bounding boxes per sector (see poly_boxes).
-static std::unordered_map<const RpWorldSector*, std::vector<float> > s_polyBoxes;
+// Collision data per sector, built on first use (see sector_coll).
+struct SectorColl;
+static std::unordered_map<const RpWorldSector*, SectorColl*> s_sectorColl;
+static void sector_coll_free(const RpWorldSector* s);
 
 static void free_sector(RpSector* s)
 {
@@ -261,7 +263,7 @@ static void free_sector(RpSector* s)
     {
         RpWorldSector* w = (RpWorldSector*)s;
         pc_render_forget(w);
-        s_polyBoxes.erase(w);
+        sector_coll_free(w);
         rwFree(w->polygons);
         rwFree(w->vertices);
         rwFree(w->normals);
@@ -529,32 +531,161 @@ static bool box_overlap(const RwBBox& b, const RwV3d& mn, const RwV3d& mx)
     return !(mx.x < b.inf.x || mn.x > b.sup.x || mx.y < b.inf.y || mn.y > b.sup.y || mx.z < b.inf.z || mn.z > b.sup.z);
 }
 
-// Bounding boxes of a sector's polygons (inf xyz, sup xyz), built on first
-// use: collision queries skip polygons whose box misses the query's before
-// the exact test.
-
-static const float* poly_boxes(const RpWorldSector* s)
+// A sector's collision data, built on first use: each polygon's bounding box
+// (inf xyz, sup xyz) and a bounding volume tree over them, so a query visits
+// only the polygons near it instead of every box in the sector.
+struct BvhNode
 {
-    std::vector<float>& b = s_polyBoxes[s];
-    if (b.empty() && s->numPolygons > 0)
+    float box[6];
+    int first, count; // leaf: polygons order[first .. first + count)
+    int skip;         // inner node: index of the second child (the first follows it)
+};
+
+struct SectorColl
+{
+    std::vector<float> boxes;
+    std::vector<int> order;
+    std::vector<BvhNode> nodes;
+};
+
+static bool boxes_overlap(const float* a, const RwV3d& mn, const RwV3d& mx)
+{
+    return !(mx.x < a[0] || mn.x > a[3] || mx.y < a[1] || mn.y > a[4] || mx.z < a[2] || mn.z > a[5]);
+}
+
+static void bvh_build(SectorColl* c, int first, int count)
+{
+    int self = (int)c->nodes.size();
+    c->nodes.push_back(BvhNode());
+    float box[6] = { FLT_MAX, FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX };
+    float cmin[3] = { FLT_MAX, FLT_MAX, FLT_MAX }, cmax[3] = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+    for (int i = first; i < first + count; i++)
     {
-        b.resize((size_t)s->numPolygons * 6);
+        const float* b = &c->boxes[(size_t)c->order[i] * 6];
+        for (int k = 0; k < 3; k++)
+        {
+            box[k] = fminf(box[k], b[k]);
+            box[k + 3] = fmaxf(box[k + 3], b[k + 3]);
+            float centre = b[k] + b[k + 3];
+            cmin[k] = fminf(cmin[k], centre);
+            cmax[k] = fmaxf(cmax[k], centre);
+        }
+    }
+    memcpy(c->nodes[self].box, box, sizeof(box));
+    if (count <= 6)
+    {
+        c->nodes[self].first = first;
+        c->nodes[self].count = count;
+        c->nodes[self].skip = 0;
+        return;
+    }
+    // Split at the median along the axis where the polygon centres spread most.
+    int axis = 0;
+    for (int k = 1; k < 3; k++)
+    {
+        if (cmax[k] - cmin[k] > cmax[axis] - cmin[axis])
+        {
+            axis = k;
+        }
+    }
+    const float* boxes = c->boxes.data();
+    int half = count / 2;
+    std::nth_element(c->order.begin() + first, c->order.begin() + first + half, c->order.begin() + first + count,
+                     [boxes, axis](int a, int b) {
+                         return boxes[(size_t)a * 6 + axis] + boxes[(size_t)a * 6 + axis + 3] <
+                                boxes[(size_t)b * 6 + axis] + boxes[(size_t)b * 6 + axis + 3];
+                     });
+    c->nodes[self].first = 0;
+    c->nodes[self].count = 0;
+    bvh_build(c, first, half);
+    c->nodes[self].skip = (int)c->nodes.size();
+    bvh_build(c, first + half, count - half);
+}
+
+static SectorColl* sector_coll(const RpWorldSector* s)
+{
+    SectorColl*& c = s_sectorColl[s];
+    if (!c)
+    {
+        c = new SectorColl;
+        c->boxes.resize((size_t)s->numPolygons * 6);
+        c->order.resize(s->numPolygons);
         for (RwInt32 p = 0; p < s->numPolygons; p++)
         {
             const RpPolygon& poly = s->polygons[p];
             const RwV3d& a = s->vertices[poly.vertIndex[0]];
             const RwV3d& c1 = s->vertices[poly.vertIndex[1]];
             const RwV3d& c2 = s->vertices[poly.vertIndex[2]];
-            float* o = &b[(size_t)p * 6];
+            float* o = &c->boxes[(size_t)p * 6];
             o[0] = fminf(a.x, fminf(c1.x, c2.x));
             o[1] = fminf(a.y, fminf(c1.y, c2.y));
             o[2] = fminf(a.z, fminf(c1.z, c2.z));
             o[3] = fmaxf(a.x, fmaxf(c1.x, c2.x));
             o[4] = fmaxf(a.y, fmaxf(c1.y, c2.y));
             o[5] = fmaxf(a.z, fmaxf(c1.z, c2.z));
+            c->order[p] = p;
+        }
+        if (s->numPolygons > 0)
+        {
+            c->nodes.reserve((size_t)s->numPolygons / 2 + 1);
+            bvh_build(c, 0, s->numPolygons);
         }
     }
-    return b.data();
+    return c;
+}
+
+static void sector_coll_free(const RpWorldSector* s)
+{
+    std::unordered_map<const RpWorldSector*, SectorColl*>::iterator it = s_sectorColl.find(s);
+    if (it != s_sectorColl.end())
+    {
+        delete it->second;
+        s_sectorColl.erase(it);
+    }
+}
+
+// The polygons of a sector whose boxes overlap mn-mx, in index order (the
+// order the callbacks saw before the tree: some stop at the first hit).
+static void sector_candidates(const RpWorldSector* s, const RwV3d& mn, const RwV3d& mx, std::vector<int>& out)
+{
+    out.clear();
+    SectorColl* c = sector_coll(s);
+    const BvhNode* nodes = c->nodes.data();
+    int stack[64], sp = 0;
+    if (!c->nodes.empty())
+    {
+        stack[sp++] = 0;
+    }
+    while (sp)
+    {
+        int i = stack[--sp];
+        const BvhNode& node = nodes[i];
+        if (!boxes_overlap(node.box, mn, mx))
+        {
+            continue;
+        }
+        if (node.count)
+        {
+            for (int k = node.first; k < node.first + node.count; k++)
+            {
+                int p = c->order[k];
+                if (boxes_overlap(&c->boxes[(size_t)p * 6], mn, mx))
+                {
+                    out.push_back(p);
+                }
+            }
+        }
+        else
+        {
+            // The tree halves each level: 64 entries cover far more polygons than a sector has.
+            stack[sp++] = node.skip;
+            stack[sp++] = i + 1;
+        }
+    }
+    if (out.size() > 1)
+    {
+        std::sort(out.begin(), out.end());
+    }
 }
 
 // Bounds of an intersection primitive.
@@ -664,6 +795,12 @@ RpWorld* RpCollisionWorldForAllIntersections(RpWorld* w, RpIntersection* isx, Wo
     {
         s_cprof.queries[isx->type]++;
     }
+    // Candidate lists, one per nesting level (callbacks may run queries of their own).
+    static std::vector<int> s_cand[8];
+    static int s_depth;
+    std::vector<int> local;
+    std::vector<int>& cand = s_depth < 8 ? s_cand[s_depth] : local;
+    s_depth++;
     std::vector<RpWorldSector*>& v = *pc_world(w)->sectors;
     for (size_t i = 0; i < v.size(); i++)
     {
@@ -672,14 +809,10 @@ RpWorld* RpCollisionWorldForAllIntersections(RpWorld* w, RpIntersection* isx, Wo
         {
             continue;
         }
-        const float* boxes = poly_boxes(s);
-        for (RwInt32 p = 0; p < s->numPolygons; p++)
+        sector_candidates(s, mn, mx, cand);
+        for (size_t ci = 0; ci < cand.size(); ci++)
         {
-            const float* pb = boxes + (size_t)p * 6;
-            if (mx.x < pb[0] || mn.x > pb[3] || mx.y < pb[1] || mn.y > pb[4] || mx.z < pb[2] || mn.z > pb[5])
-            {
-                continue;
-            }
+            RwInt32 p = cand[ci];
             s_cprof.tris++;
             RpPolygon& poly = s->polygons[p];
             RwV3d* a = &s->vertices[poly.vertIndex[0]];
@@ -693,11 +826,13 @@ RpWorld* RpCollisionWorldForAllIntersections(RpWorld* w, RpIntersection* isx, Wo
                 make_coll_tri(&tri, a, b, c, p);
                 if (!cb(isx, s, &tri, d, data))
                 {
+                    s_depth--;
                     return w;
                 }
             }
         }
     }
+    s_depth--;
     return w;
 }
 
