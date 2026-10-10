@@ -23,6 +23,17 @@ static u64 s_startMs;
 
 extern "C" const char* pc_base_path() { return N3DS_BASE; }
 
+// Where the converted movies are: the CIA's RomFS when it carries them, else
+// the SD card.
+static const char* s_fmvDir = N3DS_BASE "fmv/";
+extern "C" const char* n3ds_fmv_dir() { return s_fmvDir; }
+
+static bool is_dir(const char* path)
+{
+    struct stat st;
+    return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
+}
+
 extern "C" void pc_mkdir(const char* path) { mkdir(path, 0777); }
 
 static void thread_entry(void* fn)
@@ -138,7 +149,21 @@ int main(int argc, char** argv)
     // pc_log writes to stderr: keep it in a file (the console shows stdout).
     freopen(N3DS_BASE "log.txt", "w", stderr);
     setvbuf(stderr, NULL, _IOLBF, 1024);
-    setenv("SCOOBY_DATA", N3DS_BASE "files", 1);
+    // Game files and movies: inside the CIA (RomFS) when it was built with them
+    // (n3ds/tools/make_cia.sh), else on the SD card.
+    bool romfs = R_SUCCEEDED(romfsInit());
+    if (romfs && is_dir("romfs:/files"))
+    {
+        setenv("SCOOBY_DATA", "romfs:/files", 1);
+    }
+    else
+    {
+        setenv("SCOOBY_DATA", N3DS_BASE "files", 1);
+    }
+    if (romfs && is_dir("romfs:/fmv"))
+    {
+        s_fmvDir = "romfs:/fmv/";
+    }
     // Debug switches (the PC port's PC_* environment variables): KEY=VALUE
     // lines in env.txt.
     if (FILE* env = fopen(N3DS_BASE "env.txt", "r"))
@@ -160,6 +185,7 @@ int main(int argc, char** argv)
     bool n3ds = false;
     APT_CheckNew3DS(&n3ds);
     printf("Scooby-Doo! Night of 100 Frights\nNew 3DS port (experimental)\n\n");
+    pc_log("[n3ds] data in %s, movies in %s", getenv("SCOOBY_DATA"), s_fmvDir);
     pc_log("[n3ds] start: new3ds %d, app memory %lu KB, linear free %lu KB", n3ds,
            (unsigned long)(osGetMemRegionSize(MEMREGION_APPLICATION) / 1024), (unsigned long)(linearSpaceFree() / 1024));
     if (!n3ds)

@@ -6,7 +6,8 @@
 // until the movie ends, or until one of 'buttons' is pressed after 'time'
 // seconds; the soundtrack goes through the AX mixer's movie queue.
 //
-// FMV/<name>.bik plays sdmc:/scooby/fmv/<name>.ogv; missing movies are skipped.
+// FMV/<name>.bik plays <fmv dir>/<name>.ogv (romfs:/fmv in a CIA built with the
+// movies, else sdmc:/scooby/fmv); missing movies are skipped.
 // Debug: PC_NOFMV=1 skips all movies.
 #include <3ds.h>
 #include <stdio.h>
@@ -22,6 +23,7 @@
 #include "pc_platform.h"
 
 void pc_events_pump();
+extern "C" const char* n3ds_fmv_dir();
 extern "C" void n3ds_fmv_frame_yuv(const unsigned char* y, int ys, const unsigned char* u, const unsigned char* v,
                                    int cs, int w, int h);
 
@@ -396,7 +398,7 @@ signed int iFMVPlay(char* filename, unsigned int buttons, float time)
     {
         name = name.substr(0, dot);
     }
-    std::string path = std::string(pc_base_path()) + "fmv/" + name + ".ogv";
+    std::string path = std::string(n3ds_fmv_dir()) + name + ".ogv";
     FILE* f = fopen(path.c_str(), "rb");
     if (!f)
     {
