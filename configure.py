@@ -785,6 +785,7 @@ config.libs = [
             Object(NonMatching, "rwsdk/world/pipe/gcn/gcallinone.c"),
             Object(Matching, "rwsdk/world/pipe/gcn/gcvtxfmt.c"),
             Object(Matching, "rwsdk/world/pipe/gcn/gcpipe.c"),
+            Object(NonMatching, "rwsdk/world/pipe/gcn/nodeGameCubeAtomicAllInOne.c"),
             Object(NonMatching, "rwsdk/world/pipe/gcn/gcnative.c"),
             Object(Matching, "rwsdk/plugin/collis/ctbsp.c"),
             Object(Matching, "rwsdk/plugin/collis/rpcollis.c"),
