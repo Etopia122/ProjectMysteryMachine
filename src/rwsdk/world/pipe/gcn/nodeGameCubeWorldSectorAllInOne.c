@@ -52,9 +52,9 @@ RwResEntry* RwResourcesAllocateResEntry(void* owner, RwResEntry** ownerRef, RwIn
 RwBool RwResourcesFreeResEntry(RwResEntry* entry);
 void fn_8015F0A4(RwInt32 reset);
 void fn_8015F264(RpLight* light, RxGameCubeRenderData* data);
-RwUInt32 fn_8015ED40(RpMeshHeader* meshHeader, RwInt32 numTexCoords, RwUInt32 indexSize, RwUInt32 flags);
+RwUInt32 fn_8015ED40(RpMeshHeader* meshHeader, RwInt32 numTexCoords, RwInt32 indexSize, RwUInt32 flags);
 void fn_8015EDD0(RxGameCubeDisplayList* displayLists, RwUInt8* dst, RpMeshHeader* meshHeader, RwInt32 numTexCoords,
-                 RwUInt32 indexSize, RwUInt32 flags);
+                 RwInt32 indexSize, RwUInt32 flags);
 
 void DCFlushRange(void* addr, RwUInt32 nBytes);
 void* memset(void* dst, RwInt32 c, RwUInt32 n);

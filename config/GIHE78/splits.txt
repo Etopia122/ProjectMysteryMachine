@@ -1597,6 +1597,12 @@ rwsdk/world/pipe/gcn/nodeGameCubeWorldSectorAllInOne.c:
 	.data       start:0x801DDAD8 end:0x801DDB40
 	.sdata2     start:0x802629C0 end:0x802629C8
 
+rwsdk/world/pipe/gcn/gcdisplist.c:
+	.text       start:0x8015ED40 end:0x8015F51C
+	.data       start:0x801DDB40 end:0x801DDB60
+	.bss        start:0x8025DB38 end:0x8025DD38
+	.sdata2     start:0x802629C8 end:0x802629E0
+
 rwsdk/world/pipe/gcn/gcnative.c:
 	.text       start:0x8015F51C end:0x8015FEA4
 	.sdata      start:0x8025E7C0 end:0x8025E7C8

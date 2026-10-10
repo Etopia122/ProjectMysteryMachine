@@ -89,9 +89,9 @@ RwUInt32 _rwGCNVtxFmtInstTex(RpGameCubeVtxFmt* fmt, RwInt32 index, void* dst, co
                              RwInt32 numVerts, RwUInt8 stride);
 void fn_8015F0A4(RwInt32 reset);
 void fn_8015F264(RpLight* light, RxGameCubeRenderData* data);
-RwUInt32 fn_8015ED40(RpMeshHeader* meshHeader, RwInt32 numTexCoords, RwUInt32 indexSize, RwUInt32 flags);
+RwUInt32 fn_8015ED40(RpMeshHeader* meshHeader, RwInt32 numTexCoords, RwInt32 indexSize, RwUInt32 flags);
 void fn_8015EDD0(RxGameCubeDisplayList* displayLists, RwUInt8* dst, RpMeshHeader* meshHeader, RwInt32 numTexCoords,
-                 RwUInt32 indexSize, RwUInt32 flags);
+                 RwInt32 indexSize, RwUInt32 flags);
 
 void GXSetDrawSync(RwUInt16 token);
 void GXInvalidateVtxCache(void);
