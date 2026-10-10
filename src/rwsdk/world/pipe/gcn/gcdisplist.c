@@ -85,7 +85,7 @@ static inline RwUInt32 GCMeshDisplayListSize(RwUInt32 numIndices, RwInt32 numTex
     return (size + 31) & ~31;
 }
 
-RwUInt32 fn_8015ED40(RpMeshHeader* meshHeader, RwInt32 numTexCoords, RwInt32 indexSize, RwUInt32 flags)
+RwUInt32 _rxGCDisplayListsSize(RpMeshHeader* meshHeader, RwInt32 numTexCoords, RwInt32 indexSize, RwUInt32 flags)
 {
     RwUInt32 numMeshes;
     RwUInt32 normals;
@@ -109,7 +109,7 @@ RwUInt32 fn_8015ED40(RpMeshHeader* meshHeader, RwInt32 numTexCoords, RwInt32 ind
     return total;
 }
 
-void fn_8015EDD0(RxGameCubeDisplayList* displayLists, RwUInt8* dst, RpMeshHeader* meshHeader, RwInt32 numTexCoords,
+void _rxGCBuildDisplayLists(RxGameCubeDisplayList* displayLists, RwUInt8* dst, RpMeshHeader* meshHeader, RwInt32 numTexCoords,
                  RwInt32 indexSize, RwUInt32 flags)
 {
     GXPrimitive prim;
@@ -197,7 +197,7 @@ void fn_8015EDD0(RxGameCubeDisplayList* displayLists, RwUInt8* dst, RpMeshHeader
     }
 }
 
-void fn_8015F0A4(RwUInt8 lightFlags, RxGameCubeRenderData* data)
+void _rxGCSetupGlobalLights(RwUInt8 lightFlags, RxGameCubeRenderData* data)
 {
     RpWorld* world;
     GXColor color;
@@ -239,7 +239,7 @@ void fn_8015F0A4(RwUInt8 lightFlags, RxGameCubeRenderData* data)
     }
 }
 
-void fn_8015F264(RpLight* light, RxGameCubeRenderData* data)
+void _rxGCSetupLocalLight(RpLight* light, RxGameCubeRenderData* data)
 {
     GXColor color;
     RwMatrix* ltm;

@@ -50,16 +50,16 @@ RpGameCubeVtxFmt* RpGameCubeWorldGetVtxFmt(RpWorld* world);
 RwResEntry* RwResourcesAllocateResEntry(void* owner, RwResEntry** ownerRef, RwInt32 size,
                                         void (*destroyNotify)(RwResEntry* resEntry));
 RwBool RwResourcesFreeResEntry(RwResEntry* entry);
-void fn_8015F0A4(RwInt32 reset);
-void fn_8015F264(RpLight* light, RxGameCubeRenderData* data);
-RwUInt32 fn_8015ED40(RpMeshHeader* meshHeader, RwInt32 numTexCoords, RwInt32 indexSize, RwUInt32 flags);
-void fn_8015EDD0(RxGameCubeDisplayList* displayLists, RwUInt8* dst, RpMeshHeader* meshHeader, RwInt32 numTexCoords,
+void _rxGCSetupGlobalLights(RwInt32 reset);
+void _rxGCSetupLocalLight(RpLight* light, RxGameCubeRenderData* data);
+RwUInt32 _rxGCDisplayListsSize(RpMeshHeader* meshHeader, RwInt32 numTexCoords, RwInt32 indexSize, RwUInt32 flags);
+void _rxGCBuildDisplayLists(RxGameCubeDisplayList* displayLists, RwUInt8* dst, RpMeshHeader* meshHeader, RwInt32 numTexCoords,
                  RwInt32 indexSize, RwUInt32 flags);
 
 void DCFlushRange(void* addr, RwUInt32 nBytes);
 void* memset(void* dst, RwInt32 c, RwUInt32 n);
 
-RpWorldSector* fn_8015E7E8(RpWorldSector* sector, RxGameCubeRenderData* data)
+RpWorldSector* _rxGCWorldSectorAllInOneLighting(RpWorldSector* sector, RxGameCubeRenderData* data)
 {
     RwLLLink* cur;
     RwLLLink* end;
@@ -74,7 +74,7 @@ RpWorldSector* fn_8015E7E8(RpWorldSector* sector, RxGameCubeRenderData* data)
     data->numLights = 0;
 
     if (((RpWorld*)RWSRCGLOBAL(curWorld))->flags & rpWORLDLIGHT) {
-        fn_8015F0A4(2);
+        _rxGCSetupGlobalLights(2);
         RWSRCGLOBAL(lightFrame)++;
 
         end = rwLinkListGetTerminator(&sector->lightsInWorldSector);
@@ -83,7 +83,7 @@ RpWorldSector* fn_8015E7E8(RpWorldSector* sector, RxGameCubeRenderData* data)
             RpLightTie* tie = rwLLLinkGetData(cur, RpLightTie, lightInWorldSector);
 
             if (tie->light && (tie->light->object.object.flags & rpLIGHTLIGHTWORLD)) {
-                fn_8015F264(tie->light, data);
+                _rxGCSetupLocalLight(tie->light, data);
             }
             cur = rwLLLinkGetNext(cur);
         }
@@ -104,7 +104,7 @@ RpWorldSector* fn_8015E7E8(RpWorldSector* sector, RxGameCubeRenderData* data)
     return sector;
 }
 
-void* fn_8015E908(void* object, RxGameCubeRenderData* data)
+void* _rxGCWorldSectorAllInOneInstance(void* object, RxGameCubeRenderData* data)
 {
     RwUInt32 dlArraySize;
     RpWorldSector* sector;
@@ -125,7 +125,7 @@ void* fn_8015E908(void* object, RxGameCubeRenderData* data)
     flags = world->flags | rpGEOMETRYPOSITIONS;
     arrayFlags = flags & ~data->pvtData->unk10;
     dlArraySize = meshHeader->numMeshes * sizeof(RxGameCubeDisplayList);
-    dlSize = fn_8015ED40(meshHeader, world->numTexCoordSets, (numVerts < 0xFF) ? 1 : 2, flags);
+    dlSize = _rxGCDisplayListsSize(meshHeader, world->numTexCoordSets, (numVerts < 0xFF) ? 1 : 2, flags);
 
     size = (dlArraySize + (sizeof(RxGameCubeInstanceData) - sizeof(RxGameCubeDisplayList)) + 31) & ~31;
     size += dlSize;
@@ -154,7 +154,7 @@ void* fn_8015E908(void* object, RxGameCubeRenderData* data)
 
     dst = (RwUInt8*)inst + dlArraySize;
     dst = (RwUInt8*)(((RwUInt32)dst + (sizeof(RxGameCubeInstanceData) - sizeof(RxGameCubeDisplayList)) + 31) & ~31);
-    fn_8015EDD0(inst->displayLists, dst, meshHeader, world->numTexCoordSets, (numVerts < 0xFF) ? 1 : 2, flags);
+    _rxGCBuildDisplayLists(inst->displayLists, dst, meshHeader, world->numTexCoordSets, (numVerts < 0xFF) ? 1 : 2, flags);
     dst = (RwUInt8*)(((RwUInt32)dst + dlSize + 31) & ~31);
     _rxGCInstanceWorldSectorArrays(sector, inst, RpGameCubeWorldGetVtxFmt(world), arrayFlags, world->numTexCoordSets,
                                    dst);
@@ -218,9 +218,9 @@ RwBool _rxGCWorldSectorAllInOnePipelineInit(RxPipelineNode* node)
 {
     RxGameCubeAllInOnePvtData* pvt = (RxGameCubeAllInOnePvtData*)node->privateData;
 
-    pvt->instanceCB = fn_8015E908;
+    pvt->instanceCB = _rxGCWorldSectorAllInOneInstance;
     pvt->reinstanceCB = NULL;
-    pvt->lightingCB = (RxGameCubeAllInOneCallBack)fn_8015E7E8;
+    pvt->lightingCB = (RxGameCubeAllInOneCallBack)_rxGCWorldSectorAllInOneLighting;
     pvt->renderCB = _rxGCDefaultRender;
     pvt->unk10 = 0;
 

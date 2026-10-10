@@ -87,10 +87,10 @@ RwUInt32 _rwGCNVtxFmtInstNrm(RpGameCubeVtxFmt* fmt, void* dst, const RwV3d* src,
 RwUInt32 _rwGCNVtxFmtInstNBT(RpGameCubeVtxFmt* fmt, void* dst, const RwRGBA* src, RwInt32 numVerts, RwUInt8 stride);
 RwUInt32 _rwGCNVtxFmtInstTex(RpGameCubeVtxFmt* fmt, RwInt32 index, void* dst, const RwTexCoords* src,
                              RwInt32 numVerts, RwUInt8 stride);
-void fn_8015F0A4(RwInt32 reset);
-void fn_8015F264(RpLight* light, RxGameCubeRenderData* data);
-RwUInt32 fn_8015ED40(RpMeshHeader* meshHeader, RwInt32 numTexCoords, RwInt32 indexSize, RwUInt32 flags);
-void fn_8015EDD0(RxGameCubeDisplayList* displayLists, RwUInt8* dst, RpMeshHeader* meshHeader, RwInt32 numTexCoords,
+void _rxGCSetupGlobalLights(RwInt32 reset);
+void _rxGCSetupLocalLight(RpLight* light, RxGameCubeRenderData* data);
+RwUInt32 _rxGCDisplayListsSize(RpMeshHeader* meshHeader, RwInt32 numTexCoords, RwInt32 indexSize, RwUInt32 flags);
+void _rxGCBuildDisplayLists(RxGameCubeDisplayList* displayLists, RwUInt8* dst, RpMeshHeader* meshHeader, RwInt32 numTexCoords,
                  RwInt32 indexSize, RwUInt32 flags);
 
 void GXSetDrawSync(RwUInt16 token);
@@ -110,7 +110,7 @@ static inline void GCWaitToken(RxGameCubeInstanceData* inst)
     }
 }
 
-RpAtomic* fn_8015DA50(RpAtomic* atomic, RxGameCubeRenderData* data)
+RpAtomic* _rxGCAtomicAllInOneLighting(RpAtomic* atomic, RxGameCubeRenderData* data)
 {
     RwUInt32 flags = atomic->geometry->flags;
 
@@ -127,7 +127,7 @@ RpAtomic* fn_8015DA50(RpAtomic* atomic, RxGameCubeRenderData* data)
         RwLLLink* cur;
         RwLLLink* end;
 
-        fn_8015F0A4(1);
+        _rxGCSetupGlobalLights(1);
         RWSRCGLOBAL(lightFrame)++;
 
         end = rwLinkListGetTerminator(&atomic->llWorldSectorsInAtomic);
@@ -145,7 +145,7 @@ RpAtomic* fn_8015DA50(RpAtomic* atomic, RxGameCubeRenderData* data)
                 if (tie->light && tie->light->lightFrame != RWSRCGLOBAL(lightFrame) &&
                     (tie->light->object.object.flags & rpLIGHTLIGHTATOMICS)) {
                     tie->light->lightFrame = RWSRCGLOBAL(lightFrame);
-                    fn_8015F264(tie->light, data);
+                    _rxGCSetupLocalLight(tie->light, data);
                 }
                 lcur = rwLLLinkGetNext(lcur);
             }
@@ -168,7 +168,7 @@ RpAtomic* fn_8015DA50(RpAtomic* atomic, RxGameCubeRenderData* data)
     return atomic;
 }
 
-void fn_8015DBA4(RpGeometry* geom, RxGameCubeInstanceData* inst, RpInterpolator* interp)
+void _rxGCAtomicAllInOneMorph(RpGeometry* geom, RxGameCubeInstanceData* inst, RpInterpolator* interp)
 {
     RwInt32 numVerts = geom->numVertices;
     RwInt32 start = interp->startMorphTarget;
@@ -243,7 +243,7 @@ void fn_8015DBA4(RpGeometry* geom, RxGameCubeInstanceData* inst, RpInterpolator*
     GXInvalidateVtxCache();
 }
 
-RpAtomic* fn_8015E054(RpAtomic* atomic, RxGameCubeRenderData* data)
+RpAtomic* _rxGCAtomicAllInOneReinstance(RpAtomic* atomic, RxGameCubeRenderData* data)
 {
     RpGeometry* geom = atomic->geometry;
     RxGameCubeInstanceData* inst = RESENTRYDATA(data->repEntry);
@@ -290,14 +290,14 @@ RpAtomic* fn_8015E054(RpAtomic* atomic, RxGameCubeRenderData* data)
 
     if (geom->numMorphTargets != 1 && (atomic->interpolator.flags & rpINTERPOLATORDIRTYINSTANCE)) {
         GCWaitToken(inst);
-        fn_8015DBA4(geom, inst, &atomic->interpolator);
+        _rxGCAtomicAllInOneMorph(geom, inst, &atomic->interpolator);
         atomic->interpolator.flags &= ~rpINTERPOLATORDIRTYINSTANCE;
     }
 
     return atomic;
 }
 
-void* fn_8015E2E8(void* object, RxGameCubeRenderData* data)
+void* _rxGCAtomicAllInOneInstance(void* object, RxGameCubeRenderData* data)
 {
     RwUInt8* dst;
     void* owner;
@@ -329,7 +329,7 @@ void* fn_8015E2E8(void* object, RxGameCubeRenderData* data)
 
     flags = geom->flags | rpGEOMETRYPOSITIONS;
     arrayFlags = flags & ~data->pvtData->unk10;
-    dlSize = fn_8015ED40(meshHeader, geom->numTexCoordSets, (numVerts < 0xFF) ? 1 : 2, flags);
+    dlSize = _rxGCDisplayListsSize(meshHeader, geom->numTexCoordSets, (numVerts < 0xFF) ? 1 : 2, flags);
 
     size = (numMeshes * sizeof(RxGameCubeDisplayList) + (sizeof(RxGameCubeInstanceData) - sizeof(RxGameCubeDisplayList)) +
             31) & ~31;
@@ -360,7 +360,7 @@ void* fn_8015E2E8(void* object, RxGameCubeRenderData* data)
     dst = (RwUInt8*)(((RwUInt32)((RwUInt8*)inst + numMeshes * sizeof(RxGameCubeDisplayList)) +
                       (sizeof(RxGameCubeInstanceData) - sizeof(RxGameCubeDisplayList)) + 31) &
                      ~31);
-    fn_8015EDD0(inst->displayLists, dst, meshHeader, geom->numTexCoordSets, (numVerts < 0xFF) ? 1 : 2, flags);
+    _rxGCBuildDisplayLists(inst->displayLists, dst, meshHeader, geom->numTexCoordSets, (numVerts < 0xFF) ? 1 : 2, flags);
     dst = (RwUInt8*)(((RwUInt32)dst + dlSize + 31) & ~31);
     _rxGCInstanceGeometryArrays(geom, inst, RpGameCubeGeometryGetVtxFmt(geom), arrayFlags, geom->numTexCoordSets, dst);
 
@@ -370,7 +370,7 @@ void* fn_8015E2E8(void* object, RxGameCubeRenderData* data)
     return atomic;
 }
 
-RwBool fn_8015E514(RxPipelineNodeInstance* self, const RxPipelineNodeParam* params)
+RwBool _rxGCAtomicAllInOneNode(RxPipelineNodeInstance* self, const RxPipelineNodeParam* params)
 {
     RpAtomic* atomic = (RpAtomic*)params->dataParam;
     RxGameCubeAllInOnePvtData* pvt = (RxGameCubeAllInOnePvtData*)self->privateData;
@@ -430,13 +430,13 @@ RwBool fn_8015E514(RxPipelineNodeInstance* self, const RxPipelineNodeParam* para
     return TRUE;
 }
 
-RwBool fn_8015E798(RxPipelineNode* node)
+RwBool _rxGCAtomicAllInOnePipelineInit(RxPipelineNode* node)
 {
     RxGameCubeAllInOnePvtData* pvt = (RxGameCubeAllInOnePvtData*)node->privateData;
 
-    pvt->instanceCB = fn_8015E2E8;
-    pvt->reinstanceCB = (RxGameCubeAllInOneCallBack)fn_8015E054;
-    pvt->lightingCB = (RxGameCubeAllInOneCallBack)fn_8015DA50;
+    pvt->instanceCB = _rxGCAtomicAllInOneInstance;
+    pvt->reinstanceCB = (RxGameCubeAllInOneCallBack)_rxGCAtomicAllInOneReinstance;
+    pvt->lightingCB = (RxGameCubeAllInOneCallBack)_rxGCAtomicAllInOneLighting;
     pvt->renderCB = _rxGCDefaultRender;
     pvt->unk10 = 0;
 
@@ -449,7 +449,7 @@ RxNodeDefinition* RxNodeDefinitionGetGameCubeAtomicAllInOne(void)
 
     static RxNodeDefinition nodeGameCubeAtomicAllInOneCSL = {
         _GameCubeAtomicAllInOne_csl,
-        { fn_8015E514, NULL, NULL, fn_8015E798, NULL, NULL, NULL },
+        { _rxGCAtomicAllInOneNode, NULL, NULL, _rxGCAtomicAllInOnePipelineInit, NULL, NULL, NULL },
         { 0, NULL, NULL, 0, NULL },
         sizeof(RxGameCubeAllInOnePvtData),
         0,
