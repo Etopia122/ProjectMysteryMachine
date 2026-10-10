@@ -814,6 +814,7 @@ config.libs = [
             Object(Matching, "rwsdk/p2/generic/nodeImmRenderSetup.c"),
             Object(Matching, "rwsdk/p2/generic/nodeImmStash.c"),
             Object(Matching, "rwsdk/p2/generic/nodeSubmitLine.c"),
+            Object(Matching, "rwsdk/p2/generic/nodeSubmitTriangle.c"),
         ],
     },
     {
