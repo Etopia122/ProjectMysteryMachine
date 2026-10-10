@@ -4,12 +4,15 @@ A port of the PC port (`pc/`) to the New Nintendo 3DS / New 2DS XL only: it
 relies on the 804 MHz CPU mode, the larger memory budget, the C-stick and ZL/ZR.
 The game data comes from the player's own GameCube disc and lives on the SD card.
 
-## Status (2026-10-09, Azahar emulator only)
+## Status (2026-10-10, Azahar emulator only)
 
 - Boots through the copyright screen and title to the main menu; New Game
-  loads the Mystic Manor hub. A sweep of 30 levels (`scenes.sh`) loads every
-  one, with no null-pointer reads, at 25-30 fps (the game's cap is 30; F001
-  17, S005 22). Music plays (ndsp); fog works.
+  loads the Mystic Manor hub. Every one of the 87 levels loads and holds the
+  game's 30 fps cap, standing at the start and walking about (`perf.sh`;
+  2026-10-10, Azahar: the emulator doesn't model GPU time, so real hardware
+  is untested). What it took: collision trees for world and model queries,
+  GPU skinning (`skin.v.pica`), skinning each pose once, keyed vertex reuse
+  and only setting citro3d state that changed. Music plays (ndsp); fog works.
 - Debug menu (Select): level warps, upgrades, Force Boss Damage etc. as on PC;
   ZL+X saves the position, ZL+Y returns to it. The PC_* test switches work
   from `env.txt` (PC_SCENE, PC_WARP, PC_TELEPORT, PC_POSLOG, ...).
