@@ -169,6 +169,53 @@ typedef struct RxRenderStateVector {
     /* 0x2C */ RwUInt8* FogTable;
 } RxRenderStateVector;
 
+typedef struct RxMeshSurfaceProperties {
+    /* 0x00 */ RwReal ambient;
+    /* 0x04 */ RwReal specular;
+    /* 0x08 */ RwReal diffuse;
+} RxMeshSurfaceProperties;
+
+typedef struct RxMeshStateVector {
+    /* 0x00 */ RwInt32 Flags;
+    /* 0x04 */ void* SourceObject;
+    /* 0x08 */ RwMatrix Obj2World;
+    /* 0x48 */ RwMatrix Obj2Cam;
+    /* 0x88 */ RxMeshSurfaceProperties SurfaceProperties;
+    /* 0x94 */ RwTexture* Texture;
+    /* 0x98 */ RwRGBA MatCol;
+    /* 0x9C */ RxPipeline* Pipeline;
+    /* 0xA0 */ RwInt32 PrimType;
+    /* 0xA4 */ RwUInt32 NumElements;
+    /* 0xA8 */ RwUInt32 NumVertices;
+    /* 0xAC */ RwInt32 ClipFlagsOr;
+    /* 0xB0 */ RwInt32 ClipFlagsAnd;
+    /* 0xB4 */ void* SourceMesh;
+    /* 0xB8 */ void* DataObject;
+} RxMeshStateVector;
+
+#define rxGEOMETRY_TRISTRIP 0x01
+#define rxGEOMETRY_POSITIONS 0x02
+#define rxGEOMETRY_TEXTURED 0x04
+#define rxGEOMETRY_PRELIT 0x08
+#define rxGEOMETRY_NORMALS 0x10
+#define rxGEOMETRY_LIGHT 0x20
+#define rxGEOMETRY_MODULATE 0x40
+#define rxGEOMETRY_TEXTURED2 0x80
+#define rxGEOMETRY_COLORED 0x100
+
+#define rxRENDERSTATEFLAG_TEXTUREPERSPECTIVE 0x01
+#define rxRENDERSTATEFLAG_ZTESTENABLE 0x02
+#define rxRENDERSTATEFLAG_ZWRITEENABLE 0x04
+#define rxRENDERSTATEFLAG_VERTEXALPHAENABLE 0x08
+#define rxRENDERSTATEFLAG_FOGENABLE 0x10
+#define rxRENDERSTATEFLAG_ALPHAPRIMITIVEBUFFER 0x20
+
+#define RxClusterGetCursorData(_cl, _type) ((_type*)(_cl)->currentData)
+
+/* Hands the packet on to the node connected to the given output, then frees
+ * the embedded packet if nothing claimed it. */
+#define RxPacketDispatch(_packet, _output, _self)                                                                         do {                                                                                                                       RxPipeline* _curPipeline = _rxExecCtxGlobal.pipeline;                                                                                                                                                                                         if (_rxExecCtxGlobal.exitCode != FALSE) {                                                                                  RxPipelineNode* _nextNode = _rxEmbeddedPacketBetweenNodes(_curPipeline, (_self), (_output));                                                                                                                                                  if (_nextNode) {                                                                                                           RwUInt32 _exitCode = _nextNode->nodeDef->nodeMethods.nodeBody(_nextNode, &_rxExecCtxGlobal.params);                                                                                                                                           if (!_exitCode) {                                                                                                          _rxExecCtxGlobal.exitCode = _exitCode;                                                                             }                                                                                                                  }                                                                                                                  }                                                                                                                                                                                                                                             if (_curPipeline->embeddedPacketState > rxPKST_UNUSED) {                                                                   _curPipeline->embeddedPacketState = rxPKST_INUSE;                                                                      _rxPacketDestroy(_curPipeline->embeddedPacket);                                                                    }                                                                                                                  } while (0)
+
 typedef struct rwPipeGlobals {
     /* 0x00 */ RwFreeList* pipesFreeList;
     /* 0x04 */ RxRenderStateVector defaultRenderState;
@@ -209,5 +256,7 @@ RxCluster* RxClusterLockWrite(RxPacket* packet, RwUInt32 clusterIndex, RxPipelin
 RxCluster* RxClusterInitializeData(RxCluster* cluster, RwUInt32 numElements, RwUInt16 stride);
 RxPipelineNode* _rxEmbeddedPacketBetweenNodes(RxPipeline* pipeline, RxPipelineNode* nodeFrom, RwUInt32 whichOutput);
 void _rxPacketDestroy(RxPacket* packet);
+RxPacket* RxPacketCreate(RxPipelineNode* node);
+RxCluster* RxClusterSetExternalData(RxCluster* cluster, void* data, RwInt32 stride, RwInt32 numElements);
 
 #endif

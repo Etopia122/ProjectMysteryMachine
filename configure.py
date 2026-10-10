@@ -808,6 +808,7 @@ config.libs = [
             Object(Matching, "rwsdk/driver/gcn/dlmatrix.c"),
             Object(Matching, "rwsdk/p2/baim3d.c"),
             Object(Matching, "rwsdk/p2/bapipe.c"),
+            Object(Matching, "rwsdk/p2/generic/nodeImmInstance.c"),
         ],
     },
     {

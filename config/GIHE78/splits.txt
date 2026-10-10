@@ -1725,6 +1725,11 @@ rwsdk/p2/bapipe.c:
 	.text       start:0x8017ED24 end:0x8017EDA4
 	.sbss       start:0x8025F8A8 end:0x8025F8B0
 
+rwsdk/p2/generic/nodeImmInstance.c:
+	.text       start:0x80181EC4 end:0x80182320
+	.data       start:0x801DE990 end:0x801DEA38
+	.sdata2     start:0x80262BF8 end:0x80262C08
+
 rwsdk/p2/p2core.c:
 	.text       start:0x801869A8 end:0x80187438
 	.sdata      start:0x8025E850 end:0x8025E858
