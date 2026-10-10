@@ -110,9 +110,8 @@ static inline void GCWaitToken(RxGameCubeInstanceData* inst)
     }
 }
 
-void* fn_8015DA50(void* object, RxGameCubeRenderData* data)
+RpAtomic* fn_8015DA50(RpAtomic* atomic, RxGameCubeRenderData* data)
 {
-    RpAtomic* atomic = (RpAtomic*)object;
     RwUInt32 flags = atomic->geometry->flags;
 
     data->lightMask0 = 0;
@@ -244,9 +243,8 @@ void fn_8015DBA4(RpGeometry* geom, RxGameCubeInstanceData* inst, RpInterpolator*
     GXInvalidateVtxCache();
 }
 
-void* fn_8015E054(void* object, RxGameCubeRenderData* data)
+RpAtomic* fn_8015E054(RpAtomic* atomic, RxGameCubeRenderData* data)
 {
-    RpAtomic* atomic = (RpAtomic*)object;
     RpGeometry* geom = atomic->geometry;
     RxGameCubeInstanceData* inst = RESENTRYDATA(data->repEntry);
 
@@ -301,19 +299,25 @@ void* fn_8015E054(void* object, RxGameCubeRenderData* data)
 
 void* fn_8015E2E8(void* object, RxGameCubeRenderData* data)
 {
-    RpAtomic* atomic = (RpAtomic*)object;
-    RpGeometry* geom = atomic->geometry;
-    RpMeshHeader* meshHeader = geom->mesh;
-    RwUInt32 numVerts = geom->numVertices;
-    RwUInt32 numMeshes = meshHeader->numMeshes;
-    void* owner;
-    RwResEntry** ownerRef;
-    RwUInt32 flags;
-    RwUInt32 arrayFlags;
-    RwUInt32 dlSize;
-    RwUInt32 size;
-    RxGameCubeInstanceData* inst;
     RwUInt8* dst;
+    void* owner;
+    RwUInt32 size;
+    RpGeometry* geom;
+    RwResEntry** ownerRef;
+    RwUInt32 dlSize;
+    RxGameCubeInstanceData* inst;
+    RwUInt32 flags;
+    RwUInt32 numVerts;
+
+    RpAtomic* atomic;
+    RwUInt32 arrayFlags;
+    RwUInt32 numMeshes;
+    RpMeshHeader* meshHeader;
+    atomic = (RpAtomic*)object;
+    geom = atomic->geometry;
+    meshHeader = geom->mesh;
+    numVerts = geom->numVertices;
+    numMeshes = meshHeader->numMeshes;
 
     if (geom->numMorphTargets != 1) {
         owner = atomic;
@@ -324,8 +328,7 @@ void* fn_8015E2E8(void* object, RxGameCubeRenderData* data)
     }
 
     flags = geom->flags | rpGEOMETRYPOSITIONS;
-    arrayFlags = ~data->pvtData->unk10;
-    arrayFlags &= flags;
+    arrayFlags = flags & ~data->pvtData->unk10;
     dlSize = fn_8015ED40(meshHeader, geom->numTexCoordSets, (numVerts < 0xFF) ? 1 : 2, flags);
 
     size = (numMeshes * sizeof(RxGameCubeDisplayList) + (sizeof(RxGameCubeInstanceData) - sizeof(RxGameCubeDisplayList)) +
@@ -432,8 +435,8 @@ RwBool fn_8015E798(RxPipelineNode* node)
     RxGameCubeAllInOnePvtData* pvt = (RxGameCubeAllInOnePvtData*)node->privateData;
 
     pvt->instanceCB = fn_8015E2E8;
-    pvt->reinstanceCB = fn_8015E054;
-    pvt->lightingCB = fn_8015DA50;
+    pvt->reinstanceCB = (RxGameCubeAllInOneCallBack)fn_8015E054;
+    pvt->lightingCB = (RxGameCubeAllInOneCallBack)fn_8015DA50;
     pvt->renderCB = _rxGCDefaultRender;
     pvt->unk10 = 0;
 

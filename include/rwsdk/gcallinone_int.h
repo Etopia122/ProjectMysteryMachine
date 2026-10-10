@@ -164,7 +164,7 @@ struct RxGameCubeAllInOnePvtData {
     /* 0x04 */ RxGameCubeAllInOneCallBack reinstanceCB;
     /* 0x08 */ RxGameCubeAllInOneCallBack lightingCB;
     /* 0x0C */ RxGameCubeAllInOneCallBack renderCB;
-    /* 0x10 */ RwUInt32 unk10;
+    /* 0x10 */ RwInt32 unk10;
 };
 
 #define RESENTRYDATA(entry) ((RxGameCubeInstanceData*)((RwUInt8*)(entry) + 0x18))
