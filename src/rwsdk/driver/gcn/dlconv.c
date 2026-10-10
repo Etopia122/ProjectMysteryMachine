@@ -23,8 +23,16 @@
 #define rwRASTERFORMAT888 0x0600
 #define rwRASTERFORMAT555 0x0A00
 #define rwRASTERFORMATPIXELFORMATMASK 0x0F00
+#define rwRASTERFORMATAUTOMIPMAP 0x1000
 #define rwRASTERFORMATPAL8 0x2000
 #define rwRASTERFORMATPAL4 0x4000
+#define rwRASTERFORMATMIPMAP 0x8000
+
+#define rwRASTERTYPENORMAL 0
+#define rwRASTERTYPEZBUFFER 1
+#define rwRASTERTYPECAMERA 2
+#define rwRASTERTYPETEXTURE 4
+#define rwRASTERTYPECAMERATEXTURE 5
 
 #define rwRASTERLOCKWRITE 0x01
 #define rwRASTERLOCKREAD 0x02
@@ -894,4 +902,59 @@ RwInt32 _rwDlImageFindFormat(RwImage* image)
         format |= rwRASTERFORMATPAL8;
     }
     return format;
+}
+
+RwBool _rwDlRasterSetFormat(RwRaster* raster, RwInt32 flags);
+
+static inline RwInt32 DlLog2(RwInt32 value)
+{
+    RwInt32 shift = -1;
+
+    while (value) {
+        value >>= 1;
+        shift++;
+    }
+    return shift;
+}
+
+RwBool _rwDlImageFindRasterFormat(void* pRaster, void* pImage, RwInt32 flags)
+{
+    RwRaster* raster = (RwRaster*)pRaster;
+    RwImage* image = (RwImage*)pImage;
+
+    raster->width = image->width;
+    raster->height = image->height;
+    raster->depth = 0;
+
+    if (!_rwDlRasterSetFormat(raster, flags)) {
+        return FALSE;
+    }
+
+    switch (raster->cType) {
+    case rwRASTERTYPENORMAL:
+    case rwRASTERTYPETEXTURE:
+    case rwRASTERTYPECAMERATEXTURE:
+        raster->width = (raster->width > 1024) ? 1024 : raster->width;
+        raster->height = (raster->height > 1024) ? 1024 : raster->height;
+
+        if (flags & rwRASTERFORMATMIPMAP) {
+            raster->width = 1 << DlLog2(raster->width);
+            raster->height = 1 << DlLog2(raster->height);
+        }
+
+        {
+            RwInt32 format = _rwDlImageFindFormat(image);
+
+            format |= flags & (rwRASTERFORMATMIPMAP | rwRASTERFORMATAUTOMIPMAP);
+            raster->cFormat = format >> 8;
+        }
+        return TRUE;
+    case rwRASTERTYPEZBUFFER:
+    case rwRASTERTYPECAMERA:
+        return TRUE;
+    case 3:
+    default:
+        RWERROR((E_RW_INVRASTERFORMAT));
+        return FALSE;
+    }
 }

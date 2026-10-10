@@ -1674,7 +1674,7 @@ rwsdk/src/baobject.c:
 	.text       start:0x80171450 end:0x801714EC
 
 rwsdk/driver/gcn/dlconv.c:
-	.text       start:0x801753BC end:0x801771C4
+	.text       start:0x801753BC end:0x80177334
 	.data       start:0x801DDD10 end:0x801DDF90
 	.sdata2     start:0x80262B48 end:0x80262B50
 
