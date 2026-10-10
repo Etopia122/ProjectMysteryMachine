@@ -799,6 +799,7 @@ config.libs = [
             Object(Matching, "rwsdk/p2/p2radixsort.c"),
             Object(Matching, "rwsdk/driver/gcn/im3dpipe.c"),
             Object(Matching, "rwsdk/driver/gcn/im3dnodes.c"),
+            Object(Matching, "rwsdk/driver/gcn/dlim2d.c"),
             Object(NonMatching, "rwsdk/driver/gcn/dlconv.c"),
             Object(NonMatching, "rwsdk/driver/gcn/dldevice.c"),
             Object(NonMatching, "rwsdk/driver/gcn/dlraster.c"),
