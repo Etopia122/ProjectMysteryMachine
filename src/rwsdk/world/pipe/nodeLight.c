@@ -3,6 +3,11 @@
  * lights cluster into the camera space vertex colours. Lights are applied
  * in object space, through the inverse of the object's matrix when it is
  * not the identity.
+ *
+ * Every function matches, but the TU stays NonMatching: the original
+ * .sdata2 pool is 255, -1, 0, 1 (the order the light functions first use
+ * them), while LightNode comes first in .text and creates the 1.0 first
+ * here. No source order, inline or deferred setting reproduces both.
  */
 
 #include "rwsdk/rpworld_int.h"
@@ -57,16 +62,16 @@ RwV3d* RwV3dTransformVectors(RwV3d* vectorsOut, const RwV3d* vectorsIn, RwInt32 
 RwReal _rwV3dNormalize(RwV3d* out, const RwV3d* in);
 RwReal _rwSqrt(RwReal x);
 
-static void _rwApplyAmbientLight(RxPipelineNodeInstance* self, RxPacket* packet, RpLight* light,
+static void _rwApplyAmbientLight(RxPipelineNodeInstance* self, RxPacket* packet, const RpLight* light,
                                  const RwMatrix* inverseMat, RwReal invScale, const RwSurfaceProperties* surfaceProps);
-static void _rwApplyDirectionalLight(RxPipelineNodeInstance* self, RxPacket* packet, RpLight* light,
+static void _rwApplyDirectionalLight(RxPipelineNodeInstance* self, RxPacket* packet, const RpLight* light,
                                      const RwMatrix* inverseMat, RwReal invScale,
                                      const RwSurfaceProperties* surfaceProps);
-static void _rwApplyPointLight(RxPipelineNodeInstance* self, RxPacket* packet, RpLight* light,
+static void _rwApplyPointLight(RxPipelineNodeInstance* self, RxPacket* packet, const RpLight* light,
                                const RwMatrix* inverseMat, RwReal invScale, const RwSurfaceProperties* surfaceProps);
-static void _rwApplySpotLight(RxPipelineNodeInstance* self, RxPacket* packet, RpLight* light,
+static void _rwApplySpotLight(RxPipelineNodeInstance* self, RxPacket* packet, const RpLight* light,
                               const RwMatrix* inverseMat, RwReal invScale, const RwSurfaceProperties* surfaceProps);
-static void _rwApplySoftSpotLight(RxPipelineNodeInstance* self, RxPacket* packet, RpLight* light,
+static void _rwApplySoftSpotLight(RxPipelineNodeInstance* self, RxPacket* packet, const RpLight* light,
                                   const RwMatrix* inverseMat, RwReal invScale,
                                   const RwSurfaceProperties* surfaceProps);
 
@@ -191,16 +196,14 @@ RxNodeDefinition* RxNodeDefinitionGetLight(void)
     RwUInt8* objV = (RwUInt8*)objVerts->currentData;                                                                   \
     RxCamSpace3DVertex* camV = (RxCamSpace3DVertex*)camVerts->currentData;                                             \
     RwUInt8* steps;                                                                                                    \
-    RwUInt32 numVerts;                                                                                                 \
+    RwInt32 numVerts;                                                                                                  \
                                                                                                                        \
     if (vSteps && (vSteps->flags & rxCLFLAGS_CLUSTERVALID)) {                                                          \
-        RwUInt32 skip;                                                                                                 \
-                                                                                                                       \
         steps = (RwUInt8*)vSteps->data;                                                                                \
         numVerts = vSteps->numUsed;                                                                                    \
-        skip = *steps++;                                                                                               \
-        objV += skip * objStride;                                                                                      \
-        camV += skip;                                                                                                  \
+        objV += *steps * objStride;                                                                                    \
+        camV += *steps;                                                                                                \
+        steps++;                                                                                                       \
     } else {                                                                                                           \
         steps = NULL;                                                                                                  \
         numVerts = camVerts->numUsed;                                                                                  \
@@ -219,20 +222,20 @@ RxNodeDefinition* RxNodeDefinitionGetLight(void)
         } while (--_skip);                                                                                             \
     } while (0)
 
-static void _rwApplyAmbientLight(RxPipelineNodeInstance* self, RxPacket* packet, RpLight* light,
+static void _rwApplyAmbientLight(RxPipelineNodeInstance* self, RxPacket* packet, const RpLight* light,
                                  const RwMatrix* inverseMat, RwReal invScale, const RwSurfaceProperties* surfaceProps)
 {
     RxCluster* camVerts = RxClusterLockWrite(packet, 2, self);
     RxCluster* vSteps = RxClusterLockRead(packet, 4);
     RxCamSpace3DVertex* camV = (RxCamSpace3DVertex*)camVerts->currentData;
     RwUInt8* steps;
-    RwUInt32 numVerts;
-    RwUInt32 i;
+    RwInt32 numVerts;
 
     if (vSteps && (vSteps->flags & rxCLFLAGS_CLUSTERVALID)) {
         steps = (RwUInt8*)vSteps->data;
         numVerts = vSteps->numUsed;
-        camV += *steps++;
+        camV += *steps;
+        steps++;
     } else {
         steps = NULL;
         numVerts = camVerts->numUsed;
@@ -241,12 +244,13 @@ static void _rwApplyAmbientLight(RxPipelineNodeInstance* self, RxPacket* packet,
     if (light->object.object.privateFlags & rpLIGHTPRIVATENOCHROMA) {
         RwReal lum = 255.0f * light->color[0] * surfaceProps->ambient;
 
-        for (i = 0; i < numVerts; i++) {
+        while (numVerts--) {
             camV->col.red += lum;
             camV->col.green += lum;
             camV->col.blue += lum;
             if (steps) {
-                camV += *steps++;
+                camV += *steps;
+        steps++;
             } else {
                 camV++;
             }
@@ -254,12 +258,13 @@ static void _rwApplyAmbientLight(RxPipelineNodeInstance* self, RxPacket* packet,
     } else {
         RwReal scale = 255.0f * surfaceProps->ambient;
 
-        for (i = 0; i < numVerts; i++) {
+        while (numVerts--) {
             camV->col.red += scale * light->color[0];
             camV->col.green += scale * light->color[1];
             camV->col.blue += scale * light->color[2];
             if (steps) {
-                camV += *steps++;
+                camV += *steps;
+        steps++;
             } else {
                 camV++;
             }
@@ -267,7 +272,7 @@ static void _rwApplyAmbientLight(RxPipelineNodeInstance* self, RxPacket* packet,
     }
 }
 
-static void _rwApplyDirectionalLight(RxPipelineNodeInstance* self, RxPacket* packet, RpLight* light,
+static void _rwApplyDirectionalLight(RxPipelineNodeInstance* self, RxPacket* packet, const RpLight* light,
                                      const RwMatrix* inverseMat, RwReal invScale,
                                      const RwSurfaceProperties* surfaceProps)
 {
@@ -275,7 +280,6 @@ static void _rwApplyDirectionalLight(RxPipelineNodeInstance* self, RxPacket* pac
 
     if (light->object.object.parent) {
         RwV3d at = RwFrameGetLTM((RwFrame*)light->object.object.parent)->at;
-        RwUInt32 i;
 
         if (inverseMat) {
             RwV3dTransformVectors(&at, &at, 1, inverseMat);
@@ -288,7 +292,7 @@ static void _rwApplyDirectionalLight(RxPipelineNodeInstance* self, RxPacket* pac
         if (light->object.object.privateFlags & rpLIGHTPRIVATENOCHROMA) {
             RwReal scale = 255.0f * light->color[0] * surfaceProps->diffuse;
 
-            for (i = 0; i < numVerts; i++) {
+            while (numVerts--) {
                 RwV3d* normal = &((RxObjSpace3DVertex*)objV)->objNormal;
                 RwReal dot = at.x * normal->x + at.y * normal->y + at.z * normal->z;
 
@@ -304,7 +308,7 @@ static void _rwApplyDirectionalLight(RxPipelineNodeInstance* self, RxPacket* pac
         } else {
             RwReal scale = 255.0f * surfaceProps->diffuse;
 
-            for (i = 0; i < numVerts; i++) {
+            while (numVerts--) {
                 RwV3d* normal = &((RxObjSpace3DVertex*)objV)->objNormal;
                 RwReal dot = at.x * normal->x + at.y * normal->y + at.z * normal->z;
 
@@ -321,12 +325,13 @@ static void _rwApplyDirectionalLight(RxPipelineNodeInstance* self, RxPacket* pac
     }
 }
 
-static void _rwApplyPointLight(RxPipelineNodeInstance* self, RxPacket* packet, RpLight* light,
+static void _rwApplyPointLight(RxPipelineNodeInstance* self, RxPacket* packet, const RpLight* light,
                                const RwMatrix* inverseMat, RwReal invScale, const RwSurfaceProperties* surfaceProps)
 {
-    RwV3d pos;
-    RwReal radSq;
+    RwReal scale;
     RwReal recipRad;
+    RwReal radSq;
+    RwV3d pos;
 
     LIGHTVERTSSETUP();
 
@@ -343,7 +348,7 @@ static void _rwApplyPointLight(RxPipelineNodeInstance* self, RxPacket* packet, R
     }
 
     if (light->object.object.privateFlags & rpLIGHTPRIVATENOCHROMA) {
-        RwReal scale = 255.0f * light->color[0] * surfaceProps->diffuse;
+        scale = 255.0f * light->color[0] * surfaceProps->diffuse;
 
         while (numVerts--) {
             RxObjSpace3DVertex* ov = (RxObjSpace3DVertex*)objV;
@@ -363,17 +368,18 @@ static void _rwApplyPointLight(RxPipelineNodeInstance* self, RxPacket* packet, R
                     RwReal dist = _rwSqrt(distSq);
                     RwReal lum = scale * dot;
                     RwReal recipDist = (dist > 0.0f) ? 1.0f / dist : 0.0f;
+                    RwReal atten;
 
-                    lum *= recipDist - recipRad;
-                    camV->col.red += lum;
-                    camV->col.green += lum;
-                    camV->col.blue += lum;
+                    atten = lum * (recipDist - recipRad);
+                    camV->col.red += atten;
+                    camV->col.green += atten;
+                    camV->col.blue += atten;
                 }
             }
             LIGHTVERTSNEXT();
         }
     } else {
-        RwReal scale = 255.0f * surfaceProps->diffuse;
+        scale = 255.0f * surfaceProps->diffuse;
 
         while (numVerts--) {
             RxObjSpace3DVertex* ov = (RxObjSpace3DVertex*)objV;
@@ -393,11 +399,12 @@ static void _rwApplyPointLight(RxPipelineNodeInstance* self, RxPacket* packet, R
                     RwReal dist = _rwSqrt(distSq);
                     RwReal lum = scale * dot;
                     RwReal recipDist = (dist > 0.0f) ? 1.0f / dist : 0.0f;
+                    RwReal atten;
 
-                    lum *= recipDist - recipRad;
-                    camV->col.red += lum * light->color[0];
-                    camV->col.green += lum * light->color[1];
-                    camV->col.blue += lum * light->color[2];
+                    atten = lum * (recipDist - recipRad);
+                    camV->col.red += atten * light->color[0];
+                    camV->col.green += atten * light->color[1];
+                    camV->col.blue += atten * light->color[2];
                 }
             }
             LIGHTVERTSNEXT();
@@ -405,13 +412,13 @@ static void _rwApplyPointLight(RxPipelineNodeInstance* self, RxPacket* packet, R
     }
 }
 
-static void _rwApplySpotLight(RxPipelineNodeInstance* self, RxPacket* packet, RpLight* light,
+static void _rwApplySpotLight(RxPipelineNodeInstance* self, RxPacket* packet, const RpLight* light,
                               const RwMatrix* inverseMat, RwReal invScale, const RwSurfaceProperties* surfaceProps)
 {
-    RwV3d at;
     RwV3d pos;
-    RwReal radSq;
+    RwV3d at;
     RwReal recipRad;
+    RwReal radSq;
 
     LIGHTVERTSSETUP();
 
@@ -443,10 +450,7 @@ static void _rwApplySpotLight(RxPipelineNodeInstance* self, RxPacket* packet, Rp
             vertToLight.z = pos.z - ov->objVertex.z;
             dot = vertToLight.x * ov->objNormal.x + vertToLight.y * ov->objNormal.y + vertToLight.z * ov->objNormal.z;
 
-            if (dot <= 0.0f) {
-                continue;
-            }
-            {
+            if (dot > 0.0f) {
                 RwReal distSq =
                     vertToLight.x * vertToLight.x + vertToLight.y * vertToLight.y + vertToLight.z * vertToLight.z;
 
@@ -457,15 +461,16 @@ static void _rwApplySpotLight(RxPipelineNodeInstance* self, RxPacket* packet, Rp
                         dist * light->minusCosAngle) {
                         RwReal lum = scale * dot;
                         RwReal recipDist = (dist > 0.0f) ? 1.0f / dist : 0.0f;
+                        RwReal atten;
 
-                        lum *= recipDist - recipRad;
-                        camV->col.red += lum;
-                        camV->col.green += lum;
-                        camV->col.blue += lum;
+                        atten = lum * (recipDist - recipRad);
+                        camV->col.red += atten;
+                        camV->col.green += atten;
+                        camV->col.blue += atten;
                     }
                 }
+                LIGHTVERTSNEXT();
             }
-            LIGHTVERTSNEXT();
         }
     } else {
         RwReal scale = 255.0f * surfaceProps->diffuse;
@@ -480,10 +485,7 @@ static void _rwApplySpotLight(RxPipelineNodeInstance* self, RxPacket* packet, Rp
             vertToLight.z = pos.z - ov->objVertex.z;
             dot = vertToLight.x * ov->objNormal.x + vertToLight.y * ov->objNormal.y + vertToLight.z * ov->objNormal.z;
 
-            if (dot <= 0.0f) {
-                continue;
-            }
-            {
+            if (dot > 0.0f) {
                 RwReal distSq =
                     vertToLight.x * vertToLight.x + vertToLight.y * vertToLight.y + vertToLight.z * vertToLight.z;
 
@@ -494,11 +496,12 @@ static void _rwApplySpotLight(RxPipelineNodeInstance* self, RxPacket* packet, Rp
                         dist * light->minusCosAngle) {
                         RwReal lum = scale * dot;
                         RwReal recipDist = (dist > 0.0f) ? 1.0f / dist : 0.0f;
+                        RwReal atten;
 
-                        lum *= recipDist - recipRad;
-                        camV->col.red += lum * light->color[0];
-                        camV->col.green += lum * light->color[1];
-                        camV->col.blue += lum * light->color[2];
+                        atten = lum * (recipDist - recipRad);
+                        camV->col.red += atten * light->color[0];
+                        camV->col.green += atten * light->color[1];
+                        camV->col.blue += atten * light->color[2];
                     }
                 }
             }
@@ -507,14 +510,14 @@ static void _rwApplySpotLight(RxPipelineNodeInstance* self, RxPacket* packet, Rp
     }
 }
 
-static void _rwApplySoftSpotLight(RxPipelineNodeInstance* self, RxPacket* packet, RpLight* light,
+static void _rwApplySoftSpotLight(RxPipelineNodeInstance* self, RxPacket* packet, const RpLight* light,
                                   const RwMatrix* inverseMat, RwReal invScale,
                                   const RwSurfaceProperties* surfaceProps)
 {
-    RwV3d at;
-    RwV3d pos;
-    RwReal radSq;
     RwReal recipRad;
+    RwReal radSq;
+    RwV3d pos;
+    RwV3d at;
 
     LIGHTVERTSSETUP();
 
@@ -552,24 +555,25 @@ static void _rwApplySoftSpotLight(RxPipelineNodeInstance* self, RxPacket* packet
 
                 if (distSq < radSq) {
                     RwReal dist = _rwSqrt(distSq);
-                    RwReal cosDist = vertToLight.x * at.x + vertToLight.y * at.y + vertToLight.z * at.z;
                     RwReal coneDist = dist * light->minusCosAngle;
+                    RwReal cosDist = vertToLight.x * at.x + vertToLight.y * at.y + vertToLight.z * at.z;
 
                     if (cosDist < coneDist) {
-                        RwReal lum = scale * dot;
                         RwReal recipDist = (dist > 0.0f) ? 1.0f / dist : 0.0f;
+                        RwReal atten;
                         RwReal range;
 
-                        lum *= recipDist - recipRad;
+                        atten = scale * dot * (recipDist - recipRad);
                         range = dist + coneDist;
                         if (range > 0.0f) {
                             RwReal fade = (dist + cosDist) / range;
 
-                            lum *= 1.0f - fade * fade;
+                            fade *= fade;
+                            atten *= 1.0f - fade;
                         }
-                        camV->col.red += lum;
-                        camV->col.green += lum;
-                        camV->col.blue += lum;
+                        camV->col.red += atten;
+                        camV->col.green += atten;
+                        camV->col.blue += atten;
                     }
                 }
             }
@@ -594,24 +598,25 @@ static void _rwApplySoftSpotLight(RxPipelineNodeInstance* self, RxPacket* packet
 
                 if (distSq < radSq) {
                     RwReal dist = _rwSqrt(distSq);
-                    RwReal cosDist = vertToLight.x * at.x + vertToLight.y * at.y + vertToLight.z * at.z;
                     RwReal coneDist = dist * light->minusCosAngle;
+                    RwReal cosDist = vertToLight.x * at.x + vertToLight.y * at.y + vertToLight.z * at.z;
 
                     if (cosDist < coneDist) {
-                        RwReal lum = scale * dot;
                         RwReal recipDist = (dist > 0.0f) ? 1.0f / dist : 0.0f;
+                        RwReal atten;
                         RwReal range;
 
-                        lum *= recipDist - recipRad;
+                        atten = scale * dot * (recipDist - recipRad);
                         range = dist + coneDist;
                         if (range > 0.0f) {
                             RwReal fade = (dist + cosDist) / range;
 
-                            lum *= 1.0f - fade * fade;
+                            fade *= fade;
+                            atten *= 1.0f - fade;
                         }
-                        camV->col.red += lum * light->color[0];
-                        camV->col.green += lum * light->color[1];
-                        camV->col.blue += lum * light->color[2];
+                        camV->col.red += atten * light->color[0];
+                        camV->col.green += atten * light->color[1];
+                        camV->col.blue += atten * light->color[2];
                     }
                 }
             }
