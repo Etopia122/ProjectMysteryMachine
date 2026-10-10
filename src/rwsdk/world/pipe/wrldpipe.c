@@ -11,15 +11,15 @@
 
 RxNodeDefinition* RxNodeDefinitionGetTransform(void);
 RxNodeDefinition* RxNodeDefinitionGetCullTriangle(void);
-RxNodeDefinition* fn_80155E28(void);
-RxNodeDefinition* fn_80157874(void);
+RxNodeDefinition* RxNodeDefinitionGetLight(void);
+RxNodeDefinition* RxNodeDefinitionGetPostLight(void);
 RxNodeDefinition* RxNodeDefinitionGetClipTriangle(void);
 RxNodeDefinition* RxNodeDefinitionGetSubmitTriangle(void);
-RxNodeDefinition* fn_80155B5C(void);
+RxNodeDefinition* RxNodeDefinitionGetAtomicInstance(void);
 RxNodeDefinition* RxNodeDefinitionGetAtomicEnumerateLights(void);
-RxNodeDefinition* fn_801571C0(void);
-RxNodeDefinition* fn_80158850(void);
-RxNodeDefinition* fn_80157A30(void);
+RxNodeDefinition* RxNodeDefinitionGetMaterialScatter(void);
+RxNodeDefinition* RxNodeDefinitionGetWorldSectorInstance(void);
+RxNodeDefinition* RxNodeDefinitionGetWorldSectorEnumerateLights(void);
 
 RwBool _rpCreatePlatformMaterialPipelines(void);
 void _rpDestroyPlatformMaterialPipelines(void);
@@ -101,7 +101,7 @@ static inline RwBool MaterialPipelineCreate(void) {
 
         lpipe = RxPipelineLock(pipe);
         if (lpipe) {
-            lpipe = RxLockedPipeAddFragment(lpipe, NULL, RxNodeDefinitionGetTransform(), RxNodeDefinitionGetCullTriangle(), fn_80155E28(), fn_80157874(),
+            lpipe = RxLockedPipeAddFragment(lpipe, NULL, RxNodeDefinitionGetTransform(), RxNodeDefinitionGetCullTriangle(), RxNodeDefinitionGetLight(), RxNodeDefinitionGetPostLight(),
                                             RxNodeDefinitionGetClipTriangle(), RxNodeDefinitionGetSubmitTriangle(), NULL);
 
             pipe = RxLockedPipeUnlock(lpipe);
@@ -128,8 +128,8 @@ static inline RwBool AtomicPipelineCreate(void) {
 
         lpipe = RxPipelineLock(pipe);
         if (lpipe) {
-            lpipe = RxLockedPipeAddFragment(lpipe, NULL, fn_80155B5C(), RxNodeDefinitionGetAtomicEnumerateLights(),
-                                            fn_801571C0(), NULL);
+            lpipe = RxLockedPipeAddFragment(lpipe, NULL, RxNodeDefinitionGetAtomicInstance(), RxNodeDefinitionGetAtomicEnumerateLights(),
+                                            RxNodeDefinitionGetMaterialScatter(), NULL);
 
             pipe = RxLockedPipeUnlock(lpipe);
             if (pipe) {
@@ -155,7 +155,7 @@ static inline RwBool WorldSectorPipelineCreate(void) {
 
         lpipe = RxPipelineLock(pipe);
         if (lpipe) {
-            lpipe = RxLockedPipeAddFragment(lpipe, NULL, fn_80158850(), fn_80157A30(), fn_801571C0(), NULL);
+            lpipe = RxLockedPipeAddFragment(lpipe, NULL, RxNodeDefinitionGetWorldSectorInstance(), RxNodeDefinitionGetWorldSectorEnumerateLights(), RxNodeDefinitionGetMaterialScatter(), NULL);
 
             pipe = RxLockedPipeUnlock(lpipe);
             if (pipe) {
