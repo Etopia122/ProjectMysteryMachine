@@ -206,9 +206,9 @@ RwBool _rwDlNativeTextureWrite(void* pOut, void* pInOut, RwInt32 nI);
 RwBool _rwDlNativeTextureRead(void* pOut, void* pInOut, RwInt32 nI);
 RwBool _rwDlRasterGetMipLevels(void* pOut, void* pInOut, RwInt32 nI);
 
-void fn_8017DC44(void);
-void fn_8017DD60(void);
-void fn_8017DDDC(void);
+void _rwDlMatrixMultiply(RwMatrix* dst, const RwMatrix* matA, const RwMatrix* matB);
+void _rwDlV3dTransformPoints(RwV3d* pointsOut, const RwV3d* pointsIn, RwInt32 numPoints, const RwMatrix* matrix);
+void _rwDlV3dTransformVectors(RwV3d* vectorsOut, const RwV3d* vectorsIn, RwInt32 numPoints, const RwMatrix* matrix);
 RwBool _rwMatrixSetMultFn(void* multMat);
 RwBool _rwVectorSetMultFn(void* multPoint, void* multVector);
 
@@ -610,8 +610,8 @@ RwBool _rwDlSystem(RwInt32 request, void* pOut, void* pInOut, RwInt32 nIn)
         return DlDeviceStart();
 
     case rwDEVICESYSTEMFINALIZESTART:
-        _rwMatrixSetMultFn(fn_8017DC44);
-        _rwVectorSetMultFn(fn_8017DD60, fn_8017DDDC);
+        _rwMatrixSetMultFn(_rwDlMatrixMultiply);
+        _rwVectorSetMultFn(_rwDlV3dTransformPoints, _rwDlV3dTransformVectors);
         _rwDlRenderStateOpen();
         return TRUE;
 

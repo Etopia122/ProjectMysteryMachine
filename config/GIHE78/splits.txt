@@ -1711,6 +1711,11 @@ rwsdk/driver/gcn/dltexture.c:
 	.sbss       start:0x8025F888 end:0x8025F890
 	.sdata2     start:0x80262BB8 end:0x80262BD8
 
+rwsdk/driver/gcn/dlmatrix.c:
+	.text       start:0x8017DBB8 end:0x8017DE58
+	.sdata      start:0x8025E800 end:0x8025E808
+	.sbss       start:0x8025F890 end:0x8025F898
+
 rwsdk/p2/p2core.c:
 	.text       start:0x801869A8 end:0x80187438
 	.sdata      start:0x8025E850 end:0x8025E858
