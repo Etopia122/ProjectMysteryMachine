@@ -3713,7 +3713,13 @@ static void VILN_KookRender(_xEnt* ent);
 static signed int VILN_std_xtrarend(st_zEntVillain* vil);
 static signed int VILN_std_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot);
 static inline void VILN_flipAway(float* knock, float push);
+#ifdef PC_PORT
+// Returns VSUP_accum_collide's result: the *_respond functions that end with it
+// have no return statement and returned that value (still in r3) on GameCube.
+static inline signed int VILN_cmn_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
+#else
 static inline void VILN_cmn_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
+#endif
 static signed int VILN_std_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
 static inline void VOUT_stop(_xEntFrame* frame);
 static inline void VOUT_faceAng(st_zEntVillain* vil, float ang);
@@ -7916,19 +7922,37 @@ static signed int VILN_std_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA
 {
     _xVec3 unused = {};
 
+#ifdef PC_PORT
+    // No return in the original (see VILN_cmn_respond); optimising compilers treat
+    // falling off the end as unreachable.
+    return VILN_cmn_respond(vil, resp);
+#else
     VILN_cmn_respond(vil, resp);
+#endif
 }
 
+#ifdef PC_PORT
+static inline signed int VILN_cmn_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp)
+#else
 static inline void VILN_cmn_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp)
+#endif
 {
     _xVec3 push = {};
 
+#ifdef PC_PORT
+    signed int collided = VSUP_accum_collide(vil, &push);
+    if (collided && vil->goal == ZVIL_GOAL_SOAPED && (vil->ability & 0x100000))
+#else
     if (VSUP_accum_collide(vil, &push) && vil->goal == ZVIL_GOAL_SOAPED && (vil->ability & 0x100000))
+#endif
     {
         VILN_flipAway(&vil->vec_knocked.x, push.x);
         VILN_flipAway(&vil->vec_knocked.y, push.y);
         VILN_flipAway(&vil->vec_knocked.z, push.z);
     }
+#ifdef PC_PORT
+    return collided;
+#endif
 }
 
 static inline void VILN_flipAway(float* knock, float push)
@@ -8354,7 +8378,13 @@ static signed int VILN_crit_calcmove(st_zEntVillain* vil, _xScene* scn, float dt
 
 static signed int VILN_crit_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp)
 {
+#ifdef PC_PORT
+    // No return in the original (see VILN_cmn_respond); optimising compilers treat
+    // falling off the end as unreachable.
+    return VILN_cmn_respond(vil, resp);
+#else
     VILN_cmn_respond(vil, resp);
+#endif
 }
 
 static signed int VILN_crit_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot)
@@ -8572,7 +8602,13 @@ static signed int VILN_shag_calcmove(st_zEntVillain* vil, _xScene* scn, float dt
 
 static signed int VILN_shag_respond(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp)
 {
+#ifdef PC_PORT
+    // No return in the original (see VILN_cmn_respond); optimising compilers treat
+    // falling off the end as unreachable.
+    return VILN_cmn_respond(vil, resp);
+#else
     VILN_cmn_respond(vil, resp);
+#endif
 }
 
 static signed int VILN_shag_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, en_ZVIL_GOAL_SPOT gspot)
