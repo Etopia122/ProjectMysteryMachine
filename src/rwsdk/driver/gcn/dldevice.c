@@ -775,17 +775,13 @@ static inline void DlQueueFrame(void* writePtr)
     lbl_8025F814 = (lbl_8025F814 + 1) % DLNUMFRAMES;
 }
 
-static inline void DlQueueToken(void)
+static inline void DlQueueFrameToken(void* writePtr)
 {
+    lbl_8025E2B0[lbl_8025F814].writePtr = writePtr;
+    lbl_8025E2B0[lbl_8025F814].frameBuffer = lbl_8025F848;
     lbl_8025F83C[lbl_8025F818] = lbl_8025E800;
-}
-
-static inline void DlStartBreakPt(void* writePtr)
-{
-    if (!lbl_8025F820) {
-        lbl_8025F820 = TRUE;
-        GXEnableBreakPt(writePtr);
-    }
+    lbl_8025F814 = (lbl_8025F814 + 1) % DLNUMFRAMES;
+    lbl_8025F818 = (lbl_8025F818 + 1) % DLNUMFRAMES;
 }
 
 static inline void DlNextToken(void)
@@ -801,13 +797,13 @@ static inline void DlSwapFrameBuffer(void)
 
 RwBool _rwDlRasterShowRaster(void* pRaster, void* pInOut, RwInt32 flags)
 {
-    volatile RwBool full;
-    RwInt32 level;
-    void* writePtr;
     void* readPtr;
+    void* writePtr;
+    RwInt32 level;
+    volatile RwBool full;
 
     level = OSDisableInterrupts();
-    full = (lbl_8025F814 - lbl_8025F810 == -1 || lbl_8025F814 - lbl_8025F810 == 2);
+    full = (lbl_8025F814 - lbl_8025F810 == -1 || lbl_8025F814 - lbl_8025F810 == 2) ? TRUE : FALSE;
     OSRestoreInterrupts(level);
     if (full == TRUE) {
         OSSleepThread(lbl_8025F834);
@@ -817,11 +813,12 @@ RwBool _rwDlRasterShowRaster(void* pRaster, void* pInOut, RwInt32 flags)
         GXFlush();
         GXGetFifoPtrs(GXGetCPUFifo(), &readPtr, &writePtr);
         level = OSDisableInterrupts();
-        DlQueueFrame(writePtr);
-        DlQueueToken();
-        lbl_8025F818 = (lbl_8025F818 + 1) % DLNUMFRAMES;
+        DlQueueFrameToken(writePtr);
         OSRestoreInterrupts(level);
-        DlStartBreakPt(writePtr);
+        if (!lbl_8025F820) {
+            lbl_8025F820 = TRUE;
+            GXEnableBreakPt(writePtr);
+        }
 
         GXCopyDisp(lbl_8025F848, lbl_8025F7F8);
         DlNextToken();
@@ -833,7 +830,10 @@ RwBool _rwDlRasterShowRaster(void* pRaster, void* pInOut, RwInt32 flags)
         level = OSDisableInterrupts();
         DlQueueFrame(writePtr);
         OSRestoreInterrupts(level);
-        DlStartBreakPt(writePtr);
+        if (!lbl_8025F820) {
+            lbl_8025F820 = TRUE;
+            GXEnableBreakPt(writePtr);
+        }
 
         GXCopyDisp(lbl_8025F848, lbl_8025F7F8);
         DlNextToken();
@@ -843,11 +843,12 @@ RwBool _rwDlRasterShowRaster(void* pRaster, void* pInOut, RwInt32 flags)
         GXFlush();
         GXGetFifoPtrs(GXGetCPUFifo(), &readPtr, &writePtr);
         level = OSDisableInterrupts();
-        DlQueueFrame(writePtr);
-        DlQueueToken();
-        lbl_8025F818 = (lbl_8025F818 + 1) % DLNUMFRAMES;
+        DlQueueFrameToken(writePtr);
         OSRestoreInterrupts(level);
-        DlStartBreakPt(writePtr);
+        if (!lbl_8025F820) {
+            lbl_8025F820 = TRUE;
+            GXEnableBreakPt(writePtr);
+        }
 
         GXSetCopyClamp(GX_CLAMP_BOTTOM);
         GXSetDispCopySrc(0, 2, lbl_8025F860->fbWidth, lbl_8025F860->efbHeight - 2);
