@@ -279,16 +279,23 @@ static void AtomicInstanceAllVertices(RwUInt8* verts, RpAtomic* atomic, RpGeomet
 static void AtomicInstanceMeshes(AtomicInstanceMesh* inst, RpMeshHeader* meshHeader, RxVertexIndex* indices,
                                  RwUInt8* verts, RwUInt32 stride)
 {
-    RwBool triStrip = meshHeader->flags & rpMESHHEADERTRISTRIP;
-    RwUInt32 minVert = 0;
-    RwUInt32 numMeshes = meshHeader->numMeshes;
-    RpMesh* mesh = (RpMesh*)(meshHeader + 1);
+    RwInt32 numIndices;
+    RwUInt32 numTris;
+    RwUInt32 maxVert;
+    RwUInt32 numMeshes;
+    RpMesh* mesh;
+    RwUInt32 minVert;
+    RxVertexIndex* src;
+    RwBool triStrip;
+    RwUInt32 count;
+    RwUInt32 odd;
 
+    triStrip = meshHeader->flags & rpMESHHEADERTRISTRIP;
+    numMeshes = meshHeader->numMeshes;
+    mesh = (RpMesh*)(meshHeader + 1);
+    minVert = 0;
     while (numMeshes--) {
-        RwUInt32 count;
-        RwUInt32 numIndices;
-        RxVertexIndex* src = mesh->indices;
-
+        src = mesh->indices;
         inst->indices = indices;
         inst->stride = stride;
         inst->material = mesh->material;
@@ -301,13 +308,12 @@ static void AtomicInstanceMeshes(AtomicInstanceMesh* inst, RpMeshHeader* meshHea
             inst->numVertices = mesh->numIndices;
 
             if (triStrip) {
-                RwUInt32 numTris = numIndices - 2;
                 RwUInt16 i;
 
+                numTris = numIndices - 2;
                 inst->numIndices = numTris * 3;
                 for (i = 0; i < numTris; i++) {
-                    RwUInt32 odd = i & 1;
-
+                    odd = i & 1;
                     indices[0] = i + odd;
                     indices[1] = i + (odd ^ 1);
                     indices[2] = i + 2;
@@ -325,8 +331,7 @@ static void AtomicInstanceMeshes(AtomicInstanceMesh* inst, RpMeshHeader* meshHea
             }
             minVert += count;
         } else {
-            RwUInt32 maxVert = 0;
-
+            maxVert = 0;
             minVert = 0xFFFF;
             while (count--) {
                 minVert = RwMin(minVert, src[count]);
@@ -337,10 +342,9 @@ static void AtomicInstanceMeshes(AtomicInstanceMesh* inst, RpMeshHeader* meshHea
             inst->numVertices = maxVert - minVert + 1;
 
             if (triStrip) {
-                RwUInt32 odd = 0;
-
+                odd = 0;
                 inst->numIndices = (numIndices - 2) * 3;
-                for (; numIndices > 2; numIndices--) {
+                for (; (RwUInt32)numIndices > 2; numIndices--) {
                     indices[0] = src[odd] - minVert;
                     indices[1] = src[odd ^ 1] - minVert;
                     indices[2] = src[2] - minVert;
