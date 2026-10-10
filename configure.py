@@ -782,6 +782,7 @@ config.libs = [
             Object(NonMatching, "rwsdk/world/pipe/nodePostLight.c"),
             Object(NonMatching, "rwsdk/world/pipe/nodeWorldSectorEnumerateLights.c"),
             Object(NonMatching, "rwsdk/world/pipe/nodeWorldSectorInstance.c"),
+            Object(NonMatching, "rwsdk/world/pipe/gcn/gcallinone.c"),
             Object(Matching, "rwsdk/world/pipe/gcn/gcvtxfmt.c"),
             Object(Matching, "rwsdk/world/pipe/gcn/gcpipe.c"),
             Object(NonMatching, "rwsdk/world/pipe/gcn/gcnative.c"),

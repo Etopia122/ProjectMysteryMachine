@@ -1574,6 +1574,11 @@ rwsdk/world/pipe/nodeWorldSectorInstance.c:
 	.sdata      start:0x8025E7B8 end:0x8025E7C0
 	.sdata2     start:0x80262970 end:0x80262988
 
+rwsdk/world/pipe/gcn/gcallinone.c:
+	.text       start:0x8015885C end:0x8015D4D4
+	.data       start:0x801DDA48 end:0x801DDA78
+	.sdata2     start:0x80262988 end:0x802629B8
+
 rwsdk/world/pipe/gcn/gcvtxfmt.c:
 	.text       start:0x8015D4D4 end:0x8015D830
 	.bss        start:0x8025DB20 end:0x8025DB38
