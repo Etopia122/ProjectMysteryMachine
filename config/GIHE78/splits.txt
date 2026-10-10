@@ -1744,6 +1744,10 @@ rwsdk/p2/generic/nodeImmRenderSetup.c:
 	.text       start:0x80182F34 end:0x80183340
 	.data       start:0x801DEB68 end:0x801DEC98
 
+rwsdk/p2/generic/nodeImmStash.c:
+	.text       start:0x80183340 end:0x80183568
+	.data       start:0x801DEC98 end:0x801DED38
+
 rwsdk/p2/p2core.c:
 	.text       start:0x801869A8 end:0x80187438
 	.sdata      start:0x8025E850 end:0x8025E858

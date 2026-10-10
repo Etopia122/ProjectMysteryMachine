@@ -27,7 +27,12 @@ RwBool ImmMangleTriangleIndicesNode(RxPipelineNodeInstance* self, const RxPipeli
     RxCluster* indices;
     RxMeshStateVector* meshData;
 
-    packet = RxPacketFetch(self);
+    if (_rxExecCtxGlobal.pipeline->embeddedPacketState == rxPKST_PENDING) {
+        _rxExecCtxGlobal.pipeline->embeddedPacketState = rxPKST_INUSE;
+        packet = _rxExecCtxGlobal.pipeline->embeddedPacket;
+    } else {
+        packet = NULL;
+    }
     meshState = RxClusterLockWrite(packet, 0, self);
     meshData = RxClusterGetCursorData(meshState, RxMeshStateVector);
     indices = RxClusterLockRead(packet, 1);

@@ -812,6 +812,7 @@ config.libs = [
             Object(NonMatching, "rwsdk/p2/generic/nodeImmMangleLineIndices.c"),
             Object(NonMatching, "rwsdk/p2/generic/nodeImmMangleTriangleIndices.c"),
             Object(Matching, "rwsdk/p2/generic/nodeImmRenderSetup.c"),
+            Object(Matching, "rwsdk/p2/generic/nodeImmStash.c"),
         ],
     },
     {
