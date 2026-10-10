@@ -33,6 +33,17 @@ static void vi_thread()
     for (;;)
     {
         std::this_thread::sleep_until(next);
+        // PC_PROF=1: a retrace thread that wakes late holds the game up (it
+        // waits for retraces), e.g. behind another thread on its core.
+        static bool prof = getenv("PC_PROF") != NULL;
+        if (prof)
+        {
+            double late = duration<double, std::milli>(steady_clock::now() - next).count();
+            if (late > 40.0)
+            {
+                pc_log("[vi] retrace thread woke %.0f ms late", late);
+            }
+        }
         next += period;
         unsigned int count = ++s_retraceCount;
         VIRetraceCallback pre = s_preCB, post = s_postCB;
@@ -72,6 +83,7 @@ void VIWaitForRetrace()
     }
     if (prof)
     {
+        pc_stall_note(PC_STALL_VI, pc_perf_counter() - t0);
         // PC_PROF=1: time spent waiting for retraces, per second.
         static unsigned long long total, start;
         static int calls;

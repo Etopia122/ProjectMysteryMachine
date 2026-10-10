@@ -227,8 +227,14 @@ static int read_entry(unsigned int entry, void* addr, int length, int offset)
     {
         return -1;
     }
+    static bool prof = getenv("PC_PROF") != NULL;
+    unsigned long long t0 = prof ? pc_perf_counter() : 0;
     fseek(e.fp, offset, SEEK_SET);
     size_t n = fread(addr, 1, (size_t)length, e.fp);
+    if (prof)
+    {
+        pc_stall_note(PC_STALL_FILE, pc_perf_counter() - t0);
+    }
     // The drive transfers whole 32-byte blocks; zero the tail past end of file.
     if ((int)n < length)
     {

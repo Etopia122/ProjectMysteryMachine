@@ -497,6 +497,42 @@ void pc_events_pump();
 static void draw_overlay();
 static void skin_cache_trim();
 
+static unsigned long long s_stall[PC_STALL_COUNT];
+static int s_fileReads;
+
+void pc_stall_note(int kind, unsigned long long ticks)
+{
+    if (kind >= 0 && kind < PC_STALL_COUNT)
+    {
+        s_stall[kind] += ticks;
+        s_fileReads += kind == PC_STALL_FILE;
+    }
+}
+
+// PC_PROF=1: frames over 150 ms (from present to present) with where the time
+// went, to tell game work from waiting.
+static void long_frame_check()
+{
+    if (!prof_on())
+    {
+        return;
+    }
+    static unsigned long long last;
+    unsigned long long now = pc_perf_counter();
+    double ms = last ? pc_perf_seconds(now - last) * 1000.0 : 0;
+    last = now;
+    if (ms > 150.0)
+    {
+        double vi = pc_perf_seconds(s_stall[PC_STALL_VI]) * 1000.0;
+        double file = pc_perf_seconds(s_stall[PC_STALL_FILE]) * 1000.0;
+        double present = pc_perf_seconds(s_stall[PC_STALL_PRESENT]) * 1000.0;
+        pc_log("[long] frame %.0f ms: retrace wait %.0f, file reads %.0f (%d), present %.0f, rest %.0f", ms, vi, file,
+               s_fileReads, present, ms - vi - file - present);
+    }
+    memset(s_stall, 0, sizeof(s_stall));
+    s_fileReads = 0;
+}
+
 void pc_render_present()
 {
     if (!s_open)
@@ -504,6 +540,7 @@ void pc_render_present()
         return;
     }
     skin_cache_trim();
+    long_frame_check();
     if (trace_frame())
     {
         pc_log("[trace] present");

@@ -1170,6 +1170,7 @@ void gpu_present()
     u64 t0 = svcGetSystemTick();
     C3D_FrameEnd(0);
     s_prof.endTicks += svcGetSystemTick() - t0;
+    pc_stall_note(PC_STALL_PRESENT, svcGetSystemTick() - t0);
     s_inFrame = false;
     if (prof_on())
     {

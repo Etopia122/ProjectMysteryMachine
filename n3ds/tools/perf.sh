@@ -9,7 +9,9 @@
 #        file QUEUE (one per line) until it is empty, so several emulator copies can share a sweep.
 # Columns: average and lowest fps, ms per frame, then the renderer's share
 # (skinning, lighting, drawing with the world sectors in brackets), the time
-# spent waiting for the retrace, draws and vertices per frame.
+# spent waiting for the retrace, draws and vertices per frame, and the seconds
+# left out as transitions: those with a frame over 300 ms (the game resetting
+# the scene after a fall, loading; logged as [long]) or over 31 fps.
 # N3DS_ENV="KEY=VALUE ..." adds debug switches; PERF_FROM / PERF_SPAN change the window.
 # The app (PERF_APP, default build/n3ds/scooby.3dsx) is copied first, so rebuilding
 # during a sweep doesn't change it; AZAHAR / AZAHAR_EXE pick the emulator copy.
@@ -59,7 +61,7 @@ if [ "$1" = "all" ]; then
     set -- $(for d in game/files/*/; do ls "$d"; done | grep -i '\.hip$' | grep -iv '^mnu' | sed 's/\.[Hh][Ii][Pp]$//' | tr a-z A-Z)
 fi
 cp "$SD/env.txt" "$SD/env.txt.perf-backup" 2>/dev/null
-printf '%-5s %5s %5s %6s %5s %5s %5s %6s %5s %5s %6s\n' scene fps min ms skin light draw world wait draws verts >> "$out"
+printf '%-5s %5s %5s %6s %5s %5s %5s %6s %5s %5s %6s %7s\n' scene fps min ms skin light draw world wait draws verts stalls >> "$out"
 if [ -n "$queue" ]; then
     set -- queue
 fi
@@ -86,6 +88,8 @@ for scene in "$@"; do
     awk -v from="$FROM" -v end="$END" -v scene="$scene" '
         { t = $1 + 0 }
         t < from || t > end { next }
+        /\[long\] frame/ { if ($4 + 0 > 300) lastlong = t; next }
+        / fps, / && (t - lastlong < 1.1 || $3 + 0 > 31) { skipped++; next }
         / fps, / { f = $3 + 0; fs += f; n++; if (min == 0 || f < min) min = f
                    for (i = 1; i <= NF; i++) {
                        if ($i == "ms/frame:") ms += $(i - 1)
@@ -97,8 +101,8 @@ for scene in "$@"; do
         /gpu: / { d += $4; v += $6; ng++ }
         END {
             if (n == 0) { printf "%-5s  no profile (did not load?)\n", scene; exit }
-            printf "%-5s %5.1f %5.1f %6.1f %5.1f %5.1f %5.1f %6.1f %5.1f %5d %6d\n", scene, fs / n, min, ms / n, sk / n,
-                   li / n, dr / n, wo / n, nw ? w / nw / (fs / n) : 0, ng ? d / ng : 0, ng ? v / ng : 0 }' "$SD/log.txt" >> "$out"
+            printf "%-5s %5.1f %5.1f %6.1f %5.1f %5.1f %5.1f %6.1f %5.1f %5d %6d %7d\n", scene, fs / n, min, ms / n, sk / n,
+                   li / n, dr / n, wo / n, nw ? w / nw / (fs / n) : 0, ng ? d / ng : 0, ng ? v / ng : 0, skipped }' "$SD/log.txt" >> "$out"
     if [ -n "$PERF_KEEPLOGS" ]; then
         mkdir -p build/n3ds/perf_logs
         cp "$SD/log.txt" "build/n3ds/perf_logs/$scene.txt"

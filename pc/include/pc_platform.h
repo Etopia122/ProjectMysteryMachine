@@ -42,6 +42,11 @@ void pc_autopad(unsigned short* buttons, int* sx, int* sy);
 unsigned long long pc_perf_counter(void);
 double pc_perf_seconds(unsigned long long ticks);
 
+// Long-frame diagnosis (PC_PROF): time a frame spent waiting, by kind; the
+// renderer logs frames over 150 ms with their totals.
+enum { PC_STALL_VI, PC_STALL_FILE, PC_STALL_PRESENT, PC_STALL_COUNT };
+void pc_stall_note(int kind, unsigned long long ticks);
+
 // Puts text on the system clipboard (where there is one).
 void pc_set_clipboard(const char* text);
 

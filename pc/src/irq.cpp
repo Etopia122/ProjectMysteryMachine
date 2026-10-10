@@ -7,6 +7,7 @@
 #include "pc_platform.h"
 
 #include <condition_variable>
+#include <cstdlib>
 #include <deque>
 #include <functional>
 #include <mutex>
@@ -31,7 +32,14 @@ static void irq_thread()
             s_queue.pop_front();
         }
         std::lock_guard<std::recursive_mutex> irq(s_irqLock);
+        // PC_PROF=1: callbacks that hold the interrupt thread up.
+        static bool prof = getenv("PC_PROF") != NULL;
+        unsigned long long t0 = prof ? pc_perf_counter() : 0;
         fn();
+        if (prof && pc_perf_seconds(pc_perf_counter() - t0) > 0.02)
+        {
+            pc_log("[irq] callback took %.0f ms", pc_perf_seconds(pc_perf_counter() - t0) * 1000.0);
+        }
     }
 }
 

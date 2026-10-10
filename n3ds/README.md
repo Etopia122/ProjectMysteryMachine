@@ -83,7 +83,21 @@ icon and banner are made from the disc's GameCube memory card icon/banner
   before the game gets far, and `handle SIGSEGV nostop noprint nopass` skips
   the stub's spurious stops. Breakpoints and hardware watchpoints work;
   interrupting a running target in batch mode doesn't, and other threads'
-  registers are stale (`sample.sh` is not reliable).
+  registers are stale.
+- `sh n3ds/tools/sample.sh <warmup> <count>`: sampling profiler. The app's
+  sample thread (`N3DS_SAMPLE`, added for the run) hits a breakpoint four times
+  a second and gdb records the main thread's stack; prints the innermost and
+  the inclusive function counts (`build/n3ds/samples.txt` has the stacks).
+- `sh n3ds/tools/perf.sh [-o table] SCENE...|all`: frame-rate table per scene
+  (average and lowest fps, frame time, skinning/lighting/drawing, wait for the
+  retrace, draws, vertices copied), standing at the start or with
+  `PERF_WALK=1` walking about; `-q QUEUE` shares one scene list between
+  emulator copies. Run a copy of the script for long sweeps (sh reads a script
+  as it goes).
+- A second Azahar copy (renamed executable, its own `user` folder) can run
+  beside the first: `AZAHAR=<dir> AZAHAR_EXE=<exe>` for run.sh, sample.sh and
+  perf.sh. Two at once disturb the emulated clock (one-second dips that don't
+  happen alone), so measure lowest frame rates with one running.
 - `N3DS_O0_UNITS=<regex>` (CMake) builds matching game sources at -O0.
 - `sh n3ds/tools/scenes.sh F001 G001 ...`: New Game into each scene,
   screenshot, frame rate and null-pointer reads (Azahar logs unmapped reads
