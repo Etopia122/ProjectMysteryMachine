@@ -42,6 +42,22 @@ void pc_autopad(unsigned short* buttons, int* sx, int* sy);
 unsigned long long pc_perf_counter(void);
 double pc_perf_seconds(unsigned long long ticks);
 
+// Puts text on the system clipboard (where there is one).
+void pc_set_clipboard(const char* text);
+
+// Debug menu (pc/src/debug_menu.cpp), driven by the platform's input.
+enum { PC_MENU_UP, PC_MENU_DOWN, PC_MENU_LEFT, PC_MENU_RIGHT, PC_MENU_OK, PC_MENU_BACK };
+void pc_debug_menu_toggle(void);
+int pc_debug_menu_key(int key);
+int pc_debug_menu_active(void);
+void pc_debug_menu_frame(void);
+void pc_debug_coords_toggle(void);
+void pc_debug_coords_save(void);
+void pc_debug_coords_return(void);
+// The platform's key names for the menu's hints.
+enum { PC_HINT_MENU, PC_HINT_SAVE, PC_HINT_RETURN };
+const char* pc_debug_key_hint(int which);
+
 // Milliseconds since the program started.
 unsigned int pc_ticks_ms(void);
 

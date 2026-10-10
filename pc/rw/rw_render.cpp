@@ -11,6 +11,7 @@
 #include <string.h>
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // Logical framebuffer the game renders to.
@@ -654,8 +655,20 @@ static bool prelit_has_alpha(const void* key, const RwRGBA* prelit, int nv)
     return a;
 }
 
+// Geometries the game has locked to rewrite their arrays.
+static std::unordered_set<const void*> s_dynamicGeometry;
+
+void pc_render_geometry_dynamic(const void* key)
+{
+    if (s_dynamicGeometry.insert(key).second && s_open)
+    {
+        gpu_forget(key);
+    }
+}
+
 void pc_render_forget(const void* key)
 {
+    s_dynamicGeometry.erase(key);
     s_prelitAlpha.erase(key);
     if (s_open)
     {
@@ -699,17 +712,21 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
             bool lit = !s_light.empty();
             RwRGBA matColor = { 255, 255, 255, 255 }, addColor = { 0, 0, 0, 0 };
             v.cacheKey = NULL;
-            if (prelit && !lit && staticKey)
+            // Debug: PC_DBG=cpucolour computes every vertex colour on the CPU.
+            static bool cpuColour = dbg_has("cpucolour");
+            static bool cpuStatic = cpuColour || dbg_has("cpustatic"), cpuUniform = cpuColour || dbg_has("cpuuniform");
+            if (prelit && !lit && staticKey && !cpuStatic)
             {
                 // Static prelit geometry: the GPU multiplies by the material colour
                 // and the backend can keep the arrays.
                 v.col = prelit;
                 v.colStride = sizeof(RwRGBA);
-                v.cacheKey = staticKey;
+                static bool noCache = dbg_has("nocache");
+                v.cacheKey = noCache ? NULL : staticKey;
                 matColor = mc;
                 alpha |= prelit_has_alpha(staticKey, prelit, nv);
             }
-            else if (lit && s_lightUniform)
+            else if (lit && s_lightUniform && !cpuUniform)
             {
                 // Only ambient light reaches it, the same for every vertex: the GPU
                 // adds it and applies the material colour (unskinned geometry keeps
@@ -1006,7 +1023,8 @@ void pc_render_atomic(RpAtomic* a)
     }
     MeshArrays arr = { pos, g->texCoords[0] };
     draw_meshes(g->mesh, &g->matList, g->preLitLum, (g->flags & rpGEOMETRYMODULATEMATERIALCOLOR) != 0,
-                g->numVertices, g->triangles, g->numTriangles, arr, sp.empty() ? (const void*)g : NULL);
+                g->numVertices, g->triangles, g->numTriangles, arr,
+                sp.empty() && !s_dynamicGeometry.count(g) ? (const void*)g : NULL);
     s_light.clear();
     gpu_set_modelview(s_view);
 }
@@ -1339,6 +1357,7 @@ static const struct { char c; unsigned char rows[7]; } s_font[] = {
     { '\'', { 0x04, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00 } }, { '&', { 0x0C, 0x12, 0x14, 0x08, 0x15, 0x12, 0x0D } },
     { '(', { 0x02, 0x04, 0x08, 0x08, 0x08, 0x04, 0x02 } }, { ')', { 0x08, 0x04, 0x02, 0x02, 0x02, 0x04, 0x08 } },
     { '>', { 0x08, 0x04, 0x02, 0x01, 0x02, 0x04, 0x08 } }, { '/', { 0x01, 0x01, 0x02, 0x04, 0x08, 0x10, 0x10 } },
+    { '+', { 0x00, 0x04, 0x04, 0x1F, 0x04, 0x04, 0x00 } },
 };
 
 static char s_overlay[4096];

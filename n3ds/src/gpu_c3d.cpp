@@ -43,7 +43,6 @@ static shaderProgram_s s_program;
 static int s_uMvp, s_uUvScale;
 static bool s_inFrame;
 static PcRaster* s_target;
-static bool s_overlay;
 
 // Per-frame vertex/index arena, double-buffered (the GPU reads one frame's
 // data while the next is written).
@@ -138,7 +137,6 @@ static void begin_frame()
     s_arenaFull = false;
     s_lastDyn.out = NULL;
     s_target = NULL;
-    s_overlay = false;
     C3D_FrameDrawOn(s_top);
 }
 
@@ -298,10 +296,6 @@ static void set_viewport()
         // the padded texture.
         C3D_SetViewport(0, c->tex.height - s_target->r.height, s_target->r.width, s_target->r.height);
     }
-    else if (s_overlay)
-    {
-        C3D_SetViewport(0, 0, SCREEN_H, SCREEN_W);
-    }
     else
     {
         // The rotated framebuffer is 240 wide and 400 tall.
@@ -328,7 +322,6 @@ static void bind_target(PcRaster* p)
 
 void gpu_set_target(PcRaster* target)
 {
-    s_overlay = false;
     bind_target(target);
 }
 
@@ -384,6 +377,18 @@ static void load_mvp()
         out.r[1] = FVec4_Negate(rx);
     }
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, s_uMvp, &out);
+    // Perspective: W-buffer, depth = -z' / far, linear in eye distance from 0 at
+    // the near plane to 1 at the far plane (so fog can be indexed linearly).
+    // Orthographic (2D): Z-buffer, depth = -z'/w as before.
+    if (s_proj[11] != 0.0f && s_proj[10] != 1.0f)
+    {
+        float far = -s_proj[14] / (s_proj[10] - 1.0f);
+        C3D_DepthMap(false, -1.0f / far, 0.0f);
+    }
+    else
+    {
+        C3D_DepthMap(true, -1.0f, 0.0f);
+    }
     s_mvpDirty = false;
 }
 
@@ -447,6 +452,49 @@ static GPU_TEXTURE_WRAP_PARAM wrap(int a)
     case 3: case 4: return GPU_CLAMP_TO_EDGE;
     default: return GPU_REPEAT;
     }
+}
+
+// Fog: OpenGL-style linear fog by eye distance, which the PICA200 does with a
+// lookup table indexed by the fragment's depth (0 near to 1 far here, see
+// load_mvp). Each entry converts its depth back to eye distance through the
+// current perspective projection. 2D (orthographic) draws get no fog.
+static void apply_fog(const GpuState& s)
+{
+    static C3D_FogLut lut;
+    static float key[4] = { -1, -1, -1, -1 };
+    bool perspective = s_proj[11] != 0.0f;
+    if (!s.fog || !perspective || s.fogEnd <= s.fogStart)
+    {
+        C3D_FogGasMode(GPU_NO_FOG, GPU_PLAIN_DENSITY, false);
+        return;
+    }
+    float a = s_proj[10], b = s_proj[14];
+    if (key[0] != s.fogStart || key[1] != s.fogEnd || key[2] != a || key[3] != b)
+    {
+        key[0] = s.fogStart, key[1] = s.fogEnd, key[2] = a, key[3] = b;
+        // Perspective draws use a W-buffer: depth is linear from the near plane
+        // (0) to the far plane (1), see load_mvp.
+        float n = -b / (a + 1.0f), f = -b / (a - 1.0f);
+        float data[256];
+        for (int i = 0; i <= 128; i++)
+        {
+            float z = n + (i / 128.0f) * (f - n); // eye distance
+            float vis = (s.fogEnd - z) / (s.fogEnd - s.fogStart);
+            vis = vis < 0.0f ? 0.0f : vis > 1.0f ? 1.0f : vis;
+            if (i < 128)
+            {
+                data[i] = vis;
+            }
+            if (i > 0)
+            {
+                data[i + 127] = vis - data[i - 1];
+            }
+        }
+        FogLut_FromArray(&lut, data);
+    }
+    C3D_FogGasMode(GPU_FOG, GPU_PLAIN_DENSITY, false);
+    C3D_FogColor((u32)s.fogColor.red | (u32)s.fogColor.green << 8 | (u32)s.fogColor.blue << 16);
+    C3D_FogLutBind(&lut);
 }
 
 static void apply_state(const GpuState& s, C3dRaster* tex)
@@ -538,8 +586,7 @@ static void apply_state(const GpuState& s, C3dRaster* tex)
         C3D_TexEnvSrc(env2, C3D_Both, GPU_PREVIOUS, GPU_PREVIOUS, GPU_PREVIOUS);
         C3D_TexEnvFunc(env2, C3D_Both, GPU_REPLACE);
     }
-    // No fog yet (the PICA200 fogs by depth through a lookup table).
-    C3D_FogGasMode(GPU_NO_FOG, GPU_PLAIN_DENSITY, false);
+    apply_fog(s);
 }
 
 static void convert_verts(const GpuVerts& v, Vert* out);
@@ -683,15 +730,11 @@ static void draw_converted(const GpuState& s, Vert* out, GpuPrim prim, GPU_Primi
 
 int gpu_overlay_begin(int* width, int* height)
 {
-    begin_frame();
-    s_overlay = true;
-    s_target = NULL;
-    C3D_FrameDrawOn(s_top);
-    set_viewport();
-    s_mvpDirty = true;
-    *width = SCREEN_W;
-    *height = SCREEN_H;
-    return 1;
+    // The overlay uses the game area (640x480 pixels at half size on screen).
+    gpu_set_target(NULL);
+    *width = 640;
+    *height = 480;
+    return 2;
 }
 
 // ---------------------------------------------------------------- present

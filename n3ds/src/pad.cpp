@@ -44,13 +44,17 @@ unsigned int PADRead(PADStatus* status)
     {
         status[i].err = PAD_ERR_NO_CONTROLLER;
     }
+    if (pc_debug_menu_active())
+    {
+        return 0x80000000; // the debug menu has the buttons
+    }
     // hidScanInput runs once per frame in pc_events_pump.
     u32 k = hidKeysHeld();
     unsigned short b = 0;
     if (k & KEY_A) b |= PAD_BUTTON_A;
     if (k & KEY_B) b |= PAD_BUTTON_B;
-    if (k & KEY_X) b |= PAD_BUTTON_X;
-    if (k & KEY_Y) b |= PAD_BUTTON_Y;
+    if ((k & KEY_X) && !(k & KEY_ZL)) b |= PAD_BUTTON_X; // ZL+X/Y are debug keys (main.cpp)
+    if ((k & KEY_Y) && !(k & KEY_ZL)) b |= PAD_BUTTON_Y;
     if (k & KEY_START) b |= PAD_BUTTON_START;
     if (k & KEY_L) b |= PAD_TRIGGER_L;
     if (k & KEY_R) b |= PAD_TRIGGER_R;

@@ -44,7 +44,7 @@ target_compile_options(scoobygame PRIVATE
 
 # Platform code shared with the PC port, and the 3DS platform layer.
 set(SHARED_PC_SOURCES
-    ${PC}/src/aram.cpp ${PC}/src/asset_swap.cpp ${PC}/src/autopad.cpp ${PC}/src/audio.cpp ${PC}/src/card.cpp ${PC}/src/dvd.cpp
+    ${PC}/src/aram.cpp ${PC}/src/asset_swap.cpp ${PC}/src/autopad.cpp ${PC}/src/audio.cpp ${PC}/src/card.cpp ${PC}/src/debug_menu.cpp ${PC}/src/dvd.cpp
     ${PC}/src/game_data.cpp ${PC}/src/game_leftovers.cpp ${PC}/src/irq.cpp ${PC}/src/msl_data.cpp
     ${PC}/src/os_heap.cpp ${PC}/src/vi_time.cpp ${PC}/src/xbase_outofline.cpp)
 file(GLOB PC_RW_SOURCES ${PC}/rw/*.cpp)

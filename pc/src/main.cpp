@@ -137,7 +137,7 @@ extern "C" void pc_exit(int code)
 }
 
 bool pc_debug_menu_event(const SDL_Event& e);
-void pc_debug_menu_frame();
+
 
 // Window/system events; called once per presented frame.
 void pc_events_pump()

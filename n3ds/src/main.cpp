@@ -91,13 +91,43 @@ void pc_events_pump()
         pc_log("[n3ds] Start+Select: exiting");
         pc_exit(0);
     }
+    // Debug menu: Select opens and closes it; D-pad, A and B drive it.
+    // ZL+X saves the position, ZL+Y returns to it (pad.cpp hides those from the game).
+    u32 down = hidKeysDown();
+    if (down & KEY_SELECT)
+    {
+        pc_debug_menu_toggle();
+    }
+    else if ((held & KEY_ZL) && (down & KEY_X))
+    {
+        pc_debug_coords_save();
+    }
+    else if ((held & KEY_ZL) && (down & KEY_Y))
+    {
+        pc_debug_coords_return();
+    }
+    else if (pc_debug_menu_active())
+    {
+        if (down & KEY_DUP) pc_debug_menu_key(PC_MENU_UP);
+        if (down & KEY_DDOWN) pc_debug_menu_key(PC_MENU_DOWN);
+        if (down & KEY_DLEFT) pc_debug_menu_key(PC_MENU_LEFT);
+        if (down & KEY_DRIGHT) pc_debug_menu_key(PC_MENU_RIGHT);
+        if (down & KEY_A) pc_debug_menu_key(PC_MENU_OK);
+        if (down & KEY_B) pc_debug_menu_key(PC_MENU_BACK);
+    }
+    pc_debug_menu_frame();
+}
+
+extern "C" void pc_set_clipboard(const char* text) {}
+
+extern "C" const char* pc_debug_key_hint(int which)
+{
+    return which == PC_HINT_MENU ? "SELECT" : which == PC_HINT_SAVE ? "ZL+X" : "ZL+Y";
 }
 
 // No movie player on 3DS yet: movies are skipped.
 signed int iFMVPlay(char* filename, unsigned int buttons, float time) { return 0; }
 
-// The debug menu (pc/src/debug_menu.cpp) is PC-only for now.
-extern "C" int pc_debug_menu_active() { return 0; }
 
 int main(int argc, char** argv)
 {

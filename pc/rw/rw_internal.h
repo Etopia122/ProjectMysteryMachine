@@ -81,6 +81,8 @@ int pc_gx_level_size(int fmt, int w, int h);
 void pc_render_raster_free(PcRaster* r);
 // A world sector or geometry is being destroyed: drop render caches for it.
 void pc_render_forget(const void* key);
+// A geometry's arrays change at run time (it was locked): never cache them.
+void pc_render_geometry_dynamic(const void* key);
 void pc_render_begin_camera(RwCamera* cam);
 void pc_render_end_camera(RwCamera* cam);
 void pc_render_clear(RwCamera* cam, const RwRGBA* colour, RwInt32 mode);

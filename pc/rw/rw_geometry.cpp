@@ -1078,6 +1078,12 @@ RpGeometry* RpGeometryForAllMaterials(RpGeometry* g, RpMaterial* (*cb)(RpMateria
 
 RpGeometry* RpGeometryLock(RpGeometry* g, RwInt32 lockMode)
 {
+    // The game is about to rewrite its arrays (vertex warps, morphs, UV
+    // animation): the renderer must stop caching them.
+    if (g)
+    {
+        pc_render_geometry_dynamic(g);
+    }
     g->lockedSinceLastInst |= (RwUInt16)lockMode;
     return g;
 }

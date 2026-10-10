@@ -9,7 +9,6 @@
 // next to the exe (and the clipboard), F5 teleports back to it.
 #include "pc_platform.h"
 
-#include <SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,9 +46,10 @@ int s_cursor;          // main menu row
 int s_levelCursor = 1; // area row (area 0 is empty)
 int s_sceneSel[32];    // chosen scene per area
 bool s_infHealth;
-bool s_showCoords = getenv("PC_COORDS") != NULL; // PC_COORDS=1 starts with the readout on
+bool s_showCoords; // PC_COORDS=1 starts with the readout on (read on the first frame:
+                   // the 3DS sets its environment in main)
 std::string s_status;
-Uint32 s_statusUntil;
+unsigned int s_statusUntil;
 
 float s_savedPos[3];
 bool s_hasSaved;
@@ -67,7 +67,7 @@ void scene_text(unsigned int id, char* out)
 void status(const char* msg)
 {
     s_status = msg;
-    s_statusUntil = SDL_GetTicks() + 2500;
+    s_statusUntil = pc_ticks_ms() + 2500;
     pc_log("[debug] %s", msg);
 }
 
@@ -108,16 +108,14 @@ void save_coords()
     memcpy(s_savedPos, p, sizeof(p));
     s_hasSaved = true;
     snprintf(line, sizeof(line), "%s %.2f,%.2f,%.2f", scene, p[0], p[1], p[2]);
-    char* base = SDL_GetBasePath();
-    std::string path = std::string(base ? base : "") + "coords.txt";
-    SDL_free(base);
+    std::string path = std::string(pc_base_path()) + "coords.txt";
     if (FILE* f = fopen(path.c_str(), "a"))
     {
         fprintf(f, "%s\n", line);
         fclose(f);
     }
-    SDL_SetClipboardText(line);
-    pc_log("[coords] %s (saved to coords.txt and the clipboard)", line);
+    pc_set_clipboard(line);
+    pc_log("[coords] %s (saved to coords.txt)", line);
     status("POSITION SAVED TO COORDS.TXT");
 }
 
@@ -216,7 +214,7 @@ void build_overlay()
     char buf[160];
     if (s_open && s_page == MAIN)
     {
-        t = "DEBUG MENU  (F1 CLOSE)\n\n";
+        t = std::string("DEBUG MENU  (") + pc_debug_key_hint(PC_HINT_MENU) + " CLOSE)\n\n";
         const char* labels[ITEM_COUNT] = {
             "WARP TO LEVEL",          "ALL UPGRADES",           "UNLOCK ALL WARP GATES",
             "REFILL HEALTH AND AMMO", "ADD 100 SCOOBY SNACKS",  s_infHealth ? "INFINITE HEALTH: ON" : "INFINITE HEALTH: OFF",
@@ -254,11 +252,11 @@ void build_overlay()
         float p[3];
         scene_text(pc_debug_scene_id(), scene);
         pc_debug_player_pos(p);
-        snprintf(buf, sizeof(buf), "%sSCENE %s  X %.2f  Y %.2f  Z %.2f\nF4 SAVE  F5 RETURN\n", t.empty() ? "" : "\n",
-                 scene, p[0], p[1], p[2]);
+        snprintf(buf, sizeof(buf), "%sSCENE %s  X %.2f  Y %.2f  Z %.2f\n%s SAVE  %s RETURN\n", t.empty() ? "" : "\n",
+                 scene, p[0], p[1], p[2], pc_debug_key_hint(PC_HINT_SAVE), pc_debug_key_hint(PC_HINT_RETURN));
         t += buf;
     }
-    if (!s_status.empty() && SDL_GetTicks() < s_statusUntil)
+    if (!s_status.empty() && pc_ticks_ms() < s_statusUntil)
     {
         t += (t.empty() ? "" : "\n") + s_status;
     }
@@ -273,83 +271,52 @@ void build_overlay()
 
 extern "C" int pc_debug_menu_active() { return s_open; }
 
-// Handles one SDL event; returns true if it was consumed.
-bool pc_debug_menu_event(const SDL_Event& e)
+// Platform input (pc/src/debug_menu_sdl.cpp on PC, n3ds/src/main.cpp on 3DS).
+extern "C" void pc_debug_menu_toggle()
 {
-    if (e.type == SDL_KEYDOWN)
+    s_open = !s_open;
+    s_page = MAIN;
+}
+
+extern "C" void pc_debug_coords_toggle()
+{
+    s_showCoords = !s_showCoords;
+}
+
+extern "C" void pc_debug_coords_save()
+{
+    save_coords();
+}
+
+extern "C" void pc_debug_coords_return()
+{
+    if (s_hasSaved)
     {
-        SDL_Keycode k = e.key.keysym.sym;
-        if (k == SDLK_F1 && !e.key.repeat)
-        {
-            s_open = !s_open;
-            s_page = MAIN;
-            return true;
-        }
-        if (k == SDLK_F3 && !e.key.repeat)
-        {
-            s_showCoords = !s_showCoords;
-            return true;
-        }
-        if (k == SDLK_F4 && !e.key.repeat)
-        {
-            save_coords();
-            return true;
-        }
-        if (k == SDLK_F5 && !e.key.repeat)
-        {
-            if (s_hasSaved)
-            {
-                pc_debug_teleport(s_savedPos[0], s_savedPos[1], s_savedPos[2]);
-                status("RETURNED TO SAVED POSITION");
-            }
-            return true;
-        }
-        if (!s_open)
-        {
-            return false;
-        }
-        switch (k)
-        {
-        case SDLK_UP: navigate(K_UP); break;
-        case SDLK_DOWN: navigate(K_DOWN); break;
-        case SDLK_LEFT: navigate(K_LEFT); break;
-        case SDLK_RIGHT: navigate(K_RIGHT); break;
-        case SDLK_RETURN: case SDLK_SPACE: navigate(K_OK); break;
-        case SDLK_ESCAPE: case SDLK_BACKSPACE: navigate(K_BACK); break;
-        default: break;
-        }
-        return true;
+        pc_debug_teleport(s_savedPos[0], s_savedPos[1], s_savedPos[2]);
+        status("RETURNED TO SAVED POSITION");
     }
-    if (e.type == SDL_CONTROLLERBUTTONDOWN)
+}
+
+// A menu key; returns nonzero if the open menu took it.
+extern "C" int pc_debug_menu_key(int key)
+{
+    if (!s_open)
     {
-        if (e.cbutton.button == SDL_CONTROLLER_BUTTON_BACK)
-        {
-            s_open = !s_open;
-            s_page = MAIN;
-            return true;
-        }
-        if (!s_open)
-        {
-            return false;
-        }
-        switch (e.cbutton.button)
-        {
-        case SDL_CONTROLLER_BUTTON_DPAD_UP: navigate(K_UP); break;
-        case SDL_CONTROLLER_BUTTON_DPAD_DOWN: navigate(K_DOWN); break;
-        case SDL_CONTROLLER_BUTTON_DPAD_LEFT: navigate(K_LEFT); break;
-        case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: navigate(K_RIGHT); break;
-        case SDL_CONTROLLER_BUTTON_A: navigate(K_OK); break;
-        case SDL_CONTROLLER_BUTTON_B: navigate(K_BACK); break;
-        default: break;
-        }
-        return true;
+        return 0;
     }
-    return false;
+    navigate((Key)key);
+    return 1;
 }
 
 // Once per presented frame.
-void pc_debug_menu_frame()
+extern "C" void pc_debug_menu_frame()
 {
+    static bool started;
+    if (!started)
+    {
+        started = true;
+        s_showCoords = getenv("PC_COORDS") != NULL;
+    }
     // Testing: PC_MENU=main|levels opens the menu; PC_WARP=<sec>:<scene> warps.
     static const char* menu = getenv("PC_MENU");
     if (menu)
@@ -360,7 +327,7 @@ void pc_debug_menu_frame()
     }
     // Testing: PC_EVENT=<sec>:NAME:event[;NAME:event...] sends events to objects.
     static const char* ev = getenv("PC_EVENT");
-    if (ev && SDL_GetTicks() >= (Uint32)(atof(ev) * 1000))
+    if (ev && pc_ticks_ms() >= (unsigned int)(atof(ev) * 1000))
     {
         std::string list = strchr(ev, ':') ? strchr(ev, ':') + 1 : "";
         ev = NULL;
@@ -383,7 +350,7 @@ void pc_debug_menu_frame()
     }
     // Testing: PC_BOSSDMG=<sec>[,<sec>...] forces boss damage at those times.
     static const char* bossdmg = getenv("PC_BOSSDMG");
-    if (bossdmg && SDL_GetTicks() >= (Uint32)(atof(bossdmg) * 1000))
+    if (bossdmg && pc_ticks_ms() >= (unsigned int)(atof(bossdmg) * 1000))
     {
         status(pc_dbg_force_boss_damage());
         bossdmg = strchr(bossdmg, ',');
@@ -391,7 +358,7 @@ void pc_debug_menu_frame()
     }
     // Testing: PC_HURT=<sec>[,<sec>...] damages Scooby at those times.
     static const char* hurt = getenv("PC_HURT");
-    if (hurt && SDL_GetTicks() >= (Uint32)(atof(hurt) * 1000))
+    if (hurt && pc_ticks_ms() >= (unsigned int)(atof(hurt) * 1000))
     {
         pc_dbg_hurt();
         hurt = strchr(hurt, ',');
@@ -399,7 +366,7 @@ void pc_debug_menu_frame()
     }
     // Testing: PC_ENTINFO=<sec>:NAME[,<sec>:NAME] logs an entity's state.
     static const char* entinfo = getenv("PC_ENTINFO");
-    if (entinfo && SDL_GetTicks() >= (Uint32)(atof(entinfo) * 1000))
+    if (entinfo && pc_ticks_ms() >= (unsigned int)(atof(entinfo) * 1000))
     {
         const char* c = strchr(entinfo, ':');
         const char* next = strchr(entinfo, ',');
@@ -408,7 +375,7 @@ void pc_debug_menu_frame()
         entinfo = next ? next + 1 : NULL;
     }
     static const char* warp = getenv("PC_WARP");
-    if (warp && SDL_GetTicks() >= (Uint32)(atof(warp) * 1000))
+    if (warp && pc_ticks_ms() >= (unsigned int)(atof(warp) * 1000))
     {
         const char* c = strchr(warp, ':');
         if (c && strlen(c + 1) == 4 &&
