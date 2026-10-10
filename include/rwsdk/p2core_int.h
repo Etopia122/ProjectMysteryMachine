@@ -239,10 +239,10 @@ extern RxExecutionContext _rxExecCtxGlobal;
 #define RXPIPELINEGLOBAL(var) (RWPLUGINOFFSET(rwPipeGlobals, RwEngineInstance, _rxPipelineGlobalsOffset)->var)
 
 #define RxPacketFetch(node)                                                    \
-    ((_rxExecCtxGlobal.pipeline->embeddedPacketState == rxPKST_PENDING)        \
+    ((RxPacket*)((_rxExecCtxGlobal.pipeline->embeddedPacketState == rxPKST_PENDING)        \
          ? (_rxExecCtxGlobal.pipeline->embeddedPacketState = rxPKST_INUSE,     \
             _rxExecCtxGlobal.pipeline->embeddedPacket)                         \
-         : NULL)
+         : NULL))
 
 RxPipeline* RxPipelineCreate(void);
 RxLockedPipe* RxPipelineLock(RxPipeline* pipeline);
