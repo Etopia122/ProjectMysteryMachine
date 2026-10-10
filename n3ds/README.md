@@ -16,7 +16,12 @@ The game data comes from the player's own GameCube disc and lives on the SD card
 - Saves: the game finds and reads existing saves (copied from the PC port);
   writing is the same shared file code but hasn't been exercised on the 3DS
   (the save/load card screens don't react to scripted input on either port).
-- Not done yet: FMV (skipped), lines/points (no such primitives), bottom
+- Movies: the Bink files are re-encoded once on a PC (`sh n3ds/tools/convert_fmv.sh
+  game/files <out>`: Ogg Theora 320x240 + 32 kHz Vorbis, 59 MB for all 26) and
+  copied to `sdmc:/scooby/fmv`. Theora decodes in software (~3-6 ms a frame);
+  the hardware Y2R unit converts each picture straight into the GPU texture
+  (0.6 ms; `PC_FMV_CPU=1` uses the CPU instead). Full 29.97 fps with sound.
+- Not done yet: lines/points (no such primitives), bottom
   screen use, real-hardware testing.
 
 ## Layout
@@ -44,8 +49,8 @@ The game data comes from the player's own GameCube disc and lives on the SD card
   `scooby/env.txt` (the PC port's `PC_*` debug switches as KEY=VALUE lines,
   e.g. `PC_NOFMV=1`, `PC_PROF=1`, `PC_AUTOPAD=...`, `PC_LOG_FILES=1`), saves in
   `scooby/save`.
-- Real hardware: copy `scooby.3dsx` to `sdmc:/3ds/` and the disc's `files`
-  folder to `sdmc:/scooby/files`; start it from the Homebrew Launcher.
+- Real hardware: copy `scooby.3dsx` to `sdmc:/3ds/`, the disc's `files`
+  folder to `sdmc:/scooby/files` and the converted movies to `sdmc:/scooby/fmv`; start it from the Homebrew Launcher.
   Controls: Circle Pad = stick, C-stick = camera, A/B/X/Y, L/R, ZR = Z,
   Start; Start+Select quits.
 

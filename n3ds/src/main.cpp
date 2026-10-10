@@ -126,8 +126,6 @@ extern "C" const char* pc_debug_key_hint(int which)
     return which == PC_HINT_MENU ? "SELECT" : which == PC_HINT_SAVE ? "ZL+X" : "ZL+Y";
 }
 
-// No movie player on 3DS yet: movies are skipped.
-signed int iFMVPlay(char* filename, unsigned int buttons, float time) { return 0; }
 
 
 int main(int argc, char** argv)

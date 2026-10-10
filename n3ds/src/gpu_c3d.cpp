@@ -793,4 +793,225 @@ void gpu_forget(const void* key)
     s_static.erase(it);
 }
 
-void gpu_fmv_frame(const unsigned char* rgba, int w, int h) {}
+// Draws a movie raster (4:3, w x h) over the game area on black, and presents.
+// v0/v1: the texture's t coordinates of the picture's top and bottom rows
+// (after the raster's UV scale).
+static void draw_movie(PcRaster* movie, int w, int h, float u1, float v0, float v1)
+{
+    RwRGBA black = { 0, 0, 0, 255 };
+    gpu_clear(NULL, &black, true);
+    gpu_set_target(NULL);
+    float p[16] = { 0 };
+    p[0] = 2.0f / w;
+    p[5] = -2.0f / h;
+    p[10] = -1.0f;
+    p[12] = -1.0f;
+    p[13] = 1.0f;
+    p[15] = 1.0f;
+    static const float identity[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
+    gpu_set_projection(p);
+    gpu_set_modelview(identity);
+    GpuState s;
+    memset(&s, 0, sizeof(s));
+    s.alphaFunc = PC_ALPHA_ALWAYS;
+    s.cull = PC_CULL_NONE;
+    s.colorWrite = s.alphaWrite = true;
+    s.tex = movie;
+    s.filter = 2;          // linear
+    s.addrU = s.addrV = 3; // clamp
+    s.matColor = RwRGBA{ 255, 255, 255, 255 };
+    const float pos[8] = { 0, 0, (float)w, 0, 0, (float)h, (float)w, (float)h };
+    const float uv[8] = { 0, v0, u1, v0, 0, v1, u1, v1 };
+    GpuVerts v;
+    memset(&v, 0, sizeof(v));
+    v.pos = pos;
+    v.posStride = 2 * sizeof(float);
+    v.posSize = 2;
+    v.constCol = RwRGBA{ 255, 255, 255, 255 };
+    v.uv = uv;
+    v.uvStride = 2 * sizeof(float);
+    v.count = 4;
+    gpu_draw(s, v, PRIM_TRISTRIP, NULL, 0);
+    gpu_present();
+}
+
+// Shows one movie frame (RGBA, 4:3) over the game area on black, and presents.
+void gpu_fmv_frame(const unsigned char* rgba, int w, int h)
+{
+    static PcRaster movie;
+    movie.r.width = w;
+    movie.r.height = h;
+    movie.rgba = (RwUInt8*)rgba;
+    movie.dirty = 1;
+    gpu_prepare_texture(&movie);
+    draw_movie(&movie, w, h, 1.0f, 0.0f, 1.0f);
+}
+
+// ---------------------------------------------------------------- movies (YUV)
+// The 3DS movie player hands over YCbCr 4:2:0 pictures (BT.601 studio range).
+// The Y2R hardware converts them straight into the tiled texture by DMA; the
+// CPU path below is the fallback when Y2R isn't available.
+static PcRaster s_movie;
+static C3dRaster s_movieTex;
+static int s_y2r = -1; // -1 untried, 0 unavailable, 1 ready
+static Handle s_y2rDone;
+
+static bool movie_texture(int w, int h)
+{
+    int tw = pow2_at_least(w), th = pow2_at_least(h);
+    if (s_movieTex.hasTex && (s_movieTex.tex.width != tw || s_movieTex.tex.height != th))
+    {
+        C3D_TexDelete(&s_movieTex.tex);
+        s_movieTex.hasTex = false;
+    }
+    if (!s_movieTex.hasTex)
+    {
+        s_movieTex.hasTex = C3D_TexInit(&s_movieTex.tex, tw, th, GPU_RGBA8);
+        if (!s_movieTex.hasTex)
+        {
+            return false;
+        }
+        memset(s_movieTex.tex.data, 0, s_movieTex.tex.size);
+        C3D_TexFlush(&s_movieTex.tex);
+        s_movie.gpu = &s_movieTex;
+    }
+    s_movie.r.width = w;
+    s_movie.r.height = h;
+    return true;
+}
+
+// Hardware conversion; false if Y2R can't be used.
+static bool convert_y2r(const u8* py, int ys, const u8* pu, const u8* pv, int cs, int w, int h)
+{
+    if (s_y2r < 0)
+    {
+        // Debug: PC_FMV_CPU=1 converts on the CPU.
+        s_y2r = !getenv("PC_FMV_CPU") && R_SUCCEEDED(y2rInit()) ? 1 : 0;
+        if (s_y2r)
+        {
+            Y2RU_SetTransferEndInterrupt(true);
+            Y2RU_GetTransferEndEvent(&s_y2rDone);
+        }
+        pc_log("[fmv] Y2R %s", s_y2r ? "ready" : "unavailable: converting on the CPU");
+    }
+    if (!s_y2r || (w & 7) || (h & 7))
+    {
+        return false;
+    }
+    Y2RU_ConversionParams params;
+    memset(&params, 0, sizeof(params));
+    params.input_format = INPUT_YUV420_INDIV_8;
+    params.output_format = OUTPUT_RGB_32;
+    params.rotation = ROTATION_NONE;
+    params.block_alignment = BLOCK_8_BY_8;
+    params.input_line_width = (s16)w;
+    params.input_lines = (s16)h;
+    params.standard_coefficient = COEFFICIENT_ITU_R_BT_601_SCALING;
+    params.alpha = 0xFF;
+    Y2RU_SetConversionParams(&params);
+    // The DMA reads memory, not the CPU's data cache.
+    svcFlushProcessDataCache(CUR_PROCESS_HANDLE, (u32)py, (u32)(ys * h));
+    svcFlushProcessDataCache(CUR_PROCESS_HANDLE, (u32)pu, (u32)(cs * h / 2));
+    svcFlushProcessDataCache(CUR_PROCESS_HANDLE, (u32)pv, (u32)(cs * h / 2));
+    Y2RU_SetSendingY(py, (u32)(w * h), (s16)w, (s16)(ys - w));
+    Y2RU_SetSendingU(pu, (u32)(w * h / 4), (s16)(w / 2), (s16)(cs - w / 2));
+    Y2RU_SetSendingV(pv, (u32)(w * h / 4), (s16)(w / 2), (s16)(cs - w / 2));
+    // 8 output lines (one row of tiles) per transfer, then skip the texture's
+    // padding to the next row of tiles.
+    int tw = s_movieTex.tex.width;
+    Y2RU_SetReceiving(s_movieTex.tex.data, (u32)(w * h * 4), (s16)(w * 8 * 4), (s16)((tw - w) * 8 * 4));
+    Y2RU_StartConversion();
+    if (svcWaitSynchronization(s_y2rDone, 100000000LL) != 0) // 100 ms
+    {
+        Y2RU_StopConversion();
+        pc_log("[fmv] Y2R timed out: converting on the CPU from now on");
+        s_y2r = 0;
+        return false;
+    }
+    return true;
+}
+
+// CPU conversion into the tiled texture, two rows and two columns at a time
+// sharing their chroma (rows stored bottom to top, see tile_rgba).
+static void convert_cpu(const u8* py, int ys, const u8* pu, const u8* pv, int cs, int w, int h)
+{
+    static int yt[256], rv[256], gu[256], gv[256], bu[256];
+    static u8 clip[1024];
+    static bool tables;
+    if (!tables)
+    {
+        tables = true;
+        for (int i = 0; i < 256; i++)
+        {
+            yt[i] = (i - 16) * 298 + 128;
+            rv[i] = 409 * (i - 128);
+            gu[i] = -100 * (i - 128);
+            gv[i] = -208 * (i - 128);
+            bu[i] = 516 * (i - 128);
+        }
+        for (int i = 0; i < 1024; i++)
+        {
+            int v = i - 384;
+            clip[i] = (u8)(v < 0 ? 0 : v > 255 ? 255 : v);
+        }
+    }
+    int tw = s_movieTex.tex.width, th = s_movieTex.tex.height;
+    u32* dst = (u32*)s_movieTex.tex.data;
+    const u8* cl = clip + 384;
+    for (int y = 0; y < h; y += 2)
+    {
+        const u8* y0 = py + y * ys;
+        const u8* y1 = y0 + ys;
+        const u8* u = pu + (y >> 1) * cs;
+        const u8* v = pv + (y >> 1) * cs;
+        int t0 = th - 1 - y, t1 = th - 2 - y;
+        u32* row0 = dst + (size_t)(t0 / 8) * (tw / 8) * 64;
+        u32* row1 = dst + (size_t)(t1 / 8) * (tw / 8) * 64;
+        for (int x = 0; x < w; x += 2)
+        {
+            int cu = u[x >> 1], cv = v[x >> 1];
+            int r = rv[cv], g = gu[cu] + gv[cv], b = bu[cu];
+            for (int k = 0; k < 4; k++)
+            {
+                int xx = x + (k & 1);
+                int c = yt[(k < 2 ? y0 : y1)[xx]];
+                u32 px = (u32)cl[(c + r) >> 8] << 24 | (u32)cl[(c + g) >> 8] << 16 | (u32)cl[(c + b) >> 8] << 8 | 0xFF;
+                int ty = k < 2 ? t0 : t1;
+                u32* row = k < 2 ? row0 : row1;
+                row[(xx / 8) * 64 + morton(xx & 7, ty & 7)] = px;
+            }
+        }
+    }
+    C3D_TexFlush(&s_movieTex.tex);
+}
+
+extern "C" void n3ds_fmv_frame_yuv(const u8* py, int ys, const u8* pu, const u8* pv, int cs, int w, int h)
+{
+    if (!movie_texture(w, h))
+    {
+        return;
+    }
+    static u64 convTicks;
+    static int frames;
+    u64 t0 = svcGetSystemTick();
+    float tw = (float)s_movieTex.tex.width, th = (float)s_movieTex.tex.height;
+    s_movieTex.su = s_movieTex.sv = 1.0f;
+    if (convert_y2r(py, ys, pu, pv, cs, w, h))
+    {
+        // Y2R writes the top row first: t runs from 1 at the top downwards.
+        convTicks += svcGetSystemTick() - t0;
+        draw_movie(&s_movie, w, h, w / tw, 1.0f, 1.0f - h / th);
+    }
+    else
+    {
+        convert_cpu(py, ys, pu, pv, cs, w, h);
+        convTicks += svcGetSystemTick() - t0;
+        draw_movie(&s_movie, w, h, w / tw, 0.0f, h / th);
+    }
+    if (++frames == 300)
+    {
+        pc_log("[fmv] YUV conversion %.1f ms per frame", convTicks * 1000.0 / SYSCLOCK_ARM11 / frames);
+        convTicks = 0;
+        frames = 0;
+    }
+}

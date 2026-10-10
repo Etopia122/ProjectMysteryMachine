@@ -32,10 +32,10 @@ for o in objs:
             undefined.add(parts[1])
 
 # What the toolchain, libctru and citro3d provide (hard-float ARMv6K multilib).
-lib_dirs = [ARM / 'arm-none-eabi' / 'lib' / 'armv6k' / 'fpu', DKP / 'libctru' / 'lib',
+lib_dirs = [ARM / 'arm-none-eabi' / 'lib' / 'armv6k' / 'fpu', DKP / 'libctru' / 'lib', DKP / 'portlibs' / '3ds' / 'lib',
             next((ARM / 'lib' / 'gcc' / 'arm-none-eabi').glob('*'), ARM) / 'armv6k' / 'fpu']
 libs = ['libc.a', 'libm.a', 'libstdc++.a', 'libsupc++.a', 'libgcc.a', 'libsysbase.a', 'libctru.a', 'libcitro3d.a',
-        '3dsx_crt0.o', 'crti.o', 'crtn.o', 'crtbegin.o', 'crtend.o']
+        'libtheoradec.a', 'libvorbisidec.a', 'libogg.a', '3dsx_crt0.o', 'crti.o', 'crtn.o', 'crtbegin.o', 'crtend.o']
 for name in libs:
     for d in lib_dirs:
         if (d / name).exists():
