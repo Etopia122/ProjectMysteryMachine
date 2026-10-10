@@ -114,6 +114,7 @@ void gpu_close()
 bool gpu_ready() { return s_window != NULL; }
 
 bool gpu_second_screen() { return false; }
+void gpu_dynamic_changed() {}
 void gpu_select_screen(int screen) {}
 
 // ---------------------------------------------------------------- textures

@@ -495,6 +495,7 @@ void pc_render_clear(RwCamera* c, const RwRGBA* col, RwInt32 mode)
 void pc_events_pump();
 
 static void draw_overlay();
+static void skin_cache_trim();
 
 void pc_render_present()
 {
@@ -502,6 +503,7 @@ void pc_render_present()
     {
         return;
     }
+    skin_cache_trim();
     if (trace_frame())
     {
         pc_log("[trace] present");
@@ -710,6 +712,9 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
     v.uvStride = sizeof(RwTexCoords);
     v.count = nv;
     v.cacheKey = NULL;
+    // The meshes of one model share these arrays (the CPU colour path below
+    // rewrites its buffer per mesh and says so).
+    v.reuseKey = staticKey ? NULL : (const void*)arr.pos;
     if (mh && mh->numMeshes)
     {
         RpMesh* mesh = (RpMesh*)(mh + 1);
@@ -841,6 +846,7 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                 }
                 v.col = s_col.data();
                 v.colStride = sizeof(RwRGBA);
+                gpu_dynamic_changed();
             }
             else
             {
@@ -901,13 +907,18 @@ static void skin_vertices(RpGeometry* g, PcSkin* sk, RpHAnimHierarchy* h, RwV3d*
 {
     ProfScope prof(PROF_SKIN);
     int nb = sk->numBones;
-    std::vector<RwMatrix> m(nb);
+    static std::vector<RwMatrix> s_bones;
+    if ((int)s_bones.size() < nb)
+    {
+        s_bones.resize(nb);
+    }
+    RwMatrix* m = s_bones.data();
     for (int b = 0; b < nb && b < h->numNodes; b++)
     {
         RwMatrixMultiply(&m[b], &sk->invMats[b], &h->pMatrixArray[b]);
     }
     const RwV3d* v = g->morphTarget->verts;
-    const RwV3d* n = g->morphTarget->normals;
+    const RwV3d* n = outNrm ? g->morphTarget->normals : NULL;
     for (int i = 0; i < g->numVertices; i++)
     {
         RwV3d p = { 0, 0, 0 }, q = { 0, 0, 0 };
@@ -934,6 +945,67 @@ static void skin_vertices(RpGeometry* g, PcSkin* sk, RpHAnimHierarchy* h, RwV3d*
         if (outNrm)
         {
             outNrm[i] = q;
+        }
+    }
+}
+
+// Skinned vertices per atomic, kept while its pose is unchanged: a model drawn
+// twice in a frame (its shadow, then itself) or standing still is skinned once.
+struct SkinCache
+{
+    const RpGeometry* g;
+    const RpHAnimHierarchy* h;
+    std::vector<RwMatrix> pose; // the hierarchy's matrices the vertices were made from
+    std::vector<RwV3d> pos, nrm;
+    bool hasNrm;
+    unsigned frame; // last frame it was used
+};
+static std::unordered_map<const RpAtomic*, SkinCache> s_skinCache;
+static unsigned s_frameCount;
+
+static SkinCache& skin_cached(RpAtomic* a, RpGeometry* g, PcSkin* sk, RpHAnimHierarchy* h, bool wantNrm)
+{
+    SkinCache& c = s_skinCache[a];
+    int nb = sk->numBones < h->numNodes ? sk->numBones : h->numNodes;
+    size_t poseBytes = (size_t)(nb > 0 ? nb : 0) * sizeof(RwMatrix);
+    // Geometry the game rewrites (RpGeometryLock) is skinned again every frame.
+    bool same = c.g == g && c.h == h && (int)c.pose.size() == nb && (int)c.pos.size() == g->numVertices &&
+                (c.hasNrm || !wantNrm) && (!s_dynamicGeometry.count(g) || c.frame == s_frameCount) &&
+                memcmp(c.pose.data(), h->pMatrixArray, poseBytes) == 0;
+    if (!same)
+    {
+        c.g = g;
+        c.h = h;
+        c.pose.assign(h->pMatrixArray, h->pMatrixArray + nb);
+        c.pos.resize(g->numVertices);
+        if (wantNrm)
+        {
+            c.nrm.resize(g->numVertices);
+        }
+        c.hasNrm = wantNrm;
+        skin_vertices(g, sk, h, c.pos.data(), wantNrm ? c.nrm.data() : NULL);
+        gpu_dynamic_changed();
+    }
+    c.frame = s_frameCount;
+    return c;
+}
+
+// Drops the skinned vertices of atomics not drawn for a while (and of destroyed ones).
+static void skin_cache_trim()
+{
+    if (++s_frameCount % 60)
+    {
+        return;
+    }
+    for (std::unordered_map<const RpAtomic*, SkinCache>::iterator it = s_skinCache.begin(); it != s_skinCache.end();)
+    {
+        if (s_frameCount - it->second.frame > 60)
+        {
+            it = s_skinCache.erase(it);
+        }
+        else
+        {
+            ++it;
         }
     }
 }
@@ -988,7 +1060,7 @@ void pc_render_atomic(RpAtomic* a)
     const RwV3d* nrm = g->morphTarget->normals;
     PcSkin* sk = pc_geometry(g)->skin;
     RpHAnimHierarchy* h = pc_atomic(a)->skinHierarchy;
-    std::vector<RwV3d> sp, sn;
+    bool skinned = false;
     {
         static int geolog0 = getenv("PC_GEOLOG") ? atoi(getenv("PC_GEOLOG")) : -1;
         static int n0;
@@ -1001,13 +1073,11 @@ void pc_render_atomic(RpAtomic* a)
     }
     if (sk && h && h->pMatrixArray)
     {
-        sp.resize(g->numVertices);
-        if (nrm)
-        {
-            sn.resize(g->numVertices);
-        }
-        skin_vertices(g, sk, h, sp.data(), nrm ? sn.data() : NULL);
-        pos = sp.data();
+        // Normals only feed the lighting.
+        bool wantNrm = nrm && (g->flags & rpGEOMETRYLIGHT);
+        SkinCache& sc = skin_cached(a, g, sk, h, wantNrm);
+        pos = sc.pos.data();
+        skinned = true;
         // Debug: PC_GEOLOG=<verts> logs the skinned bounds of models with that many vertices.
         static int geolog = getenv("PC_GEOLOG") ? atoi(getenv("PC_GEOLOG")) : -1;
         static int geologged;
@@ -1016,16 +1086,16 @@ void pc_render_atomic(RpAtomic* a)
             float mn[3] = { 1e9f, 1e9f, 1e9f }, mx[3] = { -1e9f, -1e9f, -1e9f };
             for (int i = 0; i < g->numVertices; i++)
             {
-                const float* v = &sp[i].x;
+                const float* v = &pos[i].x;
                 for (int k = 0; k < 3; k++) { mn[k] = fminf(mn[k], v[k]); mx[k] = fmaxf(mx[k], v[k]); }
             }
             const RwV3d* b0 = g->morphTarget->verts;
             pc_log("[geo] skinned bounds (%.2f %.2f %.2f)-(%.2f %.2f %.2f) bind v0 (%.2f %.2f %.2f) skinned v0 (%.2f %.2f %.2f) "
                    "bones %d nodes %d ltm pos %.1f %.1f %.1f alpha %d", mn[0], mn[1], mn[2], mx[0], mx[1], mx[2], b0->x, b0->y, b0->z,
-                   sp[0].x, sp[0].y, sp[0].z, sk->numBones, h->numNodes, f->ltm.pos.x, f->ltm.pos.y, f->ltm.pos.z,
+                   pos[0].x, pos[0].y, pos[0].z, sk->numBones, h->numNodes, f->ltm.pos.x, f->ltm.pos.y, f->ltm.pos.z,
                    g->matList.numMaterials ? g->matList.materials[0]->color.alpha : -1);
         }
-        nrm = nrm ? sn.data() : NULL;
+        nrm = wantNrm ? sc.nrm.data() : NULL;
     }
     if (nrm && (g->flags & rpGEOMETRYLIGHT))
     {
@@ -1038,7 +1108,7 @@ void pc_render_atomic(RpAtomic* a)
     MeshArrays arr = { pos, g->texCoords[0] };
     draw_meshes(g->mesh, &g->matList, g->preLitLum, (g->flags & rpGEOMETRYMODULATEMATERIALCOLOR) != 0,
                 g->numVertices, g->triangles, g->numTriangles, arr,
-                sp.empty() && !s_dynamicGeometry.count(g) ? (const void*)g : NULL);
+                !skinned && !s_dynamicGeometry.count(g) ? (const void*)g : NULL);
     s_light.clear();
     gpu_set_modelview(s_view);
 }
@@ -1157,6 +1227,7 @@ static GpuVerts im2d_verts(RwIm2DVertex* v, int n)
     gv.uvStride = sizeof(RwIm2DVertex);
     gv.count = n;
     gv.cacheKey = NULL;
+    gv.reuseKey = NULL;
     return gv;
 }
 
@@ -1301,6 +1372,7 @@ static void im3d_draw(GpuPrim prim, const RwUInt16* idx, int n)
     v.uvStride = sizeof(RwIm3DVertex);
     v.count = (int)s_im3dCount;
     v.cacheKey = NULL;
+    v.reuseKey = NULL;
     gpu_draw(draw_state(alpha, tex, s_rs.filter, s_rs.addrU, s_rs.addrV), v, prim, idx, n);
     gpu_set_modelview(s_view);
 }

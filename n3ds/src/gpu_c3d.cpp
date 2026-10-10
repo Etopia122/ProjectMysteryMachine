@@ -72,9 +72,9 @@ struct StaticBuf
 static std::unordered_map<const void*, StaticBuf> s_static;
 static size_t s_staticBytes;
 
-// The last dynamic conversion this frame: the meshes of one geometry share
-// their arrays, so consecutive draws can reuse it when nothing differs (the
-// renderer rewrites its colour buffer per mesh, so a colour array never matches).
+// The last dynamic conversion this frame: the meshes of one model share their
+// arrays (GpuVerts.reuseKey), so consecutive draws can reuse it when nothing
+// differs and the arrays weren't rewritten since (gpu_dynamic_changed).
 static struct
 {
     GpuVerts v;
@@ -83,10 +83,39 @@ static struct
 
 static bool same_dynamic(const GpuVerts& a, const GpuVerts& b)
 {
-    return a.pos == b.pos && a.posStride == b.posStride && a.posSize == b.posSize && !a.col && !b.col &&
-           memcmp(&a.constCol, &b.constCol, sizeof(RwRGBA)) == 0 && a.uv == b.uv && a.uvStride == b.uvStride &&
-           a.count == b.count;
+    return a.reuseKey && a.reuseKey == b.reuseKey && a.pos == b.pos && a.posStride == b.posStride &&
+           a.posSize == b.posSize && a.col == b.col && (a.col ? a.colStride == b.colStride
+                                                              : memcmp(&a.constCol, &b.constCol, sizeof(RwRGBA)) == 0) &&
+           a.uv == b.uv && a.uvStride == b.uvStride && a.count == b.count;
 }
+
+void gpu_dynamic_changed()
+{
+    s_lastDyn.out = NULL;
+}
+
+// The state last given to citro3d: each setter marks its part of the context
+// dirty and the next draw sends it again, so unchanged state isn't set again
+// (forgotten at the start of each frame).
+static struct
+{
+    bool valid;
+    u32 depth, blend, alpha, cull, env, envAdd, envMat, fog;
+    C3D_Tex* tex;
+    u32 texParam;
+    float su, sv;
+    const void* buf;
+} s_applied;
+
+static void forget_applied_state()
+{
+    s_applied.valid = false;
+    s_applied.tex = NULL;
+    s_applied.buf = NULL;
+}
+
+static void apply_texture(const GpuState& s, struct C3dRaster* tex);
+
 
 // PC_PROF=1: per-second frame profile (frame time, draws, vertices, uploads).
 static struct { int frames, draws, verts, uploads; u64 uploadTicks, beginTicks, endTicks, start; } s_prof;
@@ -158,6 +187,8 @@ static void begin_frame()
     s_arenaUsed = 0;
     s_arenaFull = false;
     s_lastDyn.out = NULL;
+    forget_applied_state();
+    s_applied.fog = 2; // unknown
     s_target = NULL;
     s_screen = 0;
     if (s_bottom)
@@ -249,6 +280,7 @@ void gpu_prepare_texture(PcRaster* p)
         if (c->hasTex)
         {
             C3D_TexDelete(&c->tex);
+            s_applied.tex = NULL; // a new texture may reuse its address
         }
         c->hasTex = C3D_TexInit(&c->tex, tw, th, GPU_RGBA8);
         if (!c->hasTex)
@@ -282,6 +314,7 @@ void gpu_raster_free(PcRaster* r)
         if (c->hasTex)
         {
             C3D_TexDelete(&c->tex);
+            s_applied.tex = NULL; // a new texture may reuse its address
         }
         free(c);
     }
@@ -302,6 +335,7 @@ static void create_target(PcRaster* p)
     if (c->hasTex)
     {
         C3D_TexDelete(&c->tex);
+        s_applied.tex = NULL; // a new texture may reuse its address
     }
     c->hasTex = C3D_TexInitVRAM(&c->tex, tw, th, GPU_RGBA8) || C3D_TexInit(&c->tex, tw, th, GPU_RGBA8);
     if (!c->hasTex)
@@ -509,12 +543,19 @@ static void apply_fog(const GpuState& s)
     bool perspective = s_proj[11] != 0.0f;
     if (!s.fog || !perspective || s.fogEnd <= s.fogStart)
     {
-        C3D_FogGasMode(GPU_NO_FOG, GPU_PLAIN_DENSITY, false);
+        if (s_applied.fog != 0)
+        {
+            s_applied.fog = 0;
+            C3D_FogGasMode(GPU_NO_FOG, GPU_PLAIN_DENSITY, false);
+        }
         return;
     }
+    bool changed = s_applied.fog != 1;
+    s_applied.fog = 1;
     float a = s_proj[10], b = s_proj[14];
     if (key[0] != s.fogStart || key[1] != s.fogEnd || key[2] != a || key[3] != b)
     {
+        changed = true;
         key[0] = s.fogStart, key[1] = s.fogEnd, key[2] = a, key[3] = b;
         // Perspective draws use a W-buffer: depth is linear from the near plane
         // (0) to the far plane (1), see load_mvp.
@@ -536,26 +577,41 @@ static void apply_fog(const GpuState& s)
         }
         FogLut_FromArray(&lut, data);
     }
-    C3D_FogGasMode(GPU_FOG, GPU_PLAIN_DENSITY, false);
-    C3D_FogColor((u32)s.fogColor.red | (u32)s.fogColor.green << 8 | (u32)s.fogColor.blue << 16);
-    C3D_FogLutBind(&lut);
+    static u32 colour;
+    u32 c = (u32)s.fogColor.red | (u32)s.fogColor.green << 8 | (u32)s.fogColor.blue << 16;
+    if (changed || c != colour)
+    {
+        colour = c;
+        C3D_FogGasMode(GPU_FOG, GPU_PLAIN_DENSITY, false);
+        C3D_FogColor(c);
+        C3D_FogLutBind(&lut);
+    }
 }
 
 static void apply_state(const GpuState& s, C3dRaster* tex)
 {
+    bool all = !s_applied.valid;
+    s_applied.valid = true;
     // Depth: as in OpenGL, no depth test means no depth writes either.
     u32 writes = (s.colorWrite ? GPU_WRITE_COLOR & ~GPU_WRITE_ALPHA : 0) | (s.alphaWrite ? GPU_WRITE_ALPHA : 0);
-    if (s.zTest)
+    u32 depth = s.zTest ? (writes | (s.zWrite ? GPU_WRITE_DEPTH : 0)) | 0x100 : writes;
+    if (all || depth != s_applied.depth)
     {
-        C3D_DepthTest(true, GPU_LEQUAL, (GPU_WRITEMASK)(writes | (s.zWrite ? GPU_WRITE_DEPTH : 0)));
+        s_applied.depth = depth;
+        if (s.zTest)
+        {
+            C3D_DepthTest(true, GPU_LEQUAL, (GPU_WRITEMASK)(writes | (s.zWrite ? GPU_WRITE_DEPTH : 0)));
+        }
+        else
+        {
+            C3D_DepthTest(true, GPU_ALWAYS, (GPU_WRITEMASK)writes);
+        }
     }
-    else
-    {
-        C3D_DepthTest(true, GPU_ALWAYS, (GPU_WRITEMASK)writes);
-    }
+    GPU_BLENDFACTOR src = GPU_ONE, dst = GPU_ZERO;
     if (s.blend)
     {
-        GPU_BLENDFACTOR src = blend_factor(s.srcBlend), dst = blend_factor(s.dstBlend);
+        src = blend_factor(s.srcBlend);
+        dst = blend_factor(s.dstBlend);
         if (s.srcBlend == 4 && s.dstBlend == 9)
         {
             // INVSRCCOLOR/DESTCOLOR (the drop shadows): on GameCube this darkens
@@ -563,13 +619,19 @@ static void apply_state(const GpuState& s, C3dRaster* tex)
             src = GPU_ZERO;
             dst = GPU_ONE_MINUS_SRC_ALPHA;
         }
+    }
+    u32 blend = (u32)src | (u32)dst << 8;
+    if (all || blend != s_applied.blend)
+    {
+        s_applied.blend = blend;
         C3D_AlphaBlend(GPU_BLEND_ADD, GPU_BLEND_ADD, src, dst, src, dst);
     }
-    else
+    u32 alpha = (u32)test_func(s.alphaFunc) | (u32)s.alphaRef << 8;
+    if (all || alpha != s_applied.alpha)
     {
-        C3D_AlphaBlend(GPU_BLEND_ADD, GPU_BLEND_ADD, GPU_ONE, GPU_ZERO, GPU_ONE, GPU_ZERO);
+        s_applied.alpha = alpha;
+        C3D_AlphaTest(true, test_func(s.alphaFunc), s.alphaRef);
     }
-    C3D_AlphaTest(true, test_func(s.alphaFunc), s.alphaRef);
     // RenderWare culls back faces (mode 2) with clockwise fronts on screen.
     GPU_CULLMODE cull = GPU_CULL_NONE;
     if (s.cull == PC_CULL_BACK || s.cull == PC_CULL_FRONT)
@@ -581,56 +643,100 @@ static void apply_state(const GpuState& s, C3dRaster* tex)
         }
         cull = front ? GPU_CULL_FRONT_CCW : GPU_CULL_BACK_CCW;
     }
-    C3D_CullFace(cull);
+    if (all || (u32)cull != s_applied.cull)
+    {
+        s_applied.cull = cull;
+        C3D_CullFace(cull);
+    }
     // Colour combiners: clamp(vertex colour + add colour) * material colour * texture.
-    C3D_TexEnv* env = C3D_GetTexEnv(0);
-    C3D_TexEnvInit(env);
+    // Each stage is set only when it changes (citro3d resends the stages fetched).
     const RwRGBA& a = s.addColor;
-    if (a.red || a.green || a.blue)
-    {
-        C3D_TexEnvSrc(env, C3D_RGB, GPU_PRIMARY_COLOR, GPU_CONSTANT, GPU_PRIMARY_COLOR);
-        C3D_TexEnvFunc(env, C3D_RGB, GPU_ADD);
-        C3D_TexEnvSrc(env, C3D_Alpha, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR);
-        C3D_TexEnvFunc(env, C3D_Alpha, GPU_REPLACE);
-        C3D_TexEnvColor(env, (u32)a.red | (u32)a.green << 8 | (u32)a.blue << 16);
-    }
-    else
-    {
-        C3D_TexEnvSrc(env, C3D_Both, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR);
-        C3D_TexEnvFunc(env, C3D_Both, GPU_REPLACE);
-    }
-    C3D_TexEnv* env1 = C3D_GetTexEnv(1);
-    C3D_TexEnvInit(env1);
     const RwRGBA& m = s.matColor;
-    if (m.red != 255 || m.green != 255 || m.blue != 255 || m.alpha != 255)
+    bool hasAdd = a.red || a.green || a.blue;
+    bool hasMat = m.red != 255 || m.green != 255 || m.blue != 255 || m.alpha != 255;
+    // The colours are the keys: no add colour is black, no material colour white.
+    u32 envAdd = (u32)a.red | (u32)a.green << 8 | (u32)a.blue << 16;
+    u32 envMat = (u32)m.red | (u32)m.green << 8 | (u32)m.blue << 16 | (u32)m.alpha << 24;
+    u32 envTex = tex ? 1 : 0;
+    if (all || envAdd != s_applied.envAdd)
     {
-        C3D_TexEnvSrc(env1, C3D_Both, GPU_PREVIOUS, GPU_CONSTANT, GPU_PREVIOUS);
-        C3D_TexEnvFunc(env1, C3D_Both, GPU_MODULATE);
-        C3D_TexEnvColor(env1, (u32)m.red | (u32)m.green << 8 | (u32)m.blue << 16 | (u32)m.alpha << 24);
+        s_applied.envAdd = envAdd;
+        C3D_TexEnv* env = C3D_GetTexEnv(0);
+        C3D_TexEnvInit(env);
+        if (hasAdd)
+        {
+            C3D_TexEnvSrc(env, C3D_RGB, GPU_PRIMARY_COLOR, GPU_CONSTANT, GPU_PRIMARY_COLOR);
+            C3D_TexEnvFunc(env, C3D_RGB, GPU_ADD);
+            C3D_TexEnvSrc(env, C3D_Alpha, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR);
+            C3D_TexEnvFunc(env, C3D_Alpha, GPU_REPLACE);
+            C3D_TexEnvColor(env, (u32)a.red | (u32)a.green << 8 | (u32)a.blue << 16);
+        }
+        else
+        {
+            C3D_TexEnvSrc(env, C3D_Both, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR);
+            C3D_TexEnvFunc(env, C3D_Both, GPU_REPLACE);
+        }
     }
-    else
+    if (all || envMat != s_applied.envMat)
     {
-        C3D_TexEnvSrc(env1, C3D_Both, GPU_PREVIOUS, GPU_PREVIOUS, GPU_PREVIOUS);
-        C3D_TexEnvFunc(env1, C3D_Both, GPU_REPLACE);
+        s_applied.envMat = envMat;
+        C3D_TexEnv* env1 = C3D_GetTexEnv(1);
+        C3D_TexEnvInit(env1);
+        if (hasMat)
+        {
+            C3D_TexEnvSrc(env1, C3D_Both, GPU_PREVIOUS, GPU_CONSTANT, GPU_PREVIOUS);
+            C3D_TexEnvFunc(env1, C3D_Both, GPU_MODULATE);
+            C3D_TexEnvColor(env1, envMat);
+        }
+        else
+        {
+            C3D_TexEnvSrc(env1, C3D_Both, GPU_PREVIOUS, GPU_PREVIOUS, GPU_PREVIOUS);
+            C3D_TexEnvFunc(env1, C3D_Both, GPU_REPLACE);
+        }
     }
-    C3D_TexEnv* env2 = C3D_GetTexEnv(2);
-    C3D_TexEnvInit(env2);
-    if (tex)
+    if (all || envTex != s_applied.env)
     {
+        s_applied.env = envTex;
+        C3D_TexEnv* env2 = C3D_GetTexEnv(2);
+        C3D_TexEnvInit(env2);
+        if (tex)
+        {
+            C3D_TexEnvSrc(env2, C3D_Both, GPU_PREVIOUS, GPU_TEXTURE0, GPU_PREVIOUS);
+            C3D_TexEnvFunc(env2, C3D_Both, GPU_MODULATE);
+        }
+        else
+        {
+            C3D_TexEnvSrc(env2, C3D_Both, GPU_PREVIOUS, GPU_PREVIOUS, GPU_PREVIOUS);
+            C3D_TexEnvFunc(env2, C3D_Both, GPU_REPLACE);
+        }
+    }
+    apply_texture(s, tex);
+    apply_fog(s);
+}
+
+// The texture unit: bound, filtered and wrapped as the draw wants, and its UV
+// scale, when any of it differs from the last draw's.
+static void apply_texture(const GpuState& s, C3dRaster* tex)
+{
+    if (!tex)
+    {
+        return;
+    }
+    GPU_TEXTURE_FILTER_PARAM f = (s.filter == 1 || s.filter == 3 || s.filter == 4) ? GPU_NEAREST : GPU_LINEAR;
+    C3D_TexSetFilter(&tex->tex, f, f);
+    C3D_TexSetWrap(&tex->tex, wrap(s.addrU), wrap(s.addrV));
+    if (s_applied.tex != &tex->tex || s_applied.texParam != tex->tex.param)
+    {
+        s_applied.tex = &tex->tex;
+        s_applied.texParam = tex->tex.param;
         C3D_TexBind(0, &tex->tex);
-        GPU_TEXTURE_FILTER_PARAM f = (s.filter == 1 || s.filter == 3 || s.filter == 4) ? GPU_NEAREST : GPU_LINEAR;
-        C3D_TexSetFilter(&tex->tex, f, f);
-        C3D_TexSetWrap(&tex->tex, wrap(s.addrU), wrap(s.addrV));
-        C3D_TexEnvSrc(env2, C3D_Both, GPU_PREVIOUS, GPU_TEXTURE0, GPU_PREVIOUS);
-        C3D_TexEnvFunc(env2, C3D_Both, GPU_MODULATE);
+    }
+    if (s_applied.su != tex->su || s_applied.sv != tex->sv)
+    {
+        s_applied.su = tex->su;
+        s_applied.sv = tex->sv;
         C3D_FVUnifSet(GPU_VERTEX_SHADER, s_uUvScale, tex->su, tex->sv, 1.0f, 1.0f);
     }
-    else
-    {
-        C3D_TexEnvSrc(env2, C3D_Both, GPU_PREVIOUS, GPU_PREVIOUS, GPU_PREVIOUS);
-        C3D_TexEnvFunc(env2, C3D_Both, GPU_REPLACE);
-    }
-    apply_fog(s);
 }
 
 static void convert_verts(const GpuVerts& v, Vert* out);
@@ -759,9 +865,13 @@ static void draw_converted(const GpuState& s, Vert* out, GpuPrim prim, GPU_Primi
     {
         load_mvp();
     }
-    C3D_BufInfo* bufs = C3D_GetBufInfo();
-    BufInfo_Init(bufs);
-    BufInfo_Add(bufs, out, sizeof(Vert), 3, 0x210);
+    if (s_applied.buf != out)
+    {
+        s_applied.buf = out;
+        C3D_BufInfo* bufs = C3D_GetBufInfo();
+        BufInfo_Init(bufs);
+        BufInfo_Add(bufs, out, sizeof(Vert), 3, 0x210);
+    }
     if (ix)
     {
         C3D_DrawElements(p, nidx, C3D_UNSIGNED_SHORT, ix);
@@ -907,6 +1017,7 @@ static bool movie_texture(int w, int h)
     if (s_movieTex.hasTex && (s_movieTex.tex.width != tw || s_movieTex.tex.height != th))
     {
         C3D_TexDelete(&s_movieTex.tex);
+        s_applied.tex = NULL; // a new texture may reuse its address
         s_movieTex.hasTex = false;
     }
     if (!s_movieTex.hasTex)

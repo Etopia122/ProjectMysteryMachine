@@ -65,6 +65,10 @@ struct GpuVerts
     // unskinned geometry), so the backend may keep a converted copy until
     // gpu_forget(key).
     const void* cacheKey;
+    // Non-NULL: the arrays keep their contents for every draw with this key
+    // until gpu_dynamic_changed() (the meshes of one model), so a draw with the
+    // same key and arrays may reuse the previous draw's converted vertices.
+    const void* reuseKey;
 };
 
 bool gpu_open();
@@ -95,6 +99,9 @@ void gpu_raster_free(PcRaster* r);
 
 // Drops anything cached for a cacheKey (its geometry is being destroyed).
 void gpu_forget(const void* key);
+
+// Arrays passed with a reuseKey were rewritten: no reuse past this point.
+void gpu_dynamic_changed();
 
 // idx NULL: v.count vertices in order.
 void gpu_draw(const GpuState& s, const GpuVerts& v, GpuPrim prim, const RwUInt16* idx, int nidx);
