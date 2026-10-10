@@ -54,6 +54,9 @@ void pc_debug_menu_frame(void);
 void pc_debug_coords_toggle(void);
 void pc_debug_coords_save(void);
 void pc_debug_coords_return(void);
+// Environment-driven test hooks (pc/src/debug_hooks.cpp), once per frame.
+void pc_debug_hooks_frame(void);
+
 // The platform's key names for the menu's hints.
 enum { PC_HINT_MENU, PC_HINT_SAVE, PC_HINT_RETURN };
 const char* pc_debug_key_hint(int which);

@@ -7,12 +7,17 @@ The game data comes from the player's own GameCube disc and lives on the SD card
 ## Status (2026-10-09, Azahar emulator only)
 
 - Boots through the copyright screen and title to the main menu; New Game
-  loads the Mystic Manor hub with Scooby controllable. Music plays (ndsp).
-- Speed: title/menu ~20 fps, hub ~10 fps (the game targets 30). The CPU
-  still lights and skins models and copies dynamic vertices every frame.
-- Not done yet: fog (the PICA200 fogs by depth through a lookup table),
-  lines/points (no such primitives), FMV (skipped), the debug menu (PC-only),
-  bottom-screen use, saves untested, no real-hardware testing yet.
+  loads the Mystic Manor hub. A sweep of 30 levels (`scenes.sh`) loads every
+  one, with no null-pointer reads, at 25-30 fps (the game's cap is 30; F001
+  17, S005 22). Music plays (ndsp); fog works.
+- Debug menu (Select): level warps, upgrades, Force Boss Damage etc. as on PC;
+  ZL+X saves the position, ZL+Y returns to it. The PC_* test switches work
+  from `env.txt` (PC_SCENE, PC_WARP, PC_TELEPORT, PC_POSLOG, ...).
+- Saves: the game finds and reads existing saves (copied from the PC port);
+  writing is the same shared file code but hasn't been exercised on the 3DS
+  (the save/load card screens don't react to scripted input on either port).
+- Not done yet: FMV (skipped), lines/points (no such primitives), bottom
+  screen use, real-hardware testing.
 
 ## Layout
 
@@ -56,6 +61,11 @@ The game data comes from the player's own GameCube disc and lives on the SD card
   interrupting a running target in batch mode doesn't, and other threads'
   registers are stale (`sample.sh` is not reliable).
 - `N3DS_O0_UNITS=<regex>` (CMake) builds matching game sources at -O0.
+- `sh n3ds/tools/scenes.sh F001 G001 ...`: New Game into each scene,
+  screenshot, frame rate and null-pointer reads (Azahar logs unmapped reads
+  as "UnmappedAccess" instead of crashing). `N3DS_ENV="PC_DBG=..."` adds switches.
+- `PC_DBG=cpucolour|cpustatic|cpuuniform|nocache` (shared renderer) narrow
+  down vertex colour problems to one path.
 
 ## Pitfalls found
 
@@ -73,4 +83,11 @@ The game data comes from the player's own GameCube disc and lives on the SD card
 - GPU-visible memory written by the CPU must be flushed
   (`GSPGPU_FlushDataCache`); Azahar doesn't need it but hardware does.
 - PICA200 textures: tiled 8x8 Morton, rows stored bottom to top; the top
-  screen framebuffer is rotated (see `load_mvp`).
+  screen framebuffer is rotated (see `load_mvp`). Perspective draws use a
+  W-buffer so the fog table is linear in eye distance.
+- Decompiled functions that fall off the end without a return (-Wreturn-type)
+  break at -O2: GCC treats the end as unreachable (VILN_*_respond jumped to 0).
+- Geometry the game locks (RpGeometryLock) is rewritten at run time: the GPU
+  backend must not cache it.
+- File-scope initialisers run before the 3DS main sets the environment from
+  env.txt: read PC_* switches on first use.

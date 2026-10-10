@@ -116,6 +116,7 @@ void pc_events_pump()
         if (down & KEY_B) pc_debug_menu_key(PC_MENU_BACK);
     }
     pc_debug_menu_frame();
+    pc_debug_hooks_frame();
 }
 
 extern "C" void pc_set_clipboard(const char* text) {}
