@@ -9,12 +9,12 @@
 
 #define rwID_WORLDPLUGIN 2
 
-RxNodeDefinition* fn_8018490C(void);
-RxNodeDefinition* fn_80181EB8(void);
+RxNodeDefinition* RxNodeDefinitionGetTransform(void);
+RxNodeDefinition* RxNodeDefinitionGetCullTriangle(void);
 RxNodeDefinition* fn_80155E28(void);
 RxNodeDefinition* fn_80157874(void);
-RxNodeDefinition* fn_80181640(void);
-RxNodeDefinition* fn_80183B04(void);
+RxNodeDefinition* RxNodeDefinitionGetClipTriangle(void);
+RxNodeDefinition* RxNodeDefinitionGetSubmitTriangle(void);
 RxNodeDefinition* fn_80155B5C(void);
 RxNodeDefinition* RxNodeDefinitionGetAtomicEnumerateLights(void);
 RxNodeDefinition* fn_801571C0(void);
@@ -101,8 +101,8 @@ static inline RwBool MaterialPipelineCreate(void) {
 
         lpipe = RxPipelineLock(pipe);
         if (lpipe) {
-            lpipe = RxLockedPipeAddFragment(lpipe, NULL, fn_8018490C(), fn_80181EB8(), fn_80155E28(), fn_80157874(),
-                                            fn_80181640(), fn_80183B04(), NULL);
+            lpipe = RxLockedPipeAddFragment(lpipe, NULL, RxNodeDefinitionGetTransform(), RxNodeDefinitionGetCullTriangle(), fn_80155E28(), fn_80157874(),
+                                            RxNodeDefinitionGetClipTriangle(), RxNodeDefinitionGetSubmitTriangle(), NULL);
 
             pipe = RxLockedPipeUnlock(lpipe);
             if (pipe) {

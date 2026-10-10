@@ -806,6 +806,8 @@ config.libs = [
             Object(Matching, "rwsdk/driver/gcn/dlrasrnd.c"),
             Object(NonMatching, "rwsdk/driver/gcn/dltexture.c"),
             Object(Matching, "rwsdk/driver/gcn/dlmatrix.c"),
+            Object(Matching, "rwsdk/p2/baim3d.c"),
+            Object(Matching, "rwsdk/p2/bapipe.c"),
         ],
     },
     {
