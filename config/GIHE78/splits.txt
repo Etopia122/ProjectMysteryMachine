@@ -1690,6 +1690,12 @@ rwsdk/driver/gcn/dlrendst.c:
 	.sbss       start:0x8025F878 end:0x8025F880
 	.sdata2     start:0x80262B70 end:0x80262B80
 
+rwsdk/driver/gcn/dlrasrnd.c:
+	.text       start:0x8017B22C end:0x8017C95C
+	.data       start:0x801DE478 end:0x801DE5B8
+	.sbss       start:0x8025F880 end:0x8025F888
+	.sdata2     start:0x80262B80 end:0x80262BB8
+
 rwsdk/driver/gcn/dltexture.c:
 	.text       start:0x8017C95C end:0x8017DBB8
 	.data       start:0x801DE5B8 end:0x801DE628

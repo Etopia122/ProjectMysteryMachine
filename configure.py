@@ -802,6 +802,7 @@ config.libs = [
             Object(NonMatching, "rwsdk/driver/gcn/dlconv.c"),
             Object(NonMatching, "rwsdk/driver/gcn/dlraster.c"),
             Object(Matching, "rwsdk/driver/gcn/dlrendst.c"),
+            Object(Matching, "rwsdk/driver/gcn/dlrasrnd.c"),
             Object(NonMatching, "rwsdk/driver/gcn/dltexture.c"),
         ],
     },
