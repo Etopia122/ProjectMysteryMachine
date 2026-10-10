@@ -5,7 +5,8 @@
 # stub and prints the main thread's backtrace, <count> times. The game's other
 # switches come from that Azahar's env.txt; use_gdbstub is on for the run only.
 # usage: sh n3ds/tools/sample.sh <warmup> <count>   (output: build/n3ds/samples.txt)
-# AZAHAR / AZAHAR_EXE pick another Azahar copy (e.g. one renamed so a sweep can run alongside).
+# AZAHAR / AZAHAR_EXE pick another Azahar copy (e.g. one renamed so a sweep can run alongside);
+# SAMPLE_MS=<ms> samples more often than every 250 ms (to catch one long frame).
 # Summaries: the innermost functions, then every function's share of samples.
 AZAHAR=${AZAHAR:-/c/Users/Ethan/Azahar/azahar-windows-msvc-2126.2}
 EXE=${AZAHAR_EXE:-azahar.exe}
@@ -15,6 +16,7 @@ count=$2
 SD=$AZAHAR/user/sdmc/scooby
 cp "$SD/env.txt" "$SD/env.txt.sample-backup"
 echo "N3DS_SAMPLE=$warmup" >> "$SD/env.txt"
+[ -n "$SAMPLE_MS" ] && echo "N3DS_SAMPLE_MS=$SAMPLE_MS" >> "$SD/env.txt"
 cfg=$AZAHAR/user/config/qt-config.ini
 sed -i 's/^use_gdbstub=false/use_gdbstub=true/; s/^use_gdbstub.default=true/use_gdbstub\\default=false/' "$cfg"
 taskkill //IM $EXE //F >/dev/null 2>&1

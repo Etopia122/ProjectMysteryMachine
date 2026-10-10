@@ -634,6 +634,11 @@ static RpGeometry* read_geometry(RwStream* s)
     pc_read_material_list(s, &g->matList);
     pc_read_extension(s, geometry_plugin, g);
     check_triangle_winding(g);
+    // Skinned models move away from their triangles: queries against them are rare.
+    if (!pc_geometry(g)->skin)
+    {
+        pc_collision_prepare_geometry(g);
+    }
     return g;
 }
 

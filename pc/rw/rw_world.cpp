@@ -243,6 +243,7 @@ RpWorld* RpWorldStreamRead(RwStream* s)
         if (b.sup.y > wb.sup.y) wb.sup.y = b.sup.y; if (b.sup.z > wb.sup.z) wb.sup.z = b.sup.z;
     }
     pc_read_extension(s, NULL, NULL);
+    pc_collision_prepare_world(w);
     return w;
 }
 
@@ -553,6 +554,11 @@ static bool boxes_overlap(const float* a, const RwV3d& mn, const RwV3d& mx)
     return !(mx.x < a[0] || mn.x > a[3] || mx.y < a[1] || mn.y > a[4] || mx.z < a[2] || mn.z > a[5]);
 }
 
+// Plain comparisons: fminf/fmaxf are library calls on the 3DS's VFPv2 (no
+// min/max instructions), which made building a tree take ~30 us a triangle.
+static inline float fmin2(float a, float b) { return a < b ? a : b; }
+static inline float fmax2(float a, float b) { return a > b ? a : b; }
+
 static void bvh_build(SectorColl* c, int first, int count)
 {
     int self = (int)c->nodes.size();
@@ -564,11 +570,11 @@ static void bvh_build(SectorColl* c, int first, int count)
         const float* b = &c->boxes[(size_t)c->order[i] * 6];
         for (int k = 0; k < 3; k++)
         {
-            box[k] = fminf(box[k], b[k]);
-            box[k + 3] = fmaxf(box[k + 3], b[k + 3]);
+            box[k] = fmin2(box[k], b[k]);
+            box[k + 3] = fmax2(box[k + 3], b[k + 3]);
             float centre = b[k] + b[k + 3];
-            cmin[k] = fminf(cmin[k], centre);
-            cmax[k] = fmaxf(cmax[k], centre);
+            cmin[k] = fmin2(cmin[k], centre);
+            cmax[k] = fmax2(cmax[k], centre);
         }
     }
     memcpy(c->nodes[self].box, box, sizeof(box));
@@ -606,6 +612,7 @@ static void bvh_build(SectorColl* c, int first, int count)
 template <typename VertIndex>
 static SectorColl* coll_build(int n, const RwV3d* verts, VertIndex vi)
 {
+    unsigned long long t0 = pc_perf_counter();
     SectorColl* c = new SectorColl;
     c->boxes.resize((size_t)n * 6);
     c->order.resize(n);
@@ -615,18 +622,25 @@ static SectorColl* coll_build(int n, const RwV3d* verts, VertIndex vi)
         const RwV3d& c1 = verts[vi(p, 1)];
         const RwV3d& c2 = verts[vi(p, 2)];
         float* o = &c->boxes[(size_t)p * 6];
-        o[0] = fminf(a.x, fminf(c1.x, c2.x));
-        o[1] = fminf(a.y, fminf(c1.y, c2.y));
-        o[2] = fminf(a.z, fminf(c1.z, c2.z));
-        o[3] = fmaxf(a.x, fmaxf(c1.x, c2.x));
-        o[4] = fmaxf(a.y, fmaxf(c1.y, c2.y));
-        o[5] = fmaxf(a.z, fmaxf(c1.z, c2.z));
+        o[0] = fmin2(a.x, fmin2(c1.x, c2.x));
+        o[1] = fmin2(a.y, fmin2(c1.y, c2.y));
+        o[2] = fmin2(a.z, fmin2(c1.z, c2.z));
+        o[3] = fmax2(a.x, fmax2(c1.x, c2.x));
+        o[4] = fmax2(a.y, fmax2(c1.y, c2.y));
+        o[5] = fmax2(a.z, fmax2(c1.z, c2.z));
         c->order[p] = p;
     }
     if (n > 0)
     {
         c->nodes.reserve((size_t)n / 2 + 1);
         bvh_build(c, 0, n);
+    }
+    // PC_PROF=1: trees that took a while (built while loading, or in play).
+    static bool prof = getenv("PC_PROF") != NULL;
+    double ms = pc_perf_seconds(pc_perf_counter() - t0) * 1000.0;
+    if (prof && ms > 5.0)
+    {
+        pc_log("[coll] tree of %d triangles built in %.1f ms", n, ms);
     }
     return c;
 }
@@ -700,6 +714,20 @@ static void sector_candidates(const RpWorldSector* s, const RwV3d& mn, const RwV
     coll_candidates(sector_coll(s), mn, mx, out);
 }
 
+// Builds every sector's tree while the world loads, instead of the first time
+// a query reaches it in play.
+void pc_collision_prepare_world(RpWorld* w)
+{
+    std::vector<RpWorldSector*>& v = *pc_world(w)->sectors;
+    for (size_t i = 0; i < v.size(); i++)
+    {
+        if (v[i]->polygons && v[i]->numPolygons > 0)
+        {
+            sector_coll(v[i]);
+        }
+    }
+}
+
 // The same for geometries (object space), built on first use. Geometry the
 // game locks to rewrite keeps testing every triangle.
 static std::unordered_map<const RpGeometry*, SectorColl*> s_geomColl;
@@ -737,6 +765,16 @@ static SectorColl* geometry_coll(const RpGeometry* g)
         c = coll_build(g->numTriangles, g->morphTarget->verts, [tris](int t, int k) { return tris[t].vertIndex[k]; });
     }
     return c;
+}
+
+// Builds a large model's tree while it loads, instead of in the first query
+// that reaches it in play (a 6000-triangle model takes ~40 ms).
+void pc_collision_prepare_geometry(const RpGeometry* g)
+{
+    if (g && g->triangles && g->numTriangles >= 500 && g->morphTarget && g->morphTarget->verts)
+    {
+        geometry_coll(g);
+    }
 }
 
 // Bounds of an intersection primitive.

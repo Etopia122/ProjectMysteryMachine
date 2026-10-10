@@ -83,6 +83,12 @@ void pc_render_raster_free(PcRaster* r);
 void pc_render_forget(const void* key);
 // Drops a geometry's collision tree; dynamic: the game rewrites its arrays.
 void pc_collision_forget(const void* geometry, int dynamic);
+// Builds a loaded world's collision trees.
+struct RpWorld;
+void pc_collision_prepare_world(RpWorld* w);
+// The same for a loaded geometry (large, unskinned ones).
+struct RpGeometry;
+void pc_collision_prepare_geometry(const RpGeometry* g);
 // A geometry's arrays change at run time (it was locked): never cache them.
 void pc_render_geometry_dynamic(const void* key);
 void pc_render_begin_camera(RwCamera* cam);

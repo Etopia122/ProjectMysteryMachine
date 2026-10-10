@@ -133,14 +133,15 @@ void pc_events_pump()
 extern "C" void pc_set_clipboard(const char* text) {}
 
 // Sampling profiler support (n3ds/tools/sample.sh): N3DS_SAMPLE=<seconds> starts
-// a thread that calls n3ds_sample_point four times a second after that warm-up;
-// the debugger breaks there and records the main thread's stack.
+// a thread that calls n3ds_sample_point every N3DS_SAMPLE_MS (default 250) ms
+// after that warm-up; the debugger breaks there and records the main thread's stack.
 extern "C" __attribute__((noinline)) void n3ds_sample_point()
 {
     __asm__ volatile("" ::: "memory");
 }
 
 static float s_sampleWarmup;
+static s64 s_samplePeriodNs = 250000000LL;
 
 static void sample_thread()
 {
@@ -148,7 +149,7 @@ static void sample_thread()
     for (;;)
     {
         n3ds_sample_point();
-        svcSleepThread(250000000LL);
+        svcSleepThread(s_samplePeriodNs);
     }
 }
 
@@ -240,6 +241,10 @@ int main(int argc, char** argv)
     if (const char* sample = getenv("N3DS_SAMPLE"))
     {
         s_sampleWarmup = (float)atof(sample);
+        if (const char* ms = getenv("N3DS_SAMPLE_MS"))
+        {
+            s_samplePeriodNs = (s64)(atof(ms) * 1e6);
+        }
         pc_thread_start(sample_thread, "sample");
     }
     scooby_main();

@@ -47,6 +47,8 @@ static unsigned long long s_prof[PROF_COUNT];
 // Vertex colour work per frame: lit/prelit meshes and vertices, light types seen.
 static struct { int litMeshes, litVerts, prelitMeshes, prelitVerts, dirLights, pointLights; } s_profCol;
 static bool prof_on() { static int on = -1; if (on < 0) on = getenv("PC_PROF") != NULL; return on; }
+// Long-frame diagnosis: the last present, and the first camera begun since.
+static unsigned long long s_frameStart, s_firstCamera;
 struct ProfScope
 {
     int slot;
@@ -386,6 +388,10 @@ void pc_render_begin_camera(RwCamera* c)
     }
     s_cam = c;
     s_st.cams++;
+    if (!s_firstCamera && prof_on())
+    {
+        s_firstCamera = pc_perf_counter();
+    }
     if (trace_frame())
     {
         pc_log("[trace] begin cam %p fb %p vw %.3f %.3f off %.3f %.3f", c, c->frameBuffer, c->viewWindow.x,
@@ -517,18 +523,20 @@ static void long_frame_check()
     {
         return;
     }
-    static unsigned long long last;
     unsigned long long now = pc_perf_counter();
-    double ms = last ? pc_perf_seconds(now - last) * 1000.0 : 0;
-    last = now;
+    double ms = s_frameStart ? pc_perf_seconds(now - s_frameStart) * 1000.0 : 0;
     if (ms > 150.0)
     {
         double vi = pc_perf_seconds(s_stall[PC_STALL_VI]) * 1000.0;
         double file = pc_perf_seconds(s_stall[PC_STALL_FILE]) * 1000.0;
         double present = pc_perf_seconds(s_stall[PC_STALL_PRESENT]) * 1000.0;
-        pc_log("[long] frame %.0f ms: retrace wait %.0f, file reads %.0f (%d), present %.0f, rest %.0f", ms, vi, file,
-               s_fileReads, present, ms - vi - file - present);
+        // Before the first camera of the frame: the game's update; after: its rendering.
+        double update = s_firstCamera ? pc_perf_seconds(s_firstCamera - s_frameStart) * 1000.0 : ms;
+        pc_log("[long] frame %.0f ms: retrace wait %.0f, file reads %.0f (%d), present %.0f, rest %.0f; "
+               "until the first camera %.0f", ms, vi, file, s_fileReads, present, ms - vi - file - present, update);
     }
+    s_frameStart = now;
+    s_firstCamera = 0;
     memset(s_stall, 0, sizeof(s_stall));
     s_fileReads = 0;
 }
