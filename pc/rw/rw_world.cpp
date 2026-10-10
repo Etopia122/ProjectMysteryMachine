@@ -602,34 +602,42 @@ static void bvh_build(SectorColl* c, int first, int count)
     bvh_build(c, first + half, count - half);
 }
 
+// Builds the boxes and tree of n triangles; vi(t, k) is triangle t's vertex k.
+template <typename VertIndex>
+static SectorColl* coll_build(int n, const RwV3d* verts, VertIndex vi)
+{
+    SectorColl* c = new SectorColl;
+    c->boxes.resize((size_t)n * 6);
+    c->order.resize(n);
+    for (int p = 0; p < n; p++)
+    {
+        const RwV3d& a = verts[vi(p, 0)];
+        const RwV3d& c1 = verts[vi(p, 1)];
+        const RwV3d& c2 = verts[vi(p, 2)];
+        float* o = &c->boxes[(size_t)p * 6];
+        o[0] = fminf(a.x, fminf(c1.x, c2.x));
+        o[1] = fminf(a.y, fminf(c1.y, c2.y));
+        o[2] = fminf(a.z, fminf(c1.z, c2.z));
+        o[3] = fmaxf(a.x, fmaxf(c1.x, c2.x));
+        o[4] = fmaxf(a.y, fmaxf(c1.y, c2.y));
+        o[5] = fmaxf(a.z, fmaxf(c1.z, c2.z));
+        c->order[p] = p;
+    }
+    if (n > 0)
+    {
+        c->nodes.reserve((size_t)n / 2 + 1);
+        bvh_build(c, 0, n);
+    }
+    return c;
+}
+
 static SectorColl* sector_coll(const RpWorldSector* s)
 {
     SectorColl*& c = s_sectorColl[s];
     if (!c)
     {
-        c = new SectorColl;
-        c->boxes.resize((size_t)s->numPolygons * 6);
-        c->order.resize(s->numPolygons);
-        for (RwInt32 p = 0; p < s->numPolygons; p++)
-        {
-            const RpPolygon& poly = s->polygons[p];
-            const RwV3d& a = s->vertices[poly.vertIndex[0]];
-            const RwV3d& c1 = s->vertices[poly.vertIndex[1]];
-            const RwV3d& c2 = s->vertices[poly.vertIndex[2]];
-            float* o = &c->boxes[(size_t)p * 6];
-            o[0] = fminf(a.x, fminf(c1.x, c2.x));
-            o[1] = fminf(a.y, fminf(c1.y, c2.y));
-            o[2] = fminf(a.z, fminf(c1.z, c2.z));
-            o[3] = fmaxf(a.x, fmaxf(c1.x, c2.x));
-            o[4] = fmaxf(a.y, fmaxf(c1.y, c2.y));
-            o[5] = fmaxf(a.z, fmaxf(c1.z, c2.z));
-            c->order[p] = p;
-        }
-        if (s->numPolygons > 0)
-        {
-            c->nodes.reserve((size_t)s->numPolygons / 2 + 1);
-            bvh_build(c, 0, s->numPolygons);
-        }
+        const RpPolygon* polys = s->polygons;
+        c = coll_build(s->numPolygons, s->vertices, [polys](int t, int k) { return polys[t].vertIndex[k]; });
     }
     return c;
 }
@@ -646,10 +654,9 @@ static void sector_coll_free(const RpWorldSector* s)
 
 // The polygons of a sector whose boxes overlap mn-mx, in index order (the
 // order the callbacks saw before the tree: some stop at the first hit).
-static void sector_candidates(const RpWorldSector* s, const RwV3d& mn, const RwV3d& mx, std::vector<int>& out)
+static void coll_candidates(SectorColl* c, const RwV3d& mn, const RwV3d& mx, std::vector<int>& out)
 {
     out.clear();
-    SectorColl* c = sector_coll(s);
     const BvhNode* nodes = c->nodes.data();
     int stack[64], sp = 0;
     if (!c->nodes.empty())
@@ -686,6 +693,50 @@ static void sector_candidates(const RpWorldSector* s, const RwV3d& mn, const RwV
     {
         std::sort(out.begin(), out.end());
     }
+}
+
+static void sector_candidates(const RpWorldSector* s, const RwV3d& mn, const RwV3d& mx, std::vector<int>& out)
+{
+    coll_candidates(sector_coll(s), mn, mx, out);
+}
+
+// The same for geometries (object space), built on first use. Geometry the
+// game locks to rewrite keeps testing every triangle.
+static std::unordered_map<const RpGeometry*, SectorColl*> s_geomColl;
+static std::unordered_map<const RpGeometry*, bool> s_geomDynamic;
+
+void pc_collision_forget(const void* geometry, int dynamic)
+{
+    const RpGeometry* g = (const RpGeometry*)geometry;
+    std::unordered_map<const RpGeometry*, SectorColl*>::iterator it = s_geomColl.find(g);
+    if (it != s_geomColl.end())
+    {
+        delete it->second;
+        s_geomColl.erase(it);
+    }
+    if (dynamic)
+    {
+        s_geomDynamic[g] = true;
+    }
+    else
+    {
+        s_geomDynamic.erase(g);
+    }
+}
+
+static SectorColl* geometry_coll(const RpGeometry* g)
+{
+    if (s_geomDynamic.count(g))
+    {
+        return NULL;
+    }
+    SectorColl*& c = s_geomColl[g];
+    if (!c)
+    {
+        const RpTriangle* tris = g->triangles;
+        c = coll_build(g->numTriangles, g->morphTarget->verts, [tris](int t, int k) { return tris[t].vertIndex[k]; });
+    }
+    return c;
 }
 
 // Bounds of an intersection primitive.
@@ -865,9 +916,25 @@ RpAtomic* RpAtomicForAllIntersections(RpAtomic* a, RpIntersection* isx, AtomicCo
     }
     RwV3d* verts = g->morphTarget->verts;
     s_cprof.atomicQueries++;
-    s_cprof.atomicTris += g->numTriangles;
-    for (RwInt32 i = 0; i < g->numTriangles; i++)
+    // The triangles near the query, in index order (all of them for geometry
+    // the game rewrites), one list per nesting level.
+    static std::vector<int> s_cand[8];
+    static int s_depth;
+    std::vector<int> local2;
+    std::vector<int>& cand = s_depth < 8 ? s_cand[s_depth] : local2;
+    SectorColl* coll = geometry_coll(g);
+    if (coll)
     {
+        RwV3d mn, mx;
+        isx_bounds(&local, &mn, &mx);
+        coll_candidates(coll, mn, mx, cand);
+    }
+    int count = coll ? (int)cand.size() : g->numTriangles;
+    s_cprof.atomicTris += count;
+    s_depth++;
+    for (RwInt32 ci = 0; ci < count; ci++)
+    {
+        RwInt32 i = coll ? cand[ci] : ci;
         RpTriangle& t = g->triangles[i];
         RwV3d* va = &verts[t.vertIndex[0]];
         RwV3d* vb = &verts[t.vertIndex[1]];
@@ -883,6 +950,7 @@ RpAtomic* RpAtomicForAllIntersections(RpAtomic* a, RpIntersection* isx, AtomicCo
             }
         }
     }
+    s_depth--;
     return a;
 }
 

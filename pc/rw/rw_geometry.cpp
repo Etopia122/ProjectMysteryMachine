@@ -352,6 +352,7 @@ RwInt32 RpGeometryDestroy(RpGeometry* g)
     }
     PcGeometry* p = pc_geometry(g);
     pc_render_forget(g);
+    pc_collision_forget(g, 0);
     for (RwInt32 i = 0; i < g->matList.numMaterials; i++)
     {
         if (g->matList.materials[i])
@@ -1083,6 +1084,11 @@ RpGeometry* RpGeometryLock(RpGeometry* g, RwInt32 lockMode)
     if (g)
     {
         pc_render_geometry_dynamic(g);
+        // Polygons or vertices (rpGEOMETRYLOCKPOLYGONS 1, VERTICES 2): its collision too.
+        if (lockMode & 3)
+        {
+            pc_collision_forget(g, 1);
+        }
     }
     g->lockedSinceLastInst |= (RwUInt16)lockMode;
     return g;
