@@ -1832,6 +1832,9 @@ rwsdk/p2/generic/nodeTransform.c:
 	.bss        start:0x8025E3A0 end:0x8025E3C8
 	.sdata2     start:0x80262C08 end:0x80262C28
 
+rwsdk/p2/p2packet.c:
+	.text       start:0x80184918 end:0x80184C50
+
 rwsdk/p2/p2core.c:
 	.text       start:0x801869A8 end:0x80187438
 	.sdata      start:0x8025E850 end:0x8025E858

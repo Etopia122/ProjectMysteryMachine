@@ -802,6 +802,7 @@ config.libs = [
             Object(Matching, "rwsdk/world/babinwor.c"),
             Object(NonMatching, "rwsdk/world/baclump.c"),
             Object(Matching, "rwsdk/world/bageomet.c"),
+            Object(NonMatching, "rwsdk/p2/p2packet.c"),
             Object(NonMatching, "rwsdk/p2/p2core.c"),
             Object(NonMatching, "rwsdk/p2/p2lock.c"),
             Object(NonMatching, "rwsdk/p2/p2heap.c"),
