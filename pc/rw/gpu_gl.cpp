@@ -115,6 +115,11 @@ bool gpu_ready() { return s_window != NULL; }
 
 bool gpu_second_screen() { return false; }
 void gpu_dynamic_changed() {}
+bool gpu_skinning() { return false; }
+void gpu_draw_skinned(const GpuState& s, const GpuVerts& v, const GpuSkin& skin, GpuPrim prim, const RwUInt16* idx,
+                      int nidx)
+{
+}
 void gpu_select_screen(int screen) {}
 
 // ---------------------------------------------------------------- textures

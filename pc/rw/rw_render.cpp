@@ -537,6 +537,43 @@ static std::vector<float> s_light; // per-vertex accumulated direct light (rgb),
 static float s_amb[3];              // accumulated ambient light
 static bool s_lightUniform;         // only ambient light: every vertex gets the same light
 
+// Whether only ambient light reaches atomics (the same for every vertex): sets
+// s_amb and s_lightUniform as light_vertices would, without any vertices.
+static bool ambient_light_only()
+{
+    RpWorld* w = (RpWorld*)rwGlobals()->curWorld;
+    s_lightUniform = true;
+    s_amb[0] = s_amb[1] = s_amb[2] = 0;
+    if (!w)
+    {
+        return true;
+    }
+    RwLinkList* lists[2] = { &w->directionalLightList, &w->lightList };
+    for (int li = 0; li < 2; li++)
+    {
+        RwLLLink* end = &lists[li]->link;
+        for (RwLLLink* l = end->next; l != end; l = l->next)
+        {
+            RpLight* lt = rwLLLinkGetData(l, RpLight, inWorld);
+            if (!(lt->object.object.flags & rpLIGHTLIGHTATOMICS))
+            {
+                continue;
+            }
+            if (lt->object.object.subType == rpLIGHTAMBIENT)
+            {
+                s_amb[0] += lt->color.red;
+                s_amb[1] += lt->color.green;
+                s_amb[2] += lt->color.blue;
+            }
+            else if (lt->object.object.parent)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 static void light_vertices(RpGeometry* g, const RwMatrix* ltm, const RwV3d* pos, const RwV3d* nrm)
 {
     ProfScope prof(PROF_LIGHT);
@@ -701,8 +738,11 @@ struct MeshArrays
 
 // staticKey: the sector or unskinned geometry whose arrays these are (NULL
 // when they change every frame).
+// skin: the backend skins the meshes (arr holds the bind pose and staticKey the
+// geometry, whose arrays the backend keeps).
 static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* prelit, bool modulate, int nv,
-                        const RpTriangle* tris, int ntris, const MeshArrays& arr, const void* staticKey)
+                        const RpTriangle* tris, int ntris, const MeshArrays& arr, const void* staticKey,
+                        const GpuSkin* skin = NULL)
 {
     GpuVerts v;
     v.pos = &arr.pos->x;
@@ -883,7 +923,29 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                 s.addColor = RwRGBA{ 0, 0, 0, 0 };
             }
             ProfScope prof(PROF_DRAW);
-            gpu_draw(s, v, prim, mesh[i].indices, (int)mesh[i].numIndices);
+            if (skin)
+            {
+                // The backend keeps the arrays: a constant colour becomes part of the
+                // material colour (clamp(colour + add) * material) over white vertices.
+                GpuVerts sv = v;
+                sv.cacheKey = staticKey;
+                sv.reuseKey = NULL;
+                if (!sv.col)
+                {
+                    const RwRGBA& c = v.constCol;
+                    int add[3] = { c.red + s.addColor.red, c.green + s.addColor.green, c.blue + s.addColor.blue };
+                    s.matColor.red = (RwUInt8)((add[0] > 255 ? 255 : add[0]) * s.matColor.red / 255);
+                    s.matColor.green = (RwUInt8)((add[1] > 255 ? 255 : add[1]) * s.matColor.green / 255);
+                    s.matColor.blue = (RwUInt8)((add[2] > 255 ? 255 : add[2]) * s.matColor.blue / 255);
+                    s.matColor.alpha = (RwUInt8)(c.alpha * s.matColor.alpha / 255);
+                    s.addColor = RwRGBA{ 0, 0, 0, 0 };
+                }
+                gpu_draw_skinned(s, sv, *skin, prim, mesh[i].indices, (int)mesh[i].numIndices);
+            }
+            else
+            {
+                gpu_draw(s, v, prim, mesh[i].indices, (int)mesh[i].numIndices);
+            }
         }
         return;
     }
@@ -974,6 +1036,49 @@ static SkinCache& skin_cached(RpAtomic* a, RpGeometry* g, PcSkin* sk, RpHAnimHie
                 memcmp(c.pose.data(), h->pMatrixArray, poseBytes) == 0;
     if (!same)
     {
+        // Debug: PC_LOG_SKINS=1 logs each skinned geometry's bones once.
+        static bool logSkins = getenv("PC_LOG_SKINS") != NULL;
+        static std::unordered_set<const void*> logged;
+        if (logSkins && logged.insert(g).second)
+        {
+            int used = 0, maxMesh = 0;
+            std::vector<char> seen(sk->numBones + 1, 0);
+            for (int i = 0; i < g->numVertices; i++)
+            {
+                const RwUInt8* bi = (const RwUInt8*)&sk->indices[i];
+                for (int k = 0; k < 4; k++)
+                {
+                    if (sk->weights[i * 4 + k] != 0.0f && bi[k] < sk->numBones && !seen[bi[k]] && (seen[bi[k]] = 1))
+                    {
+                        used++;
+                    }
+                }
+            }
+            if (g->mesh)
+            {
+                RpMesh* mesh = (RpMesh*)(g->mesh + 1);
+                for (int m = 0; m < g->mesh->numMeshes; m++)
+                {
+                    std::vector<char> ms(sk->numBones + 1, 0);
+                    int n = 0;
+                    for (RwUInt32 j = 0; j < mesh[m].numIndices; j++)
+                    {
+                        int vi = mesh[m].indices[j];
+                        const RwUInt8* bi = (const RwUInt8*)&sk->indices[vi];
+                        for (int k = 0; k < 4; k++)
+                        {
+                            if (sk->weights[vi * 4 + k] != 0.0f && bi[k] < sk->numBones && !ms[bi[k]] && (ms[bi[k]] = 1))
+                            {
+                                n++;
+                            }
+                        }
+                    }
+                    maxMesh = n > maxMesh ? n : maxMesh;
+                }
+            }
+            pc_log("[skin] geometry %p: %d verts, %d bones (%d used), %d meshes, most bones in one mesh %d, max weights %d",
+                   g, g->numVertices, sk->numBones, used, g->mesh ? g->mesh->numMeshes : 0, maxMesh, sk->maxWeights);
+        }
         c.g = g;
         c.h = h;
         c.pose.assign(h->pMatrixArray, h->pMatrixArray + nb);
@@ -1070,6 +1175,46 @@ void pc_render_atomic(RpAtomic* a)
                    h ? h->pMatrixArray : NULL, f->ltm.pos.x, f->ltm.pos.y, f->ltm.pos.z, f->ltm.right.x, f->ltm.right.y,
                    f->ltm.right.z);
         }
+    }
+    if (sk && h && h->pMatrixArray && g->mesh && gpu_skinning() && !s_dynamicGeometry.count(g) &&
+        (!nrm || !(g->flags & rpGEOMETRYLIGHT) || ambient_light_only()))
+    {
+        // The GPU skins it: only the pose's skin matrices are made here.
+        static std::vector<RwMatrix> s_bones;
+        {
+            ProfScope prof(PROF_SKIN);
+            if ((int)s_bones.size() < sk->numBones)
+            {
+                s_bones.resize(sk->numBones);
+            }
+            for (int b = 0; b < sk->numBones; b++)
+            {
+                if (b < h->numNodes)
+                {
+                    RwMatrixMultiply(&s_bones[b], &sk->invMats[b], &h->pMatrixArray[b]);
+                }
+                else
+                {
+                    memset(&s_bones[b], 0, sizeof(RwMatrix));
+                    s_bones[b].right.x = s_bones[b].up.y = s_bones[b].at.z = 1.0f;
+                }
+            }
+        }
+        GpuSkin gs = { (const RwUInt8*)sk->indices, sk->weights, s_bones.data(), sk->numBones };
+        if (nrm && (g->flags & rpGEOMETRYLIGHT))
+        {
+            s_light.assign(1, 0.0f); // lit, by ambient light only (ambient_light_only set it)
+        }
+        else
+        {
+            s_light.clear();
+        }
+        MeshArrays arr = { g->morphTarget->verts, g->texCoords[0] };
+        draw_meshes(g->mesh, &g->matList, g->preLitLum, (g->flags & rpGEOMETRYMODULATEMATERIALCOLOR) != 0,
+                    g->numVertices, g->triangles, g->numTriangles, arr, g, &gs);
+        s_light.clear();
+        gpu_set_modelview(s_view);
+        return;
     }
     if (sk && h && h->pMatrixArray)
     {

@@ -16,6 +16,7 @@
 #include "gpu.h"
 #include "pc_platform.h"
 #include "scene_shbin.h"
+#include "skin_shbin.h"
 
 extern "C" void n3ds_console_off(); // main.cpp
 
@@ -43,6 +44,11 @@ struct C3dRaster
 };
 
 static C3D_RenderTarget* s_top;
+static DVLB_s* s_skinDvlb;
+static shaderProgram_s s_skinProgram;
+static int s_uBones = -1;      // < 0: no GPU skinning
+static C3D_AttrInfo s_attrPlain, s_attrSkin;
+static int s_curProgram;       // 0 scene.v.pica, 1 skin.v.pica
 static C3D_RenderTarget* s_bottom; // NULL: the HUD stays on the top screen
 static int s_screen;               // where screen draws go: 0 top, 1 bottom
 static DVLB_s* s_dvlb;
@@ -63,11 +69,41 @@ static float s_proj[16], s_mv[16];
 
 // Static geometry (world sectors, unskinned models) converted once into linear
 // memory, with its index lists, until gpu_forget.
+// A skinned mesh for skin.v.pica: its triangles split into batches that use at
+// most SKIN_MAX_BONES bones each (the vertex shader's uniform space), every
+// batch with its own vertices (bone indices local to the batch) and indices.
+enum { SKIN_MAX_BONES = 28 };
+
+struct SkinVert
+{
+    float x, y, z;
+    u8 col[4];
+    float u, v;
+    u8 bone[4];
+    u8 weight[4];
+};
+
+struct SkinBatch
+{
+    int bones[SKIN_MAX_BONES];
+    int numBones;
+    SkinVert* verts;
+    u16* idx;
+    int numIdx;
+};
+
+struct SkinMesh
+{
+    const void* col; // the colour array it was built with
+    std::vector<SkinBatch> batches;
+};
+
 struct StaticBuf
 {
     Vert* verts;
     int count;
     std::unordered_map<const RwUInt16*, u16*> indices;
+    std::unordered_map<const RwUInt16*, SkinMesh> skinned;
 };
 static std::unordered_map<const void*, StaticBuf> s_static;
 static size_t s_staticBytes;
@@ -149,6 +185,24 @@ bool gpu_open()
     AttrInfo_AddLoader(attr, 0, GPU_FLOAT, 3);         // v0 position
     AttrInfo_AddLoader(attr, 1, GPU_UNSIGNED_BYTE, 4); // v1 colour
     AttrInfo_AddLoader(attr, 2, GPU_FLOAT, 2);         // v2 texture coordinates
+    s_attrPlain = *attr;
+    // The skinning program: the same uniforms first, then the bones.
+    s_skinDvlb = DVLB_ParseFile((u32*)skin_shbin, skin_shbin_size);
+    shaderProgramInit(&s_skinProgram);
+    shaderProgramSetVsh(&s_skinProgram, &s_skinDvlb->DVLE[0]);
+    if (shaderInstanceGetUniformLocation(s_skinProgram.vertexShader, "mvp") == s_uMvp &&
+        shaderInstanceGetUniformLocation(s_skinProgram.vertexShader, "uvScale") == s_uUvScale &&
+        !(getenv("PC_DBG") && strstr(getenv("PC_DBG"), "cpuskin")))
+    {
+        s_uBones = shaderInstanceGetUniformLocation(s_skinProgram.vertexShader, "bones");
+    }
+    AttrInfo_Init(&s_attrSkin);
+    AttrInfo_AddLoader(&s_attrSkin, 0, GPU_FLOAT, 3);         // v0 position
+    AttrInfo_AddLoader(&s_attrSkin, 1, GPU_UNSIGNED_BYTE, 4); // v1 colour
+    AttrInfo_AddLoader(&s_attrSkin, 2, GPU_FLOAT, 2);         // v2 texture coordinates
+    AttrInfo_AddLoader(&s_attrSkin, 3, GPU_UNSIGNED_BYTE, 4); // v3 bone indices
+    AttrInfo_AddLoader(&s_attrSkin, 4, GPU_UNSIGNED_BYTE, 4); // v4 bone weights
+    pc_log("[c3d] GPU skinning %s", s_uBones >= 0 ? "on" : "off");
     for (int i = 0; i < 2; i++)
     {
         s_arena[i] = (u8*)linearAlloc(ARENA_SIZE);
@@ -739,6 +793,220 @@ static void apply_texture(const GpuState& s, C3dRaster* tex)
     }
 }
 
+// Switches between the plain and the skinning vertex shader (with their
+// attribute layouts; the vertex buffer has to be set again after).
+static void use_program(int which)
+{
+    if (s_curProgram == which)
+    {
+        return;
+    }
+    s_curProgram = which;
+    C3D_BindProgram(which ? &s_skinProgram : &s_program);
+    *C3D_GetAttrInfo() = which ? s_attrSkin : s_attrPlain;
+    s_applied.buf = NULL;
+}
+
+bool gpu_skinning() { return s_uBones >= 0; }
+
+// Splits a skinned mesh into batches of at most SKIN_MAX_BONES bones.
+static void build_skin_mesh(SkinMesh& m, const GpuVerts& v, const GpuSkin& sk, GpuPrim prim, const RwUInt16* idx,
+                            int nidx)
+{
+    for (size_t b = 0; b < m.batches.size(); b++)
+    {
+        linearFree(m.batches[b].verts);
+        linearFree(m.batches[b].idx);
+    }
+    m.batches.clear();
+    m.col = v.col;
+    // Triangles, with the winding a strip or fan gives them.
+    std::vector<u16> tris;
+    if (prim == PRIM_TRISTRIP)
+    {
+        for (int i = 0; i + 2 < nidx; i++)
+        {
+            u16 a = idx[i], b = idx[i + 1], c = idx[i + 2];
+            if (a == b || b == c || a == c)
+            {
+                continue;
+            }
+            if (i & 1)
+            {
+                u16 t = a;
+                a = b;
+                b = t;
+            }
+            tris.push_back(a), tris.push_back(b), tris.push_back(c);
+        }
+    }
+    else if (prim == PRIM_TRIFAN)
+    {
+        for (int i = 1; i + 1 < nidx; i++)
+        {
+            tris.push_back(idx[0]), tris.push_back(idx[i]), tris.push_back(idx[i + 1]);
+        }
+    }
+    else
+    {
+        tris.assign(idx, idx + nidx);
+    }
+    std::vector<int> local(v.count, -1);  // vertex -> batch vertex
+    std::vector<int> slot(sk.numBones, -1); // bone -> batch bone slot
+    size_t t = 0;
+    while (t < tris.size())
+    {
+        SkinBatch batch;
+        batch.numBones = 0;
+        std::vector<int> verts; // the batch's vertices (global indices)
+        std::vector<u16> bidx;
+        for (; t + 2 < tris.size(); t += 3)
+        {
+            // The bones this triangle adds.
+            int add[12], nadd = 0;
+            for (int k = 0; k < 3; k++)
+            {
+                int vi = tris[t + k];
+                for (int j = 0; j < 4; j++)
+                {
+                    int bone = sk.indices[vi * 4 + j];
+                    if (sk.weights[vi * 4 + j] == 0.0f || bone >= sk.numBones || slot[bone] >= 0)
+                    {
+                        continue;
+                    }
+                    bool dup = false;
+                    for (int q = 0; q < nadd; q++)
+                    {
+                        dup |= add[q] == bone;
+                    }
+                    if (!dup)
+                    {
+                        add[nadd++] = bone;
+                    }
+                }
+            }
+            if (batch.numBones + nadd > SKIN_MAX_BONES)
+            {
+                break;
+            }
+            for (int q = 0; q < nadd; q++)
+            {
+                slot[add[q]] = batch.numBones;
+                batch.bones[batch.numBones++] = add[q];
+            }
+            for (int k = 0; k < 3; k++)
+            {
+                int vi = tris[t + k];
+                if (local[vi] < 0)
+                {
+                    local[vi] = (int)verts.size();
+                    verts.push_back(vi);
+                }
+                bidx.push_back((u16)local[vi]);
+            }
+        }
+        if (bidx.empty())
+        {
+            break; // can't happen: a triangle uses at most 12 bones
+        }
+        batch.numIdx = (int)bidx.size();
+        batch.verts = (SkinVert*)linearAlloc(sizeof(SkinVert) * verts.size());
+        batch.idx = (u16*)linearAlloc(sizeof(u16) * bidx.size());
+        if (!batch.verts || !batch.idx)
+        {
+            linearFree(batch.verts);
+            linearFree(batch.idx);
+            break;
+        }
+        memcpy(batch.idx, bidx.data(), sizeof(u16) * bidx.size());
+        for (size_t i = 0; i < verts.size(); i++)
+        {
+            int vi = verts[i];
+            SkinVert& o = batch.verts[i];
+            const float* p = (const float*)((const u8*)v.pos + (size_t)vi * v.posStride);
+            o.x = p[0], o.y = p[1], o.z = v.posSize > 2 ? p[2] : 0.0f;
+            const RwRGBA* c = v.col ? (const RwRGBA*)((const u8*)v.col + (size_t)vi * v.colStride) : NULL;
+            o.col[0] = c ? c->red : 255, o.col[1] = c ? c->green : 255;
+            o.col[2] = c ? c->blue : 255, o.col[3] = c ? c->alpha : 255;
+            const float* uv = v.uv ? (const float*)((const u8*)v.uv + (size_t)vi * v.uvStride) : NULL;
+            o.u = uv ? uv[0] : 0.0f, o.v = uv ? uv[1] : 0.0f;
+            for (int j = 0; j < 4; j++)
+            {
+                int bone = sk.indices[vi * 4 + j];
+                float w = sk.weights[vi * 4 + j];
+                if (w == 0.0f || bone >= sk.numBones)
+                {
+                    o.bone[j] = 0, o.weight[j] = 0;
+                    continue;
+                }
+                int q = (int)(w * 255.0f + 0.5f);
+                o.bone[j] = (u8)slot[bone];
+                o.weight[j] = (u8)(q < 0 ? 0 : q > 255 ? 255 : q);
+            }
+        }
+        GSPGPU_FlushDataCache(batch.verts, sizeof(SkinVert) * verts.size());
+        GSPGPU_FlushDataCache(batch.idx, sizeof(u16) * bidx.size());
+        s_staticBytes += sizeof(SkinVert) * verts.size() + sizeof(u16) * bidx.size();
+        m.batches.push_back(batch);
+        for (size_t i = 0; i < verts.size(); i++)
+        {
+            local[verts[i]] = -1;
+        }
+        for (int q = 0; q < batch.numBones; q++)
+        {
+            slot[batch.bones[q]] = -1;
+        }
+    }
+}
+
+void gpu_draw_skinned(const GpuState& s, const GpuVerts& v, const GpuSkin& sk, GpuPrim prim, const RwUInt16* idx,
+                      int nidx)
+{
+    if (s_uBones < 0 || !v.cacheKey || !idx || nidx < 3 || v.count <= 0 || prim > PRIM_TRIFAN)
+    {
+        return;
+    }
+    begin_frame();
+    StaticBuf& sb = s_static[v.cacheKey];
+    SkinMesh& m = sb.skinned[idx];
+    if (m.batches.empty() || m.col != v.col)
+    {
+        build_skin_mesh(m, v, sk, prim, idx, nidx);
+    }
+    C3dRaster* tex = NULL;
+    if (s.tex && s.tex->gpu && ((C3dRaster*)s.tex->gpu)->hasTex && s.tex != s_target)
+    {
+        tex = (C3dRaster*)s.tex->gpu;
+    }
+    apply_state(s, tex);
+    use_program(1);
+    if (s_mvpDirty)
+    {
+        load_mvp();
+    }
+    for (size_t bi = 0; bi < m.batches.size(); bi++)
+    {
+        const SkinBatch& b = m.batches[bi];
+        s_prof.draws++;
+        C3D_FVec* u = C3D_FVUnifWritePtr(GPU_VERTEX_SHADER, s_uBones, b.numBones * 3);
+        for (int j = 0; j < b.numBones; j++)
+        {
+            const RwMatrix& M = sk.bones[b.bones[j]];
+            u[j * 3] = FVec4_New(M.right.x, M.up.x, M.at.x, M.pos.x);
+            u[j * 3 + 1] = FVec4_New(M.right.y, M.up.y, M.at.y, M.pos.y);
+            u[j * 3 + 2] = FVec4_New(M.right.z, M.up.z, M.at.z, M.pos.z);
+        }
+        if (s_applied.buf != b.verts)
+        {
+            s_applied.buf = b.verts;
+            C3D_BufInfo* bufs = C3D_GetBufInfo();
+            BufInfo_Init(bufs);
+            BufInfo_Add(bufs, b.verts, sizeof(SkinVert), 5, 0x43210);
+        }
+        C3D_DrawElements(GPU_TRIANGLES, b.numIdx, C3D_UNSIGNED_SHORT, b.idx);
+    }
+}
+
 static void convert_verts(const GpuVerts& v, Vert* out);
 static void draw_converted(const GpuState& s, Vert* out, GpuPrim prim, GPU_Primitive_t p, u16* ix, int nidx, int count);
 
@@ -861,6 +1129,7 @@ static void draw_converted(const GpuState& s, Vert* out, GpuPrim prim, GPU_Primi
         tex = (C3dRaster*)s.tex->gpu;
     }
     apply_state(s, tex);
+    use_program(0);
     if (s_mvpDirty)
     {
         load_mvp();
@@ -939,8 +1208,20 @@ void gpu_forget(const void* key)
         s_inFrame = false;
     }
     C3D_FrameSync();
-    linearFree(it->second.verts);
+    if (it->second.verts)
+    {
+        linearFree(it->second.verts);
+    }
     s_staticBytes -= sizeof(Vert) * it->second.count;
+    for (std::unordered_map<const RwUInt16*, SkinMesh>::iterator i = it->second.skinned.begin();
+         i != it->second.skinned.end(); ++i)
+    {
+        for (size_t b = 0; b < i->second.batches.size(); b++)
+        {
+            linearFree(i->second.batches[b].verts);
+            linearFree(i->second.batches[b].idx);
+        }
+    }
     for (std::unordered_map<const RwUInt16*, u16*>::iterator i = it->second.indices.begin(); i != it->second.indices.end(); ++i)
     {
         linearFree(i->second);

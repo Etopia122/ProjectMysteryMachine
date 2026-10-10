@@ -103,6 +103,21 @@ void gpu_forget(const void* key);
 // Arrays passed with a reuseKey were rewritten: no reuse past this point.
 void gpu_dynamic_changed();
 
+// Skinning on the GPU (gpu_skinning() says whether the backend has it): the
+// bind-pose arrays stay cached under v.cacheKey like static geometry, with each
+// vertex's four bone indices and weights; bones are the pose's skin matrices
+// (bind pose to object space), one per bone. v.col NULL means white.
+struct GpuSkin
+{
+    const RwUInt8* indices; // 4 per vertex
+    const float* weights;   // 4 per vertex
+    const RwMatrix* bones;
+    int numBones;
+};
+bool gpu_skinning();
+void gpu_draw_skinned(const GpuState& s, const GpuVerts& v, const GpuSkin& skin, GpuPrim prim, const RwUInt16* idx,
+                      int nidx);
+
 // idx NULL: v.count vertices in order.
 void gpu_draw(const GpuState& s, const GpuVerts& v, GpuPrim prim, const RwUInt16* idx, int nidx);
 

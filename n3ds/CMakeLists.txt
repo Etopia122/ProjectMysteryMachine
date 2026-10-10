@@ -55,6 +55,7 @@ add_executable(scooby ${SHARED_PC_SOURCES} ${PC_RW_SOURCES} ${N3DS_SOURCES})
 target_include_directories(scooby PRIVATE ${PC}/include ${PC}/rw)
 target_compile_options(scooby PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++17> -g -O2 -fsigned-char)
 n3ds_add_shader(scooby ${CMAKE_CURRENT_SOURCE_DIR}/src/scene.v.pica)
+n3ds_add_shader(scooby ${CMAKE_CURRENT_SOURCE_DIR}/src/skin.v.pica)
 target_link_libraries(scooby PRIVATE scoobygame theoradec vorbisidec ogg citro3d ctru m -Wl,--no-enum-size-warning)
 # Shared platform and RenderWare code shares structs with the game: 4-byte
 # enums too. n3ds/src keeps the toolchain default, which libctru and citro3d

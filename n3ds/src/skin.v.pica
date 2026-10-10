@@ -1,0 +1,68 @@
+; Vertex shader for skinned models: blends each vertex by up to four bones
+; (indices and weights as unsigned bytes) before the combined matrix, as the
+; renderer's CPU skinning does. The uniforms start as in scene.v.pica (mvp at
+; c0, uvScale at c4) so both programs share them; then up to 28 bone matrices,
+; three rows each (an affine 3x4 transform of the bind-pose position).
+
+.fvec mvp[4]
+.fvec uvScale
+.fvec bones[84]
+
+.constf consts(1.0, 0.00392156862745, 3.0, 0.0)
+.alias  ones    consts.xxxx
+.alias  rcp255  consts.yyyy
+.alias  three   consts.zzzz
+
+.out outpos position
+.out outclr color
+.out outtc0 texcoord0
+
+.alias inpos v0
+.alias inclr v1
+.alias intex v2
+.alias inidx v3
+.alias inwgt v4
+
+.proc main
+    mov r0.xyz, inpos
+    mov r0.w, ones
+
+    ; First rows of the four bones, and the weights (0-255 -> 0-1).
+    mul r1, three, inidx
+    mul r2, rcp255, inwgt
+
+    ; Bones 0 and 1.
+    mova a0.xy, r1.xy
+    dp4 r3.x, bones[a0.x], r0
+    dp4 r3.y, bones[a0.x+1], r0
+    dp4 r3.z, bones[a0.x+2], r0
+    dp4 r4.x, bones[a0.y], r0
+    dp4 r4.y, bones[a0.y+1], r0
+    dp4 r4.z, bones[a0.y+2], r0
+    mul r5.xyz, r2.xxxx, r3
+    mad r5.xyz, r2.yyyy, r4, r5
+
+    ; Bones 2 and 3.
+    mova a0.xy, r1.zw
+    dp4 r3.x, bones[a0.x], r0
+    dp4 r3.y, bones[a0.x+1], r0
+    dp4 r3.z, bones[a0.x+2], r0
+    dp4 r4.x, bones[a0.y], r0
+    dp4 r4.y, bones[a0.y+1], r0
+    dp4 r4.z, bones[a0.y+2], r0
+    mad r5.xyz, r2.zzzz, r3, r5
+    mad r5.xyz, r2.wwww, r4, r5
+    mov r5.w, ones
+
+    dp4 outpos.x, mvp[0], r5
+    dp4 outpos.y, mvp[1], r5
+    dp4 outpos.z, mvp[2], r5
+    dp4 outpos.w, mvp[3], r5
+
+    mul outclr, rcp255, inclr
+
+    mul r1, uvScale, intex
+    mov outtc0, r1
+
+    end
+.end
