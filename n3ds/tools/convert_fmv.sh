@@ -1,14 +1,15 @@
 #!/bin/sh
 # Re-encodes the game's Bink movies for the New 3DS port: Ogg Theora at 320x240
 # (the 4:3 game area on the top screen) with 32 kHz stereo Vorbis (the game's
-# mixing rate). The port plays sdmc:/scooby/fmv/<name>.ogv for FMV/<name>.bik.
+# mixing rate). The port plays sdmc:/scooby/fmv/<name>.ogv for FMV/<name>.bik
+# (FMV/demo/<name>.bik too: the title screen's attract-mode demos).
 # usage: sh n3ds/tools/convert_fmv.sh [game files dir] [output dir]
 #        (defaults: game/files, build/n3ds/fmv; copy the output to sdmc:/scooby/fmv)
 export PATH=/c/msys64/mingw32/bin:$PATH
 src=${1:-game/files}
 out=${2:-build/n3ds/fmv}
 mkdir -p "$out"
-for f in "$src"/FMV/*.bik; do
+for f in "$src"/FMV/*.bik "$src"/FMV/demo/*.bik; do
     name=$(basename "$f" .bik)
     dst="$out/$name.ogv"
     if [ -f "$dst" ] && [ "$dst" -nt "$f" ]; then

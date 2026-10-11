@@ -67,10 +67,14 @@ The game data comes from the player's own GameCube disc and lives on the SD card
 which emulators boot directly) with makerom and bannertool (in
 `C:/Users/Ethan/Tools/3ds`, or `$CTR_TOOLS`). By default the game files (without
 the Bink movies, which the 3DS doesn't use) and the converted movies go inside
-the RomFS: one ~665 MB file to install with FBI, nothing else to copy. That CIA
-contains the game's data: it is for your own console only and must not be
-shared. `--no-data` makes an app-only CIA that reads `sdmc:/scooby` like the
-.3dsx. The app looks in `romfs:/files` and `romfs:/fmv` first; saves, the log
+the RomFS: one ~672 MB file to install with FBI, nothing else to copy (all 38
+movies, the title screen's attract-mode demos included). That CIA contains the
+game's data: it is for your own console only and must not be shared.
+`--no-fmv` makes `scooby_nofmv.cia`/`.cxi` without the movies, for testing:
+they're skipped unless `sdmc:/scooby/fmv` has them (same title ID, so installing
+one replaces the other). `--no-data` makes an app-only CIA that reads
+`sdmc:/scooby` like the .3dsx. A `PC_NOFMV=1` line in `sdmc:/scooby/env.txt`
+skips every movie, in any build. The app looks in `romfs:/files` and `romfs:/fmv` first; saves, the log
 and `env.txt` stay in `sdmc:/scooby`. The header (`n3ds/cia.rsf`) asks for the
 New 3DS 124 MB memory mode, 804 MHz with L2 cache and core 2. The HOME Menu
 icon and banner are made from the disc's GameCube memory card icon/banner
