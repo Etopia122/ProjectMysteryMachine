@@ -1,8 +1,11 @@
 // GameCube controller API (PAD) on SDL2: first game controller and the keyboard
 // both drive port 0.
 //
-// Keyboard: WASD/arrows = stick, IJKL = C-stick, Space = A, Shift/J = B,
-// E = X, R = Y, Enter = Start, Q = L, Tab = R, F = Z, number pad 8/2/4/6 = D-pad.
+// Bindings come from scooby.ini ([keyboard] and [controller], written by the
+// launcher); the defaults: WASD/arrows = stick, IJKL = C-stick, Space = A,
+// Shift = B, E = X, R = Y, Enter = Start, Q = L, Tab = R, F = Z, number pad
+// 8/2/4/6 = D-pad; on a controller A/B/X/Y as labelled, triggers = L/R, right
+// shoulder = Z, left stick = stick, right stick = C-stick.
 #include "pc_platform.h"
 
 #include <SDL.h>
@@ -10,6 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
+#include <vector>
 
 extern "C" {
 int pc_debug_menu_active();
@@ -77,6 +82,101 @@ void PADControlMotor(int chan, unsigned int command)
     }
 }
 
+// One GameCube input and what drives it. Setting names are the launcher's.
+struct PadAction
+{
+    const char* name;      // [keyboard]/[controller] key in scooby.ini
+    unsigned short mask;   // button bit; 0 for stick directions
+    int stick, dx, dy;     // stick directions: 1 main, 2 C-stick, and the direction
+    const char* keys;      // default keys (SDL key names, comma-separated)
+    const char* pad;       // default controller button or axis (SDL names)
+};
+
+static const PadAction kActions[] = {
+    { "stick_up", 0, 1, 0, 1, "W,Up", "" },
+    { "stick_down", 0, 1, 0, -1, "S,Down", "" },
+    { "stick_left", 0, 1, -1, 0, "A,Left", "" },
+    { "stick_right", 0, 1, 1, 0, "D,Right", "" },
+    { "cstick_up", 0, 2, 0, 1, "I", "" },
+    { "cstick_down", 0, 2, 0, -1, "K", "" },
+    { "cstick_left", 0, 2, -1, 0, "J", "" },
+    { "cstick_right", 0, 2, 1, 0, "L", "" },
+    { "a", PAD_BUTTON_A, 0, 0, 0, "Space", "a" },
+    { "b", PAD_BUTTON_B, 0, 0, 0, "Left Shift,Right Shift", "b" },
+    { "x", PAD_BUTTON_X, 0, 0, 0, "E", "x" },
+    { "y", PAD_BUTTON_Y, 0, 0, 0, "R", "y" },
+    { "start", PAD_BUTTON_START, 0, 0, 0, "Return", "start" },
+    { "l", PAD_TRIGGER_L, 0, 0, 0, "Q", "lefttrigger" },
+    { "r", PAD_TRIGGER_R, 0, 0, 0, "Tab", "righttrigger" },
+    { "z", PAD_TRIGGER_Z, 0, 0, 0, "F", "rightshoulder" },
+    { "dpad_up", PAD_BUTTON_UP, 0, 0, 0, "Keypad 8", "dpup" },
+    { "dpad_down", PAD_BUTTON_DOWN, 0, 0, 0, "Keypad 2", "dpdown" },
+    { "dpad_left", PAD_BUTTON_LEFT, 0, 0, 0, "Keypad 4", "dpleft" },
+    { "dpad_right", PAD_BUTTON_RIGHT, 0, 0, 0, "Keypad 6", "dpright" },
+};
+static const int kNumActions = sizeof(kActions) / sizeof(kActions[0]);
+
+struct PadBinding
+{
+    std::vector<SDL_Scancode> keys;
+    SDL_GameControllerButton button = SDL_CONTROLLER_BUTTON_INVALID;
+    SDL_GameControllerAxis axis = SDL_CONTROLLER_AXIS_INVALID;
+};
+static PadBinding s_bind[kNumActions];
+static bool s_swapSticks; // controller.sticks = swapped: the right stick moves Scooby
+
+static std::string trim(const std::string& t)
+{
+    size_t a = t.find_first_not_of(' '), b = t.find_last_not_of(' ');
+    return a == std::string::npos ? std::string() : t.substr(a, b - a + 1);
+}
+
+static void load_bindings()
+{
+    static bool loaded;
+    if (loaded)
+    {
+        return;
+    }
+    loaded = true;
+    for (int i = 0; i < kNumActions; i++)
+    {
+        std::string key = std::string("keyboard.") + kActions[i].name;
+        std::string list = pc_setting_str(key.c_str(), kActions[i].keys);
+        size_t pos = 0;
+        for (;;)
+        {
+            size_t comma = list.find(',', pos);
+            std::string name = trim(list.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos));
+            SDL_Scancode sc = name.empty() ? SDL_SCANCODE_UNKNOWN : SDL_GetScancodeFromName(name.c_str());
+            if (sc != SDL_SCANCODE_UNKNOWN)
+            {
+                s_bind[i].keys.push_back(sc);
+            }
+            else if (!name.empty())
+            {
+                pc_log("[pad] %s: unknown key \"%s\"", key.c_str(), name.c_str());
+            }
+            if (comma == std::string::npos)
+            {
+                break;
+            }
+            pos = comma + 1;
+        }
+        if (kActions[i].mask)
+        {
+            key = std::string("controller.") + kActions[i].name;
+            std::string name = trim(pc_setting_str(key.c_str(), kActions[i].pad));
+            s_bind[i].button = SDL_GameControllerGetButtonFromString(name.c_str());
+            if (s_bind[i].button == SDL_CONTROLLER_BUTTON_INVALID)
+            {
+                s_bind[i].axis = SDL_GameControllerGetAxisFromString(name.c_str());
+            }
+        }
+    }
+    s_swapSticks = !strcmp(pc_setting_str("controller.sticks", "normal"), "swapped");
+}
+
 static signed char axis8(Sint16 v)
 {
     int x = v / 256;
@@ -97,59 +197,86 @@ unsigned int PADRead(PADStatus* status)
     {
         return 0x80000000; // the debug menu has the keyboard and controller
     }
+    load_bindings();
     const Uint8* k = SDL_GetKeyboardState(NULL);
     int sx = 0, sy = 0, cx = 0, cy = 0;
-    if (k[SDL_SCANCODE_A] || k[SDL_SCANCODE_LEFT]) sx -= 127;
-    if (k[SDL_SCANCODE_D] || k[SDL_SCANCODE_RIGHT]) sx += 127;
-    if (k[SDL_SCANCODE_W] || k[SDL_SCANCODE_UP]) sy += 127;
-    if (k[SDL_SCANCODE_S] || k[SDL_SCANCODE_DOWN]) sy -= 127;
-    if (k[SDL_SCANCODE_J]) cx -= 127;
-    if (k[SDL_SCANCODE_L]) cx += 127;
-    if (k[SDL_SCANCODE_I]) cy += 127;
-    if (k[SDL_SCANCODE_K]) cy -= 127;
     unsigned short b = 0;
-    if (k[SDL_SCANCODE_SPACE]) b |= PAD_BUTTON_A;
-    if (k[SDL_SCANCODE_LSHIFT] || k[SDL_SCANCODE_RSHIFT]) b |= PAD_BUTTON_B;
-    if (k[SDL_SCANCODE_E]) b |= PAD_BUTTON_X;
-    if (k[SDL_SCANCODE_R]) b |= PAD_BUTTON_Y;
-    if (k[SDL_SCANCODE_RETURN]) b |= PAD_BUTTON_START;
-    if (k[SDL_SCANCODE_Q]) b |= PAD_TRIGGER_L;
-    if (k[SDL_SCANCODE_TAB]) b |= PAD_TRIGGER_R;
-    if (k[SDL_SCANCODE_F]) b |= PAD_TRIGGER_Z;
-    if (k[SDL_SCANCODE_KP_8]) b |= PAD_BUTTON_UP;
-    if (k[SDL_SCANCODE_KP_2]) b |= PAD_BUTTON_DOWN;
-    if (k[SDL_SCANCODE_KP_4]) b |= PAD_BUTTON_LEFT;
-    if (k[SDL_SCANCODE_KP_6]) b |= PAD_BUTTON_RIGHT;
-
-    unsigned char tl = (b & PAD_TRIGGER_L) ? 255 : 0, tr = (b & PAD_TRIGGER_R) ? 255 : 0;
+    unsigned char tl = 0, tr = 0;
+    for (int i = 0; i < kNumActions; i++)
+    {
+        const PadAction& a = kActions[i];
+        bool down = false;
+        for (SDL_Scancode sc : s_bind[i].keys)
+        {
+            down |= k[sc] != 0;
+        }
+        if (s_ctrl && a.mask)
+        {
+            if (s_bind[i].button != SDL_CONTROLLER_BUTTON_INVALID)
+            {
+                down |= SDL_GameControllerGetButton(s_ctrl, s_bind[i].button) != 0;
+            }
+            else if (s_bind[i].axis != SDL_CONTROLLER_AXIS_INVALID)
+            {
+                // An axis as a button: pressed past most of its travel; L and
+                // R also take its analog value.
+                int v = SDL_GameControllerGetAxis(s_ctrl, s_bind[i].axis) / 128;
+                v = v < 0 ? -v : v;
+                down |= v > 200;
+                if (a.mask == PAD_TRIGGER_L && v > tl)
+                {
+                    tl = (unsigned char)v;
+                }
+                if (a.mask == PAD_TRIGGER_R && v > tr)
+                {
+                    tr = (unsigned char)v;
+                }
+            }
+        }
+        if (!down)
+        {
+            continue;
+        }
+        b |= a.mask;
+        if (a.stick == 1)
+        {
+            sx += 127 * a.dx;
+            sy += 127 * a.dy;
+        }
+        else if (a.stick == 2)
+        {
+            cx += 127 * a.dx;
+            cy += 127 * a.dy;
+        }
+    }
+    if (b & PAD_TRIGGER_L)
+    {
+        tl = 255;
+    }
+    if (b & PAD_TRIGGER_R)
+    {
+        tr = 255;
+    }
+    // Two keys for one direction (A and Left) count once.
+    sx = sx > 127 ? 127 : sx < -127 ? -127 : sx;
+    sy = sy > 127 ? 127 : sy < -127 ? -127 : sy;
+    cx = cx > 127 ? 127 : cx < -127 ? -127 : cx;
+    cy = cy > 127 ? 127 : cy < -127 ? -127 : cy;
     if (s_ctrl)
     {
         SDL_GameController* c = s_ctrl;
-        // Xbox-style layout: A=A, B=B, X=X, Y=Y; right shoulder = Z.
-        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_A)) b |= PAD_BUTTON_A;
-        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_B)) b |= PAD_BUTTON_B;
-        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_X)) b |= PAD_BUTTON_X;
-        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_Y)) b |= PAD_BUTTON_Y;
-        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_START)) b |= PAD_BUTTON_START;
-        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) b |= PAD_TRIGGER_Z;
-        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_DPAD_UP)) b |= PAD_BUTTON_UP;
-        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_DPAD_DOWN)) b |= PAD_BUTTON_DOWN;
-        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_DPAD_LEFT)) b |= PAD_BUTTON_LEFT;
-        if (SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_DPAD_RIGHT)) b |= PAD_BUTTON_RIGHT;
-        int lx = axis8(SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_LEFTX));
-        int ly = -axis8(SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_LEFTY));
-        int rx = axis8(SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_RIGHTX));
-        int ry = -axis8(SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_RIGHTY));
+        SDL_GameControllerAxis mx = s_swapSticks ? SDL_CONTROLLER_AXIS_RIGHTX : SDL_CONTROLLER_AXIS_LEFTX;
+        SDL_GameControllerAxis my = s_swapSticks ? SDL_CONTROLLER_AXIS_RIGHTY : SDL_CONTROLLER_AXIS_LEFTY;
+        SDL_GameControllerAxis ox = s_swapSticks ? SDL_CONTROLLER_AXIS_LEFTX : SDL_CONTROLLER_AXIS_RIGHTX;
+        SDL_GameControllerAxis oy = s_swapSticks ? SDL_CONTROLLER_AXIS_LEFTY : SDL_CONTROLLER_AXIS_RIGHTY;
+        int lx = axis8(SDL_GameControllerGetAxis(c, mx));
+        int ly = -axis8(SDL_GameControllerGetAxis(c, my));
+        int rx = axis8(SDL_GameControllerGetAxis(c, ox));
+        int ry = -axis8(SDL_GameControllerGetAxis(c, oy));
         if (abs(lx) > abs(sx)) sx = lx;
         if (abs(ly) > abs(sy)) sy = ly;
         if (abs(rx) > abs(cx)) cx = rx;
         if (abs(ry) > abs(cy)) cy = ry;
-        int lt = SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_TRIGGERLEFT) / 128;
-        int rt = SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) / 128;
-        if (lt > tl) tl = (unsigned char)lt;
-        if (rt > tr) tr = (unsigned char)rt;
-        if (lt > 200) b |= PAD_TRIGGER_L;
-        if (rt > 200) b |= PAD_TRIGGER_R;
     }
     int ax = sx, ay = sy;
     pc_autopad(&b, &ax, &ay);

@@ -4,6 +4,7 @@
 
 #include <SDL.h>
 #include <GL/gl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <vector>
@@ -73,6 +74,28 @@ static float s_proj[16];
 
 SDL_Window* pc_window() { return s_window; }
 
+// Player settings (scooby.ini, see pc/launcher): the game area's shape in
+// play (0: the window's), trilinear filtering and its anisotropy.
+static float s_aspect;
+static bool s_wide;
+static bool s_trilinear;
+static float s_anisotropy;
+
+// display.aspect: "auto" (the window's shape), "4:3", "16:9", "W:H".
+static float parse_aspect(const char* a)
+{
+    float w = 0, h = 0;
+    if (getenv("PC_ASPECT43") && atoi(getenv("PC_ASPECT43")))
+    {
+        return 4.0f / 3.0f;
+    }
+    if (a && sscanf(a, "%f:%f", &w, &h) == 2 && w > 0 && h > 0)
+    {
+        return w / h;
+    }
+    return 0.0f;
+}
+
 bool gpu_open()
 {
     SDL_InitSubSystem(SDL_INIT_VIDEO);
@@ -80,17 +103,63 @@ bool gpu_open()
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    s_winW = pc_setting_int("display.width", 1280);
+    s_winH = pc_setting_int("display.height", 960);
+    s_aspect = parse_aspect(pc_setting_str("display.aspect", "auto"));
+    s_trilinear = pc_setting_int("graphics.trilinear", 0) != 0;
+    s_anisotropy = (float)pc_setting_int("graphics.anisotropy", 1);
+    // display.mode: windowed, borderless (fullscreen at the desktop's
+    // resolution) or fullscreen (exclusive, at width x height).
+    const char* mode = pc_setting_str("display.mode", "windowed");
+    Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+    if (!strcmp(mode, "borderless"))
+    {
+        flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+    }
+    else if (!strcmp(mode, "fullscreen"))
+    {
+        flags |= SDL_WINDOW_FULLSCREEN;
+    }
+    int msaa = pc_setting_int("display.msaa", 0);
+    if (msaa > 1)
+    {
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, msaa);
+    }
     s_window = SDL_CreateWindow("Scooby-Doo! Night of 100 Frights", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                s_winW, s_winH, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+                                s_winW, s_winH, flags);
+    if (!s_window && msaa > 1)
+    {
+        pc_log("[gl] no %dx antialiasing (%s); trying without", msaa, SDL_GetError());
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
+        msaa = 0;
+        s_window = SDL_CreateWindow("Scooby-Doo! Night of 100 Frights", SDL_WINDOWPOS_CENTERED,
+                                    SDL_WINDOWPOS_CENTERED, s_winW, s_winH, flags);
+    }
     if (!s_window)
     {
         pc_log("[gl] window creation failed: %s", SDL_GetError());
         return false;
     }
     s_gl = SDL_GL_CreateContext(s_window);
-    SDL_GL_SetSwapInterval(0);
+    SDL_GL_SetSwapInterval(pc_setting_int("display.vsync", 1) ? 1 : 0);
     pc_log("[gl] %s / %s", (const char*)glGetString(GL_RENDERER), (const char*)glGetString(GL_VERSION));
     load_fbo_functions();
+    if (msaa > 1)
+    {
+        glEnable(0x809D); // GL_MULTISAMPLE
+    }
+    if (s_anisotropy > 1.0f)
+    {
+        const char* ext = (const char*)glGetString(GL_EXTENSIONS);
+        GLfloat most = 1.0f;
+        if (ext && strstr(ext, "GL_EXT_texture_filter_anisotropic"))
+        {
+            glGetFloatv(0x84FF, &most); // GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
+        }
+        s_anisotropy = s_anisotropy < most ? s_anisotropy : most;
+    }
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
     glDisable(GL_LIGHTING);
@@ -116,8 +185,37 @@ bool gpu_ready() { return s_window != NULL; }
 bool gpu_second_screen() { return false; }
 void gpu_dynamic_changed() {}
 bool gpu_skinning() { return false; }
-float gpu_widen(bool toScreen) { return 1.0f; }
-void gpu_set_wide(bool on) {}
+// The game area's shape on the window: 4:3 for the title and menus (made
+// for it), in play the display.aspect setting or the window's shape.
+static float game_aspect()
+{
+    if (!s_wide)
+    {
+        return 4.0f / 3.0f;
+    }
+    float a = s_aspect;
+    if (a <= 0.0f)
+    {
+        int w = s_winW, h = s_winH;
+        if (s_window)
+        {
+            SDL_GL_GetDrawableSize(s_window, &w, &h);
+        }
+        a = h > 0 ? (float)w / h : 4.0f / 3.0f;
+    }
+    return a > 4.0f / 3.0f ? a : 4.0f / 3.0f; // taller windows letterbox
+}
+
+float gpu_widen(bool toScreen) { return toScreen && !s_target ? game_aspect() / (4.0f / 3.0f) : 1.0f; }
+static void set_viewport();
+void gpu_set_wide(bool on)
+{
+    if (s_wide != on)
+    {
+        s_wide = on;
+        set_viewport();
+    }
+}
 void gpu_draw_skinned(const GpuState& s, const GpuVerts& v, const GpuSkin& skin, GpuPrim prim, const RwUInt16* idx,
                       int nidx)
 {
@@ -162,6 +260,10 @@ void gpu_prepare_texture(PcRaster* p)
     }
     glBindTexture(GL_TEXTURE_2D, g->tex);
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+    if (s_trilinear && s_anisotropy > 1.0f)
+    {
+        glTexParameterf(GL_TEXTURE_2D, 0x84FE, s_anisotropy); // GL_TEXTURE_MAX_ANISOTROPY_EXT
+    }
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, p->r.width, p->r.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, p->rgba);
     p->dirty = 0;
     pc_raster_scan_alpha(p);
@@ -198,6 +300,10 @@ static void bind_texture(PcRaster* p, int filter, int addrU, int addrV)
     case 6: min = GL_LINEAR_MIPMAP_LINEAR; break;
     default: min = GL_LINEAR; break;
     }
+    if (s_trilinear && min == GL_LINEAR)
+    {
+        min = GL_LINEAR_MIPMAP_LINEAR; // graphics.trilinear: smoother distant textures
+    }
     if (g->fbo)
     {
         min = mag; // render targets have no mipmaps
@@ -209,7 +315,8 @@ static void bind_texture(PcRaster* p, int filter, int addrU, int addrV)
 }
 
 // ---------------------------------------------------------------- targets
-// The game renders at 640x480; fit that into the window keeping 4:3.
+// The game renders a 640x480 area (wider in play: game_aspect); fit it into
+// the window keeping its shape.
 static void set_viewport()
 {
     if (s_target)
@@ -217,15 +324,20 @@ static void set_viewport()
         glViewport(0, 0, s_target->r.width, s_target->r.height);
         return;
     }
+    if (!s_window)
+    {
+        return;
+    }
     SDL_GL_GetDrawableSize(s_window, &s_winW, &s_winH);
     int w = s_winW, h = s_winH;
-    if (w * 3 > h * 4)
+    float a = game_aspect();
+    if (w > h * a)
     {
-        w = h * 4 / 3;
+        w = (int)(h * a + 0.5f);
     }
     else
     {
-        h = w * 3 / 4;
+        h = (int)(w / a + 0.5f);
     }
     glViewport((s_winW - w) / 2, (s_winH - h) / 2, w, h);
 }
@@ -612,7 +724,10 @@ void gpu_fmv_frame(const unsigned char* rgba, int w, int h)
     glDepthMask(GL_TRUE);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    bool wide = s_wide; // movies are 4:3, also in play
+    s_wide = false;
     set_viewport();
+    s_wide = wide;
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
     glDisable(GL_ALPHA_TEST);

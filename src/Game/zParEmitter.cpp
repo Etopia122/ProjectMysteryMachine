@@ -531,6 +531,10 @@ xPar* zParEmitterEmitCustom(_zParEmitter* p, float dt, _zParEmitterCustomSetting
     return emitted_par;
 }
 
+#ifdef PC_PORT
+extern "C" float pc_setting_float(const char* key, float def);
+#endif
+
 static inline signed int zParEmitterCull(zParEmitterAsset* a, xPar* p)
 {
     if (a->emit_flags & 2)
@@ -540,10 +544,25 @@ static inline signed int zParEmitterCull(zParEmitterAsset* a, xPar* p)
         float dy = cam->y - p->m_pos.y;
         float dz = cam->z - p->m_pos.z;
         float d2 = dx * dx + dy * dy + dz * dz;
+#ifdef PC_PORT
+        // The player's graphics.effects_distance: effects that stop at a
+        // distance (cull mode 3) reach that many times farther.
+        static float far;
+        if (far == 0.0f)
+        {
+            far = pc_setting_float("graphics.effects_distance", 1.0f);
+            far = far < 1.0f ? 1.0f : far > 8.0f ? 8.0f : far;
+        }
+        if (a->cull_mode == 3)
+        {
+            return d2 > a->cull_dist_sqr * far * far;
+        }
+#else
         if (a->cull_mode == 3)
         {
             return d2 > a->cull_dist_sqr;
         }
+#endif
         return d2 < a->cull_dist_sqr;
     }
     return 0;

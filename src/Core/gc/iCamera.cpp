@@ -5,6 +5,25 @@
 
 extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
+#ifdef PC_PORT
+extern "C" float pc_setting_float(const char* key, float def);
+// The player's graphics.draw_distance: how many times farther than on
+// GameCube the camera sees; fog moves out with the far plane (1-8).
+static float pc_draw_distance()
+{
+    static float d;
+    if (d == 0.0f)
+    {
+        d = pc_setting_float("graphics.draw_distance", 1.0f);
+        d = d < 1.0f ? 1.0f : d > 8.0f ? 8.0f : d;
+    }
+    return d;
+}
+#define PC_FAR(f) ((f) * pc_draw_distance())
+#else
+#define PC_FAR(f) (f)
+#endif
+
 class RwRaster;
 class RpWorld;
 
@@ -90,7 +109,7 @@ RwCamera* iCameraCreate(signed int width, signed int height)
     _rwObjectHasFrameSetFrame(camera, RwFrameCreate());
     camera->frameBuffer = RwRasterCreate(width, height, 0, 2);
     camera->zBuffer = RwRasterCreate(width, height, 0, 1);
-    RwCameraSetFarClipPlane(camera, sCameraFarClip);
+    RwCameraSetFarClipPlane(camera, PC_FAR(sCameraFarClip));
     RwCameraSetNearClipPlane(camera, sCameraNearClip);
     vw.x = 1.0f;
     vw.y = 1.0f;
@@ -264,7 +283,7 @@ void iCameraUpdateFog(RwCamera* cam, iTime t)
     if (globals.fog.type == rwFOGTYPENAFOGTYPE)
     {
         RwRenderStateSet(14, (void*)0);
-        RwCameraSetFarClipPlane(cam, sCameraFarClip);
+        RwCameraSetFarClipPlane(cam, PC_FAR(sCameraFarClip));
         return;
     }
 
@@ -307,8 +326,16 @@ void iCameraUpdateFog(RwCamera* cam, iTime t)
     RwRenderStateSet(16, (void*)fp->type);
     RwRenderStateSet(15, (void*)RWRGBALONG(fp->fogcolor.red, fp->fogcolor.green,
                                             fp->fogcolor.blue, fp->fogcolor.alpha));
+#ifdef PC_PORT
+    float density = fp->density / pc_draw_distance();
+    RwRenderStateSet(17, &density);
+    RwRenderStateSet(18, fp->table);
+    cam->fogPlane = PC_FAR(fp->start);
+    RwCameraSetFarClipPlane(cam, PC_FAR(fp->stop));
+#else
     RwRenderStateSet(17, &fp->density);
     RwRenderStateSet(18, fp->table);
     cam->fogPlane = fp->start;
     RwCameraSetFarClipPlane(cam, fp->stop);
+#endif
 }

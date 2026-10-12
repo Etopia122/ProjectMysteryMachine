@@ -71,17 +71,21 @@ const char* pc_data_dir(void)
     static std::string dir;
     if (dir.empty())
     {
-        // SCOOBY_DATA, else game/files under the working folder, next to the
-        // exe, or at the repository root when run from build/pc.
+        // SCOOBY_DATA, else the launcher's game.data setting, else data/ next
+        // to the exe (where the launcher extracts the disc), game/files under
+        // the working folder or next to the exe, or at the repository root
+        // when run from build/pc.
         const char* env = getenv("SCOOBY_DATA");
-        if (env)
+        const char* set = pc_setting_str("game.data", NULL);
+        if (env || (set && *set))
         {
-            dir = env;
+            dir = env ? env : set;
         }
         else
         {
             std::string exe = pc_base_path();
-            const std::string candidates[] = { "game/files", exe + "game/files", exe + "../../game/files" };
+            const std::string candidates[] = { "game/files", exe + "data", exe + "game/files",
+                                               exe + "../../game/files" };
             dir = candidates[0];
             for (const std::string& c : candidates)
             {

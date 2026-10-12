@@ -18,8 +18,15 @@ void pc_irq_run(const std::function<void()>& fn);
 extern "C" {
 #endif
 
-// Folder holding the extracted disc files (default: game/files).
+// Folder holding the extracted disc files: the setting game.data, else data/
+// or game/files beside the program.
 const char* pc_data_dir(void);
+
+// Player settings from scooby.ini (pc/src/settings.cpp), looked up as
+// "section.key"; def when the file or key is missing.
+const char* pc_setting_str(const char* key, const char* def);
+int pc_setting_int(const char* key, int def);
+float pc_setting_float(const char* key, float def);
 
 // Folder the program runs from, with a trailing slash (saves go under it).
 const char* pc_base_path(void);
