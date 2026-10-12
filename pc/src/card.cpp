@@ -198,6 +198,40 @@ long finish(long chan, long result, CARDCallback cb)
 
 extern "C" {
 
+// The ports' own settings for each save slot, beside the saves (the game's
+// save data stays as it is): port_flags.txt, one number per slot.
+int pc_save_flags_get(int slot)
+{
+    int flags[3] = { 0, 0, 0 };
+    if (FILE* f = fopen((card_dir() + "/port_flags.txt").c_str(), "r"))
+    {
+        if (fscanf(f, "%d %d %d", &flags[0], &flags[1], &flags[2]) != 3)
+        {
+            flags[0] = flags[1] = flags[2] = 0;
+        }
+        fclose(f);
+    }
+    return slot >= 0 && slot < 3 ? flags[slot] : 0;
+}
+
+void pc_save_flags_set(int slot, int value)
+{
+    if (slot < 0 || slot >= 3)
+    {
+        return;
+    }
+    int flags[3];
+    for (int i = 0; i < 3; i++)
+    {
+        flags[i] = i == slot ? value : pc_save_flags_get(i);
+    }
+    if (FILE* f = fopen((card_dir() + "/port_flags.txt").c_str(), "w"))
+    {
+        fprintf(f, "%d %d %d\n", flags[0], flags[1], flags[2]);
+        fclose(f);
+    }
+}
+
 void CARDInit() {}
 
 long CARDProbeEx(long chan, long* memSize, long* sectorSize)

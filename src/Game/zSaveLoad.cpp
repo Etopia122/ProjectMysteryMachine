@@ -131,6 +131,14 @@ signed int xSGWriteData(st_XSAVEGAME_DATA* xsg, st_XSAVEGAME_WRITECONTEXT* wctxt
 extern "C" signed int fn_800C9368(signed int mode, signed int type, signed int (*cb)(signed int),
                                   signed int arg);
 unsigned char zSaveLoad_poll(signed int sel);
+#ifdef PC_PORT
+// The ports' flags for a save slot, kept beside the saves (pc/src/card.cpp).
+extern "C" int pc_save_flags_get(int slot);
+extern "C" void pc_save_flags_set(int slot, int value);
+#define PC_SAVE_FLAG_WARP 1
+signed int zEntPickup_PCWarpSeen();
+void zEntPickup_PCWarpSetSeen(signed int seen);
+#endif
 signed int zSaveLoad_CardCheckGames(signed int cardNumber, signed int mode);
 signed int zSaveLoad_CardCheckSpace(signed int cardNumber, signed int mode, signed int checkGames);
 signed int zSaveLoad_CardCheckSlotEmpty(signed int cardNumber, signed int gameNumber);
@@ -1829,6 +1837,10 @@ unsigned int zSaveLoad_LoadLoop()
             fn_80041CC4(1, 5);
             if (zSaveLoad_LoadGame() == 1)
             {
+#ifdef PC_PORT
+                // What the slot's save data can't hold (pc_save_flags).
+                zEntPickup_PCWarpSetSeen(pc_save_flags_get(currentGame) & PC_SAVE_FLAG_WARP);
+#endif
                 zGameModeSwitch(eGameMode_Game);
                 zGameStateSwitch(0);
                 state = 6;
@@ -1929,6 +1941,12 @@ unsigned int zSaveLoad_SaveLoop()
             fn_80041CC4(1, 1);
             if (zSaveLoad_SaveGame() == 1)
             {
+#ifdef PC_PORT
+                {
+                    signed int flags = pc_save_flags_get(currentGame) & ~PC_SAVE_FLAG_WARP;
+                    pc_save_flags_set(currentGame, flags | (zEntPickup_PCWarpSeen() ? PC_SAVE_FLAG_WARP : 0));
+                }
+#endif
                 zGameModeSwitch(eGameMode_Game);
                 zGameStateSwitch(1);
                 state = 6;

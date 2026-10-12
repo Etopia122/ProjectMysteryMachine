@@ -1843,6 +1843,18 @@ signed int zEntPickup_PCWarpAvailable()
     return 0;
 }
 
+// Whether the player has walked by a warp gate, for the save slot's port flags
+// (the hub's gate is open from the start, so the save's warp gates can't tell).
+signed int zEntPickup_PCWarpSeen()
+{
+    return sPCWarpGateSeen;
+}
+
+void zEntPickup_PCWarpSetSeen(signed int seen)
+{
+    sPCWarpGateSeen = seen != 0;
+}
+
 // Brings up the warp gate screen, as pressing X at a gate does on GameCube.
 signed int zEntPickup_PCWarpOpen()
 {

@@ -35,7 +35,9 @@ The game data comes from the player's own GameCube disc and lives on the SD card
   (`n3ds/src/button_art.cpp`) and the texts call the GameCube's Z ZR; warp
   gates don't open the warp screen where they stand any more: walking by one
   makes a WARP button appear on the bottom screen, and touching it brings up
-  the warp screen for every gate opened so far.
+  the warp screen for every gate opened so far. Loading a save brings the button
+  back: the save has the gates it opened, and port_flags.txt beside the saves
+  remembers a walk by the hub's gate (open from the start, so the save can't).
 - Widescreen in play: in a level the 3D view fills the whole top screen
   (400x240, 5:3) with a wider field of view (frustum too, so nothing is culled
   at the new edges); 2D made for 4:3 stays 4:3 in the middle, untextured
@@ -132,7 +134,8 @@ icon and banner are made from the disc's GameCube memory card icon/banner
   switches and screenshots at moments of game time. Test runs save to
   `sdmc:/scooby/testsave` (`PC_SAVE_DIR`), never the player's saves; perf.sh,
   scenes.sh and sample.sh set it too. `PC_ALLWARPS=<sec>` opens every warp gate,
-  `PC_AUTOTOUCH=<sec>:<x>:<y>` taps the bottom screen.
+  `PC_AUTOTOUCH=<sec>:<x>:<y>` taps the bottom screen, `PC_WARPSEEN=<sec>` counts as
+  walking by a gate, `PC_FORCESAVE=<sec>` opens the save screen.
 - `PC_DBG=cpucolour|cpustatic|cpuuniform|nocache` (shared renderer) narrow
   down vertex colour problems to one path.
 

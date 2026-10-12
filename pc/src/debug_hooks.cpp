@@ -8,6 +8,7 @@
 #include <string.h>
 
 extern "C" void pc_dbg_all_warps();
+void zEntPickup_PCWarpSetSeen(signed int seen);
 void zGameStateSwitchEvent(signed int event);
 extern "C" void pc_debug_portal(int index);
 extern "C" void pc_debug_surfaces();
@@ -122,5 +123,13 @@ extern "C" void pc_debug_hooks_frame()
         allWarps = NULL;
         pc_dbg_all_warps();
         pc_log("[debug] all warp gates open");
+    }
+    // Debug: PC_WARPSEEN=<seconds> counts as walking by a warp gate (no gate opens).
+    static const char* warpSeen = getenv("PC_WARPSEEN");
+    if (warpSeen && pc_ticks_ms() >= (unsigned int)(atof(warpSeen) * 1000))
+    {
+        warpSeen = NULL;
+        zEntPickup_PCWarpSetSeen(1);
+        pc_log("[debug] walked by a warp gate");
     }
 }

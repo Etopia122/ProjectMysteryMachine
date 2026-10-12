@@ -77,6 +77,12 @@ void pc_texture_patch(const char* name, unsigned char* rgba, int w, int h);
 // The bottom screen's touch, in the HUD's 640x480 space: 1 while touched.
 int pc_touch_read(int* x, int* y);
 
+// The ports' own flags for a save slot (0-2), kept beside the saves: what the
+// game's save data has no room for. PC_SAVE_FLAG_WARP: walked by a warp gate.
+enum { PC_SAVE_FLAG_WARP = 1 };
+int pc_save_flags_get(int slot);
+void pc_save_flags_set(int slot, int value);
+
 // Milliseconds since the program started.
 unsigned int pc_ticks_ms(void);
 
