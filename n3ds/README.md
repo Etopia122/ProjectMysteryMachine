@@ -29,6 +29,13 @@ The game data comes from the player's own GameCube disc and lives on the SD card
   two seconds; it still hides for cutscenes. `PC_HUD_TOP=1` puts it back on
   the top screen with the original timing (the bottom screen then shows the
   text console).
+- 3DS touches: saving and loading go straight to the save slots (no memory
+  card screen) and the texts talk about save data, not GameCube memory cards
+  (`pc/src/text_patch.cpp`, both ports); button prompts show 3DS buttons
+  (`n3ds/src/button_art.cpp`) and the texts call the GameCube's Z ZR; warp
+  gates don't open the warp screen where they stand any more: walking by one
+  makes a WARP button appear on the bottom screen, and touching it brings up
+  the warp screen for every gate opened so far.
 - Not done yet: lines/points (no such primitives), real-hardware testing.
 
 ## Layout
@@ -109,6 +116,11 @@ icon and banner are made from the disc's GameCube memory card icon/banner
 - `sh n3ds/tools/scenes.sh F001 G001 ...`: New Game into each scene,
   screenshot, frame rate and null-pointer reads (Azahar logs unmapped reads
   as "UnmappedAccess" instead of crashing). `N3DS_ENV="PC_DBG=..."` adds switches.
+- `sh n3ds/tools/shots.sh <app> <time>...` with `N3DS_ENV="..."`: runs with test
+  switches and screenshots at moments of game time. Test runs save to
+  `sdmc:/scooby/testsave` (`PC_SAVE_DIR`), never the player's saves; perf.sh,
+  scenes.sh and sample.sh set it too. `PC_ALLWARPS=<sec>` opens every warp gate,
+  `PC_AUTOTOUCH=<sec>:<x>:<y>` taps the bottom screen.
 - `PC_DBG=cpucolour|cpustatic|cpuuniform|nocache` (shared renderer) narrow
   down vertex colour problems to one path.
 
