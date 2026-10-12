@@ -46,7 +46,7 @@ target_compile_options(scoobygame PRIVATE
 set(SHARED_PC_SOURCES
     ${PC}/src/aram.cpp ${PC}/src/asset_swap.cpp ${PC}/src/autopad.cpp ${PC}/src/audio.cpp ${PC}/src/card.cpp ${PC}/src/debug_hooks.cpp ${PC}/src/debug_menu.cpp ${PC}/src/dvd.cpp
     ${PC}/src/game_data.cpp ${PC}/src/game_leftovers.cpp ${PC}/src/irq.cpp ${PC}/src/msl_data.cpp
-    ${PC}/src/os_heap.cpp ${PC}/src/vi_time.cpp ${PC}/src/xbase_outofline.cpp)
+    ${PC}/src/os_heap.cpp ${PC}/src/text_patch.cpp ${PC}/src/vi_time.cpp ${PC}/src/xbase_outofline.cpp)
 file(GLOB PC_RW_SOURCES ${PC}/rw/*.cpp)
 list(FILTER PC_RW_SOURCES EXCLUDE REGEX "/gpu_gl[.]cpp$")
 file(GLOB N3DS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.S)

@@ -80,7 +80,10 @@ std::string card_dir()
     static std::string dir;
     if (dir.empty())
     {
-        dir = std::string(pc_base_path()) + "save";
+        // PC_SAVE_DIR=<name> (under the base path) keeps test runs' saves apart
+        // from the player's.
+        const char* other = getenv("PC_SAVE_DIR");
+        dir = std::string(pc_base_path()) + (other && *other ? other : "save");
         pc_mkdir(dir.c_str());
         dir += "/cardA";
         pc_mkdir(dir.c_str());

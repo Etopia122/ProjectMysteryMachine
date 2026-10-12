@@ -565,6 +565,14 @@ char* iSGTgtName(st_ISGSESSION* isgdata, signed int tidx, signed int kind)
         break;
     }
 
+#ifdef PC_PORT
+    // The ports save to files: no memory card to name (texts show this as
+    // $VMCSelectedCard$).
+    (void)kind;
+    (void)letters;
+    sprintf(tgtname, "Save Data");
+    return tgtname;
+#endif
     switch (kind)
     {
     case 0:

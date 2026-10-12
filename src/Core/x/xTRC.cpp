@@ -1476,10 +1476,15 @@ static void xTRCShowCardMessage(char* text)
 
     if (text == NULL)
     {
+#ifdef PC_PORT
+        // The ports save to files: no memory card.
+        sprintf(buf, "$A%sWARNING!$C Accessing save data.\nPlease do not turn off the power.\n", "200040046");
+#else
         sprintf(buf,
                 "$A%sWARNING!$C Accessing the Nintendo GameCube%s Memory Card.\nPlease do not "
                 "remove the Memory Card or turn off the power to the Nintendo GameCube%s.\n",
                 "200040046", "^", "^");
+#endif
         text = buf;
     }
 

@@ -8,7 +8,7 @@ SD=$AZAHAR/user/sdmc/scooby
 # The test switches go in env.txt for each run; the player's own file comes back after.
 cp "$SD/env.txt" "$SD/env.txt.scenes-backup" 2>/dev/null
 for scene in "$@"; do
-    printf 'PC_NOFMV=1\nPC_PROF=1\nPC_SCENE=%s\nPC_AUTOPAD=8:1000,8.3:0,12:100,12.3:0,15:100,15.3:0,18:100,18.3:0,21:100,21.3:0\n' "$scene" > "$SD/env.txt"
+    printf 'PC_NOFMV=1\nPC_SAVE_DIR=testsave\nPC_PROF=1\nPC_SCENE=%s\nPC_AUTOPAD=8:1000,8.3:0,12:100,12.3:0,15:100,15.3:0,18:100,18.3:0,21:100,21.3:0\n' "$scene" > "$SD/env.txt"
     for kv in $N3DS_ENV; do echo "$kv" >> "$SD/env.txt"; done
     rm -f "$SD/log.txt"
     sh n3ds/tools/run.sh build/n3ds/scooby.3dsx 50 48 >/dev/null

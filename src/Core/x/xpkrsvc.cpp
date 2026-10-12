@@ -1223,6 +1223,7 @@ void PKR_updateLayerAssets(st_PACKER_LTOC_NODE* laynode)
 #ifdef PC_PORT
 // Converts an asset's big-endian GameCube data to host order (pc/src/asset_swap.cpp).
 extern "C" void pc_swap_asset(unsigned int type, unsigned int aid, void* data, unsigned int size);
+extern "C" void* pc_text_patch(const void* asset);
 #endif
 
 void PKR_xform_asset(st_PACKER_ATOC_NODE* assnode)
@@ -1232,6 +1233,14 @@ void PKR_xform_asset(st_PACKER_ATOC_NODE* assnode)
     {
         pc_swap_asset(assnode->asstype, assnode->aid, assnode->memloc, (unsigned int)assnode->d_size);
         assnode->loadflag |= 0x40000000; // swapped
+        // The ports' wording (no memory cards; the platform's buttons).
+        if (assnode->asstype == 'TEXT')
+        {
+            if (void* text = pc_text_patch(assnode->memloc))
+            {
+                assnode->memloc = (char*)text;
+            }
+        }
     }
 #endif
     if (!(assnode->infoflag & 4))

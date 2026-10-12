@@ -5,6 +5,8 @@
 
 #include <SDL.h>
 
+extern "C" int pc_platform_3ds() { return 0; }
+
 extern "C" const char* pc_debug_key_hint(int which)
 {
     return which == PC_HINT_MENU ? "F1" : which == PC_HINT_SAVE ? "F4" : "F5";

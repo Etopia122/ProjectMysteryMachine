@@ -16,6 +16,8 @@ count=$2
 SD=$AZAHAR/user/sdmc/scooby
 cp "$SD/env.txt" "$SD/env.txt.sample-backup"
 echo "N3DS_SAMPLE=$warmup" >> "$SD/env.txt"
+# Test runs never touch the player's saves.
+grep -q "^PC_SAVE_DIR=" "$SD/env.txt" || echo "PC_SAVE_DIR=testsave" >> "$SD/env.txt"
 [ -n "$SAMPLE_MS" ] && echo "N3DS_SAMPLE_MS=$SAMPLE_MS" >> "$SD/env.txt"
 cfg=$AZAHAR/user/config/qt-config.ini
 sed -i 's/^use_gdbstub=false/use_gdbstub=true/; s/^use_gdbstub.default=true/use_gdbstub\\default=false/' "$cfg"

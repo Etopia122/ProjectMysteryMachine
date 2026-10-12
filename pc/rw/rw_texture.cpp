@@ -4,6 +4,7 @@
 #include "rw_internal.h"
 #include "pc_platform.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -449,9 +450,17 @@ static RwTexture* read_texture_native(RwStream* s, RwUInt32 structLen)
     pc_raster(r)->numLevels = numLevels;
     if (getenv("PC_DUMP_TEX"))
     {
+        // PC_DUMP_TEX=<dir>: <dir>/<n>_<name>.rgba (pc/tools/rgba2png.py converts them).
         static int n;
-        char fn[64];
-        sprintf(fn, "build/pc/tex_%03d_fmt%d.rgba", n++, gxFmt);
+        char fn[96];
+        char safe[32];
+        int k = 0;
+        for (; name[k] && k < 31; k++)
+        {
+            safe[k] = isalnum((unsigned char)name[k]) || name[k] == '_' ? name[k] : '-';
+        }
+        safe[k] = 0;
+        sprintf(fn, "%s/%03d_%s.rgba", getenv("PC_DUMP_TEX"), n++, safe);
         FILE* f = fopen(fn, "wb");
         if (f)
         {

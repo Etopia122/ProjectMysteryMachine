@@ -70,7 +70,7 @@ for scene in "$@"; do
     if [ -n "$queue" ]; then
         next_scene || break
     fi
-    printf 'PC_NOFMV=1\nPC_PROF=1\nPC_SCENE=%s\nPC_AUTOPAD=%s\n' "$scene" "$PAD" > "$SD/env.txt"
+    printf 'PC_NOFMV=1\nPC_SAVE_DIR=testsave\nPC_PROF=1\nPC_SCENE=%s\nPC_AUTOPAD=%s\n' "$scene" "$PAD" > "$SD/env.txt"
     for kv in $N3DS_ENV; do echo "$kv" >> "$SD/env.txt"; done
     rm -f "$SD/log.txt"
     # Run until the game's own clock passes the window (the emulator may run

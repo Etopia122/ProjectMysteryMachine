@@ -167,6 +167,8 @@ extern "C" void n3ds_console_off()
     gfxSetDoubleBuffering(GFX_BOTTOM, true);
 }
 
+extern "C" int pc_platform_3ds() { return 1; }
+
 extern "C" const char* pc_debug_key_hint(int which)
 {
     return which == PC_HINT_MENU ? "SELECT" : which == PC_HINT_SAVE ? "ZL+X" : "ZL+Y";

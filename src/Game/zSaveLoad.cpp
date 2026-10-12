@@ -1175,13 +1175,28 @@ signed int zSaveLoad_CardPick(signed int mode)
 {
     signed int done = 0;
 
+#ifdef PC_PORT
+    // The ports save to files, behind the one card in slot A: no card screen,
+    // the save slots come straight up.
+    currentCard = 0;
+    promptSel = -1;
+#else
     currentCard = -1;
     promptSel = -1;
     zSaveLoad_UIEvent(mode == 1 ? 1 : 0x16, 0x51);
     zSaveLoad_UIEvent(mode == 1 ? 4 : 0x17, 0x4F);
+#endif
 
     while (done == 0 && promptSel == -1)
     {
+#ifdef PC_PORT
+        if (currentCard == -1)
+        {
+            // A check gave up on the card: leave rather than ask for another.
+            promptSel = 4;
+            break;
+        }
+#endif
         if (currentCard != -1)
         {
             done = zSaveLoad_CardCheck(currentCard, mode);
@@ -1762,14 +1777,28 @@ unsigned int zSaveLoad_LoadLoop()
                 state = 0;
                 break;
             }
+#ifdef PC_PORT
+            // No card to choose again: anything but a usable card goes back.
+            if (state != 2)
+            {
+                state = 8;
+            }
+#endif
             break;
         case 2:
             switch (zSaveLoad_GameSelect(1))
             {
             case 0:
                 break;
-            case 2:
+#ifdef PC_PORT
             case 4:
+                state = 8; // back from the slots: to the title, not the card screen
+                break;
+#endif
+            case 2:
+#ifndef PC_PORT
+            case 4:
+#endif
             case 5:
             case 6:
                 state = 1;
@@ -1845,7 +1874,11 @@ unsigned int zSaveLoad_SaveLoop()
             }
             else
             {
+#ifdef PC_PORT
+                state = 11; // no card to choose again: back to the game
+#else
                 state = 0;
+#endif
             }
             break;
         }
@@ -1854,8 +1887,15 @@ unsigned int zSaveLoad_SaveLoop()
             {
             case 0:
                 break;
-            case 2:
+#ifdef PC_PORT
             case 4:
+                state = 11; // back from the slots: to the game, not the card screen
+                break;
+#endif
+            case 2:
+#ifndef PC_PORT
+            case 4:
+#endif
             case 5:
             case 6:
                 state = 1;

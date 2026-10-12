@@ -66,6 +66,9 @@ void pc_debug_hooks_frame(void);
 enum { PC_HINT_MENU, PC_HINT_SAVE, PC_HINT_RETURN };
 const char* pc_debug_key_hint(int which);
 
+// 1 on the New 3DS (its button names, the bottom screen), 0 on PC.
+int pc_platform_3ds(void);
+
 // Milliseconds since the program started.
 unsigned int pc_ticks_ms(void);
 
