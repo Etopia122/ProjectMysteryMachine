@@ -51,6 +51,10 @@ static C3D_AttrInfo s_attrPlain, s_attrSkin;
 static int s_curProgram;       // 0 scene.v.pica, 1 skin.v.pica
 static C3D_RenderTarget* s_bottom; // NULL: the HUD stays on the top screen
 static int s_screen;               // where screen draws go: 0 top, 1 bottom
+static int s_gameW = 400;          // the top screen's game area in play: all of it (PC_ASPECT43=1: 320, 4:3)
+static bool s_wide;                // in play now (gpu_set_wide): else the game area is 4:3
+
+static int game_w() { return s_wide ? s_gameW : GAME_W; }
 static DVLB_s* s_dvlb;
 static shaderProgram_s s_program;
 static int s_uMvp, s_uUvScale;
@@ -164,6 +168,8 @@ bool gpu_open()
     C3D_Init(C3D_DEFAULT_CMDBUF_SIZE * 8);
     s_top = C3D_RenderTargetCreate(SCREEN_H, SCREEN_W, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
     C3D_RenderTargetSetOutput(s_top, GFX_TOP, GFX_LEFT, DISPLAY_TRANSFER_FLAGS);
+    const char* aspect = getenv("PC_ASPECT43");
+    s_gameW = aspect && atoi(aspect) ? GAME_W : SCREEN_W;
     const char* hudTop = getenv("PC_HUD_TOP");
     if (!hudTop || !atoi(hudTop))
     {
@@ -420,8 +426,9 @@ static void set_viewport()
     }
     else
     {
-        // The rotated framebuffer is 240 wide and 400 tall.
-        C3D_SetViewport(0, (SCREEN_W - GAME_W) / 2, SCREEN_H, GAME_W);
+        // The rotated framebuffer is 240 wide and 400 tall: the game area is all
+        // of it (5:3, the 3D view widened), or 320 in the middle (4:3).
+        C3D_SetViewport(0, (SCREEN_W - game_w()) / 2, SCREEN_H, game_w());
     }
 }
 
@@ -1151,12 +1158,22 @@ static void draw_converted(const GpuState& s, Vert* out, GpuPrim prim, GPU_Primi
     }
 }
 
+float gpu_widen(bool toScreen)
+{
+    return toScreen && s_screen == 0 ? game_w() / (float)GAME_W : 1.0f;
+}
+
+void gpu_set_wide(bool on)
+{
+    s_wide = on;
+}
+
 int gpu_overlay_begin(int* width, int* height)
 {
-    // The overlay uses the game area (640x480 pixels at half size on screen).
+    // The overlay uses the game area (its pixels at half size on screen).
     s_screen = 0;
     gpu_set_target(NULL);
-    *width = 640;
+    *width = game_w() * 2;
     *height = 480;
     return 2;
 }
@@ -1238,11 +1255,13 @@ static void draw_movie(PcRaster* movie, int w, int h, float u1, float v0, float 
     RwRGBA black = { 0, 0, 0, 255 };
     gpu_clear(NULL, &black, true);
     gpu_set_target(NULL);
+    // 4:3 in the middle of a wider game area.
+    float k = gpu_widen(true);
     float p[16] = { 0 };
-    p[0] = 2.0f / w;
+    p[0] = 2.0f / (w * k);
     p[5] = -2.0f / h;
     p[10] = -1.0f;
-    p[12] = -1.0f;
+    p[12] = -1.0f / k;
     p[13] = 1.0f;
     p[15] = 1.0f;
     static const float identity[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };

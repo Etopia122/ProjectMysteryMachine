@@ -81,6 +81,8 @@ int pc_gx_level_size(int fmt, int w, int h);
 void pc_render_raster_free(PcRaster* r);
 // A world sector or geometry is being destroyed: drop render caches for it.
 void pc_render_forget(const void* key);
+// How much wider than 4:3 the renderer draws a camera's view (rw_render.cpp).
+float pc_render_camera_widen(RwCamera* c);
 // Drops a geometry's collision tree; dynamic: the game rewrites its arrays.
 void pc_collision_forget(const void* geometry, int dynamic);
 // Builds a loaded world's collision trees.

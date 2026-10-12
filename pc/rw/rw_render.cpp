@@ -331,9 +331,25 @@ static float s_view[16];
 static float s_proj[16];
 static RwCamera* s_cam;
 
+// How much wider than 4:3 a camera's view is drawn (the screen's game area
+// may be wider; camera textures keep their shape): rw_camera widens its
+// frustum the same way.
+extern "C" int pc_game_wide_view(void); // the game: in play (zGameState.cpp)
+
+float pc_render_camera_widen(RwCamera* c)
+{
+    if (s_open)
+    {
+        gpu_set_wide(pc_game_wide_view() != 0);
+    }
+    RwRaster* fb = c ? c->frameBuffer : NULL;
+    bool texture = fb && fb->cType == rwRASTERTYPECAMERATEXTURE && fb->width > 0 && fb->height > 0;
+    return s_open ? gpu_widen(!texture) : 1.0f;
+}
+
 static void load_projection(RwCamera* c)
 {
-    float vx = c->viewWindow.x, vy = c->viewWindow.y, n = c->nearPlane, f = c->farPlane;
+    float vx = c->viewWindow.x * pc_render_camera_widen(c), vy = c->viewWindow.y, n = c->nearPlane, f = c->farPlane;
     float ox = c->viewOffset.x, oy = c->viewOffset.y;
     float* p = s_proj;
     memset(p, 0, 16 * sizeof(float));
@@ -1390,11 +1406,15 @@ static bool im2d_alpha(const RwIm2DVertex* v, int n)
 
 // Screen-space draws: pixels of the current target (the 640x480 game area for
 // the screen), y down.
+// Screen 2D is made for 4:3: on a wider screen it stays 4:3 in the middle
+// (see im2d_widen for what spans the whole screen).
 static void begin_2d()
 {
     float p[16];
     PcRaster* t = gpu_target();
-    ortho(p, 0, t ? (float)t->r.width : (float)FB_W, t ? (float)t->r.height : (float)FB_H, 0);
+    float k = t ? 1.0f : gpu_widen(true);
+    float extra = 0.5f * (k - 1.0f) * FB_W;
+    ortho(p, -extra, t ? (float)t->r.width : FB_W + extra, t ? (float)t->r.height : (float)FB_H, 0);
     gpu_set_projection(p);
     gpu_set_modelview(kIdentity);
 }
@@ -1403,6 +1423,67 @@ static void end_2d()
 {
     gpu_set_projection(s_proj);
     gpu_set_modelview(s_view);
+}
+
+// On a screen wider than 4:3, 2D that spans the game's whole width:
+// untextured (fades, letterbox bars) it spans the whole screen (returns the
+// vertices moved out to the edges, a copy); textured (full-screen pictures like
+// the warp map) it stays 4:3 in the middle, between black side bars as
+// transparent as it is. Else returns v.
+static RwIm2DVertex* im2d_widen(RwIm2DVertex* v, int n)
+{
+    float k = gpu_target() ? 1.0f : gpu_widen(true);
+    if (k <= 1.0f || n <= 0)
+    {
+        return v;
+    }
+    float mn = v[0].x, mx = v[0].x;
+    int alpha = 0;
+    for (int i = 0; i < n; i++)
+    {
+        mn = v[i].x < mn ? v[i].x : mn;
+        mx = v[i].x > mx ? v[i].x : mx;
+        alpha += v[i].emissiveColor.alpha;
+    }
+    if (mn > 0.5f || mx < FB_W - 0.5f)
+    {
+        return v;
+    }
+    float extra = 0.5f * (k - 1.0f) * FB_W;
+    if (s_rs.raster)
+    {
+        RwRGBA black = { 0, 0, 0, (RwUInt8)(alpha / n) };
+        const float bars[24] = { -extra, 0, 0, 0, 0, (float)FB_H, -extra, 0, 0, (float)FB_H, -extra, (float)FB_H,
+                                 (float)FB_W, 0, FB_W + extra, 0, FB_W + extra, (float)FB_H,
+                                 (float)FB_W, 0, FB_W + extra, (float)FB_H, (float)FB_W, (float)FB_H };
+        GpuState bs = draw_state(black.alpha < 255, NULL, 0, 0, 0);
+        bs.zTest = false;
+        bs.cull = PC_CULL_NONE;
+        bs.alphaFunc = PC_ALPHA_ALWAYS;
+        GpuVerts bv;
+        memset(&bv, 0, sizeof(bv));
+        bv.pos = bars;
+        bv.posStride = 2 * sizeof(float);
+        bv.posSize = 2;
+        bv.constCol = black;
+        bv.count = 12;
+        gpu_draw(bs, bv, PRIM_TRIANGLES, NULL, 0);
+        return v;
+    }
+    static std::vector<RwIm2DVertex> s_wide;
+    s_wide.assign(v, v + n);
+    for (int i = 0; i < n; i++)
+    {
+        if (s_wide[i].x <= 0.5f)
+        {
+            s_wide[i].x -= extra;
+        }
+        else if (s_wide[i].x >= FB_W - 0.5f)
+        {
+            s_wide[i].x += extra;
+        }
+    }
+    return s_wide.data();
 }
 
 static GpuVerts im2d_verts(RwIm2DVertex* v, int n)
@@ -1472,7 +1553,7 @@ RwInt32 RwIm2DRenderPrimitive(RwInt32 primType, RwIm2DVertex* v, RwInt32 n)
     }
     ProfScope prof(PROF_IM);
     begin_2d();
-    gpu_draw(im2d_state(v, n), im2d_verts(v, n), gpu_prim(primType), NULL, 0);
+    gpu_draw(im2d_state(v, n), im2d_verts(im2d_widen(v, n), n), gpu_prim(primType), NULL, 0);
     end_2d();
     return 1;
 }
@@ -1491,7 +1572,7 @@ RwInt32 RwIm2DRenderIndexedPrimitive(RwInt32 primType, void* vertices, RwInt32 n
                v[0].emissiveColor.blue, v[0].emissiveColor.alpha, s_rs.srcBlend, s_rs.dstBlend);
     }
     begin_2d();
-    gpu_draw(im2d_state(v, n), im2d_verts(v, n), gpu_prim(primType), idx, ni);
+    gpu_draw(im2d_state(v, n), im2d_verts(im2d_widen(v, n), n), gpu_prim(primType), idx, ni);
     end_2d();
     return 1;
 }

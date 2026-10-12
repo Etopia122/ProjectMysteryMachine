@@ -86,6 +86,14 @@ PcRaster* gpu_target();
 bool gpu_second_screen();
 void gpu_select_screen(int screen); // 0 main, 1 second
 
+// How much wider than 4:3 draws are on the screen now selected (1: 4:3),
+// toScreen false meaning a render target: the 3D view widens by it; 2D, made
+// for 4:3, stays 4:3 in the middle.
+float gpu_widen(bool toScreen);
+// Whether the screen's game area may be wider than 4:3 now (in play; the
+// title and menus are made for 4:3).
+void gpu_set_wide(bool on);
+
 void gpu_set_projection(const float* m);
 void gpu_set_modelview(const float* m);
 

@@ -116,6 +116,8 @@ bool gpu_ready() { return s_window != NULL; }
 bool gpu_second_screen() { return false; }
 void gpu_dynamic_changed() {}
 bool gpu_skinning() { return false; }
+float gpu_widen(bool toScreen) { return 1.0f; }
+void gpu_set_wide(bool on) {}
 void gpu_draw_skinned(const GpuState& s, const GpuVerts& v, const GpuSkin& skin, GpuPrim prim, const RwUInt16* idx,
                       int nidx)
 {

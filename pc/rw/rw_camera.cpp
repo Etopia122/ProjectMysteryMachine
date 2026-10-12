@@ -25,7 +25,8 @@ static void camera_update_frustum(RwCamera* c)
         return;
     }
     const RwMatrix* m = RwFrameGetLTM(f);
-    float vx = c->viewWindow.x, vy = c->viewWindow.y;
+    // As wide as the renderer draws it (a widescreen game area shows more).
+    float vx = c->viewWindow.x * pc_render_camera_widen(c), vy = c->viewWindow.y;
     float ox = c->viewOffset.x, oy = c->viewOffset.y;
     float zs[2] = { c->nearPlane, c->farPlane };
     // Corner order: near (tl, tr, br, bl), far (tl, tr, br, bl), in camera space.

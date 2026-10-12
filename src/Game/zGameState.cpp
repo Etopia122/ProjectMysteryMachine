@@ -68,6 +68,16 @@ signed int zGameModeGet()
     return gGameMode;
 }
 
+#ifdef PC_PORT
+// For the port's renderer: in a level (playing, paused, saving, the warp and
+// gallery screens), where the view may be wider than 4:3; the intro, title
+// and front-end menus are made for 4:3.
+extern "C" int pc_game_wide_view()
+{
+    return gGameMode >= eGameMode_Save && gGameMode != eGameMode_Options && gGameMode < eGameMode_Count;
+}
+#endif
+
 _GameOstrich zGameGetOstrich()
 {
     return gGameOstrich;

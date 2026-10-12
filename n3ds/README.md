@@ -36,6 +36,13 @@ The game data comes from the player's own GameCube disc and lives on the SD card
   gates don't open the warp screen where they stand any more: walking by one
   makes a WARP button appear on the bottom screen, and touching it brings up
   the warp screen for every gate opened so far.
+- Widescreen in play: in a level the 3D view fills the whole top screen
+  (400x240, 5:3) with a wider field of view (frustum too, so nothing is culled
+  at the new edges); 2D made for 4:3 stays 4:3 in the middle, untextured
+  full-screen 2D (fades, letterbox) spans the screen and full-screen pictures
+  (the warp map) get black side bars. The intro, title and front-end menus stay
+  4:3; movies too. `PC_ASPECT43=1` keeps play 4:3. Every heavy level still
+  holds 30 fps.
 - Not done yet: lines/points (no such primitives), real-hardware testing.
 
 ## Layout
