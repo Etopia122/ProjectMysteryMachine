@@ -43,6 +43,11 @@ The game data comes from the player's own GameCube disc and lives on the SD card
   (the warp map) get black side bars. The intro, title and front-end menus stay
   4:3; movies too. `PC_ASPECT43=1` keeps play 4:3. Every heavy level still
   holds 30 fps.
+- Bottom screen background: a 320x240 picture behind the HUD (and on the
+  title and menus), from `romfs:/bottom_bg.rgba` or `sdmc:/scooby/bottom_bg.rgba`,
+  else a dark purple gradient. `make_cia.sh` converts the player's
+  `game/n3ds_bottom_bg.png` (the title screen's forest without its logo; game art,
+  so not in the repository) with `n3ds/tools/make_bottom_bg.py`.
 - Not done yet: lines/points (no such primitives), real-hardware testing.
 
 ## Layout

@@ -9,6 +9,7 @@
 // Vertex data is copied per draw into a per-frame arena in linear memory.
 #include <3ds.h>
 #include <citro3d.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unordered_map>
@@ -232,6 +233,8 @@ bool gpu_second_screen() { return s_bottom != NULL; }
 // Where screen draws (no render target) go.
 static C3D_RenderTarget* screen_target() { return s_screen && s_bottom ? s_bottom : s_top; }
 
+static void draw_bottom_background();
+
 static void begin_frame()
 {
     if (s_inFrame)
@@ -253,11 +256,13 @@ static void begin_frame()
     s_screen = 0;
     if (s_bottom)
     {
-        // A blank bottom screen in frames that draw no HUD (menus, movies).
+        // The bottom screen starts each frame with its background (the HUD, when
+        // there is one, goes over it).
         C3D_RenderTargetClear(s_bottom, C3D_CLEAR_ALL, 0x000000FF, 0);
         C3D_FrameDrawOn(s_bottom);
     }
     C3D_FrameDrawOn(s_top);
+    draw_bottom_background();
 }
 
 static void* arena_alloc(size_t n)
@@ -1471,4 +1476,123 @@ extern "C" void n3ds_fmv_frame_yuv(const u8* py, int ys, const u8* pu, const u8*
         convTicks = 0;
         frames = 0;
     }
+}
+
+// ---------------------------------------------------------------- bottom screen background
+// The bottom screen's background, under the HUD: a 320x240 picture
+// (n3ds/tools/make_bottom_bg.py; the title screen's haunted forest without its
+// logo) from the CIA or the SD card, else a dark purple gradient.
+static PcRaster s_bottomBg;
+
+static bool load_background(const char* path)
+{
+    FILE* f = fopen(path, "rb");
+    if (!f)
+    {
+        return false;
+    }
+    char magic[4];
+    uint32_t wh[2] = { 0, 0 };
+    RwUInt8* px = NULL;
+    bool ok = fread(magic, 1, 4, f) == 4 && !memcmp(magic, "SBG1", 4) && fread(wh, 4, 2, f) == 2 && wh[0] > 0 &&
+              wh[1] > 0 && wh[0] <= 1024 && wh[1] <= 1024 && (px = (RwUInt8*)malloc((size_t)wh[0] * wh[1] * 4)) &&
+              fread(px, 4, (size_t)wh[0] * wh[1], f) == (size_t)wh[0] * wh[1];
+    fclose(f);
+    if (!ok)
+    {
+        free(px);
+        pc_log("[c3d] %s: not a bottom screen background", path);
+        return false;
+    }
+    s_bottomBg.rgba = px;
+    s_bottomBg.r.width = (RwInt32)wh[0];
+    s_bottomBg.r.height = (RwInt32)wh[1];
+    s_bottomBg.dirty = 1;
+    pc_log("[c3d] bottom screen background from %s", path);
+    return true;
+}
+
+static void make_gradient()
+{
+    const int w = 8, h = 64;
+    RwUInt8* px = (RwUInt8*)malloc(w * h * 4);
+    if (!px)
+    {
+        return;
+    }
+    for (int y = 0; y < h; y++)
+    {
+        float t = y / (float)(h - 1);
+        RwUInt8 r = (RwUInt8)(44 - 32 * t), g = (RwUInt8)(24 - 14 * t), b = (RwUInt8)(60 - 40 * t);
+        for (int x = 0; x < w; x++)
+        {
+            RwUInt8* p = px + (y * w + x) * 4;
+            p[0] = r, p[1] = g, p[2] = b, p[3] = 255;
+        }
+    }
+    s_bottomBg.rgba = px;
+    s_bottomBg.r.width = w;
+    s_bottomBg.r.height = h;
+    s_bottomBg.dirty = 1;
+}
+
+static void draw_bottom_background()
+{
+    if (!s_bottom)
+    {
+        return;
+    }
+    if (!s_bottomBg.rgba)
+    {
+        if (!load_background("romfs:/bottom_bg.rgba") && !load_background("sdmc:/scooby/bottom_bg.rgba"))
+        {
+            make_gradient();
+        }
+        if (!s_bottomBg.rgba)
+        {
+            return;
+        }
+    }
+    float proj[16], mv[16];
+    memcpy(proj, s_proj, sizeof(proj));
+    memcpy(mv, s_mv, sizeof(mv));
+    s_screen = 1;
+    bind_target(NULL);
+    float p[16] = { 0 };
+    p[0] = 2.0f / BOTTOM_W;
+    p[5] = -2.0f / SCREEN_H;
+    p[10] = -1.0f;
+    p[12] = -1.0f;
+    p[13] = 1.0f;
+    p[15] = 1.0f;
+    static const float identity[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
+    gpu_set_projection(p);
+    gpu_set_modelview(identity);
+    gpu_prepare_texture(&s_bottomBg);
+    GpuState s;
+    memset(&s, 0, sizeof(s));
+    s.alphaFunc = PC_ALPHA_ALWAYS;
+    s.cull = PC_CULL_NONE;
+    s.colorWrite = s.alphaWrite = true;
+    s.tex = &s_bottomBg;
+    s.filter = 2;          // linear
+    s.addrU = s.addrV = 3; // clamp
+    s.matColor = RwRGBA{ 255, 255, 255, 255 };
+    const float u0 = 0.0f, u1 = 1.0f, v0 = 0.0f, v1 = 1.0f;
+    const float pos[8] = { 0, 0, (float)BOTTOM_W, 0, 0, (float)SCREEN_H, (float)BOTTOM_W, (float)SCREEN_H };
+    const float uv[8] = { u0, v0, u1, v0, u0, v1, u1, v1 };
+    GpuVerts v;
+    memset(&v, 0, sizeof(v));
+    v.pos = pos;
+    v.posStride = 2 * sizeof(float);
+    v.posSize = 2;
+    v.constCol = RwRGBA{ 255, 255, 255, 255 };
+    v.uv = uv;
+    v.uvStride = 2 * sizeof(float);
+    v.count = 4;
+    gpu_draw(s, v, PRIM_TRISTRIP, NULL, 0);
+    s_screen = 0;
+    bind_target(NULL);
+    gpu_set_projection(proj);
+    gpu_set_modelview(mv);
 }

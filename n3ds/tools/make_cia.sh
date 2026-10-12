@@ -48,6 +48,13 @@ if [ "$1" != "--no-data" ]; then
     fi
 fi
 
+# The bottom screen's background (n3ds/tools/make_bottom_bg.py), from the
+# player's picture at game/n3ds_bottom_bg.png (BOTTOM_BG overrides) if there is one.
+BG=${BOTTOM_BG:-game/n3ds_bottom_bg.png}
+if [ -f "$BG" ]; then
+    python n3ds/tools/make_bottom_bg.py "$BG" "$ROMFS/bottom_bg.rgba" >/dev/null
+fi
+
 # HOME Menu icon and banner, from the disc's GameCube memory card icon/banner.
 python n3ds/tools/make_cia_art.py "$FILES" $B/cia_art >/dev/null
 "$BANNERTOOL" makebanner -i $B/cia_art/banner.png -a $B/cia_art/banner.wav -o $B/cia_art/banner.bnr >/dev/null
