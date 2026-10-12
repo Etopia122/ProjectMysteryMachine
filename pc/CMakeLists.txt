@@ -76,3 +76,12 @@ target_link_options(scooby PRIVATE -static-libgcc -static-libstdc++
     -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive,-Bdynamic)
 target_include_directories(scooby PRIVATE ${PC_FFMPEG_INCLUDE} ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/rw)
 target_compile_options(scooby PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++17> -g -O0 -pthread)
+
+# The launcher: extracts the game files from a disc image, edits scooby.ini,
+# starts scooby.exe (pc/launcher).
+add_executable(scooby_launcher WIN32 launcher/launcher.cpp launcher/launcher.rc)
+target_compile_definitions(scooby_launcher PRIVATE UNICODE _UNICODE)
+target_compile_options(scooby_launcher PRIVATE -std=gnu++17 -O2 -municode)
+target_link_options(scooby_launcher PRIVATE -municode -static-libgcc -static-libstdc++
+    -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive,-Bdynamic)
+target_link_libraries(scooby_launcher PRIVATE SDL2::SDL2 comctl32 comdlg32 shell32 ole32)

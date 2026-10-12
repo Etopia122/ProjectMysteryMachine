@@ -62,7 +62,7 @@ native PC program. Game assets are not included: the player supplies their own d
 sh pc/tools/build_ffmpeg.sh     # once: minimal static FFmpeg (Bink only) in build/ffmpeg
 sh pc/tools/rebuild.sh          # build
 python pc/tools/deploy.py       # copy SDL2.dll next to the exe
-build/pc/scooby.exe             # data from SCOOBY_DATA or game/files
+build/pc/scooby_launcher.exe    # or build/pc/scooby.exe; data from SCOOBY_DATA, scooby.ini or game/files
 ```
 
 `build_ffmpeg.sh` downloads the FFmpeg source release from ffmpeg.org, checks
@@ -71,7 +71,37 @@ libraries; needs `pacman -S make diffutils`). It is linked statically, as are
 libgcc, libstdc++ and winpthread, so SDL2.dll is the only DLL that ships.
 Without it CMake falls back to MSYS2's shared FFmpeg (~70 DLLs).
 
-Controls: a game controller (A/B/X/Y, triggers, sticks as on GameCube), or
+### Launcher, settings and release folder
+
+`scooby_launcher.exe` (pc/launcher, built with the game) is how players start:
+it extracts the game's files from their own disc image (USA, GIHE78; plain
+.iso/.gcm) into `data/` beside the program, edits `scooby.ini` and starts
+scooby.exe. `scooby_launcher --extract <image> [folder]` extracts without the
+window. `python pc/tools/package.py` puts the release folder together in
+`build/dist/ScoobyPC` (+ .zip): both programs stripped, SDL2.dll, a read-me and
+the SDL2/FFmpeg licences; no game data.
+
+`scooby.ini` (pc/src/settings.cpp; `PC_SETTINGS=<file>` reads another one, for
+test runs). Without it everything is as before.
+
+| Key | Values |
+|---|---|
+| `game.data` | folder of the extracted disc (default: `data/` or `game/files` beside the exe) |
+| `display.width`, `.height` | window size, or the exclusive fullscreen mode |
+| `display.mode` | `windowed`, `borderless`, `fullscreen` |
+| `display.aspect` | `auto` (the window's shape) or `W:H`; in levels the 3D view widens (Hor+), the title, menus and movies stay 4:3 |
+| `display.vsync`, `.msaa` | 0/1; 0, 2, 4, 8 |
+| `graphics.draw_distance` | 1-8: far plane and fog (iCamera.cpp, PC_PORT) |
+| `graphics.effects_distance` | 1-8: distance-culled particle emitters (zParEmitter.cpp, PC_PORT) |
+| `graphics.trilinear`, `.anisotropy` | mipmapped filtering for the game's bilinear textures; 1-16 |
+| `keyboard.<input>` | SDL key names, comma-separated; inputs: `stick_up/down/left/right`, `cstick_*`, `a b x y start l r z`, `dpad_*` |
+| `controller.<input>` | an SDL controller button or axis (`a`, `rightshoulder`, `lefttrigger`, ...) |
+| `controller.sticks` | `normal` or `swapped` |
+
+The game has no model levels of detail (no LOD tables in the code or data);
+draw and effects distance are its distance settings.
+
+Default controls: a game controller (A/B/X/Y, triggers, sticks as on GameCube), or
 keyboard: WASD/arrows move, IJKL camera, Space = A, Shift = B, E = X, R = Y,
 Enter = Start, Q = L, Tab = R, F = Z, keypad 8/2/4/6 = D-pad. Alt+Enter or F11
 toggles fullscreen. Saves go to `save/cardA` next to the exe.
