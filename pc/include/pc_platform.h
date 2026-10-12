@@ -69,6 +69,11 @@ const char* pc_debug_key_hint(int which);
 // 1 on the New 3DS (its button names, the bottom screen), 0 on PC.
 int pc_platform_3ds(void);
 
+// The platform's changes to a texture's pixels as it loads (RGBA8), by name:
+// the New 3DS draws its own buttons over the GameCube's. The renderer calls it
+// for named textures; pc_raster_patch (rw layer) for ones the game finds by asset.
+void pc_texture_patch(const char* name, unsigned char* rgba, int w, int h);
+
 // Milliseconds since the program started.
 unsigned int pc_ticks_ms(void);
 

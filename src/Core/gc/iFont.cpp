@@ -92,6 +92,9 @@ RwImage* RwImageSetFromRaster(RwImage* image, RwRaster* raster);
 signed int RwImageDestroy(RwImage* image);
 signed int fn_8018B9A0(RxRenderStateVector* rsvp);
 signed int fn_800CD170();
+#ifdef PC_PORT
+void pc_raster_patch(RwRaster* r, const char* name);
+#endif
 }
 
 
@@ -604,4 +607,8 @@ void iFontInit()
 
     RwTexture* button_texture = (RwTexture*)xSTFindAsset(xStrHash("buttons_all"), 0);
     sButtonRaster = button_texture->raster;
+#ifdef PC_PORT
+    // The platform's own button art (the New 3DS's).
+    pc_raster_patch(sButtonRaster, "buttons_all");
+#endif
 }

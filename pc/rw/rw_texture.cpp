@@ -446,6 +446,7 @@ static RwTexture* read_texture_native(RwStream* s, RwUInt32 structLen)
     RwUInt32 fmt32 = (RwUInt32)gxFmt;
     memcpy(pc_raster(r)->ext + 0xC, &fmt32, 4);
     pc_gx_decode(gxFmt, p, width, height, pal, tlutFmt, pc_raster(r)->rgba);
+    pc_texture_patch(name, pc_raster(r)->rgba, width, height);
     pc_raster(r)->dirty = 1;
     pc_raster(r)->numLevels = numLevels;
     if (getenv("PC_DUMP_TEX"))
@@ -565,6 +566,18 @@ RwInt32 RwImageDestroy(RwImage* im)
     }
     rwFree(im);
     return 1;
+}
+
+// The platform's changes to a raster the game found as an asset (its
+// texture dictionary may not name it): see pc_texture_patch.
+void pc_raster_patch(RwRaster* r, const char* name)
+{
+    PcRaster* p = r ? pc_raster(r) : NULL;
+    if (p && p->rgba)
+    {
+        pc_texture_patch(name, p->rgba, r->width, r->height);
+        p->dirty = 1;
+    }
 }
 
 RwImage* RwImageSetFromRaster(RwImage* im, RwRaster* r)
