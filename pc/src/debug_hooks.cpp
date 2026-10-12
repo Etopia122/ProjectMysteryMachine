@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern "C" void pc_dbg_all_warps();
 void zGameStateSwitchEvent(signed int event);
 extern "C" void pc_debug_portal(int index);
 extern "C" void pc_debug_surfaces();
@@ -113,5 +114,13 @@ extern "C" void pc_debug_hooks_frame()
     {
         forceSave = NULL;
         zGameStateSwitchEvent(0x97);
+    }
+    // Debug: PC_ALLWARPS=<seconds> opens every warp gate (the debug menu's item).
+    static const char* allWarps = getenv("PC_ALLWARPS");
+    if (allWarps && pc_ticks_ms() >= (unsigned int)(atof(allWarps) * 1000))
+    {
+        allWarps = NULL;
+        pc_dbg_all_warps();
+        pc_log("[debug] all warp gates open");
     }
 }

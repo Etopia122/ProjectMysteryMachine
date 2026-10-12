@@ -74,6 +74,9 @@ int pc_platform_3ds(void);
 // for named textures; pc_raster_patch (rw layer) for ones the game finds by asset.
 void pc_texture_patch(const char* name, unsigned char* rgba, int w, int h);
 
+// The bottom screen's touch, in the HUD's 640x480 space: 1 while touched.
+int pc_touch_read(int* x, int* y);
+
 // Milliseconds since the program started.
 unsigned int pc_ticks_ms(void);
 

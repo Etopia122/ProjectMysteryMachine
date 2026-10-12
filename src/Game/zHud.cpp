@@ -631,6 +631,53 @@ void zHud_Init()
 // The port's renderer: a second screen for the HUD (the New 3DS bottom screen).
 extern "C" int pc_render_hud_second_screen();
 extern "C" void pc_render_hud_screen(int on);
+extern "C" int pc_platform_3ds(void);
+extern "C" int pc_touch_read(int* x, int* y);
+signed int zEntPickup_PCWarpAvailable();
+signed int zEntPickup_PCWarpOpen();
+
+// The New 3DS's warp button, on the bottom screen under the HUD (its 640x480
+// space): touching it brings up the warp gate screen, once the player has
+// walked by a warp gate (zEntPickup); the gates themselves no longer open it.
+static const float sPCWarpX = 240.0f;
+static const float sPCWarpY = 286.0f;
+static const float sPCWarpW = 160.0f;
+static const float sPCWarpH = 170.0f;
+static signed int sPCWarpTouch; // touching last frame
+
+static signed int zHud_PCWarpShown()
+{
+    return pc_platform_3ds() && pc_render_hud_second_screen() && zGameModeGet() == 11 && zGameStateGet() == 1 &&
+           globals.cmgr == NULL && !xScrFxIsLetterbox() && globals.sceneCur != NULL &&
+           globals.sceneCur->pendingPortal == NULL && zEntPickup_PCWarpAvailable();
+}
+
+static void zHud_PCWarpUpdate()
+{
+    int x, y;
+    signed int touch = pc_touch_read(&x, &y);
+    // A new touch inside the button.
+    if (touch && !sPCWarpTouch && zHud_PCWarpShown() && x >= sPCWarpX && x < sPCWarpX + sPCWarpW &&
+        y >= sPCWarpY && y < sPCWarpY + sPCWarpH)
+    {
+        zEntPickup_PCWarpOpen();
+    }
+    sPCWarpTouch = touch;
+}
+
+static void zHud_PCWarpRender()
+{
+    if (!zHud_PCWarpShown())
+    {
+        return;
+    }
+    if (xSTFindAsset(xStrHash("warp_icon"), NULL) != NULL)
+    {
+        zHud_UIRender("warp_icon", sPCWarpX + 24.0f, sPCWarpY, 112.0f, 112.0f, 0xFF);
+    }
+    zHud_DrawText(sPCWarpX - 40.0f, sPCWarpY + 120.0f, sPCWarpW + 80.0f, 48.0f, "WARP", 0x40, 1.0f, 0xFF,
+                  DROPSHADOW_NORMAL);
+}
 #endif
 
 void zHud_Setup(_xScene* sc)
@@ -666,6 +713,7 @@ void zHud_Update(_xScene* sc, float dt)
     {
         zHudShow();
     }
+    zHud_PCWarpUpdate();
 #endif
 
     if (zGameModeGet() == 2 || xScrFxIsLetterbox() || globals.cmgr != NULL)
@@ -712,6 +760,7 @@ void zHud_Render()
         sHudElements[i].hudRender();
     }
 #ifdef PC_PORT
+    zHud_PCWarpRender();
     pc_render_hud_screen(0);
 #endif
 }

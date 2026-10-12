@@ -4,6 +4,8 @@
 // L/R = L/R triggers, ZR = Z, D-pad = D-pad. ZL is free for the port's own use.
 #include <3ds.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "pc_platform.h"
@@ -35,6 +37,37 @@ static signed char axis8(int v)
 {
     int x = v * 127 / 150;
     return (signed char)(x > 127 ? 127 : x < -127 ? -127 : x);
+}
+
+// The touch screen (the bottom screen, where the HUD is), in the HUD's 640x480
+// space. hidScanInput runs once per frame in pc_events_pump.
+extern "C" int pc_touch_read(int* x, int* y)
+{
+    // Debug: PC_AUTOTOUCH=<seconds>:<x>:<y> touches the screen pixel (x, y) for
+    // 0.3 seconds from then.
+    static const char* autoTouch = getenv("PC_AUTOTOUCH");
+    if (autoTouch)
+    {
+        float at = 0;
+        int tx = 0, ty = 0;
+        unsigned int now = pc_ticks_ms();
+        if (sscanf(autoTouch, "%f:%d:%d", &at, &tx, &ty) == 3 && now >= (unsigned int)(at * 1000) &&
+            now < (unsigned int)(at * 1000) + 300)
+        {
+            *x = tx * 2;
+            *y = ty * 2;
+            return 1;
+        }
+    }
+    if (pc_debug_menu_active() || !(hidKeysHeld() & KEY_TOUCH))
+    {
+        return 0;
+    }
+    touchPosition t;
+    hidTouchRead(&t);
+    *x = t.px * 2;
+    *y = t.py * 2;
+    return 1;
 }
 
 unsigned int PADRead(PADStatus* status)

@@ -255,6 +255,10 @@ static _zParEmitter* sEmitMiniVanPuff;
 static _zCounter* keyCounter;
 
 static _tagKeyShake sKeyShake[4] = {};
+#ifdef PC_PORT
+extern "C" int pc_platform_3ds(void);
+static signed int sPCWarpGateSeen; // walked by a warp gate (see zEntPickup_PCWarpAvailable)
+#endif
 static zEntPickupWarpPoint zWarpPointTable[27] = {
     { 0, 0, 'B004' },  { 1, 0, 'C004' },  { 2, 0, 'E004' },  { 3, 0, 'E006' },
     { 4, 0, 'E009' },  { 5, 0, 'F003' },  { 6, 0, 'F007' },  { 7, 0, 'F010' },
@@ -802,7 +806,17 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                     if (zHudShowWarpGateInfo == -1)
                     {
                         zHudShowWarpGateInfo = p->quantity;
+#ifdef PC_PORT
+                        // New 3DS: gates aren't used where they stand; walking by one
+                        // makes the bottom screen's warp button appear (zHud).
+                        sPCWarpGateSeen = 1;
+                        if (!pc_platform_3ds())
+                        {
+                            zEntEvent("MNU4 WARP PROMPT", 3);
+                        }
+#else
                         zEntEvent("MNU4 WARP PROMPT", 3);
+#endif
                         zEntEvent("MNU4 WARP NAME", 3);
                         zWarpPointTable[((zEntPickupAsset*)ent->asset)->pickupValue].status = 1;
                         xSndPlay(xStrHash("warpgate_activate"), 0.5f, 0.5f, 0.0f, 0x7F, 0, 0);
@@ -810,7 +824,11 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
                                    20.0f);
                         zEntPlayer_Notify(0xE);
                     }
+#ifdef PC_PORT
+                    if (globals.pad0 != NULL && (globals.pad0->pressed & 0x20000) && !pc_platform_3ds())
+#else
                     if (globals.pad0 != NULL && (globals.pad0->pressed & 0x20000))
+#endif
                     {
                         xBase* sel = zSceneFindObject(xStrHash("SELECT X UIF"));
                         if (sel != NULL)
@@ -1806,8 +1824,51 @@ void zEntPickupCheat_allWarps()
     }
 }
 
+#ifdef PC_PORT
+// The New 3DS's warp button (zHud): there once the player has walked by a warp
+// gate (the hub's is open from the start, so it doesn't count until then).
+signed int zEntPickup_PCWarpAvailable()
+{
+    if (sPCWarpGateSeen)
+    {
+        return 1;
+    }
+    for (signed int i = 0; zWarpPointTable[i].sceneID != 0; i++)
+    {
+        if (i != 10 && zWarpPointTable[i].status)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// Brings up the warp gate screen, as pressing X at a gate does on GameCube.
+signed int zEntPickup_PCWarpOpen()
+{
+    xBase* sel = zSceneFindObject(xStrHash("SELECT X UIF"));
+    if (sel == NULL)
+    {
+        return 0;
+    }
+    if (zHudShowWarpGateInfo != -1)
+    {
+        zEntEvent("MNU4 WARP PROMPT", 4);
+        zEntEvent("MNU4 WARP NAME", 4);
+        zHudShowWarpGateInfo = -1;
+    }
+    zGameStateSwitchEvent(0x9B);
+    zEntEvent(sel, 0x51);
+    zEntEvent(sel, 0x4F);
+    return 1;
+}
+#endif
+
 void zEntPickupResetWarps()
 {
+#ifdef PC_PORT
+    sPCWarpGateSeen = 0;
+#endif
     for (unsigned int i = 0; i < 26; i++)
     {
         zWarpPointTable[i].status = 0;
