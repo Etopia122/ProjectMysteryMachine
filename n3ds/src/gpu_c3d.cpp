@@ -1484,31 +1484,20 @@ extern "C" void n3ds_fmv_frame_yuv(const u8* py, int ys, const u8* pu, const u8*
 // logo) from the CIA or the SD card, else a dark purple gradient.
 static PcRaster s_bottomBg;
 
-static bool load_background(const char* path)
+extern "C" unsigned char* n3ds_load_picture(const char* file, int* w, int* h); // screen_images.cpp
+
+static bool load_background()
 {
-    FILE* f = fopen(path, "rb");
-    if (!f)
+    int w = 0, h = 0;
+    unsigned char* px = n3ds_load_picture("bottom_bg.rgba", &w, &h);
+    if (!px)
     {
         return false;
     }
-    char magic[4];
-    uint32_t wh[2] = { 0, 0 };
-    RwUInt8* px = NULL;
-    bool ok = fread(magic, 1, 4, f) == 4 && !memcmp(magic, "SBG1", 4) && fread(wh, 4, 2, f) == 2 && wh[0] > 0 &&
-              wh[1] > 0 && wh[0] <= 1024 && wh[1] <= 1024 && (px = (RwUInt8*)malloc((size_t)wh[0] * wh[1] * 4)) &&
-              fread(px, 4, (size_t)wh[0] * wh[1], f) == (size_t)wh[0] * wh[1];
-    fclose(f);
-    if (!ok)
-    {
-        free(px);
-        pc_log("[c3d] %s: not a bottom screen background", path);
-        return false;
-    }
-    s_bottomBg.rgba = px;
-    s_bottomBg.r.width = (RwInt32)wh[0];
-    s_bottomBg.r.height = (RwInt32)wh[1];
+    s_bottomBg.rgba = (RwUInt8*)px;
+    s_bottomBg.r.width = w;
+    s_bottomBg.r.height = h;
     s_bottomBg.dirty = 1;
-    pc_log("[c3d] bottom screen background from %s", path);
     return true;
 }
 
@@ -1544,7 +1533,7 @@ static void draw_bottom_background()
     }
     if (!s_bottomBg.rgba)
     {
-        if (!load_background("romfs:/bottom_bg.rgba") && !load_background("sdmc:/scooby/bottom_bg.rgba"))
+        if (!load_background())
         {
             make_gradient();
         }

@@ -80,6 +80,10 @@ int pc_platform_3ds(void);
 // the New 3DS draws its own buttons over the GameCube's. The renderer calls it
 // for named textures; pc_raster_patch (rw layer) for ones the game finds by asset.
 void pc_texture_patch(const char* name, unsigned char* rgba, int w, int h);
+// The platform's own picture for a texture, any size (malloc'd RGBA, w and h
+// set), or NULL; fullscreen 1: the model showing it is drawn as that picture
+// over the whole game area instead (a backdrop made for 4:3).
+unsigned char* pc_texture_replace(const char* name, int* w, int* h, int* fullscreen);
 
 // The bottom screen's touch, in the HUD's 640x480 space: 1 while touched.
 int pc_touch_read(int* x, int* y);

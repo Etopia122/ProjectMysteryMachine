@@ -447,6 +447,25 @@ static RwTexture* read_texture_native(RwStream* s, RwUInt32 structLen)
     memcpy(pc_raster(r)->ext + 0xC, &fmt32, 4);
     pc_gx_decode(gxFmt, p, width, height, pal, tlutFmt, pc_raster(r)->rgba);
     pc_texture_patch(name, pc_raster(r)->rgba, width, height);
+    {
+        // The platform's own picture in its place, at its own size.
+        int rw = 0, rh = 0, fullscreen = 0;
+        if (unsigned char* rep = pc_texture_replace(name, &rw, &rh, &fullscreen))
+        {
+            PcRaster* pr = pc_raster(r);
+            RwUInt8* px = (RwUInt8*)rwCalloc((size_t)rw * rh, 4);
+            if (px)
+            {
+                memcpy(px, rep, (size_t)rw * rh * 4);
+                rwFree(pr->rgba);
+                pr->rgba = px;
+                r->width = rw;
+                r->height = rh;
+                pr->fullscreen = fullscreen;
+            }
+            free(rep);
+        }
+    }
     pc_raster(r)->dirty = 1;
     pc_raster(r)->numLevels = numLevels;
     if (getenv("PC_DUMP_TEX"))

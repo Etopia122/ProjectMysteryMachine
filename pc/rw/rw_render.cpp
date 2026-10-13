@@ -1176,6 +1176,80 @@ static void skin_cache_trim()
     }
 }
 
+static void begin_2d();
+static void end_2d();
+
+// A model showing a full-screen picture (pc_texture_replace: the title screen's
+// backdrop, made for 4:3, given a picture as wide as the screen) is drawn as
+// that picture over the whole game area, cropped to the screen's shape, at the
+// model's own depth: in front of the scenery behind it, behind what stands in
+// front (the title draws its backdrop after the gang). mv: the model's
+// modelview. Returns false for other models.
+static bool draw_fullscreen_picture(RpGeometry* g, const float* mv)
+{
+    PcRaster* pic = NULL;
+    for (int i = 0; i < g->matList.numMaterials && !pic; i++)
+    {
+        RpMaterial* m = g->matList.materials[i];
+        if (m && m->texture && m->texture->raster && pc_raster(m->texture->raster)->fullscreen)
+        {
+            pic = pc_raster(m->texture->raster);
+        }
+    }
+    RwCamera* cam = rwGlobals()->curCamera;
+    if (!pic || !cam)
+    {
+        return false;
+    }
+    PcRaster* tex = use_texture(&pic->r);
+    if (!tex)
+    {
+        return false;
+    }
+    // Its distance from the camera, as perspective draws store depth (linear,
+    // 0 at the near plane, 1 at the far one); 2D draws store (1 - z) / 2.
+    const RwV3d* v = g->morphTarget->verts;
+    float d = 0;
+    for (int i = 0; i < g->numVertices; i++)
+    {
+        d += mv[2] * v[i].x + mv[6] * v[i].y + mv[10] * v[i].z + mv[14];
+    }
+    d /= g->numVertices;
+    float n = cam->nearPlane, f = cam->farPlane;
+    float depth = f > n ? (d - n) / (f - n) : 0.5f;
+    depth = depth < 0.0f ? 0.0f : depth > 0.999f ? 0.999f : depth;
+    float z = 1.0f - 2.0f * depth;
+
+    begin_2d();
+    float k = gpu_widen(true);
+    float extra = 0.5f * (k - 1.0f) * FB_W;
+    // The screen's share of the picture's width, centred.
+    float aspect = (float)pic->r.width / pic->r.height, screen = 4.0f / 3.0f * k;
+    float half = aspect > screen ? 0.5f * screen / aspect : 0.5f;
+    float u0 = 0.5f - half, u1 = 0.5f + half;
+    const float pos[12] = { -extra, 0, z, FB_W + extra, 0, z, -extra, (float)FB_H, z, FB_W + extra, (float)FB_H, z };
+    const float uv[8] = { u0, 0, u1, 0, u0, 1, u1, 1 };
+    GpuState s = draw_state(false, tex, 2, 3, 3);
+    s.blend = false;
+    s.zTest = true;
+    s.zWrite = true;
+    s.cull = PC_CULL_NONE;
+    s.alphaFunc = PC_ALPHA_ALWAYS;
+    s.fog = false;
+    GpuVerts gv;
+    memset(&gv, 0, sizeof(gv));
+    gv.pos = pos;
+    gv.posStride = 3 * sizeof(float);
+    gv.posSize = 3;
+    gv.constCol = RwRGBA{ 255, 255, 255, 255 };
+    gv.uv = uv;
+    gv.uvStride = 2 * sizeof(float);
+    gv.count = 4;
+    gpu_draw(s, gv, PRIM_TRISTRIP, NULL, 0);
+    end_2d();
+    return true;
+}
+
 void pc_render_atomic(RpAtomic* a)
 {
     RpGeometry* g = a->geometry;
@@ -1220,6 +1294,11 @@ void pc_render_atomic(RpAtomic* a)
     float model[16], mv[16];
     matrix16(&f->ltm, model);
     mul16(s_view, model, mv);
+    if (!gpu_target() && draw_fullscreen_picture(g, mv))
+    {
+        gpu_set_modelview(s_view);
+        return;
+    }
     gpu_set_modelview(mv);
 
     const RwV3d* pos = g->morphTarget->verts;

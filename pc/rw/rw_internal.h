@@ -15,6 +15,7 @@ struct PcRaster
     int numLevels;
     int isTarget; // a render target (camera texture raster) was made for it
     int hasAlpha; // any texel with alpha < 255 (set on upload)
+    int fullscreen; // a full-screen picture (pc_texture_replace): drawn over the game area, not on its model
 };
 PcRaster* pc_raster(RwRaster* r);
 

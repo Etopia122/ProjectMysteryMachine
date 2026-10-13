@@ -7,6 +7,7 @@
 
 extern "C" int pc_platform_3ds() { return 0; }
 extern "C" void pc_texture_patch(const char* name, unsigned char* rgba, int w, int h) {}
+extern "C" unsigned char* pc_texture_replace(const char* name, int* w, int* h, int* fullscreen) { return NULL; }
 extern "C" int pc_touch_read(int* x, int* y) { return 0; }
 
 extern "C" const char* pc_debug_key_hint(int which)

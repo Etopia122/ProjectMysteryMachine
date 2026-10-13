@@ -44,7 +44,10 @@ The game data comes from the player's own GameCube disc and lives on the SD card
   full-screen 2D (fades, letterbox) spans the screen and full-screen pictures
   (the warp map) get black side bars. The intro, title and front-end menus stay
   4:3; movies too. `PC_ASPECT43=1` keeps play 4:3. Every heavy level still
-  holds 30 fps.
+  holds 30 fps. The title screen and front-end menus are widescreen too: the
+  title's 4:3 backdrop gives way to the player's 5:3 picture
+  (`game/n3ds_title_bg.png` -> `title_bg.rgba`, through `pc_texture_replace`),
+  drawn over the whole screen at the backdrop's depth (behind the gang).
 - Bottom screen background: a 320x240 picture behind the HUD (and on the
   title and menus), from `romfs:/bottom_bg.rgba` or `sdmc:/scooby/bottom_bg.rgba`,
   else a dark purple gradient. `make_cia.sh` converts the player's

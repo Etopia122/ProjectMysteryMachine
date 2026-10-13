@@ -54,6 +54,12 @@ BG=${BOTTOM_BG:-game/n3ds_bottom_bg.png}
 if [ -f "$BG" ]; then
     python n3ds/tools/make_bottom_bg.py "$BG" "$ROMFS/bottom_bg.rgba" >/dev/null
 fi
+# The title screen's backdrop over the whole top screen, from game/n3ds_title_bg.png
+# (TITLE_BG overrides); without it the game's own 4:3 backdrop shows, edges and all.
+TB=${TITLE_BG:-game/n3ds_title_bg.png}
+if [ -f "$TB" ]; then
+    python n3ds/tools/make_bottom_bg.py "$TB" "$ROMFS/title_bg.rgba" 400x240 >/dev/null
+fi
 
 # HOME Menu icon and banner, from the disc's GameCube memory card icon/banner.
 python n3ds/tools/make_cia_art.py "$FILES" $B/cia_art >/dev/null

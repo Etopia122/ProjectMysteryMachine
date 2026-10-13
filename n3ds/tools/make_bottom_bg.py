@@ -4,8 +4,10 @@
 # the app reads from romfs:/bottom_bg.rgba (the CIA) or sdmc:/scooby/bottom_bg.rgba.
 # The picture (from the player's own game art) stays out of the repository:
 # make_cia.sh converts game/n3ds_bottom_bg.png when it is there.
-# usage: python n3ds/tools/make_bottom_bg.py <in.png> <out.rgba>
-# Reads 8-bit non-interlaced RGB or RGBA PNGs; scales to 320x240 by averaging.
+# usage: python n3ds/tools/make_bottom_bg.py <in.png> <out.rgba> [WxH]
+# Reads 8-bit non-interlaced RGB or RGBA PNGs; scales to 320x240 (or WxH) by
+# averaging. The title screen's picture (game/n3ds_title_bg.png) goes the same
+# way at 400x240, the top screen's size, as romfs:/title_bg.rgba.
 import struct, sys, zlib
 
 W, H = 320, 240
@@ -56,6 +58,9 @@ def read_png(path):
 
 
 def main():
+    global W, H
+    if len(sys.argv) > 3:
+        W, H = (int(v) for v in sys.argv[3].lower().split('x'))
     w, h, px = read_png(sys.argv[1])
     out = bytearray(b'SBG1' + struct.pack('<II', W, H))
     for y in range(H):

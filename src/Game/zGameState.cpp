@@ -69,12 +69,12 @@ signed int zGameModeGet()
 }
 
 #ifdef PC_PORT
-// For the port's renderer: in a level (playing, paused, saving, the warp and
-// gallery screens), where the view may be wider than 4:3; the intro, title
-// and front-end menus are made for 4:3.
+// For the port's renderer: where the view may be wider than 4:3: from the
+// title screen on (its backdrop has a full-screen picture on the New 3DS),
+// not the boot screens and intro movies.
 extern "C" int pc_game_wide_view()
 {
-    return gGameMode >= eGameMode_Save && gGameMode != eGameMode_Options && gGameMode < eGameMode_Count;
+    return gGameMode >= eGameMode_Title && gGameMode < eGameMode_Count;
 }
 #endif
 
