@@ -858,6 +858,7 @@ config.libs = [
         "progress_category": "sdk",
         "objects": [
             Object(NonMatching, "bink/radutil.c"),
+            Object(Matching, "bink/fft.c"),
         ],
     },
     {
