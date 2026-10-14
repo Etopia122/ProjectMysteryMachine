@@ -11,6 +11,12 @@ Sections:
 	.sdata2     type:rodata align:8
 	.sbss2      type:bss align:16
 
+Game/zVolume.cpp:
+	.text       start:0x800055E0 end:0x80005C74
+	.bss        start:0x801DF1C0 end:0x801DF508
+	.sbss       start:0x8025E860 end:0x8025E870
+	.sdata2     start:0x8025F8C0 end:0x8025F8C8
+
 Core/gc/iAnimSKB.cpp:
 	.text       start:0x80005C74 end:0x80006CC4
 	.rodata     start:0x8018E600 end:0x8018E628

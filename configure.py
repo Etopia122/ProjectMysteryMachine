@@ -548,6 +548,7 @@ config.libs = [
             Object(Equivalent, "Game/zUI.cpp"),
             Object(Matching, "Game/zUIFont.cpp"),
             Object(Equivalent, "Game/zVar.cpp"),
+            Object(Matching, "Game/zVolume.cpp"),
         ],
     ),
     DolphinLib(

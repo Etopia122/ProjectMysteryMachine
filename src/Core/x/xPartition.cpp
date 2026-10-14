@@ -55,7 +55,7 @@ public:
 };
 
 // Not yet named: returns a volume's bound.
-extern "C" _xBound* fn_80005AFC(_zVolume* vol);
+_xBound* zVolumeGetBound(_zVolume* vol);
 
 signed int xPartitionGetTrueIdx(_tagPartition* part, signed int x, signed int y, signed int z);
 _tagPartSpace* xPartitionGetSpace(_tagPartition* p, signed int true_idx);
@@ -136,7 +136,7 @@ void xPartitionVolume(_tagPartition* part, _zVolume* volume, signed int x_spaces
 {
     memset(part, 0, sizeof(_tagPartition));
 
-    _xBound* bound = fn_80005AFC(volume);
+    _xBound* bound = zVolumeGetBound(volume);
     part->min = bound->box.box.lower;
     part->max = bound->box.box.upper;
     _xVec3 size;

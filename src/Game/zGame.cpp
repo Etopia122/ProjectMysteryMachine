@@ -68,7 +68,7 @@ signed int RwIm2DRenderIndexedPrimitive(signed int primType, RwIm2DVertex* verti
                                         signed int numIndices);
 unsigned int VIGetRetraceCount();
 
-void fn_800056F8(_xVec3* pos);
+void zVolume_OccludePrecalc(_xVec3* camPos);
 void fn_80014A34(signed int mode);
 void fn_80021B20();
 }
@@ -424,7 +424,7 @@ void zGameLoop()
         xCameraUpdate(&globals.camera, sTimeElapsed);
         zScene_UpdateFlyToInterface(sTimeElapsed);
         xCameraBegin(&globals.camera, 1);
-        fn_800056F8(&globals.camera.hi_cam.mat.pos);
+        zVolume_OccludePrecalc(&globals.camera.hi_cam.mat.pos);
         zSceneRender();
         xTRCRender();
         fn_80021B20();

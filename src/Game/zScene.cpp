@@ -523,11 +523,11 @@ extern "C" {
 signed int sprintf(char* s, const char* format, ...);
 char* strcat(char* dst, const char* src);
 char* strcpy(char* dst, const char* src);
-_zVolume* fn_80005AE8(unsigned short idx);
-void fn_80005B08();
-void fn_80005B58();
-void fn_80005C34(xBase* b, xSerial* s);
-void fn_80005C54(xBase* b, xSerial* s);
+_zVolume* zVolumeGetVolume(unsigned short n);
+void zVolumeSetup();
+void zVolumeInit();
+void zVolumeLoad(_zVolume* ent, xSerial* s);
+void zVolumeSave(_zVolume* ent, xSerial* s);
 void fn_800162D8();
 void fn_800A8F88(xBase* b, zScene* s);
 }
@@ -535,7 +535,7 @@ st_zEntVillain* zEntVillain_NPCInst(unsigned int npcidx);
 st_zEntVillain* zEntVillain_MemPool(unsigned int npccnt);
 void zEntShaggy_SceneReset();
 
-extern signed int lbl_8025E868;
+extern signed int gOccludeCount;
 
 extern _xScene* g_xSceneCur;
 
@@ -1383,13 +1383,13 @@ static unsigned int zSceneInitFunc_Volume(zScene* s, zSceneObjectInstanceDesc* d
                                           unsigned int base_idx)
 {
     signed int count = s->baseCount[desc->baseType];
-    fn_80005B58();
+    zVolumeInit();
     if (count)
     {
-        s->baseList[desc->baseType] = (xBase*)fn_80005AE8(0);
+        s->baseList[desc->baseType] = (xBase*)zVolumeGetVolume(0);
         for (signed int idx = 0; idx < count; idx++)
         {
-            _zVolume* b = fn_80005AE8(idx);
+            _zVolume* b = zVolumeGetVolume(idx);
             zLightSetVolume(b);
             zSceneSet((xBase*)b, base_idx);
             zSceneObjHashtableAdd(((xBase*)b)->id, (xBase*)b);
@@ -1449,7 +1449,7 @@ void zSceneInit(unsigned int theSceneID)
     signed int i;
 
     gTransitionSceneID = theSceneID;
-    lbl_8025E868 = 0;
+    gOccludeCount = 0;
 
     char b[5] = {};
     sprintf(b, xUtil_idtag2string(theSceneID, 0));
@@ -1625,7 +1625,7 @@ void zSceneExit()
     zFX_SceneExit(world);
     zEntEventAll(NULL, 0, 0x5A, NULL);
     zEntEventAll(NULL, 0, 0x58, NULL);
-    lbl_8025E868 = 0;
+    gOccludeCount = 0;
     if (globals.sceneCur->sceneID != 'MNU3')
     {
         zSceneSave(s, NULL);
@@ -1819,7 +1819,7 @@ void zSceneSave(zScene* ent, xSerial* xs)
                 zScriptSave((_zScript*)b, xs);
                 break;
             case 29:
-                fn_80005C54(b, xs);
+                zVolumeSave((_zVolume*)b, xs);
                 break;
             case 30:
                 zDispatcher_Save((st_ZDISPATCH_DATA*)b, xs);
@@ -1973,7 +1973,7 @@ void zSceneLoad(zScene* ent, xSerial* xs)
                     zScriptLoad((_zScript*)b, xs);
                     break;
                 case 29:
-                    fn_80005C34(b, xs);
+                    zVolumeLoad((_zVolume*)b, xs);
                     break;
                 case 30:
                     zDispatcher_Load((st_ZDISPATCH_DATA*)b, xs);
@@ -2021,7 +2021,7 @@ void zSceneReset()
     zScene* s;
     signed int i;
 
-    lbl_8025E868 = 0;
+    gOccludeCount = 0;
     s = globals.sceneCur;
     zMusicKill();
     xPadDestroyRumbleChain(0);
@@ -2117,7 +2117,7 @@ void zSceneSetup()
     }
     if (s->baseCount[29])
     {
-        fn_80005B08();
+        zVolumeSetup();
     }
 
     gCurEnv = NULL;
