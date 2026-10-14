@@ -1,9 +1,15 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDFormat.c"
+#include "dolphin/card/card_dbg.h"
 #include "dolphin/vi/vi.h"
 
 extern void __CARDDefaultApiCallback(s32 chan, s32 result);
 extern void __CARDSyncCallback(s32 chan, s32 result);
+#if defined(VERSION_GIHE78)
+#define __CARDGetFontEncode OSGetFontEncode
+#else
 extern u16 __CARDGetFontEncode(void);
+#endif
 
 static void FormatCallback(s32 chan, s32 result) {
     CARDControl* card;
@@ -35,7 +41,7 @@ error:
     callback = card->apiCallback;
     card->apiCallback = NULL;
     __CARDPutControlBlock(card, result);
-    ASSERTLINE(133, callback);
+    ASSERTLINE(129, callback);
     callback(chan, result);
 }
 
@@ -52,8 +58,8 @@ s32 __CARDFormatRegionAsync(s32 chan, u16 encode, CARDCallback callback) {
     OSTime time;
     OSTime rand;
 
-    ASSERTLINE(167, encode == CARD_ENCODE_ANSI || encode == CARD_ENCODE_SJIS);
-    ASSERTLINE(168, 0 <= chan && chan < 2);
+    ASSERTLINE(163, encode == CARD_ENCODE_ANSI || encode == CARD_ENCODE_SJIS);
+    ASSERTLINE(164, 0 <= chan && chan < 2);
 
     result = __CARDGetControlBlock(chan, &card);
     if (result < 0)
