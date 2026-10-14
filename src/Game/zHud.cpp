@@ -1427,7 +1427,7 @@ void zHudElementsCB_GumUpdate(float dt)
         case 4:
             for (i = 0; i < 5; i++)
             {
-                if (i == n)
+                if (n == i)
                 {
                     sHudGumArray[n].statusSize = eHudStatusSizeDefault;
                 }

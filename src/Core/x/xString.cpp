@@ -141,7 +141,7 @@ signed int xStricmp(char* string1, char* string2)
     {
         return 0;
     }
-    return (xToUpper(*string2) > xToUpper(*string1)) ? -1 : 1;
+    return (xToUpper(*string1) < xToUpper(*string2)) ? -1 : 1;
 }
 
 char* xStrupr(char* string)

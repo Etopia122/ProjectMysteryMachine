@@ -2509,7 +2509,7 @@ void zSceneRender()
         for (signed int k = 0; k < 66; k++)
         {
             zSceneSortEntry* e = &sSortTable[k];
-            if (sc->sceneID == e->sceneID && ent->id == e->id)
+            if (e->sceneID == sc->sceneID && ent->id == e->id)
             {
                 switch (e->type)
                 {

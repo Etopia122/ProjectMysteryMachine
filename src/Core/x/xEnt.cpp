@@ -796,8 +796,8 @@ void xEntApplyPhysics(_xEnt* ent, _xScene* sc, float dt)
 
     _xVec3 dposvel;
     float half = 0.5f * dt;
-    dposvel.y = (ent->frame->vel.y + ent->frame->oldvel.y) * half;
-    dposvel.x = (ent->frame->vel.x + ent->frame->oldvel.x) * half;
+    dposvel.y = (ent->frame->oldvel.y + ent->frame->vel.y) * half;
+    dposvel.x = (ent->frame->oldvel.x + ent->frame->vel.x) * half;
     dposvel.z = (ent->frame->vel.z + ent->frame->oldvel.z) * half;
 
     if (dposvel.y < 0.0f)
