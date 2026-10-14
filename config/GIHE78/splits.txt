@@ -220,6 +220,10 @@ Core/x/xFFX.cpp:
 	.sbss       start:0x8025EA50 end:0x8025EA78
 	.sdata2     start:0x8025FEE8 end:0x8025FEF0
 
+Core/x/xFilter.cpp:
+	.text       start:0x80029458 end:0x800294E8
+	.sdata2     start:0x8025FEF0 end:0x8025FF20
+
 Core/x/xFont.cpp:
 	.text       start:0x800294E8 end:0x8002A460
 	.data       start:0x801AE8A0 end:0x801AE8B0
