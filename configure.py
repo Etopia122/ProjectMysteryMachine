@@ -859,6 +859,7 @@ config.libs = [
         "objects": [
             Object(NonMatching, "bink/radutil.c"),
             Object(Matching, "bink/fft.c"),
+            Object(NonMatching, "bink/radcb.c"),
         ],
     },
     {
