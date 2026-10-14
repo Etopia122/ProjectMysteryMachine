@@ -277,7 +277,7 @@ Core/x/xModel.cpp:
 	.sdata2     start:0x80260048 end:0x802600D0
 
 Core/x/xMorph.cpp:
-	.text       start:0x80030F3C end:0x80031310
+	.text       start:0x80030F28 end:0x80031310
 	.sdata2     start:0x802600D0 end:0x802600E0
 
 Core/x/xMovePoint.cpp:
@@ -307,7 +307,7 @@ Core/x/xParGroup.cpp:
 	.sdata2     start:0x80260118 end:0x80260120
 
 Core/x/xParMgr.cpp:
-	.text       start:0x80032D48 end:0x80032DEC
+	.text       start:0x80032D28 end:0x80032DEC
 	.sbss       start:0x8025EAE8 end:0x8025EAF0
 
 Core/x/xPartition.cpp:
@@ -336,7 +336,7 @@ Core/x/xScene.cpp:
 	.sdata2     start:0x80260148 end:0x80260150
 
 Core/x/xScrFx.cpp:
-	.text       start:0x800394C4 end:0x80039C90
+	.text       start:0x800394B4 end:0x80039C90
 	.bss        start:0x802276A8 end:0x80227738
 	.sdata      start:0x8025E480 end:0x8025E488
 	.sbss       start:0x8025EB80 end:0x8025EB88

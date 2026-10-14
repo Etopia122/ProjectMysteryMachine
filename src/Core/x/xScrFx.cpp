@@ -334,3 +334,8 @@ signed int xScrFxIsLetterbox()
 {
     return mLetterboxTO > 0.0f;
 }
+
+signed int xScrFxIsFading()
+{
+    return mFade.active;
+}

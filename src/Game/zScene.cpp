@@ -920,7 +920,7 @@ extern "C" {
 void fn_800167F0();
 void fn_80009CCC(_xVec3* pts, signed int count, unsigned int texture, float w0, float w1);
 void fn_8000A138(iEnv* env);
-void fn_80032D28();
+void xParMgrRender();
 }
 void zEntVillain_BonusRender();
 
@@ -2646,7 +2646,7 @@ void zSceneRender()
 
     zRenderState(SDRS_Font);
     zUIRenderAll();
-    fn_80032D28();
+    xParMgrRender();
 
     if (zGameModeGet() == 1 && (zGameStateGet() == 0 || zGameStateGet() == 1))
     {

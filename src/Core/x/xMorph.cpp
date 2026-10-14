@@ -196,3 +196,8 @@ void xMorphRender(xMorphSeqFile* seq, RwMatrixTag* mat, float time)
         iMorphRender(frame->Model, mat, frame->Targets, wptr, frame->Flags & 0x1, frame->Scale);
     }
 }
+
+float xMorphSeqDuration(xMorphSeqFile* seq)
+{
+    return ((float*)(seq + 1))[seq->TimeCount - 1];
+}

@@ -630,7 +630,7 @@ extern "C" {
 signed int rand();
 char* strcpy(char* dst, const char* src);
 char* strcat(char* dst, const char* src);
-signed int fn_800394B4();
+signed int xScrFxIsFading();
 void* memset(void* dst, int c, unsigned int n);
 long labs(long x);
 void fn_8000A080(signed int);
@@ -4173,7 +4173,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
     iColor_tag black = { 0 };
     if (globals.player.Health == 0)
     {
-        if (globals.player.DamageTimer <= 0.3f && fn_800394B4() == 0)
+        if (globals.player.DamageTimer <= 0.3f && xScrFxIsFading() == 0)
         {
             xScrFxFade(&black, &clear, 0.3f, NULL, 1, 1);
         }
