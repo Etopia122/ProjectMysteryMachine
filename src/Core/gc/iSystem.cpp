@@ -872,7 +872,7 @@ typedef void (*RwFreeListFreeFn)(void* freelist, void* mem);
 
 static void* dlFopen(const char* name, const char* access)
 {
-    signed int mode = fn_80015A70(access);
+    unsigned int mode = fn_80015A70(access);
     dlFile* fp;
 
     if (!mode)

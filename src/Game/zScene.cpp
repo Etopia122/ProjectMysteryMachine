@@ -121,7 +121,7 @@ union zSceneSortID
 
 extern unsigned int gActiveHeap;
 extern signed int gGameState;
-extern signed int sCardCheckActive;
+extern unsigned int sCardCheckActive;
 
 signed int zMenuRunning();
 signed int zGameIsPaused();
