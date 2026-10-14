@@ -127,8 +127,8 @@ RwBool _rwDlTextureRasterCreate(RwRaster* raster, RwInt32 gxFormat, RwInt32 tlut
 RwBool _rwDlTextureSetRaster(RwTexture* texture, RwRaster* raster, RwInt32 flags);
 void GXInvalidateTexAll(void);
 RwInt32 GXGetTexObjMaxAniso(GXTexObj* obj);
-RwUInt8 GXGetTexObjBiasClamp(GXTexObj* obj);
-RwUInt8 GXGetTexObjEdgeLOD(GXTexObj* obj);
+RwUInt32 GXGetTexObjBiasClamp(GXTexObj* obj);
+RwUInt32 GXGetTexObjEdgeLOD(GXTexObj* obj);
 RwReal GXGetTexObjLODBias(GXTexObj* obj);
 RwUInt32 GXGetTexObjTlut(GXTexObj* obj);
 void GXInitTexObj(GXTexObj* obj, void* image, RwUInt16 width, RwUInt16 height, RwInt32 format, RwInt32 wrapS,
@@ -419,25 +419,29 @@ void _rwDlTextureSet(RwTexture* texture, RwInt32 texMap)
 {
     RwDlTextureExt* textureExt;
     RwDlRasterExt* rasterExt;
+    RwRaster* raster;
 
     if (texture == NULL) {
         texture = lbl_8025F87C;
         _rwDlTextureSetRaster(texture, lbl_8025F878, 0);
     }
 
+    raster = texture->raster;
     textureExt = TEXTUREEXTFROMTEXTURE(texture);
-    rasterExt = RASTEREXTFROMRASTER(texture->raster->parent);
+    rasterExt = RASTEREXTFROMRASTER(raster->parent);
     rasterExt->token = lbl_8025E800;
 
-    if (RwRasterGetFormat(texture->raster) & (rwRASTERFORMATPAL4 | rwRASTERFORMATPAL8)) {
+    if (RwRasterGetFormat(raster) & (rwRASTERFORMATPAL4 | rwRASTERFORMATPAL8)) {
         if (textureExt->flags & rwDLTEXTUREDIRTY) {
             DlTextureInitTexObj(texture, texMap, 0.0f, 1, 1, 0);
         } else if ((texture->filterAddressing & 0xFFFF) != (textureExt->flags & 0xFFFF)) {
             DlTextureRebuildTexObj(texture, textureExt, texMap);
-        } else if (texture == DlTextureCache[texMap]) {
+        } else if (texture != DlTextureCache[texMap]) {
+            if (!(textureExt->flags & rwDLTEXTUREPRELOADED) && texMap != GXGetTexObjTlut(&textureExt->texObj)) {
+                DlTextureRebuildTexObj(texture, textureExt, texMap);
+            }
+        } else {
             return;
-        } else if (!(textureExt->flags & rwDLTEXTUREPRELOADED) && texMap != GXGetTexObjTlut(&textureExt->texObj)) {
-            DlTextureRebuildTexObj(texture, textureExt, texMap);
         }
 
         if (!(textureExt->flags & rwDLTEXTUREPRELOADED)) {
