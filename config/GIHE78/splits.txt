@@ -531,6 +531,12 @@ Game/zFeet.cpp:
 	.sbss       start:0x8025EEB8 end:0x8025EEC8
 	.sdata2     start:0x802610E8 end:0x80261200
 
+Game/zFMV.cpp:
+	.text       start:0x800ABD84 end:0x800ABE88
+	.rodata     start:0x801A4268 end:0x801A4278
+	.data       start:0x801C5590 end:0x801C5BF8
+	.sdata2     start:0x80261200 end:0x80261220
+
 Game/zFog.cpp:
 	.text       start:0x800ABE88 end:0x800AC010
 	.sdata2     start:0x80261220 end:0x80261224

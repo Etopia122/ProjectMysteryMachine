@@ -513,6 +513,7 @@ config.libs = [
             Object(Matching, "Game/zEntVillainHolo.cpp"),
             Object(Matching, "Game/zEnv.cpp"),
             Object(Equivalent, "Game/zFeet.cpp"),
+            Object(Matching, "Game/zFMV.cpp"),
             Object(Matching, "Game/zFog.cpp"),
             Object(Matching, "Game/zFX.cpp"),
             Object(Equivalent, "Game/zGame.cpp"),
