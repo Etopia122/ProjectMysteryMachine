@@ -95,6 +95,11 @@ test runs). Without it everything is as before.
 | `graphics.fps` | 30 (GameCube) or 60: one VI retrace per frame; the few per-frame factors and steps scale (PC_FRAME_FACTOR/STEP in pc_compat.h), gravity on Scooby keeps 30 Hz steps so jumps match, every-frame particle calls with 1/30 emit every other frame |
 | `graphics.draw_distance` | 1-8: far plane and fog (iCamera.cpp, PC_PORT) |
 | `graphics.effects_distance` | 1-8: distance-culled particle emitters (zParEmitter.cpp, PC_PORT) |
+| `graphics.fov` | 0-30 degrees added to the game camera (iCameraSetFOV, PC_PORT) |
+| `graphics.brightness` | 0.5-2: the finished frame scaled by a blend pass (gpu_gl.cpp) |
+| `graphics.shadow_res` | 256 (GameCube), 512, 1024, 2048: the shadow camera's target (SetupShadow, PC_PORT) |
+| `game.skip_logos` | 1: no WB/THQ/Heavy Iron/RenderWare logo movies at start (zMenu.cpp, PC_PORT) |
+| `keyboard.mouse_camera`, `.mouse_sensitivity` | 1: the mouse pushes the C-stick (relative mouse mode while the window has focus); sensitivity 0.2-3 |
 | `graphics.trilinear`, `.anisotropy` | mipmapped filtering for the game's bilinear textures; 1-16 |
 | `keyboard.<input>` | SDL key names, comma-separated; inputs: `stick_up/down/left/right`, `cstick_*`, `a b x y start l r z`, `dpad_*` |
 | `controller.<input>` | an SDL controller button or axis (`a`, `rightshoulder`, `lefttrigger`, ...) |

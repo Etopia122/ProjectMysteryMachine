@@ -40,9 +40,11 @@ Display:  resolution, windowed / borderless / exclusive fullscreen, aspect
 Graphics: draw distance (moves the far edge of the view and the fog back),
           effects distance (how far particle effects show), texture filtering,
           frame rate (30 as on the GameCube, or 60 with the same jumps and
-          timings).
+          timings), field of view, brightness, shadow quality.
 Controls: every GameCube button for the keyboard (one or more keys) and for a
-          controller (any button or trigger), and swapping the analog sticks.
+          controller (any button or trigger), swapping the analog sticks, and
+          turning the camera with the mouse.
+Game:     skipping the company logo movies at start.
 
 Default controls
 ----------------

@@ -168,6 +168,8 @@ void zMenuSetup()
 void zMenuFMVPlay(char* filename, unsigned int buttons, float time);
 
 #ifdef PC_PORT
+extern "C" int pc_setting_int(const char* key, int def);
+
 // "Press Start" on the title screen (its manager enabled, as the attract timer
 // checks): the backdrop is 4:3 geometry, so a platform without a full-screen
 // picture for it keeps that screen 4:3. The main menu after it may be wide.
@@ -218,10 +220,17 @@ unsigned int zMenuLoop()
                 xScrFxFade(&clear, &black, 0.0f, 0, 1, 0);
                 break;
             case 3:
+#ifdef PC_PORT
+                // The player's game.skip_logos: straight to the title (the WB,
+                // THQ, Heavy Iron and RenderWare logos; the story intro still plays).
+                if (!pc_setting_int("game.skip_logos", 0))
+#endif
+                {
                 zFMVPlay(zFMVFileGetName((eFMVFile)0x12), 0, 0.0f);
                 zFMVPlay(zFMVFileGetName((eFMVFile)0x11), 0, 0.0f);
                 zFMVPlay(zFMVFileGetName((eFMVFile)0), 0, 0.0f);
                 zMenuFMVPlay(zFMVFileGetName((eFMVFile)0x1A), 0, 0.0f);
+                }
                 holdTmr = 10.0f;
                 zGameModeSwitch(eGameMode_Title);
                 zGameStateSwitch(1);

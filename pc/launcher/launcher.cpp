@@ -525,15 +525,17 @@ enum
 {
     ID_TABS = 100,
     // Game files
-    ID_GAME_INFO, ID_ISO_LABEL, ID_ISO_PATH, ID_ISO_BROWSE, ID_EXTRACT, ID_PROGRESS, ID_GAME_STATUS, ID_GAME_FOLDER,
+    ID_GAME_INFO, ID_ISO_LABEL, ID_ISO_PATH, ID_ISO_BROWSE, ID_EXTRACT, ID_PROGRESS, ID_GAME_STATUS, ID_GAME_FOLDER, ID_SKIP_LOGOS,
     // Display
     ID_RES_LABEL, ID_RES, ID_MODE_LABEL, ID_MODE, ID_ASPECT_LABEL, ID_ASPECT, ID_VSYNC, ID_MSAA_LABEL, ID_MSAA,
     ID_DISPLAY_NOTE, ID_HUD_LABEL, ID_HUD,
     // Graphics
-    ID_DRAW_LABEL, ID_DRAW, ID_DRAW_VALUE, ID_DRAW_NOTE, ID_FX_LABEL, ID_FX, ID_FX_VALUE, ID_FX_NOTE, ID_FILTER_LABEL,
-    ID_FILTER, ID_FILTER_NOTE, ID_FPS_LABEL, ID_FPS, ID_FPS_NOTE,
+    ID_DRAW_LABEL, ID_DRAW, ID_DRAW_VALUE, ID_FX_LABEL, ID_FX, ID_FX_VALUE, ID_FOV_LABEL, ID_FOV, ID_FOV_VALUE,
+    ID_BRIGHT_LABEL, ID_BRIGHT, ID_BRIGHT_VALUE, ID_FILTER_LABEL, ID_FILTER, ID_SHADOW_LABEL, ID_SHADOW, ID_FPS_LABEL,
+    ID_FPS, ID_GRAPHICS_NOTE,
     // Controls
-    ID_BINDS, ID_SET_KEY, ID_ADD_KEY, ID_SET_PAD, ID_CLEAR, ID_DEFAULTS, ID_SWAP_STICKS, ID_CAPTURE,
+    ID_BINDS, ID_SET_KEY, ID_ADD_KEY, ID_SET_PAD, ID_CLEAR, ID_DEFAULTS, ID_SWAP_STICKS, ID_CAPTURE, ID_MOUSE_CAM,
+    ID_MOUSE_SENS_LABEL, ID_MOUSE_SENS,
     // Bottom
     ID_STATUS, ID_SAVE, ID_PLAY,
 };
@@ -817,16 +819,21 @@ static void fill_resolutions()
     }
 }
 
+static int slider(int id) { return (int)SendMessageW(item(id), TBM_GETPOS, 0, 0); }
+
 static void update_distance_labels()
 {
-    int ids[2][2] = { { ID_DRAW, ID_DRAW_VALUE }, { ID_FX, ID_FX_VALUE } };
-    for (auto& p : ids)
-    {
-        int v = (int)SendMessageW(item(p[0]), TBM_GETPOS, 0, 0);
-        wchar_t t[32];
-        swprintf(t, 32, L"%.2gx", v / 4.0);
-        set_text(p[1], t);
-    }
+    wchar_t t[32];
+    swprintf(t, 32, L"%.2gx", slider(ID_DRAW) / 4.0);
+    set_text(ID_DRAW_VALUE, t);
+    swprintf(t, 32, L"%.2gx", slider(ID_FX) / 4.0);
+    set_text(ID_FX_VALUE, t);
+    swprintf(t, 32, L"+%d\u00B0", slider(ID_FOV));
+    set_text(ID_FOV_VALUE, t);
+    swprintf(t, 32, L"%d%%", slider(ID_BRIGHT) * 5);
+    set_text(ID_BRIGHT_VALUE, t);
+    swprintf(t, 32, L"%d", slider(ID_MOUSE_SENS) * 10);
+    set_text(ID_MOUSE_SENS_LABEL, std::wstring(L"Mouse sensitivity: ") + t + L"%");
 }
 
 static void update_mode_dependent()
@@ -1085,6 +1092,15 @@ static void load_settings()
     double fx = atof(s_ini.get("graphics", "effects_distance", "1").c_str());
     SendMessageW(item(ID_DRAW), TBM_SETPOS, TRUE, (LPARAM)(int)(draw * 4 + 0.5));
     SendMessageW(item(ID_FX), TBM_SETPOS, TRUE, (LPARAM)(int)(fx * 4 + 0.5));
+    SendMessageW(item(ID_FOV), TBM_SETPOS, TRUE, (LPARAM)atoi(s_ini.get("graphics", "fov", "0").c_str()));
+    double bright = atof(s_ini.get("graphics", "brightness", "1").c_str());
+    SendMessageW(item(ID_BRIGHT), TBM_SETPOS, TRUE, (LPARAM)(int)(bright * 20 + 0.5));
+    int shadow = atoi(s_ini.get("graphics", "shadow_res", "1024").c_str());
+    combo_set(ID_SHADOW, shadow >= 2048 ? 3 : shadow >= 1024 ? 2 : shadow >= 512 ? 1 : 0);
+    check_set(ID_SKIP_LOGOS, s_ini.get("game", "skip_logos", "0") == "1");
+    check_set(ID_MOUSE_CAM, s_ini.get("keyboard", "mouse_camera", "0") == "1");
+    double sensv = atof(s_ini.get("keyboard", "mouse_sensitivity", "1").c_str());
+    SendMessageW(item(ID_MOUSE_SENS), TBM_SETPOS, TRUE, (LPARAM)(int)(sensv * 10 + 0.5));
     int tri = atoi(s_ini.get("graphics", "trilinear", "1").c_str());
     int aniso = atoi(s_ini.get("graphics", "anisotropy", "16").c_str());
     combo_set(ID_FILTER, 0);
@@ -1125,6 +1141,15 @@ static bool save_settings()
     s_ini.set("graphics", "draw_distance", t);
     snprintf(t, sizeof(t), "%.2f", SendMessageW(item(ID_FX), TBM_GETPOS, 0, 0) / 4.0);
     s_ini.set("graphics", "effects_distance", t);
+    s_ini.set("graphics", "fov", std::to_string(slider(ID_FOV)));
+    snprintf(t, sizeof(t), "%.2f", slider(ID_BRIGHT) / 20.0);
+    s_ini.set("graphics", "brightness", t);
+    static const int kShadow[] = { 256, 512, 1024, 2048 };
+    s_ini.set("graphics", "shadow_res", std::to_string(kShadow[combo_get(ID_SHADOW) < 0 ? 0 : combo_get(ID_SHADOW)]));
+    s_ini.set("game", "skip_logos", check_get(ID_SKIP_LOGOS) ? "1" : "0");
+    s_ini.set("keyboard", "mouse_camera", check_get(ID_MOUSE_CAM) ? "1" : "0");
+    snprintf(t, sizeof(t), "%.1f", slider(ID_MOUSE_SENS) / 10.0);
+    s_ini.set("keyboard", "mouse_sensitivity", t);
     int f = combo_get(ID_FILTER);
     s_ini.set("graphics", "trilinear", std::to_string(kFilters[f].trilinear));
     s_ini.set("graphics", "anisotropy", std::to_string(kFilters[f].aniso));
@@ -1209,6 +1234,8 @@ static void create_controls()
     add(PAGE_GAME, ID_GAME_STATUS, L"STATIC", L"", 0, L, T + 184, 528, 60);
     add(PAGE_GAME, ID_GAME_FOLDER, L"BUTTON", L"Use a folder I already extracted...", WS_TABSTOP | BS_PUSHBUTTON, L,
         T + 254, 240, 28);
+    add(PAGE_GAME, ID_SKIP_LOGOS, L"BUTTON", L"Skip the company logo movies when the game starts",
+        WS_TABSTOP | BS_AUTOCHECKBOX, L, T + 300, 400, 22);
 
     // Display
     add(PAGE_DISPLAY, ID_RES_LABEL, L"STATIC", L"Resolution:", 0, L, T + 4, 150, 20);
@@ -1244,44 +1271,51 @@ static void create_controls()
     combo_add(ID_HUD, L"Widescreen (corners)");
     combo_add(ID_HUD, L"Original (4:3 middle)");
 
-    // Graphics
-    add(PAGE_GRAPHICS, ID_DRAW_LABEL, L"STATIC", L"Draw distance:", 0, L, T + 6, 150, 20);
-    HWND draw = add(PAGE_GRAPHICS, ID_DRAW, TRACKBAR_CLASSW, L"", WS_TABSTOP | TBS_AUTOTICKS, L + 160, T, 300, 30);
-    add(PAGE_GRAPHICS, ID_DRAW_VALUE, L"STATIC", L"", 0, L + 470, T + 6, 60, 20);
-    add(PAGE_GRAPHICS, ID_DRAW_NOTE, L"STATIC",
-        L"How far you can see: pushes the far edge of the view and the fog back. Some places were built "
-        L"expecting fog to hide what lies beyond.",
-        0, L + 160, T + 34, 368, 44);
-    add(PAGE_GRAPHICS, ID_FX_LABEL, L"STATIC", L"Effects distance:", 0, L, T + 96, 150, 20);
-    HWND fx = add(PAGE_GRAPHICS, ID_FX, TRACKBAR_CLASSW, L"", WS_TABSTOP | TBS_AUTOTICKS, L + 160, T + 90, 300, 30);
-    add(PAGE_GRAPHICS, ID_FX_VALUE, L"STATIC", L"", 0, L + 470, T + 96, 60, 20);
-    add(PAGE_GRAPHICS, ID_FX_NOTE, L"STATIC",
-        L"How far away particle effects (smoke, sparkles, rain) still show. The game has no model levels of "
-        L"detail; this and draw distance are its distance settings.",
-        0, L + 160, T + 124, 368, 44);
-    add(PAGE_GRAPHICS, ID_FILTER_LABEL, L"STATIC", L"Texture filtering:", 0, L, T + 190, 150, 20);
-    add(PAGE_GRAPHICS, ID_FILTER, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, T + 186, 220, 200);
-    add(PAGE_GRAPHICS, ID_FILTER_NOTE, L"STATIC",
-        L"Trilinear and anisotropic filtering keep distant and sloped textures sharp without shimmering.", 0,
-        L + 160, T + 218, 368, 40);
-    add(PAGE_GRAPHICS, ID_FPS_LABEL, L"STATIC", L"Frame rate:", 0, L, T + 270, 150, 20);
-    add(PAGE_GRAPHICS, ID_FPS, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, T + 266, 220, 200);
-    add(PAGE_GRAPHICS, ID_FPS_NOTE, L"STATIC",
-        L"60 fps runs the whole game twice as often for smoother motion; jumps, speeds and timings stay as on "
-        L"the GameCube.",
-        0, L + 160, T + 298, 368, 40);
-    combo_add(ID_FPS, L"30 fps (original)");
-    combo_add(ID_FPS, L"60 fps");
-    for (HWND tb : { draw, fx })
+    // Graphics: one row each, one note below.
+    struct Slider { int label, bar, value; const wchar_t* text; int lo, hi, tic; } sliders[] = {
+        { ID_DRAW_LABEL, ID_DRAW, ID_DRAW_VALUE, L"Draw distance:", 4, 16, 2 },
+        { ID_FX_LABEL, ID_FX, ID_FX_VALUE, L"Effects distance:", 4, 16, 2 },
+        { ID_FOV_LABEL, ID_FOV, ID_FOV_VALUE, L"Field of view:", 0, 30, 5 },
+        { ID_BRIGHT_LABEL, ID_BRIGHT, ID_BRIGHT_VALUE, L"Brightness:", 10, 40, 2 },
+    };
+    for (int i = 0; i < 4; i++)
     {
-        SendMessageW(tb, TBM_SETRANGE, TRUE, MAKELPARAM(4, 16));
-        SendMessageW(tb, TBM_SETTICFREQ, 2, 0);
-        SendMessageW(tb, TBM_SETPAGESIZE, 0, 2);
+        int y = T + 36 * i;
+        add(PAGE_GRAPHICS, sliders[i].label, L"STATIC", sliders[i].text, 0, L, y + 6, 150, 20);
+        HWND tb = add(PAGE_GRAPHICS, sliders[i].bar, TRACKBAR_CLASSW, L"", WS_TABSTOP | TBS_AUTOTICKS, L + 160, y,
+                      300, 30);
+        add(PAGE_GRAPHICS, sliders[i].value, L"STATIC", L"", 0, L + 470, y + 6, 60, 20);
+        SendMessageW(tb, TBM_SETRANGE, TRUE, MAKELPARAM(sliders[i].lo, sliders[i].hi));
+        SendMessageW(tb, TBM_SETTICFREQ, sliders[i].tic, 0);
+        SendMessageW(tb, TBM_SETPAGESIZE, 0, sliders[i].tic);
     }
+    struct Combo { int label, combo; const wchar_t* text; } combos[] = {
+        { ID_FILTER_LABEL, ID_FILTER, L"Texture filtering:" },
+        { ID_SHADOW_LABEL, ID_SHADOW, L"Shadow quality:" },
+        { ID_FPS_LABEL, ID_FPS, L"Frame rate:" },
+    };
+    for (int i = 0; i < 3; i++)
+    {
+        int y = T + 152 + 36 * i;
+        add(PAGE_GRAPHICS, combos[i].label, L"STATIC", combos[i].text, 0, L, y + 4, 150, 20);
+        add(PAGE_GRAPHICS, combos[i].combo, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, y, 220, 200);
+    }
+    add(PAGE_GRAPHICS, ID_GRAPHICS_NOTE, L"STATIC",
+        L"Draw distance pushes the far edge of the view and the fog back (some places expect fog to hide what "
+        L"lies beyond); effects distance is how far particle effects still show. The game has no model levels "
+        L"of detail, so these are its distance settings. 60 fps keeps jumps, speeds and timings as on the "
+        L"GameCube; Field of view adds degrees to the game's camera.",
+        0, L, T + 266, 528, 84);
     for (const auto& f : kFilters)
     {
         combo_add(ID_FILTER, f.label);
     }
+    for (const wchar_t* t : { L"Original (256)", L"High (512)", L"Very high (1024)", L"Ultra (2048)" })
+    {
+        combo_add(ID_SHADOW, t);
+    }
+    combo_add(ID_FPS, L"30 fps (original)");
+    combo_add(ID_FPS, L"60 fps");
 
     // Controls
     HWND lv = add(PAGE_CONTROLS, ID_BINDS, WC_LISTVIEWW, L"",
@@ -1312,10 +1346,16 @@ static void create_controls()
     add(PAGE_CONTROLS, ID_DEFAULTS, L"BUTTON", L"Defaults", WS_TABSTOP | BS_PUSHBUTTON, L + 392, T + 238, 136, 28);
     add(PAGE_CONTROLS, ID_SWAP_STICKS, L"BUTTON", L"Swap analog sticks (right stick moves, left stick is the camera)",
         WS_TABSTOP | BS_AUTOCHECKBOX, L, T + 274, 528, 22);
+    add(PAGE_CONTROLS, ID_MOUSE_CAM, L"BUTTON", L"Mouse turns the camera (C-stick; captures the cursor)",
+        WS_TABSTOP | BS_AUTOCHECKBOX, L, T + 298, 330, 22);
+    add(PAGE_CONTROLS, ID_MOUSE_SENS_LABEL, L"STATIC", L"", 0, L + 340, T + 300, 190, 20);
+    HWND sens = add(PAGE_CONTROLS, ID_MOUSE_SENS, TRACKBAR_CLASSW, L"", WS_TABSTOP, L + 336, T + 318, 192, 26);
+    SendMessageW(sens, TBM_SETRANGE, TRUE, MAKELPARAM(2, 30));
+    SendMessageW(sens, TBM_SETPAGESIZE, 0, 2);
     add(PAGE_CONTROLS, ID_CAPTURE, L"STATIC",
         L"Pick an action, then Set key, Add key (for a second key) or Set button (controller). Double-click "
         L"sets a key.",
-        0, L, T + 302, 528, 40);
+        0, L, T + 324, 330, 40);
 
     // Bottom
     add(-1, ID_STATUS, L"STATIC", L"", WS_VISIBLE, 14, 446, 330, 20);

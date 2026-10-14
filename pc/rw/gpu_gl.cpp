@@ -703,8 +703,65 @@ static void maybe_screenshot()
     pc_log("[gl] screenshot at frame %d", frame);
 }
 
+// The player's graphics.brightness (0.5-2): the finished frame is scaled by
+// it (a blend pass: 1 + (b - 1) of what is there, or b of it).
+static void apply_brightness()
+{
+    static float b = -1.0f;
+    if (b < 0.0f)
+    {
+        b = pc_setting_float("graphics.brightness", 1.0f);
+        b = b < 0.5f ? 0.5f : b > 2.0f ? 2.0f : b;
+    }
+    if (b > 0.99f && b < 1.01f)
+    {
+        return;
+    }
+    bind_target(NULL);
+    glViewport(0, 0, s_winW, s_winH);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_FOG);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_SCISSOR_TEST);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+    glEnable(GL_BLEND);
+    if (b > 1.0f)
+    {
+        glBlendFunc(GL_DST_COLOR, GL_ONE);
+        glColor4f(b - 1.0f, b - 1.0f, b - 1.0f, 1.0f);
+    }
+    else
+    {
+        glBlendFunc(GL_ZERO, GL_SRC_COLOR);
+        glColor4f(b, b, b, 1.0f);
+    }
+    glBegin(GL_QUADS);
+    glVertex2f(-1, -1);
+    glVertex2f(1, -1);
+    glVertex2f(1, 1);
+    glVertex2f(-1, 1);
+    glEnd();
+    glColor4f(1, 1, 1, 1);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+}
+
 void gpu_present()
 {
+    apply_brightness();
     maybe_screenshot();
     SDL_GL_SwapWindow(s_window);
     set_viewport();

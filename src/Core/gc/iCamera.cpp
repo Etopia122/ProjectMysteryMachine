@@ -219,6 +219,17 @@ void iCameraUpdatePos(RwCamera* cam, _xMat4x3* pos)
 
 void iCameraSetFOV(RwCamera* cam, float fov)
 {
+#ifdef PC_PORT
+    // The player's graphics.fov: degrees added to the game camera's view
+    // (0-30; widescreen widens it sideways on top of this).
+    static float extra = -1.0f;
+    if (extra < 0.0f)
+    {
+        extra = pc_setting_float("graphics.fov", 0.0f);
+        extra = extra < 0.0f ? 0.0f : extra > 30.0f ? 30.0f : extra;
+    }
+    fov += extra;
+#endif
     RwV2d vw;
     vw.x = tan(3.1415927f * (0.5f * fov) / 180.0f);
     vw.y = 480.0f * vw.x / 640.0f;

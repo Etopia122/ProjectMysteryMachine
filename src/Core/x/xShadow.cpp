@@ -417,13 +417,25 @@ static inline void xShadowSceneTweaks()
 
 // Functions are in reverse DOL order (-inline deferred emits last to first).
 
+#ifdef PC_PORT
+extern "C" int pc_setting_int(const char* key, int def);
+#endif
+
 void SetupShadow()
 {
+#ifdef PC_PORT
+    // The player's graphics.shadow_res (256 as on the GameCube, up to 2048):
+    // the shadow camera has its own render target here, not a corner of the
+    // 640x480 frame, so it may be larger.
+    signed int res = pc_setting_int("graphics.shadow_res", 256);
+    res = res >= 2048 ? 2048 : res >= 1024 ? 1024 : res >= 512 ? 512 : 256;
+#else
     signed int res = 256;
     while (res > 640 || res > 480)
     {
         res >>= 1;
     }
+#endif
 
     ShadowCamera = ShadowCameraCreatePersp(res);
     if (ShadowCamera != NULL)
