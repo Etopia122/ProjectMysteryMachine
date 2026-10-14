@@ -401,6 +401,7 @@ config.libs = [
             Object(Equivalent, "Core/gc/iCollide.cpp", extra_cflags=["-bool on"]),
             Object(Matching, "Core/gc/iCollideFast.cpp"),
             Object(Matching, "Core/gc/iCutscene.cpp"),
+            Object(NonMatching, "Core/gc/iDebug.cpp"),
             Object(Matching, "Core/gc/iDraw.cpp"),
             Object(Equivalent, "Core/gc/iEnv.cpp"),
             Object(Equivalent, "Core/gc/iFile.cpp"),

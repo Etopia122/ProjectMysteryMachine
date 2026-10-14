@@ -37,6 +37,12 @@ Core/gc/iCollideFast.cpp:
 	.text       start:0x80009424 end:0x80009A20
 	.sbss       start:0x8025E888 end:0x8025E890
 
+Core/gc/iDebug.cpp:
+	.text       start:0x80009A20 end:0x80009CC0
+	.rodata     start:0x8018E628 end:0x8018E650
+	.bss        start:0x801DF548 end:0x801DF648
+	.sbss       start:0x8025E890 end:0x8025E898
+
 Core/gc/iDraw.cpp:
 	.text       start:0x80009CC0 end:0x80009CCC
 
