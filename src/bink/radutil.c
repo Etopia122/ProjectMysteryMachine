@@ -15,12 +15,47 @@ static RADMEMFREE audiofree = 0;
  * GCC emits the out-of-line copies of these inline functions at the end of
  * the file, which is why div64 and ReadTimeBase come last.
  */
+/* TODO: same instructions as the original, but hi/q/inv get other registers. */
+inline U32 div64(U32 hi, U32 lo, U32 d)
+{
+    U32 q, inv, top;
+
+    if ((d & (d - 1)) == 0)
+    {
+        U32 z = radcntlzw(d);
+        return (lo >> (31 - z)) | (hi << (z + 1));
+    }
+    inv = 0xFFFFFFFF / d;
+    top = (d + 0xFFFF) >> 16;
+    q = 0;
+    if (top)
+    {
+        U32 z = radcntlzw(hi);
+        S32 s = 16 - z;
+        S32 m = s >> 31;
+        q = (((hi << z) / top) >> (-s & m)) << (s & ~m);
+        radsubmul64(hi, lo, q, d);
+    }
+    while (hi)
+    {
+        U32 t = inv * hi;
+        radsubmul64(hi, lo, t, d);
+        q += t;
+    }
+    return q + lo / d;
+}
+
 inline void ReadTimeBase(U64* t)
 {
     RAD_READ_TIMEBASE(*t);
 }
 
-/* TODO: mult64anddiv */
+U32 mult64anddiv(U32 a, U32 b, U32 c)
+{
+    U32 hi, lo;
+    radmul64(hi, lo, a, b);
+    return div64(hi, lo, c);
+}
 
 U32 mult64andshift(U32 a, U32 b, U32 shift)
 {
@@ -147,4 +182,3 @@ void radaudiofree(void* ptr)
         audiofree(ptr);
 }
 
-/* TODO: div64 */

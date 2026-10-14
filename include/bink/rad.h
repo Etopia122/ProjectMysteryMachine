@@ -39,6 +39,18 @@ typedef void (*RADMEMFREE)(void* ptr);
         _v;                                                                                        \
     })
 
+#define radcntlzw(x)                                                                                   ({                                                                                                     U32 _r;                                                                                            __asm__("cntlzw %0,%1" : "=r"(_r) : "r"(x));                                                      _r;                                                                                            })
+
+/* (hi:lo) = a * b */
+#define radmul64(hi, lo, a, b) __asm__("mulhwu %0,%2,%3
+	mullw %1,%2,%3" : "=&r"(hi), "=&r"(lo) : "r"(a), "r"(b))
+
+/* (hi:lo) -= a * b */
+#define radsubmul64(hi, lo, a, b)                                                                      {                                                                                                      U32 _mh, _ml;                                                                                      __asm__("mulhwu %2,%4,%5
+	mullw %3,%4,%5
+	subfc %1,%3,%1
+	subfe %0,%2,%0"                            : "=r"(hi), "=r"(lo), "=&r"(_mh), "=&r"(_ml)                                                       : "r"(a), "r"(b), "0"(hi), "1"(lo));                                                   }
+
 /* Dolphin OS */
 typedef struct OSHeapHandle_s* OSHeapHandleDummy;
 extern volatile int __OSCurrHeap;
