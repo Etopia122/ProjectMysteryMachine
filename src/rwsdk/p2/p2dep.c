@@ -521,8 +521,8 @@ static RwUInt32 _ForAllNodesWriteClusterAllocations(RxPipeline* pipeline, rxScop
     for (scope = scopes; scope; scope = scope->next) {
         rxScope* prev;
 
-        for (prev = scopes; prev != scope; prev = prev->next) {
-            if (prev->entries->clusterDef == scope->entries->clusterDef) {
+        for (prev = scopes; scope != prev; prev = prev->next) {
+            if (scope->entries->clusterDef == prev->entries->clusterDef) {
                 break;
             }
         }

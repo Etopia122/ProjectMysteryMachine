@@ -174,7 +174,7 @@ static RpGeometry* GeometryForAllLineIntersections(RpGeometry* geometry, RwLine*
             if (isData.delta.x != 0.0f) {
                 recip = 1.0f / isData.delta.x;
             }
-            grad.dydx = isData.delta.y * recip;
+            grad.dydx = recip * isData.delta.y;
             grad.dzdx = isData.delta.z * recip;
         }
         {

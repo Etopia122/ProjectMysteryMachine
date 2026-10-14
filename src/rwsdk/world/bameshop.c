@@ -499,10 +499,10 @@ RwUInt32 TriStripFollow(RpTriStrip* strip, RpTriStripEdge* edge, RpTriStripTrian
         if (vi[0] != vA && vi[0] != vB) {
             newVert = vi[0];
         }
-        if (vi[1] != vA && vi[1] != vB) {
+        if (vA != vi[1] && vB != vi[1]) {
             newVert = vi[1];
         }
-        if (vi[2] != vA && vi[2] != vB) {
+        if (vA != vi[2] && vB != vi[2]) {
             newVert = vi[2];
         }
 
@@ -644,8 +644,8 @@ RwBool TriStripStripTris(RpBuildMeshTriangle* tris, RwUInt32 numTris, RpTriStrip
                 start = 2;
             } else if (EDGEFREECOUNT(tri->edges[1], used) >= 2 && EDGEFREECOUNT(tri->edges[0], used) >= 2) {
                 start = 0;
-            } else if (EDGEFREECOUNT(tri->edges[0], used) > EDGEFREECOUNT(tri->edges[1], used)) {
-                if (EDGEFREECOUNT(tri->edges[0], used) > EDGEFREECOUNT(tri->edges[2], used)) {
+            } else if (EDGEFREECOUNT(tri->edges[1], used) < EDGEFREECOUNT(tri->edges[0], used)) {
+                if (EDGEFREECOUNT(tri->edges[2], used) < EDGEFREECOUNT(tri->edges[0], used)) {
                     start = 2;
                 } else {
                     start = 1;

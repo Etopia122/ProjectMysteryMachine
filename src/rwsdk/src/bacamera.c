@@ -280,7 +280,7 @@ void CameraBuildParallelClipPlanes(RwCamera* camera)
     vwY = camera->viewWindow.y;
     nearZ = camera->nearPlane;
     farZ = camera->farPlane;
-    nearOffsetX = (1.0f - nearZ) * -camera->viewOffset.x;
+    nearOffsetX = -camera->viewOffset.x * (1.0f - nearZ);
     nearOffsetY = (1.0f - nearZ) * camera->viewOffset.y;
     farOffsetX = (1.0f - farZ) * -camera->viewOffset.x;
     farOffsetY = (1.0f - farZ) * camera->viewOffset.y;
