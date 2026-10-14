@@ -2104,7 +2104,7 @@ void xAnimPlayEval(xAnimPlay* play)
             unsigned short* blendO = NULL;
             SingleEval(si, tranblend, quatblend);
 
-            if ((si->Blend == NULL || si->Blend->State == NULL) && si->BlendFactor != 0.0f)
+            if ((si->Blend == NULL || si->Blend->State == NULL) && si->BlendFactor)
             {
                 if (si->Tran != NULL)
                 {

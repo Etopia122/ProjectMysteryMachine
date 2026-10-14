@@ -381,7 +381,7 @@ RwBool _rxGCAtomicAllInOneNode(RxPipelineNodeInstance* self, const RxPipelineNod
     if (!(geom->flags & rpGEOMETRYNATIVE)) {
         RpMeshHeader* meshHeader;
 
-        if (!(RwUInt32)geom->numVertices) {
+        if ((RwUInt32)geom->numVertices == 0) {
             return TRUE;
         }
         meshHeader = geom->mesh;

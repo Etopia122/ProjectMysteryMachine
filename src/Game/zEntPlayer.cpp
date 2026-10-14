@@ -2073,7 +2073,7 @@ static unsigned int TeeterCheck(xAnimTransition*, xAnimSingle*, void*)
 {
     unsigned char ret = 0;
     if (globals.player.Speed == 0 && globals.player.Teeter && globals.player.Slide != 2 &&
-        !(globals.player.SlideTimer > 0.0f) && surfSlickTimer == 0.0f)
+        !(globals.player.SlideTimer > 0.0f) && !surfSlickTimer)
     {
         ret = 1;
     }
@@ -4089,7 +4089,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         sPlayerInfo[i].elapsedTime += dt;
     }
 
-    if (sVOTimer != 0.0f || sVONextSituation != NULL)
+    if (sVOTimer || sVONextSituation != NULL)
     {
         if (sVOTimer > 0.0f)
         {
@@ -5405,7 +5405,7 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
         ent->frame->vel.y = -globals.player.s.ButtsmashSpeed;
     }
 
-    if (globals.player.Jump_HoldTimer != 0.0f)
+    if (globals.player.Jump_HoldTimer)
     {
         globals.player.Jump_HoldTimer -= dt;
         if (globals.player.Jump_HoldTimer <= 0.0f)
@@ -5420,7 +5420,7 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
         }
     }
 
-    if (globals.player.Jump_ChangeTimer != 0.0f)
+    if (globals.player.Jump_ChangeTimer)
     {
         globals.player.Jump_ChangeTimer -= dt;
         if (globals.player.Jump_ChangeTimer == 0.0f)
@@ -5574,7 +5574,7 @@ void zEntPlayerVelUpdate(_xEnt* ent, float dt)
     if (!(ent->model->Anim->Single->State->UserFlags & 0x100))
     {
         _xVec3* v = &ent->frame->vel;
-        if (!(globals.player.SlideTimer > 0.0f) && surfSlickRatio == 0.0f && !(globals.player.SlipFadeTimer > 0.0f))
+        if (!(globals.player.SlideTimer > 0.0f) && !surfSlickRatio && !(globals.player.SlipFadeTimer > 0.0f))
         {
             if (globals.player.JumpState == 0)
             {
@@ -5735,7 +5735,7 @@ void zEntPlayerFloorUpdate(_xEnt* p, float dt)
             {
                 surfSlipTimer = 0.0f;
             }
-            if (surfSlipTimer != 0.0f)
+            if (surfSlipTimer)
             {
                 surfSlipTimer += dt;
                 if (surfSlipTimer >= 0.75f)
@@ -5782,10 +5782,10 @@ void zEntPlayerFloorUpdate(_xEnt* p, float dt)
             }
         }
 
-        if (surfSlickRatio != 0.0f)
+        if (surfSlickRatio)
         {
             float velmag = vel->x * vel->x + vel->z * vel->z;
-            if (surfMaxSpeed != 0.0f)
+            if (surfMaxSpeed)
             {
                 if (velmag > surfMaxSpeed * surfMaxSpeed)
                 {
@@ -6762,7 +6762,7 @@ static _xEnt* PlayerCollCheckOneVillain(_xEnt* ent, _xScene*, void* data)
     xBoundHitsBound(&p->bound, &ent->bound, coll);
 
     st_zEntVillain* vill = (st_zEntVillain*)ent;
-    if (vill->bound2.sph.r != 0.0f)
+    if (vill->bound2.sph.r)
     {
         _xCollis coll2;
         coll2.flags = 0x1F00;
@@ -7799,7 +7799,7 @@ static void PlayerRotMatchUpdateEnt(_xEnt* ent, _xScene*, float dt, void* fdata)
                 xVec3Cross(&raxis, eup, fup);
                 xVec3Normalize(&raxis, &raxis);
                 float dang = acos(nfup.x * neup.x + nfup.y * neup.y + nfup.z * neup.z);
-                if (dang != 0.0f)
+                if (dang)
                 {
                     float s = dt / rms->tmatch;
                     s = (s > 1.0f) ? 1.0f : s;
@@ -7864,7 +7864,7 @@ void zEntPlayer_StoreCheckPoint(float* toParam)
     _xVec3 p = globals.player.ent.frame->mat.pos;
     float r = globals.player.ent.frame->rot.angle;
     globals.player.cp.pos = p;
-    if (toParam != NULL && *toParam != 0.0f)
+    if (toParam != NULL && *toParam)
     {
         globals.player.cp.rot = *toParam;
     }

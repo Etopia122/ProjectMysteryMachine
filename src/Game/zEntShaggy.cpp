@@ -1507,7 +1507,7 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
         guts->idleTimer += dt;
     }
 
-    if (guts->talkTimer != 0.0f)
+    if (guts->talkTimer)
     {
         guts->talkTimer -= dt;
         if (guts->talkTimer < 0.0f)
@@ -2389,7 +2389,7 @@ restart:
         }
         break;
     case 3:
-        if (guts->chimneyTimer >= guts->timeTop || guts->chimneyVel != 0.0f)
+        if (guts->chimneyTimer >= guts->timeTop || guts->chimneyVel)
         {
             float vel = guts->chimneyVel;
             pos->y = vel * dt + pos->y;
@@ -2992,7 +2992,7 @@ void Shaggy5_Update(_zEnt* ent, _xScene* sc, float dt)
         guts->idleTimer += dt;
     }
 
-    if (guts->talkTimer != 0.0f)
+    if (guts->talkTimer)
     {
         guts->talkTimer -= dt;
         guts->talkSwitch -= dt;

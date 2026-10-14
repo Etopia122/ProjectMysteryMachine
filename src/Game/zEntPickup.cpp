@@ -1503,7 +1503,7 @@ void zEntPickup_UpdateFX(_zEntPickup* ent, _xScene* sc, float dt)
         doGlow = 1;
     }
 
-    if (doGlow && ent->fx_timer != 0.0f && sEmitGlow != NULL)
+    if (doGlow && ent->fx_timer && sEmitGlow != NULL)
     {
         info.color_birth[0] = r;
         info.color_birth[1] = g;
