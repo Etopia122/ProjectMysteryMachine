@@ -15,7 +15,9 @@
     if (!(cond))               \
     OSPanic(CARD_FILE, line, "Failed assertion " #cond)
 #undef OSPhysicalToCached
+#undef OSCachedToPhysical
 void* OSPhysicalToCached(u32 paddr);
+u32 OSCachedToPhysical(void* caddr);
 #endif
 
 #endif

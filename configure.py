@@ -851,6 +851,7 @@ config.libs = [
         "progress_category": "sdk",
         "objects": [
             Object(Matching, "dolphin/card/CARDBios.c", extra_cflags=["-O0,s", "-sym on", "-opt peephole", "-use_lmw_stmw on", "-inline off"]),
+            Object(Matching, "dolphin/card/CARDUnlock.c", extra_cflags=["-O0,s", "-sym on", "-opt peephole", "-use_lmw_stmw on", "-inline off"]),
             Object(Matching, "dolphin/card/CARDOpen.c"),
         ],
     },
