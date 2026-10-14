@@ -1,4 +1,9 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDCreate.c"
+#include "dolphin/card/card_dbg.h"
+#if defined(VERSION_GIHE78)
+#include "string.h"
+#endif
 
 extern CARDDir* __CARDGetDirBlock(CARDControl* card);
 extern void* __CARDGetFatBlock(CARDControl* card);
@@ -26,7 +31,7 @@ static void CreateCallbackFat(s32 chan, s32 result) {
         ent->permission = 4;
         ent->copyTimes = 0;
 
-        ASSERTLINE(111, CARDIsValidBlockNo(card, card->startBlock));
+        ASSERTLINE(108, CARDIsValidBlockNo(card, card->startBlock));
         ent->startBlock = (u16)card->startBlock;
         ent->bannerFormat = 0;
         ent->iconAddr = -1;
@@ -60,8 +65,8 @@ s32 CARDCreateAsync(s32 chan, const char* fileName, u32 size, CARDFileInfo* file
     u16* fat;
     s32 result;
 
-    ASSERTLINE(175, 0 <= chan && chan < 2);
-    ASSERTLINE(176, strlen(fileName) <= CARD_FILENAME_MAX);
+    ASSERTLINE(172, 0 <= chan && chan < 2);
+    ASSERTLINE(173, strlen(fileName) <= CARD_FILENAME_MAX);
 
     if (strlen(fileName) > (u32)CARD_FILENAME_MAX) {
         return CARD_RESULT_NAMETOOLONG;
@@ -72,7 +77,7 @@ s32 CARDCreateAsync(s32 chan, const char* fileName, u32 size, CARDFileInfo* file
         return result;
     }
 
-    ASSERTLINE(188, 0 < size && (size % card->sectorSize) == 0);
+    ASSERTLINE(185, 0 < size && (size % card->sectorSize) == 0);
 
     if (size <= 0 || (size % card->sectorSize) != 0) {        
         return CARD_RESULT_FATAL_ERROR;
