@@ -1458,6 +1458,12 @@ rwsdk/plugin/matfx/gcn/matfxgcn.c:
 rwsdk/plugin/multitex/gcn/effectgcn.c:
 	.text       start:0x80140D40 end:0x80141910
 
+rwsdk/plugin/multitex/gcn/mtpipegcn.c:
+	.text       start:0x80141910 end:0x80142C94
+	.data       start:0x801DD400 end:0x801DD460
+	.sbss       start:0x8025F698 end:0x8025F6A0
+	.sdata2     start:0x80262898 end:0x802628B0
+
 rwsdk/plugin/multitex/rpmultitex.c:
 	.text       start:0x80142C94 end:0x8014366C
 	.bss        start:0x8025D9C8 end:0x8025DA58
