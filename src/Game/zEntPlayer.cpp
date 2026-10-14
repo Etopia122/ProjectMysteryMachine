@@ -4089,7 +4089,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         sPlayerInfo[i].elapsedTime += dt;
     }
 
-    if (sVOTimer || sVONextSituation != NULL)
+    if (sVOTimer != 0.0f || sVONextSituation != NULL)
     {
         if (sVOTimer > 0.0f)
         {
@@ -4235,11 +4235,11 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         {
             num_updates = 6;
         }
-        else if (1.0f < dt / 12.0f)
+        else if (dt > 1.0f / 12.0f)
         {
             num_updates = 5;
         }
-        else if (1.0f < dt / 15.0f)
+        else if (dt > 1.0f / 15.0f)
         {
             num_updates = 4;
         }
@@ -4247,7 +4247,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         {
             num_updates = 3;
         }
-        else if (1.0f < dt / 30.0f)
+        else if (dt > 1.0f / 30.0f)
         {
             num_updates = 2;
         }
@@ -5574,7 +5574,7 @@ void zEntPlayerVelUpdate(_xEnt* ent, float dt)
     if (!(ent->model->Anim->Single->State->UserFlags & 0x100))
     {
         _xVec3* v = &ent->frame->vel;
-        if (!(globals.player.SlideTimer > 0.0f) && !surfSlickRatio && !(globals.player.SlipFadeTimer > 0.0f))
+        if (!(globals.player.SlideTimer > 0.0f) && surfSlickRatio == 0.0f && !(globals.player.SlipFadeTimer > 0.0f))
         {
             if (globals.player.JumpState == 0)
             {

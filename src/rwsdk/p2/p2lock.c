@@ -242,9 +242,9 @@ RwBool _NodeCreate(RxPipeline* pipeline, RxPipelineNode* node, RxNodeDefinition*
 
 void PipelineTopSort(rxPipelineTopSortState* state, RwUInt32 nodeIndex)
 {
+    RwUInt32 i;
     RwUInt32 nodesArranged = state->nodesArranged;
     RxPipelineNode* node;
-    RwUInt32 i;
 
     if (nodesArranged != nodeIndex) {
         RxPipelineNode* nodes;
@@ -279,8 +279,8 @@ void PipelineTopSort(rxPipelineTopSortState* state, RwUInt32 nodeIndex)
         state->pipeline->nodes[nodeIndex] = nodeTemp;
 
         for (i = 0; i < state->pipeline->numNodes; i++) {
-            RxPipelineNode* curNode = &state->pipeline->nodes[i];
             RwUInt32 j;
+            RxPipelineNode* curNode = &state->pipeline->nodes[i];
 
             for (j = 0; j < curNode->numOutputs; j++) {
                 if (curNode->outputs[j] == nodesArranged) {
@@ -292,16 +292,19 @@ void PipelineTopSort(rxPipelineTopSortState* state, RwUInt32 nodeIndex)
         }
     }
 
-    node = &state->pipeline->nodes[state->nodesArranged++];
-    for (i = 0; i < node->numOutputs; i++) {
-        RwUInt32 output = node->outputs[i];
+    node = &state->pipeline->nodes[state->nodesArranged];
+    state->nodesArranged++;
+    if (node->numOutputs) {
+        for (i = 0; i < node->numOutputs; i++) {
+            RwUInt32 output = node->outputs[i];
 
-        if (output != (RwUInt32)-1) {
-            RxPipelineNodeTopSortData* topSortData = state->pipeline->nodes[output].topSortData;
+            if (output != (RwUInt32)-1) {
+                RxPipelineNode* outNode = &state->pipeline->nodes[output];
 
-            topSortData->numInsVisited++;
-            if (topSortData->numIns == topSortData->numInsVisited) {
-                PipelineTopSort(state, output);
+                outNode->topSortData->numInsVisited++;
+                if (outNode->topSortData->numIns == outNode->topSortData->numInsVisited) {
+                    PipelineTopSort(state, output);
+                }
             }
         }
     }
