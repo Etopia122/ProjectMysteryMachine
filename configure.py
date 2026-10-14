@@ -814,6 +814,7 @@ config.libs = [
             Object(NonMatching, "rwsdk/p2/generic/p2clip.c"),
             Object(NonMatching, "rwsdk/p2/p2core.c"),
             Object(NonMatching, "rwsdk/p2/p2lock.c"),
+            Object(NonMatching, "rwsdk/p2/p2dep.c"),
             Object(NonMatching, "rwsdk/p2/p2heap.c"),
             Object(Matching, "rwsdk/p2/p2renderstate.c"),
             Object(Matching, "rwsdk/p2/p2radixsort.c"),
