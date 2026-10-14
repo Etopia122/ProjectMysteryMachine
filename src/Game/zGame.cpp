@@ -70,7 +70,7 @@ unsigned int VIGetRetraceCount();
 
 void zVolume_OccludePrecalc(_xVec3* camPos);
 void fn_80014A34(signed int mode);
-void fn_80021B20();
+void xDebugUpdate();
 }
 void zEntPlayer_Init(_xEnt* ent, p2EntAsset* asset);
 void zEntShaggy_SceneStart(zScene* sc);
@@ -427,7 +427,7 @@ void zGameLoop()
         zVolume_OccludePrecalc(&globals.camera.hi_cam.mat.pos);
         zSceneRender();
         xTRCRender();
-        fn_80021B20();
+        xDebugUpdate();
         xDrawEnd();
         xCameraEnd(&globals.camera, sTimeElapsed, 1);
         iEnvEndRenderFX(0);
@@ -761,7 +761,7 @@ void zGameScreenTransitionUpdate(float percentComplete, char* msg, unsigned char
     loadMeter++;
     xTRCRender();
     xFontRender();
-    fn_80021B20();
+    xDebugUpdate();
     xDrawEnd();
     if (sGameScreenTransCam)
     {

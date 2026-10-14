@@ -87,13 +87,12 @@ void zHud_Setup(_xScene* sc);
 void setupPlayer();
 void zEnvStartingCamera(_zEnv* env);
 void zEntEventAll(xBase* from, unsigned int fromEvent, unsigned int toEvent, float* toParam);
+void xDebugUpdate();
 
 extern "C" {
 unsigned int VIGetRetraceCount();
 // TODO: unidentified (iScrFX: number of black frames to draw)
 void fn_80014A34(unsigned int frames);
-// TODO: unidentified (empty; just before xDebug)
-void fn_80021B20();
 // TODO: unidentified (xTRC: draws the TRC message)
 // TODO: unidentified (xTRC: true while a TRC message is up)
 unsigned int fn_800443F8();
@@ -281,7 +280,7 @@ unsigned int zMenuLoop()
         xCameraBegin(&globals.camera, 1);
         zSceneRender();
         xFontRender();
-        fn_80021B20();
+        xDebugUpdate();
         xTRCRender();
         xDrawEnd();
         if (gScreenDump)

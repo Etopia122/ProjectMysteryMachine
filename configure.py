@@ -447,6 +447,7 @@ config.libs = [
             Object(Equivalent, "Core/x/xClimate.cpp"),
             Object(Matching, "Core/x/xCollide.cpp"),
             Object(Matching, "Core/x/xCollideFast.cpp"),
+            Object(Matching, "Core/x/xCutscene.cpp"),
             Object(Matching, "Core/x/xDebug.cpp"),
             Object(Equivalent, "Core/x/xDraw.cpp"),
             Object(Equivalent, "Core/x/xEnt.cpp"),

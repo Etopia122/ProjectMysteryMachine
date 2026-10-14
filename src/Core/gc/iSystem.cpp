@@ -388,7 +388,7 @@ signed int RpMatFXPluginAttach();
 signed int RpUserDataPluginAttach();
 extern signed int lbl_8025F870; // _RwGameCubeRasterExtOffset
 
-void fn_80021B1C(); // xDebugExit
+void xDebugExit();
 signed int fn_80015EAC(const char* fmt, ...);
 void OSReport(const char* fmt, ...);
 void* malloc(unsigned int size);
@@ -572,7 +572,7 @@ static signed int RenderWareExit();
 
 void iSystemExit()
 {
-    fn_80021B1C();
+    xDebugExit();
     xMathExit();
     RenderWareExit();
     xSndExit();
