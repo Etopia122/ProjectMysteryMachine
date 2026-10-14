@@ -14,6 +14,9 @@
 #undef ASSERTLINE
 #define ASSERTLINE(line, cond) \
     (void)((cond) || (OSPanic(CARD_FILE, line, "Failed assertion " #cond), 0))
+#undef ASSERTMSGLINE
+#define ASSERTMSGLINE(line, cond, msg) \
+    (void)((cond) || (OSPanic(CARD_FILE, line, msg), 0))
 #undef OSPhysicalToCached
 #undef OSCachedToPhysical
 void* OSPhysicalToCached(u32 paddr);
