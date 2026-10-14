@@ -166,10 +166,8 @@ RwBool _rwDlNativeTextureGetSize(void* pSize, void* pTexture, RwInt32 flags)
     return TRUE;
 }
 
-RwBool _rwDlNativeTextureWrite(void* pStream, void* pTexture, RwInt32 flags)
+RwBool _rwDlNativeTextureWrite(void* stream, RwTexture* texture, RwInt32 flags)
 {
-    RwStream* stream = (RwStream*)pStream;
-    RwTexture* texture = (RwTexture*)pTexture;
     RwUInt32 dataSize;
     RwInt32 size;
     DlNativeRasterHeader rasterHeader;
@@ -196,8 +194,8 @@ RwBool _rwDlNativeTextureWrite(void* pStream, void* pTexture, RwInt32 flags)
         header.lodBias = 0.0f;
     } else {
         header.maxAniso = GXGetTexObjMaxAniso(&textureExt->texObj);
-        header.biasClamp = GXGetTexObjBiasClamp(&textureExt->texObj);
-        header.edgeLOD = GXGetTexObjEdgeLOD(&textureExt->texObj);
+        header.biasClamp = (RwUInt8)GXGetTexObjBiasClamp(&textureExt->texObj);
+        header.edgeLOD = (RwUInt8)GXGetTexObjEdgeLOD(&textureExt->texObj);
         header.lodBias = DlTextureGetLODBias(&textureExt->texObj);
     }
 
@@ -211,7 +209,7 @@ RwBool _rwDlNativeTextureWrite(void* pStream, void* pTexture, RwInt32 flags)
     raster = texture->raster;
     size -= sizeof(header);
     rasterExt = RASTEREXTFROMRASTER(raster);
-    rasterHeader.format = raster->cType | (raster->cFormat << 8);
+    rasterHeader.format = (raster->cFormat << 8) | raster->cType;
     rasterHeader.width = raster->width;
     rasterHeader.height = raster->height;
     rasterHeader.depth = raster->depth;
@@ -248,9 +246,9 @@ RwBool _rwDlNativeTextureWrite(void* pStream, void* pTexture, RwInt32 flags)
     return TRUE;
 }
 
-RwBool _rwDlNativeTextureRead(void* pStream, void* pTexture, RwInt32 flags)
+RwBool _rwDlNativeTextureRead(void* stream, void* pTexture, RwInt32 flags)
 {
-    RwStream* stream = (RwStream*)pStream;
+    RwUInt32 autoMipmap;
     RwUInt32 length;
     RwUInt32 version;
     DlNativeTextureHeader header;
@@ -259,7 +257,6 @@ RwBool _rwDlNativeTextureRead(void* pStream, void* pTexture, RwInt32 flags)
     RwRaster* raster;
     RwTexture* texture;
     RwDlRasterExt* rasterExt;
-    RwUInt32 autoMipmap;
 
     if (!RwStreamFindChunk(stream, rwID_STRUCT, &length, &version)) {
         return FALSE;
@@ -323,7 +320,7 @@ RwBool _rwDlNativeTextureRead(void* pStream, void* pTexture, RwInt32 flags)
         return FALSE;
     }
 
-    texture->filterAddressing = (texture->filterAddressing & ~0xFF) | (header.filterAddressing & 0xFF);
+    texture->filterAddressing = (texture->filterAddressing & ~0xFF) | ((RwUInt8)header.filterAddressing & 0xFF);
     texture->filterAddressing = (texture->filterAddressing & ~0xF00) | (header.filterAddressing & 0xF00);
     texture->filterAddressing = (texture->filterAddressing & ~0xF000) | (header.filterAddressing & 0xF000);
     RwTextureSetName(texture, header.name);
