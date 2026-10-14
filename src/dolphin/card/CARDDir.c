@@ -1,4 +1,6 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDDir.c"
+#include "dolphin/card/card_dbg.h"
 
 // prototypes
 static void WriteCallback(s32 chan, s32 result);
