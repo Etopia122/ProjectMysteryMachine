@@ -61,8 +61,14 @@ if [ -f "$TB" ]; then
     python n3ds/tools/make_bottom_bg.py "$TB" "$ROMFS/title_bg.rgba" 400x240 >/dev/null
 fi
 
-# HOME Menu icon and banner, from the disc's GameCube memory card icon/banner.
+# HOME Menu icon and banner, from the disc's GameCube memory card icon/banner;
+# the banner's picture is the player's game/n3ds_banner.png (256x128 PNG,
+# BANNER overrides) when it is there.
 python n3ds/tools/make_cia_art.py "$FILES" $B/cia_art >/dev/null
+BN=${BANNER:-game/n3ds_banner.png}
+if [ -f "$BN" ]; then
+    cp "$BN" $B/cia_art/banner.png
+fi
 "$BANNERTOOL" makebanner -i $B/cia_art/banner.png -a $B/cia_art/banner.wav -o $B/cia_art/banner.bnr >/dev/null
 "$BANNERTOOL" makesmdh -s "Scooby-Doo! Night of 100 Frights" -l "Experimental New 3DS port" \
     -p "Scooby-Doo decomp" -i $B/cia_art/icon.png -o $B/cia_art/icon.icn >/dev/null
