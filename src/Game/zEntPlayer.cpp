@@ -4235,11 +4235,11 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         {
             num_updates = 6;
         }
-        else if (dt > 1.0f / 12.0f)
+        else if (1.0f < dt / 12.0f)
         {
             num_updates = 5;
         }
-        else if (dt > 1.0f / 15.0f)
+        else if (1.0f < dt / 15.0f)
         {
             num_updates = 4;
         }
@@ -4247,7 +4247,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         {
             num_updates = 3;
         }
-        else if (dt > 1.0f / 30.0f)
+        else if (1.0f < dt / 30.0f)
         {
             num_updates = 2;
         }
@@ -4806,7 +4806,7 @@ void zEntPlayer_Render(_zEnt* ent)
             rootZadjust = -0.6f * (1.0f - asingle->BlendFactor * asingle->Tran->BlendRecip);
         }
 
-        if (rootZadjust != 0.0f)
+        if (rootZadjust)
         {
             _xVec3 rootZvec = { 0.0f, 0.0f, 0.0f };
             rootZvec.z = rootZadjust;
@@ -4863,7 +4863,7 @@ void zEntPlayer_Render(_zEnt* ent)
             rendermat = *(_xMat4x3*)ent->model->Mat;
         }
 
-        if (globals.player.RootUp.y != 1.0f || rootZadjust != 0.0f)
+        if (globals.player.RootUp.y != 1.0f || rootZadjust)
         {
             for (minst = ent->model->Next; minst != NULL; minst = minst->Next)
             {
@@ -6508,7 +6508,7 @@ void zEntPlayerReset(_xEnt* ent)
                 iModelTagIndex(&tmpTag, tongue->Data, numV);
                 for (unsigned int wnum = 0; wnum < 4; wnum++)
                 {
-                    if (tmpTag.wt[wnum] != 0.0f)
+                    if (tmpTag.wt[wnum])
                     {
                         unsigned char widx = tmpTag.matidx >> (wnum * 8);
                         globals.player.TongueFlags[widx >> 5] |= 1 << (widx & 0x1F);
@@ -7802,7 +7802,7 @@ static void PlayerRotMatchUpdateEnt(_xEnt* ent, _xScene*, float dt, void* fdata)
                 if (dang)
                 {
                     float s = dt / rms->tmatch;
-                    s = (s > 1.0f) ? 1.0f : s;
+                    s = (1.0f < s) ? 1.0f : s;
                     if (fdecl >= rms->max_decl)
                     {
                         float rang = (rms->max_decl - edecl) / (fdecl - edecl);

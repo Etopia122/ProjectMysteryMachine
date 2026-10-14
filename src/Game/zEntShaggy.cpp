@@ -1881,7 +1881,7 @@ void Shaggy1_PlayerUpdate(_zEnt* shag, _xScene* sc, float dt)
     xAnimState* state = shag->model->Anim->Single->State;
     if (state->UserFlags & 0x1000)
     {
-        if (s1->GrabTimer != 0.0f)
+        if (s1->GrabTimer)
         {
             s1->GrabTimer += dt;
             if (s1->GrabTimer > 0.75f)
