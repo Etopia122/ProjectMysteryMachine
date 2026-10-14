@@ -1,4 +1,6 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDOpen.c"
+#include "dolphin/card/card_dbg.h"
 
 extern u8 __CARDPermMask;
 
@@ -69,6 +71,44 @@ s32 __CARDGetFileNo(CARDControl* card, const char* fileName, s32* pfileNo) {
     return CARD_RESULT_NOFILE;
 }
 
+#if defined(VERSION_GIHE78)
+s32 CARDFastOpen(s32 chan, s32 fileNo, CARDFileInfo* fileInfo) {
+    CARDControl* card;
+    CARDDir* dir;
+    CARDDir* ent;
+    s32 result;
+
+    ASSERTLINE(0, 0 <= fileNo && fileNo < CARD_MAX_FILE);
+    ASSERTLINE(0, 0 <= chan && chan < 2);
+
+    if (fileNo < 0 || CARD_MAX_FILE <= fileNo)
+        return CARD_RESULT_FATAL_ERROR;
+
+    fileInfo->chan = -1;
+    result = __CARDGetControlBlock(chan, &card);
+    if (result < 0)
+        return result;
+
+    dir = __CARDGetDirBlock(card);
+    ent = &dir[fileNo];
+    result = __CARDAccess(card, ent);
+    if (result == CARD_RESULT_NOPERM)
+        result = __CARDIsPublic(ent);
+    if (result >= 0) {
+        if (!CARDIsValidBlockNo(card, ent->startBlock))
+            result = CARD_RESULT_BROKEN;
+        else {
+            fileInfo->chan = chan;
+            fileInfo->fileNo = fileNo;
+            fileInfo->offset = 0;
+            fileInfo->iBlock = ent->startBlock;
+        }
+    }
+
+    return __CARDPutControlBlock(card, result);
+}
+#endif
+
 s32 CARDOpen(s32 chan, const char* fileName, CARDFileInfo* fileInfo) {
     CARDControl* card;
     s32 fileNo;
@@ -76,7 +116,7 @@ s32 CARDOpen(s32 chan, const char* fileName, CARDFileInfo* fileInfo) {
     CARDDir* dir;
     CARDDir* ent;
 
-    ASSERTLINE(336, 0 <= chan && chan < 2);
+    ASSERTLINE(286, 0 <= chan && chan < 2);
 
     fileInfo->chan = -1;
     result = __CARDGetControlBlock(chan, &card);
@@ -104,8 +144,8 @@ s32 CARDClose(CARDFileInfo* fileInfo) {
     CARDControl* card;
     s32 result;
 
-    ASSERTLINE(380, 0 <= fileInfo->chan && fileInfo->chan < 2);
-    ASSERTLINE(381, 0 <= fileInfo->fileNo && fileInfo->fileNo < CARD_MAX_FILE);
+    ASSERTLINE(330, 0 <= fileInfo->chan && fileInfo->chan < 2);
+    ASSERTLINE(331, 0 <= fileInfo->fileNo && fileInfo->fileNo < CARD_MAX_FILE);
 
     result = __CARDGetControlBlock(fileInfo->chan, &card);
     if (result < 0)
@@ -114,3 +154,9 @@ s32 CARDClose(CARDFileInfo* fileInfo) {
     fileInfo->chan = -1;
     return __CARDPutControlBlock(card, CARD_RESULT_READY);
 }
+
+#if defined(VERSION_GIHE78)
+BOOL __CARDIsOpened(CARDControl* card, s32 fileNo) {
+    return FALSE;
+}
+#endif

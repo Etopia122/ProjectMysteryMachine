@@ -1459,7 +1459,8 @@ dolphin/card/CARDFormat.c:
 	.data       start:0x801DCB18 end:0x801DCBB8
 
 dolphin/card/CARDOpen.c:
-	.text       start:0x801353A8 end:0x801353D8
+	.text       start:0x80135298 end:0x80135650
+	.data       start:0x801DCBB8 end:0x801DCCB0
 
 rwsdk/plugin/collis/ctgeom.c:
 	.text       start:0x801372EC end:0x80138904

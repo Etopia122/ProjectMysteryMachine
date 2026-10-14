@@ -38,11 +38,8 @@ signed long CARDProbeEx(signed long chan, signed long* memSize, signed long* sec
 signed long CARDMount(signed long chan, void* workArea, CARDCallback detachCallback);
 signed long CARDUnmount(signed long chan);
 signed long CARDFormat(signed long chan);
-// The older SDK's CARDOpen/CARDClose; the TWW CARDOpen.o object already defines those names.
-signed long fn_80135484(signed long chan, const char* fileName, CARDFileInfo* fileInfo);
-signed long fn_8013558C(CARDFileInfo* fileInfo);
-#define CARDOpen fn_80135484
-#define CARDClose fn_8013558C
+signed long CARDOpen(signed long chan, const char* fileName, CARDFileInfo* fileInfo);
+signed long CARDClose(CARDFileInfo* fileInfo);
 signed long CARDCreate(signed long chan, const char* fileName, unsigned long size,
                        CARDFileInfo* fileInfo);
 signed long CARDReadAsync(CARDFileInfo* fileInfo, void* addr, signed long length,

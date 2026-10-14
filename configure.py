@@ -858,7 +858,7 @@ config.libs = [
             Object(Matching, "dolphin/card/CARDCheck.c", extra_cflags=["-O0,s", "-sym on", "-opt peephole", "-use_lmw_stmw on", "-inline off"]),
             Object(Matching, "dolphin/card/CARDMount.c", extra_cflags=["-O0,s", "-sym on", "-opt peephole", "-use_lmw_stmw on", "-inline off"]),
             Object(Matching, "dolphin/card/CARDFormat.c", extra_cflags=["-O0,s", "-sym on", "-opt peephole", "-use_lmw_stmw on", "-inline off"]),
-            Object(Matching, "dolphin/card/CARDOpen.c"),
+            Object(Matching, "dolphin/card/CARDOpen.c", extra_cflags=["-O0,s", "-sym on", "-opt peephole", "-use_lmw_stmw on", "-inline off"]),
         ],
     },
     {
