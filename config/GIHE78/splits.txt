@@ -1445,6 +1445,15 @@ dolphin/card/CARDDir.c:
 	.text       start:0x80133340 end:0x8013365C
 	.data       start:0x801DC868 end:0x801DC8F0
 
+dolphin/card/CARDCheck.c:
+	.text       start:0x8013365C end:0x801342A8
+	.data       start:0x801DC8F0 end:0x801DC9E8
+
+dolphin/card/CARDMount.c:
+	.text       start:0x801342A8 end:0x80134D7C
+	.data       start:0x801DC9E8 end:0x801DCB18
+	.sdata      start:0x8025E778 end:0x8025E77A
+
 dolphin/card/CARDOpen.c:
 	.text       start:0x801353A8 end:0x801353D8
 

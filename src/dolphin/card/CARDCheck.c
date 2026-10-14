@@ -1,4 +1,6 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDCheck.c"
+#include "dolphin/card/card_dbg.h"
 
 // prototypes
 static s32 VerifyID(CARDControl* card);
@@ -6,13 +8,17 @@ static s32 VerifyDir(CARDControl* card, int* pcurrent);
 static s32 VerifyFAT(CARDControl* card, int* pcurrent);
 
 extern void __CARDSyncCallback(s32 chan, s32 result);
+#if defined(VERSION_GIHE78)
+#define __CARDGetFontEncode OSGetFontEncode
+#else
 extern u16 __CARDGetFontEncode(void);
+#endif
 
 void __CARDCheckSum(void* ptr, int length, u16* checksum, u16* checksumInv) {
     u16* p;
     int i;
 
-    ASSERTLINE(82, length % sizeof(u16) == 0);
+    ASSERTLINE(78, length % sizeof(u16) == 0);
 
     length /= sizeof(u16);
     *checksum = *checksumInv = 0;
@@ -45,6 +51,11 @@ static s32 VerifyID(CARDControl* card) {
     if (id->checkSum != checksum || id->checkSumInv != checksumInv)
         return CARD_RESULT_BROKEN;
 
+#if defined(VERSION_GIHE78)
+    if (id->encode != __CARDGetFontEncode())
+        return CARD_RESULT_ENCODING;
+#endif
+
     rand = *(OSTime*)&id->serial[12];
     sramEx = __OSLockSramEx();
     for (i = 0; i < 12; i++) {
@@ -58,8 +69,10 @@ static s32 VerifyID(CARDControl* card) {
 
     __OSUnlockSramEx(FALSE);
 
+#if !defined(VERSION_GIHE78)
     if (id->encode != __CARDGetFontEncode())
         return CARD_RESULT_ENCODING;
+#endif
 
     return CARD_RESULT_READY;
 }
@@ -171,8 +184,8 @@ s32 __CARDVerify(CARDControl* card) {
     errors += VerifyFAT(card, NULL);
     switch (errors) {
     case 0: 
-        ASSERTLINE(301, card->currentDir);
-        ASSERTLINE(302, card->currentFat);
+        ASSERTLINE(297, card->currentDir);
+        ASSERTLINE(298, card->currentFat);
         return CARD_RESULT_READY;
     case 1:
         return CARD_RESULT_BROKEN;
@@ -198,7 +211,7 @@ s32 CARDCheckExAsync(s32 chan, s32* xferBytes, CARDCallback callback) {
     BOOL updateDir = FALSE;
     BOOL updateOrphan = FALSE;
 
-    ASSERTLINE(346, 0 <= chan && chan < 2);
+    ASSERTLINE(342, 0 <= chan && chan < 2);
 
     if (xferBytes) {
         *xferBytes = 0;
@@ -225,21 +238,21 @@ s32 CARDCheckExAsync(s32 chan, s32* xferBytes, CARDCallback callback) {
     fat[0] = (u16*)((u8*)card->workArea + (3 + 0) * CARD_SYSTEM_BLOCK_SIZE);
     fat[1] = (u16*)((u8*)card->workArea + (3 + 1) * CARD_SYSTEM_BLOCK_SIZE);
 
-    ASSERTLINE(377, errors == 0 || errors == 1);
+    ASSERTLINE(373, errors == 0 || errors == 1);
 
     switch (errors) {
     case 0:
-        ASSERTLINE(381, card->currentDir);
-        ASSERTLINE(382, card->currentFat);
+        ASSERTLINE(377, card->currentDir);
+        ASSERTLINE(378, card->currentFat);
         break;
     case 1:
         if (!card->currentDir) {
-            ASSERTLINE(387, card->currentFat);
+            ASSERTLINE(383, card->currentFat);
             card->currentDir = dir[currentDir];
             memcpy(dir[currentDir], dir[currentDir ^ 1], CARD_SYSTEM_BLOCK_SIZE);
             updateDir = TRUE;
         } else {
-            ASSERTLINE(394, !card->currentFat);
+            ASSERTLINE(390, !card->currentFat);
             card->currentFat = fat[currentFat];
             memcpy(fat[currentFat], fat[currentFat ^ 1], CARD_SYSTEM_BLOCK_SIZE);
             updateFat = TRUE;
