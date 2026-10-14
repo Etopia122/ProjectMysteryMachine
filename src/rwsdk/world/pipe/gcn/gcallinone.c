@@ -619,14 +619,12 @@ RwUInt32 _rwGCNVtxFmtInstTex(RpGameCubeVtxFmt* fmt, RwInt32 index, void* dst, co
                      RwUInt8 stride)
 {
     RwInt32 i;
-    const RwUInt8* type;
 
     if (!fmt) {
         fmt = &DlDefaultVtxFmt;
     }
 
-    type = fmt->texType + index;
-    switch (*type) {
+    switch (fmt->texType[index]) {
     case GX_U8: {
         RwReal scale = (RwReal)(1 << fmt->texFrac[index]);
         RwUInt8* d = (RwUInt8*)dst;
@@ -689,15 +687,15 @@ RwUInt32 _rwGCNVtxFmtInstTex(RpGameCubeVtxFmt* fmt, RwInt32 index, void* dst, co
                 d = (RwTexCoords*)((RwUInt8*)d + stride);
             }
         } else {
-            memcpy(dst, src, numVerts * compSizes[*type] * 2);
+            memcpy(dst, src, numVerts * compSizes[fmt->texType[index]] * 2);
         }
         break;
     }
 
     if (fmt->flags & rpGCVTXFMTINTERLEAVED) {
-        return compSizes[*type] * 2;
+        return compSizes[fmt->texType[index]] * 2;
     }
-    return (numVerts * compSizes[*type] * 2 + 31) & ~31;
+    return (numVerts * compSizes[fmt->texType[index]] * 2 + 31) & ~31;
 }
 
 static inline RwTexCoords* RpGeometryGetVertexTexCoords(const RpGeometry* geometry, RwInt32 uvIndex)
