@@ -1428,6 +1428,10 @@ dolphin/card/CARDBios.c:
 dolphin/card/CARDOpen.c:
 	.text       start:0x801353A8 end:0x801353D8
 
+rwsdk/plugin/collis/ctgeom.c:
+	.text       start:0x801372EC end:0x80138904
+	.sdata2     start:0x802627D8 end:0x802627E8
+
 rwsdk/plugin/collis/ctbsp.c:
 	.text       start:0x8013AA64 end:0x8013B850
 
