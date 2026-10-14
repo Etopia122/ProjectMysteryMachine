@@ -528,10 +528,10 @@ enum
     ID_GAME_INFO, ID_ISO_LABEL, ID_ISO_PATH, ID_ISO_BROWSE, ID_EXTRACT, ID_PROGRESS, ID_GAME_STATUS, ID_GAME_FOLDER,
     // Display
     ID_RES_LABEL, ID_RES, ID_MODE_LABEL, ID_MODE, ID_ASPECT_LABEL, ID_ASPECT, ID_VSYNC, ID_MSAA_LABEL, ID_MSAA,
-    ID_DISPLAY_NOTE,
+    ID_DISPLAY_NOTE, ID_HUD_LABEL, ID_HUD,
     // Graphics
     ID_DRAW_LABEL, ID_DRAW, ID_DRAW_VALUE, ID_DRAW_NOTE, ID_FX_LABEL, ID_FX, ID_FX_VALUE, ID_FX_NOTE, ID_FILTER_LABEL,
-    ID_FILTER, ID_FILTER_NOTE,
+    ID_FILTER, ID_FILTER_NOTE, ID_FPS_LABEL, ID_FPS, ID_FPS_NOTE,
     // Controls
     ID_BINDS, ID_SET_KEY, ID_ADD_KEY, ID_SET_PAD, ID_CLEAR, ID_DEFAULTS, ID_SWAP_STICKS, ID_CAPTURE,
     // Bottom
@@ -1069,6 +1069,8 @@ static void load_settings()
         }
     }
     check_set(ID_VSYNC, s_ini.get("display", "vsync", "1") != "0");
+    combo_set(ID_HUD, s_ini.get("display", "hud", "wide") == "classic" ? 1 : 0);
+    combo_set(ID_FPS, s_ini.get("graphics", "fps", "60") == "30" ? 0 : 1);
     int msaa = atoi(s_ini.get("display", "msaa", "4").c_str());
     combo_set(ID_MSAA, 0);
     for (int i = 0; i < 4; i++)
@@ -1116,6 +1118,8 @@ static bool save_settings()
     s_ini.set("display", "aspect", kAspects[combo_get(ID_ASPECT)].value);
     s_ini.set("display", "vsync", check_get(ID_VSYNC) ? "1" : "0");
     s_ini.set("display", "msaa", std::to_string(kMsaa[combo_get(ID_MSAA)]));
+    s_ini.set("display", "hud", combo_get(ID_HUD) == 1 ? "classic" : "wide");
+    s_ini.set("graphics", "fps", combo_get(ID_FPS) == 0 ? "30" : "60");
     char t[32];
     snprintf(t, sizeof(t), "%.2f", SendMessageW(item(ID_DRAW), TBM_GETPOS, 0, 0) / 4.0);
     s_ini.set("graphics", "draw_distance", t);
@@ -1215,13 +1219,16 @@ static void create_controls()
     add(PAGE_DISPLAY, ID_ASPECT, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, T + 80, 220, 200);
     add(PAGE_DISPLAY, ID_MSAA_LABEL, L"STATIC", L"Anti-aliasing:", 0, L, T + 124, 150, 20);
     add(PAGE_DISPLAY, ID_MSAA, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, T + 120, 220, 200);
+    add(PAGE_DISPLAY, ID_HUD_LABEL, L"STATIC", L"HUD layout:", 0, L, T + 164, 150, 20);
+    add(PAGE_DISPLAY, ID_HUD, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, T + 160, 220, 200);
     add(PAGE_DISPLAY, ID_VSYNC, L"BUTTON", L"Vertical sync (no tearing)", WS_TABSTOP | BS_AUTOCHECKBOX, L + 160,
-        T + 160, 300, 22);
+        T + 200, 300, 22);
     add(PAGE_DISPLAY, ID_DISPLAY_NOTE, L"STATIC",
-        L"Widescreen shows more of each level at the sides without stretching the picture. The title screen, "
-        L"menus and movies keep their original 4:3 shape. Borderless fullscreen uses your desktop's "
-        L"resolution; Alt+Enter switches between a window and fullscreen while playing.",
-        0, L, T + 204, 528, 80);
+        L"Widescreen shows more of each level at the sides without stretching the picture, and the HUD moves "
+        L"out to the screen's corners (or stays in the middle with the original layout). The title screen and "
+        L"movies keep their 4:3 shape. Borderless fullscreen uses your desktop's resolution; Alt+Enter "
+        L"switches between a window and fullscreen while playing.",
+        0, L, T + 240, 528, 80);
     for (const wchar_t* m : { kModes[0].label, kModes[1].label, kModes[2].label })
     {
         combo_add(ID_MODE, m);
@@ -1234,6 +1241,8 @@ static void create_controls()
     {
         combo_add(ID_MSAA, m);
     }
+    combo_add(ID_HUD, L"Widescreen (corners)");
+    combo_add(ID_HUD, L"Original (4:3 middle)");
 
     // Graphics
     add(PAGE_GRAPHICS, ID_DRAW_LABEL, L"STATIC", L"Draw distance:", 0, L, T + 6, 150, 20);
@@ -1255,6 +1264,14 @@ static void create_controls()
     add(PAGE_GRAPHICS, ID_FILTER_NOTE, L"STATIC",
         L"Trilinear and anisotropic filtering keep distant and sloped textures sharp without shimmering.", 0,
         L + 160, T + 218, 368, 40);
+    add(PAGE_GRAPHICS, ID_FPS_LABEL, L"STATIC", L"Frame rate:", 0, L, T + 270, 150, 20);
+    add(PAGE_GRAPHICS, ID_FPS, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, T + 266, 220, 200);
+    add(PAGE_GRAPHICS, ID_FPS_NOTE, L"STATIC",
+        L"60 fps runs the whole game twice as often for smoother motion; jumps, speeds and timings stay as on "
+        L"the GameCube.",
+        0, L + 160, T + 298, 368, 40);
+    combo_add(ID_FPS, L"30 fps (original)");
+    combo_add(ID_FPS, L"60 fps");
     for (HWND tb : { draw, fx })
     {
         SendMessageW(tb, TBM_SETRANGE, TRUE, MAKELPARAM(4, 16));

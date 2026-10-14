@@ -390,8 +390,57 @@ static void zParEmitterEmitSphereEdge(xPar* p, zParEmitterAsset* a, float dt, si
     zParEmitterAngleVariation(p, a);
 }
 
+#ifdef PC_PORT
+extern unsigned int gFrameCount;
+// Callers that emit every frame pass 1/30 (a 30 Hz frame): at 60 fps an
+// emitter used that way on the previous frame skips this one, so trails keep
+// their density; one-off bursts still emit. Several entities sharing an
+// emitter in one frame all emit or all skip.
+static int pc_emit_skip(_zParEmitter* p, float dt)
+{
+    static struct { _zParEmitter* p; unsigned int frame; int emitted; } s_last[32];
+    if (pc_game_fps() != 60 || dt != 1.0f / 30.0f)
+    {
+        return 0;
+    }
+    int slot = -1, oldest = 0;
+    for (int i = 0; i < 32; i++)
+    {
+        if (s_last[i].p == p)
+        {
+            slot = i;
+            break;
+        }
+        if (s_last[i].frame < s_last[oldest].frame)
+        {
+            oldest = i;
+        }
+    }
+    if (slot < 0)
+    {
+        slot = oldest;
+        s_last[slot].p = p;
+        s_last[slot].frame = gFrameCount - 2;
+        s_last[slot].emitted = 0;
+    }
+    if (s_last[slot].frame != gFrameCount)
+    {
+        // A new frame for this emitter: skip it if it emitted on the last one.
+        s_last[slot].emitted = !(s_last[slot].frame == gFrameCount - 1 && s_last[slot].emitted);
+        s_last[slot].frame = gFrameCount;
+    }
+    return !s_last[slot].emitted;
+}
+#endif
+
 xPar* zParEmitterEmitCustom(_zParEmitter* p, float dt, _zParEmitterCustomSettings* info)
 {
+#ifdef PC_PORT
+    if (pc_emit_skip(p, dt))
+    {
+        return 0;
+    }
+#endif
     unsigned int flags = info->custom_flags;
     zParEmitterAsset* pe = p->tasset;
     _zParEmitterCustomSettings* s = &sSaveEmmiterSettings;

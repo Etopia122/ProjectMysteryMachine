@@ -338,10 +338,26 @@ void zSurfaceUpdate(xBase* to, _xScene*, float dt)
             switch (moprops->uvfx[j].mode)
             {
             case 1:
+#ifdef PC_PORT
+                    moprops->uvfx[j].trans.x = isin(1.0f / 60 * PC_FRAME_STEP(2.0f * gFrameCount));
+#else
                     moprops->uvfx[j].trans.x = isin(1.0f / 60 * (2.0f * gFrameCount));
+#endif
+#ifdef PC_PORT
+                    moprops->uvfx[j].trans.y = isin(1.0f / 60 * PC_FRAME_STEP(2.0f * gFrameCount));
+#else
                     moprops->uvfx[j].trans.y = isin(1.0f / 60 * (2.0f * gFrameCount));
+#endif
+#ifdef PC_PORT
+                    moprops->uvfx[j].scale.x = isin(1.0f / 60 * PC_FRAME_STEP(2.0f * gFrameCount));
+#else
                     moprops->uvfx[j].scale.x = isin(1.0f / 60 * (2.0f * gFrameCount));
+#endif
+#ifdef PC_PORT
+                    moprops->uvfx[j].scale.y = isin(1.0f / 60 * PC_FRAME_STEP(2.0f * gFrameCount));
+#else
                     moprops->uvfx[j].scale.y = isin(1.0f / 60 * (2.0f * gFrameCount));
+#endif
             
                 break;
             default:

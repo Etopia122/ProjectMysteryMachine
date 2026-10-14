@@ -34,10 +34,13 @@ Your saves go in the "save" folder here.
 Settings
 --------
 Display:  resolution, windowed / borderless / exclusive fullscreen, aspect
-          ratio (widescreen shows more at the sides in levels; the title,
-          menus and movies stay 4:3), anti-aliasing, vertical sync.
+          ratio (widescreen shows more at the sides, with the HUD in the
+          corners; the title screen and movies stay 4:3), anti-aliasing,
+          vertical sync.
 Graphics: draw distance (moves the far edge of the view and the fog back),
-          effects distance (how far particle effects show), texture filtering.
+          effects distance (how far particle effects show), texture filtering,
+          frame rate (30 as on the GameCube, or 60 with the same jumps and
+          timings).
 Controls: every GameCube button for the keyboard (one or more keys) and for a
           controller (any button or trigger), and swapping the analog sticks.
 

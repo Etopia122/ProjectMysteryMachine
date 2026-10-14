@@ -91,6 +91,8 @@ test runs). Without it everything is as before.
 | `display.mode` | `windowed`, `borderless`, `fullscreen` |
 | `display.aspect` | `auto` (the window's shape) or `W:H`; in levels the 3D view widens (Hor+), the title, menus and movies stay 4:3 |
 | `display.vsync`, `.msaa` | 0/1; 0, 2, 4, 8 |
+| `display.hud` | `wide`: on a wide screen each HUD element hugs its side (zHud_Render, PC_PORT); `classic`: the 4:3 layout |
+| `graphics.fps` | 30 (GameCube) or 60: one VI retrace per frame; the few per-frame factors and steps scale (PC_FRAME_FACTOR/STEP in pc_compat.h), gravity on Scooby keeps 30 Hz steps so jumps match, every-frame particle calls with 1/30 emit every other frame |
 | `graphics.draw_distance` | 1-8: far plane and fog (iCamera.cpp, PC_PORT) |
 | `graphics.effects_distance` | 1-8: distance-culled particle emitters (zParEmitter.cpp, PC_PORT) |
 | `graphics.trilinear`, `.anisotropy` | mipmapped filtering for the game's bilinear textures; 1-16 |
@@ -126,7 +128,8 @@ models with that vertex count, `PC_MENU=main|levels` opens the menu,
 `PC_FORCESAVE=<sec>` opens the save screen, `PC_POSLOG=1` logs the position each
 second, `PC_PROBE=<sec>:x0,z0,x1,z1,n` casts vertical rays (all worlds),
 `PC_SPHERE=<sec>:x,y,z,r` lists world triangles near a point,
-`PC_POSLOG=1|2|3` logs position (+animation, +collisions), `PC_CHECKTRI=1`
+`PC_FPS=30|60` overrides the frame rate, `PC_UPGRADES=<sec>` gives every upgrade,
+`PC_POSLOG=1|2|3|4` logs position (+animation, +collisions; 4: every frame), `PC_CHECKTRI=1`
 checks model collision triangles against their render meshes, `PC_SURFDUMP=<sec>`
 lists special surfaces, `PC_HILITE_MAT=<n>` paints a world material red, `PC_NOFMV=1` skips movies, `PC_STATS=1` logs
 render stats, `PC_SHOT=frame[,step]` saves screenshots, `PC_WAV=1` records the

@@ -611,6 +611,9 @@ void xEntCollCheckStats(_xEnt* p, _xScene* sc, _xEnt* (*hitIt)(_xEnt*, _xScene*,
 extern _xVec3 g_O3;
 extern _xVec3 g_Y3;
 
+#ifdef PC_PORT
+extern unsigned int gFrameCount;
+#endif
 signed int zEntPlayer_Damage(xBase* src, unsigned int damage);
 static void PlayerCollsSelectDepen(_xEnt* p);
 static _xEnt* PlayerCollCheckOneVillain(_xEnt* ent, _xScene* sc, void* data);
@@ -4132,6 +4135,13 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
     }
     if (globals.player.DamageTimer != 0.0f && globals.player.Health)
     {
+#ifdef PC_PORT
+        if (pc_game_fps() == 60 && (gFrameCount & 1))
+        {
+            // At 60 fps the flicker holds each step two frames.
+        }
+        else
+#endif
         globals.player.Transparent++;
         if (globals.player.Transparent == 4)
         {
@@ -5371,8 +5381,18 @@ void CalcJumpImpulse(zJumpParam* param)
 }
 
 #pragma auto_inline on
+#ifdef PC_PORT
+// At 60 fps gravity still changes Scooby's falling speed in 30 Hz steps (the
+// time of two frames at once), so jumps rise as high and last as long as at
+// 30 fps; a jump starts the steps over.
+static float sPCGravityTime;
+#endif
+
 void zEntPlayerJumpStart(_xEnt* ent, zJumpParam* jump)
 {
+#ifdef PC_PORT
+    sPCGravityTime = 0.0f;
+#endif
     globals.player.Jump_CurrGravity = globals.player.s.JumpGravity;
     globals.player.Jump_HoldTimer = jump->TimeHold;
     globals.player.Jump_ChangeTimer = jump->TimeGravChange;
@@ -5513,8 +5533,13 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
         }
         if (globals.player.JumpState == 3)
         {
+#ifdef PC_PORT
+            ent->frame->vel.x *= PC_FRAME_FACTOR(0.96f);
+            ent->frame->vel.z *= PC_FRAME_FACTOR(0.96f);
+#else
             ent->frame->vel.x *= 0.96f;
             ent->frame->vel.z *= 0.96f;
+#endif
         }
     }
 
@@ -5522,6 +5547,18 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
     {
         if (globals.player.JumpState == 2 || globals.player.JumpState == 1)
         {
+#ifdef PC_PORT
+            if (pc_game_fps() == 60)
+            {
+                sPCGravityTime += dt;
+                if (sPCGravityTime >= 1.0f / 30.0f - 0.002f)
+                {
+                    ent->frame->vel.y -= globals.player.Jump_CurrGravity * sPCGravityTime;
+                    sPCGravityTime = 0.0f;
+                }
+            }
+            else
+#endif
             ent->frame->vel.y -= globals.player.Jump_CurrGravity * dt;
         }
         if (globals.player.JumpState == 2 || globals.player.JumpState == 3)
@@ -5637,8 +5674,13 @@ void zEntPlayerVelUpdate(_xEnt* ent, float dt)
             {
                 if (ent->frame->mat.pos.y - ent->frame->oldpos.y > 0.0f)
                 {
+#ifdef PC_PORT
+                    v->x *= PC_FRAME_FACTOR(0.97f);
+                    v->z *= PC_FRAME_FACTOR(0.97f);
+#else
                     v->x *= 0.97f;
                     v->z *= 0.97f;
+#endif
                 }
             }
             else
@@ -6100,9 +6142,15 @@ static void PlayerBoundUpdate(_xEnt* ent, _xVec3* pos)
         dpos.y = c->y - globals.player.head_sph.center.y;
         dpos.z = c->z - globals.player.head_sph.center.z;
         xVec3Normalize(&dpos, &dpos);
+#ifdef PC_PORT
+        dpos.x *= PC_FRAME_STEP(0.4f);
+        dpos.y *= PC_FRAME_STEP(0.4f);
+        dpos.z *= PC_FRAME_STEP(0.4f);
+#else
         dpos.x *= 0.4f;
         dpos.y *= 0.4f;
         dpos.z *= 0.4f;
+#endif
         globals.player.head_sph.center.x += dpos.x;
         globals.player.head_sph.center.y += dpos.y;
         globals.player.head_sph.center.z += dpos.z;

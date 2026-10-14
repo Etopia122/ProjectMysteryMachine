@@ -309,7 +309,12 @@ unsigned int zMenuLoop()
             iDebugScreenDump();
         }
         xCameraEnd(&globals.camera, time_elapsed, 1);
+#ifdef PC_PORT
+        // One retrace per frame at 60 fps, two (30 fps) as on the GameCube.
+        while ((gVsyncCount = VIGetRetraceCount()) - gLastVsyncFlip < 60 / (unsigned int)pc_game_fps())
+#else
         while ((gVsyncCount = VIGetRetraceCount()) - gLastVsyncFlip < 2)
+#endif
         {
             iVSync();
         }

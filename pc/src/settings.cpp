@@ -93,6 +93,20 @@ extern "C" int pc_setting_int(const char* key, int def)
     return v && *v ? atoi(v) : def;
 }
 
+// graphics.fps: 60, or 30 as on the GameCube (PC_FPS=<n> overrides, for test
+// runs).
+extern "C" int pc_game_fps(void)
+{
+    static int fps;
+    if (!fps)
+    {
+        const char* env = getenv("PC_FPS");
+        fps = env ? atoi(env) : pc_setting_int("graphics.fps", 30);
+        fps = fps == 60 ? 60 : 30;
+    }
+    return fps;
+}
+
 extern "C" float pc_setting_float(const char* key, float def)
 {
     const char* v = pc_setting_str(key, NULL);

@@ -485,7 +485,11 @@ static void UpdateThunder(float dt)
         }
     }
 
+#ifdef PC_PORT
+    sFogIntensity *= PC_FRAME_FACTOR(0.9f);
+#else
     sFogIntensity *= 0.9f;
+#endif
     if (sFogIntensity < 1.0f)
     {
         sFogIntensity = 1.0f;
@@ -563,7 +567,11 @@ static void UpdateFireworks(float dt)
         sFogPrevIntensity = sFogIntensity;
     }
 
+#ifdef PC_PORT
+    sFogIntensity *= PC_FRAME_FACTOR(0.97f);
+#else
     sFogIntensity *= 0.97f;
+#endif
     if (sFogIntensity < 0.5f)
     {
         sFogIntensity = 0.5f;

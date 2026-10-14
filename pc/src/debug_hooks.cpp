@@ -77,14 +77,14 @@ extern "C" void pc_debug_hooks_frame()
     static unsigned int nextPos;
     if (posLog && !teleportPending() && pc_ticks_ms() >= nextPos)
     {
-        nextPos = pc_ticks_ms() + (getenv("PC_POSLOG")[0] >= '2' ? 250 : 1000);
+        nextPos = pc_ticks_ms() + (getenv("PC_POSLOG")[0] == '4' ? 0 : getenv("PC_POSLOG")[0] >= '2' ? 250 : 1000);
         float p[3];
         pc_debug_player_pos(p);
         const char* anim;
         unsigned int uf, sticky;
         int speed;
         pc_dbg_player_anim(&anim, &uf, &sticky, &speed);
-        pc_log("[pos] %.1fs %.2f %.2f %.2f anim %s flags %x sticky %u speed %d", pc_ticks_ms() / 1000.0, p[0], p[1],
+        pc_log("[pos] %.3fs %.2f %.2f %.2f anim %s flags %x sticky %u speed %d", pc_ticks_ms() / 1000.0, p[0], p[1],
                p[2], anim, uf, sticky, speed);
         if (getenv("PC_POSLOG")[0] == '3')
         {

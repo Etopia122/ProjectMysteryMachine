@@ -7826,9 +7826,15 @@ static signed int VILN_std_calcmove(st_zEntVillain* vil, _xScene* scn, float dt,
         if ((vil->flg_misc & 0x100000) && xVec3Length2(&vil->vec_knocked) > 0.01f)
         {
             // Bubble still drifting from the knock.
+#ifdef PC_PORT
+            vil->vec_knocked.x *= PC_FRAME_FACTOR(0.99f);
+            vil->vec_knocked.y *= PC_FRAME_FACTOR(0.99f);
+            vil->vec_knocked.z *= PC_FRAME_FACTOR(0.99f);
+#else
             vil->vec_knocked.x *= 0.99f;
             vil->vec_knocked.y *= 0.99f;
             vil->vec_knocked.z *= 0.99f;
+#endif
             vil->vel_moveto = vil->vec_knocked;
             vil->domove |= 0x1000;
             vil->domove |= 0x80000000;
@@ -11307,7 +11313,11 @@ static signed int VILN_BGG_calcmove(st_zEntVillain* vil, _xScene* scn, float dt,
         vil->domove |= 0xA;
         vil->domove |= 0x80000000;
         vil->ang_spiral = xAngleClamp(3.1415927f * dt + vil->ang_spiral);
+#ifdef PC_PORT
+        vil->rad_spiral *= PC_FRAME_FACTOR(0.95f);
+#else
         vil->rad_spiral *= 0.95f;
+#endif
         if (vil->hitpts == 0)
         {
             vil->pos_vortex.y = -(0.6f * dt - vil->pos_vortex.y);
