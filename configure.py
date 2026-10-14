@@ -792,6 +792,7 @@ config.libs = [
             Object(NonMatching, "rwsdk/tool/quat/rtquat.c"),
             Object(Matching, "rwsdk/plugin/collis/ctbsp.c"),
             Object(Matching, "rwsdk/plugin/collis/rpcollis.c"),
+            Object(NonMatching, "rwsdk/plugin/hanim/stdkey.c"),
             Object(NonMatching, "rwsdk/plugin/hanim/rphanim.c"),
             Object(NonMatching, "rwsdk/plugin/matfx/rpmatfx.c"),
             Object(NonMatching, "rwsdk/plugin/matfx/gcn/matfxgcn.c"),
