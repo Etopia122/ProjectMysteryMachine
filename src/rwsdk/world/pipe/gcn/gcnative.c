@@ -151,10 +151,10 @@ void* DlNativeDataStreamRead(RwStream* stream, void* owner, rxGCResEntry** resEn
 
 static inline RwInt32 DlNativeDataSize(RwUInt32 numMeshes, rxGCResEntry* resEntry)
 {
-    RwInt32 size = numMeshes * sizeof(rxGCMeshData);
+    RwInt32 size = sizeof(rxGCInstanceData) + numMeshes * sizeof(rxGCMeshData);
     RwUInt8* data = ALIGN32((rxGCMeshData*)((RwUInt8*)resEntry + sizeof(rxGCResEntry) + sizeof(rxGCInstanceData)) + numMeshes);
 
-    size += sizeof(rxGCInstanceData) + rwCHUNKHEADERSIZE + 3 * sizeof(RwInt32);
+    size += rwCHUNKHEADERSIZE + 3 * sizeof(RwInt32);
     size += resEntry->size - (data - (RwUInt8*)GCRESENTRYDATA(resEntry));
     return size;
 }
@@ -162,15 +162,15 @@ static inline RwInt32 DlNativeDataSize(RwUInt32 numMeshes, rxGCResEntry* resEntr
 RwStream* DlNativeDataStreamWrite(RwStream* stream, rxGCResEntry* resEntry, void* vtxFmt, RwUInt32 numMeshes,
                                   RwInt32 numVertices)
 {
+    RwUInt32 headerSize;
     rxGCInstanceData* inst = GCRESENTRYDATA(resEntry);
     rxGCMeshData* meshes = GCMESHES(inst);
-    RwUInt32 headerSize = sizeof(rxGCInstanceData) + numMeshes * sizeof(rxGCMeshData);
-    RwInt32 size = DlNativeDataSize(numMeshes, resEntry) - rwCHUNKHEADERSIZE;
-    RwUInt8* data = ALIGN32((RwUInt8*)meshes + numMeshes * sizeof(rxGCMeshData));
-    RwUInt32 dataSize;
-    rxGCMeshData* mesh = meshes;
-    RwUInt32 count = numMeshes;
+    RwUInt8* data = ALIGN32(GCMESHES(inst) + numMeshes);
     RwInt32 i;
+    RwInt32 size = DlNativeDataSize(numMeshes, resEntry) - rwCHUNKHEADERSIZE;
+    RwUInt32 count = numMeshes;
+    rxGCMeshData* mesh = meshes;
+    RwUInt32 dataSize;
 
     if (vtxFmt == NULL) {
         vtxFmt = _rpGameCubeVtxFmtGetDefault();
@@ -199,6 +199,7 @@ RwStream* DlNativeDataStreamWrite(RwStream* stream, rxGCResEntry* resEntry, void
     if (!RwStreamWriteInt32(stream, &DlNativePlatform, sizeof(DlNativePlatform))) {
         return NULL;
     }
+    headerSize = sizeof(rxGCInstanceData) + numMeshes * sizeof(rxGCMeshData);
     if (!RwStreamWriteInt32(stream, (RwInt32*)&headerSize, sizeof(headerSize))) {
         return NULL;
     }
