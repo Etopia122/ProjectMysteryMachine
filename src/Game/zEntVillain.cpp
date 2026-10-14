@@ -20416,8 +20416,8 @@ static inline signed int VSUP_choose(signed int* list, float* wts, signed int cn
 {
     float dlta;
     float pt;
-    float hi;
     float lo;
+    float hi;
     signed int i;
     signed int idx = 0;
 
