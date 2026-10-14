@@ -8,7 +8,9 @@ const char* __CARDVersion = "<< Dolphin SDK - CARD\trelease build: Sep  5 2002 0
 
 CARDControl __CARDBlock[2];
 
+#if !defined(VERSION_GIHE78)
 static u16 __CARDEncode;
+#endif
 
 #if defined(VERSION_GIHE78)
 // The older SDK reads the EXI clock from a variable.
@@ -428,7 +430,11 @@ s32 __CARDWritePage(s32 chan, CARDCallback callback) {
     ASSERTLINE(851, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
+#if defined(VERSION_GIHE78)
+    ASSERTLINE(853, card->addr % CARD_PAGE_SIZE == 0);
+#else
     ASSERTLINE(853, card->addr % card->pageSize == 0);
+#endif
     ASSERTLINE(854, card->addr < (u32) card->size * 1024 * 1024 / 8);
     card->cmd[0] = 0xF2;
     card->cmd[1] = AD1(card->addr);
@@ -500,9 +506,8 @@ void CARDInit(void) {
         return;
     }
 
-    __CARDEncode = OSGetFontEncode();
-
 #if !defined(VERSION_GIHE78)
+    __CARDEncode = OSGetFontEncode();
     OSRegisterVersion(__CARDVersion);
 #endif
 
@@ -521,9 +526,11 @@ void CARDInit(void) {
     OSRegisterResetFunction(&ResetFunctionInfo);
 }
 
+#if !defined(VERSION_GIHE78)
 u16 __CARDGetFontEncode(void) {
     return __CARDEncode;
 }
+#endif
 
 void __CARDSetDiskID(const DVDDiskID* id) {
     __CARDBlock[0].diskID = id ? id : &__CARDDiskNone;
@@ -621,6 +628,34 @@ s32 CARDFreeBlocks(s32 chan, s32* byteNotUsed, s32* filesNotUsed) {
 
     return __CARDPutControlBlock(card, CARD_RESULT_READY);
 }
+
+#if defined(VERSION_GIHE78)
+s32 CARDGetEncoding(s32 chan, u16* encode) {
+    CARDControl* card;
+    CARDID* id;
+    s32 result;
+
+    result = __CARDGetControlBlock(chan, &card);
+    if (result < 0) {
+        return result;
+    }
+    id = card->workArea;
+    *encode = id->encode;
+    return __CARDPutControlBlock(card, CARD_RESULT_READY);
+}
+
+s32 CARDGetSectorSize(s32 chan, u32* size) {
+    CARDControl* card;
+    s32 result;
+
+    result = __CARDGetControlBlock(chan, &card);
+    if (result < 0) {
+        return result;
+    }
+    *size = card->sectorSize;
+    return __CARDPutControlBlock(card, CARD_RESULT_READY);
+}
+#endif
 
 s32 __CARDSync(s32 chan) {
     CARDControl* block;
