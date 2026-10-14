@@ -851,6 +851,16 @@ config.libs = [
         ],
     },
     {
+        # RAD Game Tools Bink: built with SN ProDG (GCC 2.95), not MWCC.
+        "lib": "bink",
+        "mw_version": "ProDG/3.9.3",
+        "cflags": ["-O2", "-Iinclude"],
+        "progress_category": "sdk",
+        "objects": [
+            Object(NonMatching, "bink/radutil.c"),
+        ],
+    },
+    {
         "lib": "tww_card",
         "mw_version": "GC/1.2.5n",
         "cflags": cflags_tww_dolphin,

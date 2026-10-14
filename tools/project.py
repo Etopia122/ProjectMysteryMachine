@@ -689,6 +689,11 @@ def generate_build_ninja(
     mwcc_sjis_extab_cmd = f'{CHAIN}{mwcc_sjis_cmd} && {dtk} extab clean --padding "$extab_padding" $out $out'
     mwcc_sjis_extab_implicit: List[Optional[Path]] = [*mwcc_sjis_implicit, dtk]
 
+    # SN ProDG (GCC 2.95, used for the RAD libraries); the wrapper sets SN_NGC_PATH
+    sncc = config.tools_dir / "sncc.py"
+    prodg_cmd = f"$python {sncc} {compilers} $mw_version $cflags -c $in -o $out"
+    prodg_implicit: List[Optional[Path]] = [sncc]
+
     # MWLD
     mwld = compiler_path / "mwldeppc.exe"
     mwld_cmd = f"{wrapper_cmd}{mwld} $ldflags -o $out @$out.rsp"
@@ -744,6 +749,14 @@ def generate_build_ninja(
         description="MWCC $out",
         depfile="$basefile.d",
         deps="gcc",
+    )
+    n.newline()
+
+    n.comment("SN ProDG build")
+    n.rule(
+        name="prodg",
+        command=prodg_cmd,
+        description="PRODG $out",
     )
     n.newline()
 
@@ -1014,10 +1027,11 @@ def generate_build_ninja(
 
             cflags = obj.options["cflags"]
             extra_cflags = obj.options["extra_cflags"]
+            is_prodg = str(obj.options["mw_version"]).startswith("ProDG")
 
             # Add appropriate language flag if it doesn't exist already
             # Added directly to the source so it flows to other generation tasks
-            if not any(flag.startswith("-lang") for flag in cflags) and not any(
+            if not is_prodg and not any(flag.startswith("-lang") for flag in cflags) and not any(
                 flag.startswith("-lang") for flag in extra_cflags
             ):
                 # Ensure extra_cflags is a unique instance,
@@ -1030,7 +1044,8 @@ def generate_build_ninja(
 
             all_cflags = cflags + extra_cflags
             cflags_str = make_flags_str(all_cflags)
-            used_compiler_versions.add(obj.options["mw_version"])
+            if not is_prodg:
+                used_compiler_versions.add(obj.options["mw_version"])
 
             # Add MWCC build rule
             lib_name = obj.options["lib"]
@@ -1043,7 +1058,10 @@ def generate_build_ninja(
                 "basefile": obj.src_obj_path.with_suffix(""),
             }
 
-            if obj.options["shift_jis"] and obj.options["extab_padding"] is not None:
+            if is_prodg:
+                build_rule = "prodg"
+                build_implcit = prodg_implicit
+            elif obj.options["shift_jis"] and obj.options["extab_padding"] is not None:
                 build_rule = "mwcc_sjis_extab"
                 build_implcit = mwcc_sjis_extab_implicit
                 variables["extab_padding"] = "".join(
