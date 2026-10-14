@@ -62,12 +62,17 @@ if [ -f "$TB" ]; then
 fi
 
 # HOME Menu icon and banner, from the disc's GameCube memory card icon/banner;
-# the banner's picture is the player's game/n3ds_banner.png (256x128 PNG,
-# BANNER overrides) when it is there.
+# the banner's picture and sound are the player's game/n3ds_banner.png (256x128
+# PNG, BANNER overrides) and game/n3ds_banner.wav (PCM WAV, at most ~3 seconds,
+# BANNER_WAV overrides) when they are there; otherwise the sound is silence.
 python n3ds/tools/make_cia_art.py "$FILES" $B/cia_art >/dev/null
 BN=${BANNER:-game/n3ds_banner.png}
 if [ -f "$BN" ]; then
     cp "$BN" $B/cia_art/banner.png
+fi
+BW=${BANNER_WAV:-game/n3ds_banner.wav}
+if [ -f "$BW" ]; then
+    cp "$BW" $B/cia_art/banner.wav
 fi
 "$BANNERTOOL" makebanner -i $B/cia_art/banner.png -a $B/cia_art/banner.wav -o $B/cia_art/banner.bnr >/dev/null
 "$BANNERTOOL" makesmdh -s "Scooby-Doo! Night of 100 Frights" -l "Experimental New 3DS port" \

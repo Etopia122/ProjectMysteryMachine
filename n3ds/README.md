@@ -102,8 +102,9 @@ skips every movie, in any build. The app looks in `romfs:/files` and `romfs:/fmv
 and `env.txt` stay in `sdmc:/scooby`. The header (`n3ds/cia.rsf`) asks for the
 New 3DS 124 MB memory mode, 804 MHz with L2 cache and core 2. The HOME Menu
 icon and banner are made from the disc's GameCube memory card icon/banner
-(`make_cia_art.py`); the banner's picture is the player's own
-`game/n3ds_banner.png` (256x128) instead when it is there.
+(`make_cia_art.py`); the banner's picture and sound are the player's own
+`game/n3ds_banner.png` (256x128) and `game/n3ds_banner.wav` (up to ~3 s)
+instead when they are there.
 
 ## Tools
 
