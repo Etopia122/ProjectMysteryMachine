@@ -449,7 +449,7 @@ enum _tagSDRumbleType
 
 xSurface* zSurfaceGetSurface(_xCollis* coll);
 void zRumbleStart(signed int idx, _tagSDRumbleType type);
-extern "C" signed short fn_800C751C(signed short old, float* pitch, signed int range, float scale);
+signed int zPitchChange(signed int angle, float* offset, signed int range, float max);
 void zLaughNotify(signed int laugh);
 void zFeetAddSkidMark(_xEnt* ent, _tagFeetSkidMark* mark, float dt);
 void zFeetUpdateSkidMark(_tagFeetSkidMark* mark, float dt);
@@ -927,7 +927,7 @@ static inline void zEntPlayer_SNDButtBounce(signed int hit_villain)
     float pitch;
     if (hit_villain)
     {
-        sPlayerSndfx.head_pitch = fn_800C751C(sPlayerSndfx.head_pitch, &pitch, 0x1E, 1.5f);
+        sPlayerSndfx.head_pitch = zPitchChange(sPlayerSndfx.head_pitch, &pitch, 0x1E, 1.5f);
         xSndPlay(sPlayerSndfx.head_id[sPlayerSndfx.head_snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
         signed int newsnd = sPlayerSndfx.head_snd;
         while (newsnd == sPlayerSndfx.head_snd)
@@ -938,7 +938,7 @@ static inline void zEntPlayer_SNDButtBounce(signed int hit_villain)
     }
     else
     {
-        sPlayerSndfx.butt_pitch = fn_800C751C(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
+        sPlayerSndfx.butt_pitch = zPitchChange(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
         xSndPlay(sPlayerSndfx.butt_id[sPlayerSndfx.butt_snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
         signed int newsnd = sPlayerSndfx.butt_snd;
         while (newsnd == sPlayerSndfx.butt_snd)
@@ -5464,7 +5464,7 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
                 }
                 zRumbleStart(0, (_tagSDRumbleType)3);
                 float pitch;
-                sPlayerSndfx.butt_pitch = fn_800C751C(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
+                sPlayerSndfx.butt_pitch = zPitchChange(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
                 xSndPlay(sPlayerSndfx.buttmiss_id, 0.5f, 0.5f, 0.0f, 0x80, 2, 0);
             }
             globals.player.JumpState = 0;
@@ -8067,56 +8067,56 @@ void zEntPlayer_SNDInit()
 void zEntPlayer_SNDBitePickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.bite_pitch = fn_800C751C(sPlayerSndfx.bite_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.bite_pitch = zPitchChange(sPlayerSndfx.bite_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.bite_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDAmmoPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.ammo_pitch = fn_800C751C(sPlayerSndfx.ammo_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.ammo_pitch = zPitchChange(sPlayerSndfx.ammo_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.ammo_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDSpecialPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.special_pitch = fn_800C751C(sPlayerSndfx.special_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.special_pitch = zPitchChange(sPlayerSndfx.special_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.special_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDTokenPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.token_pitch = fn_800C751C(sPlayerSndfx.token_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.token_pitch = zPitchChange(sPlayerSndfx.token_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.token_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDSavePickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.save_pitch = fn_800C751C(sPlayerSndfx.save_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.save_pitch = zPitchChange(sPlayerSndfx.save_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.save_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDInfoPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.info_pitch = fn_800C751C(sPlayerSndfx.info_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.info_pitch = zPitchChange(sPlayerSndfx.info_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.info_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDErrorPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.error_pitch = fn_800C751C(sPlayerSndfx.error_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.error_pitch = zPitchChange(sPlayerSndfx.error_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.error_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDKeyPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.key_pitch = fn_800C751C(sPlayerSndfx.key_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.key_pitch = zPitchChange(sPlayerSndfx.key_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.key_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
@@ -8624,7 +8624,7 @@ static unsigned int zEntPlayer_SNDSkidCB(unsigned int, xAnimActiveEffect*, xAnim
     float pitch;
     signed int newsnd;
 
-    pitch_angle = fn_800C751C(pitch_angle, &pitch, 0x1E, 1.5f);
+    pitch_angle = zPitchChange(pitch_angle, &pitch, 0x1E, 1.5f);
     xSndPlay(sPlayerSndfx.skid_id[snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
     newsnd = snd;
     while (newsnd == snd)

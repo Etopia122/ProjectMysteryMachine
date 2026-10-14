@@ -195,7 +195,7 @@ xModelInstance* xModelInstanceAlloc(RpAtomic* data, void* object, unsigned short
 void xModelInstanceFree(xModelInstance* model);
 void xModelInstanceAttach(xModelInstance* inst, xModelInstance* parent);
 void xAnimPlaySetState(xAnimSingle* single, xAnimState* state, float startTime);
-extern "C" signed short fn_800C751C(signed short old, float* pitch, signed int range, float scale);
+signed int zPitchChange(signed int angle, float* offset, signed int range, float max);
 void xModelRender(xModelInstance* model);
 void zEntHangable_SetShaggy(_zEntHangable* hang, _zEnt* shaggy);
 unsigned int xMathSolveQuadratic(float a, float b, float c, float* x1, float* x2);
@@ -3541,7 +3541,7 @@ signed int Shaggy8_CallToPlayer()
     dz *= inv;
 
     float pitch;
-    sSndCallPitch = fn_800C751C(sSndCallPitch, &pitch, 30, 0.15f);
+    sSndCallPitch = zPitchChange(sSndCallPitch, &pitch, 30, 0.15f);
     unsigned int snd = 0x0176632D - ((irand() >> 16) & 1);
     if (xEntIsVisible(shaggy))
     {

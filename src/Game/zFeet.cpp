@@ -125,7 +125,7 @@ void* RwIm3DTransform(RxObjSpace3DVertex* pVerts, unsigned int numVerts, RwMatri
                       unsigned int flags);
 signed int RwIm3DRenderPrimitive(signed int primType);
 signed int RwIm3DEnd();
-signed short fn_800C751C(signed short last, float* pitch, signed int range, float scale);
+signed int zPitchChange(signed int angle, float* offset, signed int range, float max);
 }
 
 xAnimState* xAnimTableGetState(xAnimTable* table, char* name);
@@ -438,7 +438,7 @@ static unsigned int zFeetStepCB(unsigned int, xAnimActiveEffect* acteffect, xAni
 
     if (sSurfaceSoundIDStep[surface_type] != 0)
     {
-        feet->pitch = fn_800C751C(feet->pitch, &pitch, 45, 3.0f);
+        feet->pitch = zPitchChange(feet->pitch, &pitch, 45, 3.0f);
         if (xSndPlay3D(sSurfaceSoundIDStep[surface_type], 0.25f, pitch, 0, 2, &info.pos, 25.0f) ==
             0xFFFFFFFF)
         {
@@ -498,7 +498,7 @@ static unsigned int zFeetStepVillainCB(unsigned int, xAnimActiveEffect* acteffec
 
     if (sSurfaceSoundIDStep[surface_type] != 0)
     {
-        feet->pitch = fn_800C751C(feet->pitch, &pitch, 45, 3.0f);
+        feet->pitch = zPitchChange(feet->pitch, &pitch, 45, 3.0f);
         if (xSndPlay3D(sSurfaceSoundIDStep[surface_type], 0.25f, pitch, 0, 2, &info.pos, 25.0f) ==
             0xFFFFFFFF)
         {
