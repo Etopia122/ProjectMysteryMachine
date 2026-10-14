@@ -167,6 +167,21 @@ void zMenuSetup()
 
 void zMenuFMVPlay(char* filename, unsigned int buttons, float time);
 
+#ifdef PC_PORT
+// "Press Start" on the title screen (its manager enabled, as the attract timer
+// checks): the backdrop is 4:3 geometry, so a platform without a full-screen
+// picture for it keeps that screen 4:3. The main menu after it may be wide.
+extern "C" int pc_game_title_screen()
+{
+    if (zGameModeGet() != eGameMode_Title || !globals.sceneCur)
+    {
+        return 0;
+    }
+    _xEnt* mgr = (_xEnt*)zSceneFindObject(xStrHash("MNU3 PRESS START BUTTON MGR"));
+    return mgr && (mgr->baseFlags & 1);
+}
+#endif
+
 unsigned int zMenuLoop()
 {
     unsigned int s;

@@ -463,6 +463,32 @@ void pc_render_end_camera(RwCamera* c)
     gpu_set_target(NULL);
 }
 
+// The HUD element being drawn (zHud_Render) hugs a side of a screen wider
+// than 4:3: -1 left, 1 right, 0 where the game put it. Its 2D moves out by
+// the extra width on that side, and xModelRender2D moves its model with it.
+// display.hud = classic keeps the whole HUD in the 4:3 middle.
+static int s_hudSide;
+
+extern "C" void pc_render_hud_anchor(int side)
+{
+    s_hudSide = side;
+}
+
+extern "C" float pc_render_hud_shift()
+{
+    static int classic = -1;
+    if (classic < 0)
+    {
+        classic = !strcmp(pc_setting_str("display.hud", "wide"), "classic");
+    }
+    if (!s_hudSide || classic || !s_open || gpu_target())
+    {
+        return 0.0f;
+    }
+    float k = gpu_widen(true);
+    return k > 1.0f ? s_hudSide * 0.5f * (k - 1.0f) * FB_W : 0.0f;
+}
+
 // The HUD (zHud_Render) on a second screen, when the backend has one.
 extern "C" int pc_render_hud_second_screen()
 {
@@ -1509,6 +1535,23 @@ static void end_2d()
 // vertices moved out to the edges, a copy); textured (full-screen pictures like
 // the warp map) it stays 4:3 in the middle, between black side bars as
 // transparent as it is. Else returns v.
+// 2D of a HUD element hugging a side (pc_render_hud_shift): a moved copy.
+static RwIm2DVertex* im2d_hud(RwIm2DVertex* v, int n)
+{
+    float dx = pc_render_hud_shift();
+    if (dx == 0.0f || n <= 0)
+    {
+        return v;
+    }
+    static std::vector<RwIm2DVertex> s_hud;
+    s_hud.assign(v, v + n);
+    for (int i = 0; i < n; i++)
+    {
+        s_hud[i].x += dx;
+    }
+    return s_hud.data();
+}
+
 static RwIm2DVertex* im2d_widen(RwIm2DVertex* v, int n)
 {
     float k = gpu_target() ? 1.0f : gpu_widen(true);
@@ -1632,7 +1675,7 @@ RwInt32 RwIm2DRenderPrimitive(RwInt32 primType, RwIm2DVertex* v, RwInt32 n)
     }
     ProfScope prof(PROF_IM);
     begin_2d();
-    gpu_draw(im2d_state(v, n), im2d_verts(im2d_widen(v, n), n), gpu_prim(primType), NULL, 0);
+    gpu_draw(im2d_state(v, n), im2d_verts(im2d_widen(im2d_hud(v, n), n), n), gpu_prim(primType), NULL, 0);
     end_2d();
     return 1;
 }
@@ -1651,7 +1694,7 @@ RwInt32 RwIm2DRenderIndexedPrimitive(RwInt32 primType, void* vertices, RwInt32 n
                v[0].emissiveColor.blue, v[0].emissiveColor.alpha, s_rs.srcBlend, s_rs.dstBlend);
     }
     begin_2d();
-    gpu_draw(im2d_state(v, n), im2d_verts(im2d_widen(v, n), n), gpu_prim(primType), idx, ni);
+    gpu_draw(im2d_state(v, n), im2d_verts(im2d_widen(im2d_hud(v, n), n), n), gpu_prim(primType), idx, ni);
     end_2d();
     return 1;
 }

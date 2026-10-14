@@ -208,8 +208,13 @@ static float game_aspect()
 
 float gpu_widen(bool toScreen) { return toScreen && !s_target ? game_aspect() / (4.0f / 3.0f) : 1.0f; }
 static void set_viewport();
+extern "C" int pc_game_title_screen(void);
+
 void gpu_set_wide(bool on)
 {
+    // The title's backdrop is 4:3 geometry (the PC has no full-screen picture
+    // for it, unlike the New 3DS): its sides would show the scenery behind.
+    on = on && !pc_game_title_screen();
     if (s_wide != on)
     {
         s_wide = on;
@@ -445,14 +450,27 @@ void gpu_clear(PcRaster* target, const RwRGBA* col, bool depth)
         glDepthMask(GL_TRUE);
         bits |= GL_DEPTH_BUFFER_BIT;
     }
-    // Clear the whole window (letterbox bars included) for image clears.
-    if ((bits & GL_COLOR_BUFFER_BIT) && !s_target)
-    {
-        glViewport(0, 0, s_winW, s_winH);
-    }
     // The GameCube clears with an EFB copy, which ignores the write masks.
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glClear(bits);
+    if ((bits & GL_COLOR_BUFFER_BIT) && !s_target)
+    {
+        // Image clears on the window: the bars beside or above the game area
+        // black, the game area in the camera's colour.
+        GLint vp[4];
+        glGetIntegerv(GL_VIEWPORT, vp);
+        glViewport(0, 0, s_winW, s_winH);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(vp[0], vp[1], vp[2], vp[3]);
+        glClearColor(col->red / 255.0f, col->green / 255.0f, col->blue / 255.0f, col->alpha / 255.0f);
+        glClear(bits);
+        glDisable(GL_SCISSOR_TEST);
+    }
+    else
+    {
+        glClear(bits);
+    }
     set_viewport();
     bind_target(prev);
 }

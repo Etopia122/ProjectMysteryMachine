@@ -749,6 +749,15 @@ void zHud_Update(_xScene* sc, float dt)
     sHudDisplayTimer_saveDone -= dt;
 }
 
+#ifdef PC_PORT
+extern "C" void pc_render_hud_anchor(int side);
+// The side of a wide screen each element hugs (-1 left, 1 right, 0 where the
+// game put it), by its 4:3 place: health, chances, gum, gum pack and the boss
+// bar on the left; snacks, soap and the soapbox on the right; the messages
+// and the stats screen in the middle.
+static const signed char sHudSide[eHudCount] = { -1, -1, 1, -1, 1, 0, 0, 1, -1, -1 };
+#endif
+
 void zHud_Render()
 {
 #ifdef PC_PORT
@@ -757,9 +766,13 @@ void zHud_Render()
     RwCameraClear(RwEngineInstance->curCamera, NULL, 2);
     for (signed int i = 0; i < eHudCount; i++)
     {
+#ifdef PC_PORT
+        pc_render_hud_anchor(sHudSide[i]);
+#endif
         sHudElements[i].hudRender();
     }
 #ifdef PC_PORT
+    pc_render_hud_anchor(0);
     zHud_PCWarpRender();
     pc_render_hud_screen(0);
 #endif

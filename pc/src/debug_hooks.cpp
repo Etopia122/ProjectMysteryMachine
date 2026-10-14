@@ -8,6 +8,8 @@
 #include <string.h>
 
 extern "C" void pc_dbg_all_warps();
+extern "C" void pc_dbg_all_upgrades();
+extern "C" void pc_dbg_refill();
 void zEntPickup_PCWarpSetSeen(signed int seen);
 void zGameStateSwitchEvent(signed int event);
 extern "C" void pc_debug_portal(int index);
@@ -123,6 +125,15 @@ extern "C" void pc_debug_hooks_frame()
         allWarps = NULL;
         pc_dbg_all_warps();
         pc_log("[debug] all warp gates open");
+    }
+    // Debug: PC_UPGRADES=<seconds> gives every upgrade and refills (the debug menu's items).
+    static const char* upgrades = getenv("PC_UPGRADES");
+    if (upgrades && pc_ticks_ms() >= (unsigned int)(atof(upgrades) * 1000))
+    {
+        upgrades = NULL;
+        pc_dbg_all_upgrades();
+        pc_dbg_refill();
+        pc_log("[debug] all upgrades, refilled");
     }
     // Debug: PC_WARPSEEN=<seconds> counts as walking by a warp gate (no gate opens).
     static const char* warpSeen = getenv("PC_WARPSEEN");

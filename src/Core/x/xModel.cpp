@@ -498,6 +498,10 @@ extern "C" void fn_80030494(signed int mode, float enable)
     sRender2DEnabled = enable > 0.0f ? 1 : 0;
 }
 
+#ifdef PC_PORT
+extern "C" float pc_render_hud_shift();
+#endif
+
 void xModelRender2D(xModelInstance* modelInst, _xRect* sr, _xVec3* from, _xVec3* to, float fov)
 {
     float dist = 0.0f;
@@ -626,6 +630,11 @@ void xModelRender2D(xModelInstance* modelInst, _xRect* sr, _xVec3* from, _xVec3*
 
     float x = sr->x;
     float y = sr->y;
+#ifdef PC_PORT
+    // A HUD element hugging a side of a wide screen: its model moves as far
+    // as its 2D (the offset puts x at 320 + 2 * viewscaleX * (x - 320)).
+    x += pc_render_hud_shift() / (2.0f * viewscaleX);
+#endif
     offset.x = (x - 320.0f) / 320.0f * viewscaleX;
     offset.y = -((y - 240.0f) / 240.0f) * viewscaleY;
     RwCameraSetViewOffset(camera, &offset);
