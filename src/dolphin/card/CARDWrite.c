@@ -1,4 +1,6 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDWrite.c"
+#include "dolphin/card/card_dbg.h"
 
 #define OFFSET(addr, align) (((u32)(addr) & ((align)-1)))
 
@@ -54,7 +56,7 @@ after:;
         callback = card->apiCallback;
         card->apiCallback = NULL;
         __CARDPutControlBlock(card, result);
-        ASSERTLINE(0x86, callback);
+        ASSERTLINE(128, callback);
         callback(chan, result);
     }
 }
@@ -67,7 +69,7 @@ static void EraseCallback(s32 chan, s32 result) {
     card = &__CARDBlock[chan];
     if (result >= 0) {
         fileInfo = card->fileInfo;
-        ASSERTLINE(161, OFFSET(fileInfo->offset, card->sectorSize) == 0);
+        ASSERTLINE(155, OFFSET(fileInfo->offset, card->sectorSize) == 0);
         result = __CARDWrite(chan, card->sectorSize * fileInfo->iBlock, card->sectorSize, card->buffer, WriteCallback);
         if (result < 0) {
             goto after;
@@ -77,7 +79,7 @@ after:;
         callback = card->apiCallback;
         card->apiCallback = NULL;
         __CARDPutControlBlock(card, result);
-        ASSERTLINE(175, callback);
+        ASSERTLINE(169, callback);
         callback(chan, result);
     }
 }
@@ -88,16 +90,16 @@ s32 CARDWriteAsync(CARDFileInfo* fileInfo, void* buf, s32 length, s32 offset, CA
     CARDDir* dir;
     CARDDir* ent;
 
-    ASSERTLINE(210, buf && ((u32) buf % 32) == 0);
-    ASSERTLINE(211, 0 < length);
+    ASSERTLINE(204, buf && ((u32) buf % 32) == 0);
+    ASSERTLINE(205, 0 < length);
 
     result = __CARDSeek(fileInfo, length, offset, &card);
     if (result < 0) {
         return result;
     }
 
-    ASSERTLINE(217, OFFSET(offset, card->sectorSize) == 0);
-    ASSERTLINE(218, OFFSET(length, card->sectorSize) == 0);
+    ASSERTLINE(211, OFFSET(offset, card->sectorSize) == 0);
+    ASSERTLINE(212, OFFSET(length, card->sectorSize) == 0);
 
     if (OFFSET(offset, card->sectorSize) != 0 || OFFSET(length, card->sectorSize) != 0)
         return __CARDPutControlBlock(card, CARD_RESULT_FATAL_ERROR);

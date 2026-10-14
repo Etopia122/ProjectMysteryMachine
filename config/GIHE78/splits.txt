@@ -1466,6 +1466,14 @@ dolphin/card/CARDCreate.c:
 	.text       start:0x80135650 end:0x80135B08
 	.data       start:0x801DCCB0 end:0x801DCD98
 
+dolphin/card/CARDRead.c:
+	.text       start:0x80135B08 end:0x801361EC
+	.data       start:0x801DCD98 end:0x801DD020
+
+dolphin/card/CARDWrite.c:
+	.text       start:0x801361EC end:0x80136654
+	.data       start:0x801DD020 end:0x801DD148
+
 rwsdk/plugin/collis/ctgeom.c:
 	.text       start:0x801372EC end:0x80138904
 	.sdata2     start:0x802627D8 end:0x802627E8
