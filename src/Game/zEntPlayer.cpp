@@ -1084,6 +1084,25 @@ static inline void PlayerHeadAddTransition(xAnimTable* table, char* dest, xAnimT
     }
 }
 
+// Same as PlayerHeadAddTransition with the declarations merged; only the first call site
+// (ScareA) allocates its registers this way.
+static inline void PlayerHeadAddTransitionFirst(xAnimTable* table, char* dest, xAnimTransitionConditionalCallback cond,
+                                           xAnimTransitionCallback cb, unsigned int flags, unsigned int userFlags,
+                                           unsigned short priority)
+{
+    xAnimTransition* tran =
+        xAnimTableNewTransition(table, "", dest, cond, cb, flags, userFlags, 0.0f, 0.0f, priority, 0, 0.0f, NULL);
+    xAnimState* state = table->StateList;
+    while (state != NULL)
+    {
+        if (xStricmp(state->Name, tran->Dest->Name) != 0)
+        {
+            xAnimTableAddTransition(table, tran, state->Name);
+        }
+        state = state->Next;
+    }
+}
+
 static inline unsigned char PlayerIsDigging()
 {
     return globals.player.DigTimer != 0.0f;
@@ -3779,7 +3798,7 @@ xAnimTable* zEntPlayer_HeadAnimTable()
     xAnimTableNewState(table, "LickFace", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
     xAnimTableNewState(table, "WinkGrin", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
     xAnimTableNewTransition(table, "LickFace WinkGrin", "Idle", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
-    PlayerHeadAddTransition(table, "ScareA", FaceScare, NULL, 0, 0, 6);
+    PlayerHeadAddTransitionFirst(table, "ScareA", FaceScare, NULL, 0, 0, 6);
     PlayerHeadAddTransition(table, "ScareB", FaceScare, NULL, 0, 1, 6);
     PlayerHeadAddTransition(table, "ScareC", FaceScare, NULL, 0, 2, 6);
     PlayerHeadAddTransition(table, "ScareD", FaceScare, NULL, 0, 3, 6);
