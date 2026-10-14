@@ -1019,7 +1019,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
         iModelAnimMatrices(ent->model->Data, quat, tran, ent->model->Mat + 1);
     }
 
-    if (ent->shake_timer != 0.0f)
+    if (ent->shake_timer)
     {
         ent->shake_timer -= dt;
         if (ent->shake_timer < 0.0f)

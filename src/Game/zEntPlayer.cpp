@@ -2292,7 +2292,7 @@ static unsigned int NosneakPlunger(xAnimTransition* tran, xAnimSingle* anim, voi
 static unsigned int ScareCheck(xAnimTransition* tran, xAnimSingle* anim, void* data)
 {
     unsigned char ret = 0;
-    if (globals.player.ScareTimer != 0.0f && HealthCheck(tran, anim, data))
+    if (globals.player.ScareTimer && HealthCheck(tran, anim, data))
     {
         ret = 1;
     }
@@ -2957,7 +2957,7 @@ static unsigned int FallToDeathStart(xAnimTransition*, xAnimSingle*, void*)
 
 static unsigned int FallToDeathDrop(xAnimTransition* tran, xAnimSingle* anim, void* data)
 {
-    return !FallToDeathStart(tran, anim, data);
+    return !globals.player.FallDeathTimer;
 }
 
 static unsigned int FallToDeathDropCB(xAnimTransition*, xAnimSingle*, void*)
