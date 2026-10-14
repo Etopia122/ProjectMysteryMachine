@@ -33,12 +33,19 @@ static void camera_update_frustum(RwCamera* c)
     for (int k = 0; k < 2; k++)
     {
         float z = zs[k];
-        float sx = c->projectionType == rwPARALLEL ? 1.0f : z;
+        bool parallel = c->projectionType == rwPARALLEL;
+        float sx = parallel ? 1.0f : z;
         float xs[4] = { ox + vx, ox - vx, ox - vx, ox + vx };
         float ys[4] = { oy + vy, oy + vy, oy - vy, oy - vy };
+        // A perspective view offset shears (rw_render's projection): at depth z
+        // the window's centre is at x = ox * (z - 1) (camera x points left on
+        // screen) and y = -oy * (z - 1), its half-size vx * z by vy * z. HUD
+        // models drawn far off-centre (xModelRender2D on a wide screen) stay in.
+        float cx = parallel ? 0.0f : ox * (z - 1.0f) - ox * z;
+        float cy = parallel ? 0.0f : -oy * (z - 1.0f) - oy * z;
         for (int i = 0; i < 4; i++)
         {
-            float x = xs[i] * sx, y = ys[i] * sx;
+            float x = xs[i] * sx + cx, y = ys[i] * sx + cy;
             RwV3d* o = &c->frustumCorners[k * 4 + i];
             o->x = m->right.x * x + m->up.x * y + m->at.x * z + m->pos.x;
             o->y = m->right.y * x + m->up.y * y + m->at.y * z + m->pos.y;

@@ -632,8 +632,11 @@ void xModelRender2D(xModelInstance* modelInst, _xRect* sr, _xVec3* from, _xVec3*
     float y = sr->y;
 #ifdef PC_PORT
     // A HUD element hugging a side of a wide screen: its model moves as far
-    // as its 2D (the offset puts x at 320 + 2 * viewscaleX * (x - 320)).
-    x += pc_render_hud_shift() / (2.0f * viewscaleX);
+    // as its 2D. The view offset puts the model, dist away, at
+    // 320 + 2 * viewscaleX * (1 - 1/dist) * (x - 320) on the 640-wide screen
+    // (it shears: points move by offset * (1 - 1/z)).
+    float shear = dist > 1.0f ? 1.0f - 1.0f / dist : 1.0f;
+    x += pc_render_hud_shift() / (2.0f * viewscaleX * shear);
 #endif
     offset.x = (x - 320.0f) / 320.0f * viewscaleX;
     offset.y = -((y - 240.0f) / 240.0f) * viewscaleY;
