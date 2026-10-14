@@ -83,17 +83,18 @@ const RwChar* _rwStringStreamWrite(const RwChar* string, RwStream* stream) {
 }
 
 static inline RwChar* StringStreamReadAscii(RwChar* string, RwStream* stream, RwUInt32 length) {
+    RwChar* result = string;
     RwChar* dst;
 
     if (!string) {
-        string = (RwChar*)RwMalloc(length);
-        if (!string) {
+        result = (RwChar*)RwMalloc(length);
+        if (!result) {
             RWERROR((E_RW_NOMEM, length));
             return NULL;
         }
     }
 
-    dst = string;
+    dst = result;
     while (length) {
         RwChar buffer[64];
         RwUInt32 chunk = 64;
@@ -114,23 +115,24 @@ static inline RwChar* StringStreamReadAscii(RwChar* string, RwStream* stream, Rw
         dst += chunk;
     }
 
-    return string;
+    return result;
 }
 
 static inline RwChar* StringStreamReadUnicode(RwChar* string, RwStream* stream, RwUInt32 length) {
     RwBool allocated = FALSE;
+    RwChar* result = string;
     RwChar* dst;
 
     if (!string) {
-        string = (RwChar*)RwMalloc(length);
-        if (!string) {
+        result = (RwChar*)RwMalloc(length);
+        if (!result) {
             RWERROR((E_RW_NOMEM, length));
             return NULL;
         }
         allocated = TRUE;
     }
 
-    dst = string;
+    dst = result;
     while (length) {
         RwUInt16 buffer[64];
         RwUInt32 chunk = 128;
@@ -143,7 +145,7 @@ static inline RwChar* StringStreamReadUnicode(RwChar* string, RwStream* stream, 
 
         if (RwStreamRead(stream, buffer, chunk) != chunk) {
             if (allocated) {
-                RwFree(string);
+                RwFree(result);
             }
             return NULL;
         }
@@ -156,7 +158,7 @@ static inline RwChar* StringStreamReadUnicode(RwChar* string, RwStream* stream, 
         dst += count;
     }
 
-    return string;
+    return result;
 }
 
 RwChar* _rwStringStreamFindAndRead(RwChar* string, RwStream* stream) {
@@ -201,6 +203,7 @@ RwUInt32 RwTextureStreamGetSize(const RwTexture* texture) {
 }
 
 const RwTexture* RwTextureStreamWrite(const RwTexture* texture, RwStream* stream) {
+    RwUInt8 flags;
     _rwStreamTexture texFiltAddr;
 
     if (!RwStreamWriteChunkHeader(stream, rwID_TEXTURE, RwTextureStreamGetSize(texture))) {
@@ -211,9 +214,12 @@ const RwTexture* RwTextureStreamWrite(const RwTexture* texture, RwStream* stream
         return NULL;
     }
 
-    texFiltAddr.filterAndAddress =
-        ((RwUInt8)(texture->raster && !(texture->raster->cFormat & (rwRASTERFORMATAUTOMIPMAP >> 8))) << 16) |
-        (texture->filterAddressing & 0xFFFF);
+    if (texture->raster && !(texture->raster->cFormat & (rwRASTERFORMATAUTOMIPMAP >> 8))) {
+        flags = 1;
+    } else {
+        flags = 0;
+    }
+    texFiltAddr.filterAndAddress = (texture->filterAddressing & 0xFFFF) | (flags << 16);
     RwMemLittleEndian32(&texFiltAddr, sizeof(texFiltAddr));
 
     if (!RwStreamWrite(stream, &texFiltAddr, sizeof(texFiltAddr))) {
@@ -247,7 +253,8 @@ RwTexture* RwTextureStreamRead(RwStream* stream) {
         RwChar textureName[128];
         RwChar textureMask[128];
         _rwStreamTexture texFiltAddr;
-        RwUInt32 filtering;
+        RwInt32 filtering;
+        RwUInt32 addressU;
         RwUInt32 flags;
         RwBool mipmapState;
         RwBool autoMipmapState;
@@ -261,8 +268,9 @@ RwTexture* RwTextureStreamRead(RwStream* stream) {
         RwMemNative32(&texFiltAddr, sizeof(texFiltAddr));
 
         filtering = texFiltAddr.filterAndAddress & 0xFF;
+        addressU = (texFiltAddr.filterAndAddress >> 8) & 0xF;
         if (!((texFiltAddr.filterAndAddress >> 12) & 0xF)) {
-            texFiltAddr.filterAndAddress |= ((texFiltAddr.filterAndAddress >> 8) & 0xF) << 12;
+            texFiltAddr.filterAndAddress |= (addressU << 12) & 0xF000;
         }
         flags = (texFiltAddr.filterAndAddress >> 16) & 0xFF;
 
@@ -281,13 +289,13 @@ RwTexture* RwTextureStreamRead(RwStream* stream) {
             RwTextureSetAutoMipmapping(FALSE);
         }
 
-        if (!_rwStringStreamFindAndRead(textureName, stream)) {
+        if (!_rwStringStreamFindAndRead((RwChar*)textureName, stream)) {
             RwTextureSetMipmapping(mipmapState);
             RwTextureSetAutoMipmapping(autoMipmapState);
             return NULL;
         }
 
-        if (!_rwStringStreamFindAndRead(textureMask, stream)) {
+        if (!_rwStringStreamFindAndRead((RwChar*)textureMask, stream)) {
             RwTextureSetMipmapping(mipmapState);
             RwTextureSetAutoMipmapping(autoMipmapState);
             return NULL;
