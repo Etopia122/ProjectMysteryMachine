@@ -864,6 +864,7 @@ config.libs = [
             Object(NonMatching, "bink/binkacd.c"),
             Object(NonMatching, "bink/yuv.cpp"),
             Object(NonMatching, "bink/idct.c"),
+            Object(NonMatching, "bink/bink.c"),
         ],
     },
     {
