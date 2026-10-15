@@ -865,6 +865,7 @@ config.libs = [
             Object(NonMatching, "bink/yuv.cpp"),
             Object(NonMatching, "bink/idct.c"),
             Object(NonMatching, "bink/bink.c"),
+            Object(Matching, "bink/binkfile.c"),
         ],
     },
     {
