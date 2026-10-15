@@ -463,11 +463,11 @@ void BinkClose(BINK* bink)
         sndh = bink_sndcbhandler;
     switch (RADCB_unregister_2_callbacks(ioh, bink->bio.cb, sndh, bink->soundcb, 1))
     {
-        case 2:
-            bink_sndcbhandler = 0;
-            break;
         case 1:
             bink_cbhandler = 0;
+            break;
+        case 2:
+            bink_sndcbhandler = 0;
             break;
         case 3:
             bink_sndcbhandler = 0;
