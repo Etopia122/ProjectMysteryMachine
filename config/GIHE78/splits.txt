@@ -1455,6 +1455,9 @@ bink/radutil.c:
 	.text       start:0x80111EC0 end:0x801123B4
 	.sdata      start:0x8025E6F8 end:0x8025E710
 
+bink/yuv.cpp:
+	.text       start:0x801184CC end:0x8011F78C
+
 bink/binkacd.c:
 	.text       start:0x8011F78C end:0x80120470
 	.rodata     start:0x801A8730 end:0x801A8798
