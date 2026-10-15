@@ -673,6 +673,180 @@ void YUV_blit(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U
         yuv_rowfn(sx, w);
 }
 
+extern S32 yuv_inited;
+extern S32 yuv_type;
+extern S32 yuv_yprime4[256];
+extern U32 yuv_clip[776];
+extern U32 yuv_y16x2[256];
+extern U32 yuv_fmt16[16];
+extern U32 yuv_b16h[776];
+extern U32 yuv_g16h[776];
+extern U32 yuv_r16h[776];
+extern U32 yuv_b16x2[776];
+extern U32 yuv_g16x2[776];
+extern U32 yuv_r16x2[776];
+
+extern "C" void YUV_init(S32 type)
+{
+    S32 i;
+    U32 c, p, white, bmask, gmask, rmask;
+    U32 bbits, gbits, rbits, rshift, bsh, gsh, rsh, bshl;
+
+    if (!yuv_inited)
+    {
+        for (i = 0; i < 256; i++)
+        {
+            if (i > 16)
+            {
+                if (i <= 234)
+                    yuv_yprime[i] = ((i - 16) * 0x950A) / 32768;
+                else
+                    yuv_yprime[i] = 254;
+            }
+            else
+                yuv_yprime[i] = 0;
+            yuv_yprime4[i] = yuv_yprime[i] << 2;
+            yuvt.vg.t[i] = -(((i - 128) * 0x680F) / 32768);
+            yuvt.ug.t[i] = -(((i - 128) * 0x3225) / 32768);
+            yuvt.vr.t[i] = ((i - 128) * 0xCC4B) / 32768;
+            yuvt.ub.t[i] = ((i - 128) * 0x10235) / 32768;
+        }
+        for (i = 0; i < 256; i++)
+        {
+            yuv_clip[i] = 0;
+            yuv_clip[i + 256] = i;
+            yuv_clip[i + 512] = 255;
+            yuv_yclip[i] = &yuv_clip[256 + yuv_yprime[i]];
+        }
+        yuv_inited = 1;
+        yuvsave = yuvt;
+    }
+
+    if (yuv_type == type || type == -1)
+        return;
+    yuv_type = type;
+
+    switch (type)
+    {
+    case 10:
+        bbits = 5;
+        bshl = 0;
+        gbits = 6;
+        rbits = 5;
+        rshift = 11;
+        break;
+    case 8:
+    case 9:
+        gbits = 5;
+        bbits = 5;
+        bshl = 0;
+        rbits = 5;
+        rshift = 10;
+        break;
+    case 7:
+        gbits = 4;
+        bbits = 4;
+        bshl = 0;
+        rbits = 4;
+        rshift = 8;
+        break;
+    case 12:
+        gbits = 6;
+        bbits = 6;
+        bshl = 0;
+        rbits = 4;
+        rshift = 12;
+        break;
+    case 11:
+        bbits = 6;
+        bshl = 0;
+        gbits = 5;
+        rbits = 5;
+        rshift = 11;
+        break;
+    default:
+        gbits = 0;
+        bbits = 0;
+        bshl = 0;
+        rbits = 0;
+        rshift = 0;
+        break;
+    }
+
+    gsh = 8 - gbits;
+    rsh = 8 - rbits;
+    bsh = 8 - bbits;
+    bmask = (1 << bbits) - 1;
+    white = (0xFF >> bsh) | ((0xFF >> gsh) << bbits) | ((0xFF >> rsh) << rshift);
+    gmask = ((1 << gbits) - 1) << bbits;
+    rmask = ((1 << rbits) - 1) << rshift;
+    yuv_fmt16[0] = bshl;
+    yuv_fmt16[1] = 0;
+    yuv_fmt16[2] = bbits;
+    yuv_fmt16[3] = 0;
+    yuv_fmt16[4] = rshift;
+    yuv_fmt16[5] = 0;
+    yuv_fmt16[6] = bsh;
+    yuv_fmt16[7] = 0;
+    yuv_fmt16[8] = gsh;
+    yuv_fmt16[9] = 0;
+    yuv_fmt16[10] = rsh;
+    yuv_fmt16[11] = 0;
+
+    for (i = 0; i < 256; i++)
+    {
+        if (i <= 16)
+        {
+            yuv_y16[i] = 0;
+            yuv_y16x2[i] = 0;
+            yuv_ytab[i] = 0;
+        }
+        else if (i > 234)
+        {
+            yuv_y16[i] = white;
+            yuv_y16x2[i] = white | (white << 16);
+            yuv_ytab[i] = 0xFFFFFF;
+        }
+        else
+        {
+            c = ((i - 16) * 255) / 219;
+            p = (c >> bsh) | ((c >> gsh) << bbits) | ((c >> rsh) << rshift);
+            yuv_y16x2[i] = p | (p << 16);
+            yuv_ytab[i] = (c << 16) | (c << 8) | c;
+            yuv_y16[i] = p;
+        }
+        yuv_b16[i] = 0;
+        yuv_g16[i] = 0;
+        yuv_r16[i] = 0;
+        yuv_b16[i + 256] = i >> bsh;
+        yuv_g16[i + 256] = (i >> gsh) << bbits;
+        yuv_r16[i + 256] = (i >> rsh) << rshift;
+        yuv_b16[i + 512] = bmask;
+        yuv_g16[i + 512] = gmask;
+        yuv_r16[i + 512] = rmask;
+        yuv_b16h[i] = yuv_b16[i] << 16;
+        yuv_g16h[i] = yuv_g16[i] << 16;
+        yuv_r16h[i] = yuv_r16[i] << 16;
+        yuv_b16h[i + 256] = yuv_b16[i + 256] << 16;
+        yuv_g16h[i + 256] = yuv_g16[i + 256] << 16;
+        yuv_r16h[i + 256] = yuv_r16[i + 256] << 16;
+        yuv_b16h[i + 512] = bmask << 16;
+        yuv_g16h[i + 512] = gmask << 16;
+        yuv_r16h[i + 512] = rmask << 16;
+        yuv_b16x2[i] = 0;
+        yuv_g16x2[i] = 0;
+        yuv_r16x2[i] = 0;
+        yuv_b16x2[i + 256] = yuv_b16[i + 256] * 0x10001;
+        yuv_g16x2[i + 256] = yuv_g16[i + 256] * 0x10001;
+        yuv_r16x2[i + 256] = yuv_r16[i + 256] * 0x10001;
+        yuv_b16x2[i + 512] = bmask * 0x10001;
+        yuv_g16x2[i + 512] = gmask * 0x10001;
+        yuv_r16x2[i + 512] = rmask * 0x10001;
+        yuv_a16[i] = (i >> 5) << 12;
+    }
+}
+
+
 extern "C" void YUV_blit_32bpp(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy, U32 flags)
 {
     YUV_blit(dst, dx, dy, pitch, src, sx, sy, w, h, stride, uvy, flags, 0, &blits32);
