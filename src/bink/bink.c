@@ -60,6 +60,38 @@ void YUV_blit_16a4bpp_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 m
 void YUV_blit_YUY2_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx, U32 sy,
                         U32 w, U32 h, U32 stride, U32 uvy, U32 flags);
 
+typedef struct BINKHDR
+{
+    U32 Marker;
+    U32 Size;
+    U32 Frames;
+    U32 LargestFrameSize;
+    U32 InternalFrames;
+    U32 Width;
+    U32 Height;
+    U32 FrameRate;
+    U32 FrameRateDiv;
+    U32 Flags;
+    U32 NumTracks;
+} BINKHDR;
+
+typedef S32 (*BINKIOOPEN)(BINKIO* bio, const char* name, U32 flags);
+typedef S32 (*BINKSNDOPEN)(BINKSND* snd, U32 freq, S32 bits, S32 chans, U32 flags, BINK* bink);
+S32 BinkFileOpen(BINKIO* bio, const char* name, U32 flags);
+void pushmalloc(void* ptr, U32 bytes);
+void ExpandBundleSizes(U32* sizes, U32 width);
+U32 BinkOpenNGCSound(U32 param);
+void* RADCB_allocate_handler(U32 hz);
+void RADCB_resume_handler(void* h);
+void RADCB_register_callback(void* h, void* cb, void* check, void* func);
+U32 high1secrate(S32 frames, U32* offsets, S32 rate, U32* frame, U32* allkeys);
+U32 bink_get_priority_sound(U8* cb, U32 ticks);
+void bink_sound_callback(U8* cb, U32 ticks);
+void bink_suspend_io(U8* bio);
+void bink_try_suspend_io(U8* bio);
+void bink_resume_io(U8* bio);
+void bink_idle_on_io(void);
+
 extern char bink_error[256];
 extern BINKSNDSYSOPEN bink_sndsysopen;
 extern U32 bink_sndsys;
@@ -348,6 +380,369 @@ void bink_sound_callback(U8* cb, U32 ticks)
         checksound(bink);
     bink->soundticks = ticks;
 }
+
+BINK* BinkOpen(const char* name, U32 flags)
+{
+    BINK b;
+    BINKHDR h;
+    BINK* bink;
+    BINKIOOPEN open = BinkFileOpen;
+    U32 scale, sim, size, i, freq, type;
+    S32 j;
+    U32 allkeys;
+
+    if (!(flags & 0x4000))
+    {
+        bink_numtracks = 1;
+        bink_tracks[0] = 0;
+    }
+    memset(&b, 0, sizeof(b));
+    b.totalopentime = RADTimerRead();
+    bink_error[0] = 0;
+    if (flags & 0x4000000)
+    {
+        h = *(BINKHDR*)name;
+    }
+    else
+    {
+        if ((flags & 0x2000000) && bink_io)
+            open = (BINKIOOPEN)bink_io;
+        bink_io = 0;
+        if (!open(&b.bio, name, flags))
+        {
+            if (bink_error[0] == 0)
+                BinkSetError("Error opening file.");
+            return 0;
+        }
+        b.bio.ReadHeader(&b.bio, 0, &h, sizeof(h));
+    }
+
+    if (h.Marker != 'fKIB' && h.Marker != 'gKIB' && h.Marker != 'hKIB' && h.Marker != 'iKIB')
+    {
+        BinkSetError("Not a Bink file.");
+    fail:
+        if (!(flags & 0x4000000))
+            b.bio.Close(&b.bio);
+        return 0;
+    }
+    if (h.Frames == 0)
+    {
+        BinkSetError("The file doesn't contain any compressed frames yet.");
+        goto fail;
+    }
+
+    b.Width = h.Width;
+    b.Height = h.Height;
+    b.decompwidth = h.Width;
+    b.decompheight = h.Height;
+    b.BinkType = h.Flags;
+    b.UVWidth = (((h.Width + 1) >> 1) + 7) & ~7;
+    b.UVHeight = (((h.Height + 1) >> 1) + 7) & ~7;
+    b.YWidth = b.UVWidth * 2;
+    b.YHeight = b.UVHeight * 2;
+    b.MaskPitch = b.YWidth >> 4;
+    b.OpenFlags = (flags & 0x8FFFFFFF) | (h.Flags & 0x20000);
+    if (!(h.Flags & 0x100000))
+        b.OpenFlags &= ~0x100000;
+    scale = flags & 0x70000000;
+    if (scale != 0x70000000)
+    {
+        if (scale)
+            b.OpenFlags |= scale;
+        else
+            b.OpenFlags |= h.Flags & 0x70000000;
+        switch (b.OpenFlags & 0x70000000)
+        {
+        case 0x10000000:
+        case 0x20000000:
+            b.Height *= 2;
+            break;
+        case 0x30000000:
+            b.Width *= 2;
+            break;
+        case 0x40000000:
+        case 0x50000000:
+            b.Width *= 2;
+            b.Height *= 2;
+            break;
+        }
+    }
+    if (h.Marker == 'fKIB' || h.Marker == 'gKIB')
+        b.OpenFlags |= 0x18000;
+    else if (h.Marker == 'hKIB')
+        b.OpenFlags |= 0x8000;
+    b.Frames = h.Frames;
+    b.InternalFrames = h.InternalFrames;
+    if ((flags & 0x1000) && bink_forceframerate != (U32)-1)
+    {
+        b.FrameRate = bink_forceframerate;
+        b.FrameRateDiv = bink_forceframeratediv;
+        bink_forceframerate = -1;
+    }
+    else
+    {
+        b.FrameRate = h.FrameRate;
+        b.FrameRateDiv = h.FrameRateDiv;
+    }
+    b.Size = h.Size;
+    b.NumTracks = h.NumTracks;
+    b.LargestFrameSize = h.LargestFrameSize;
+    b.fileframerate = h.FrameRate;
+    b.fileframeratediv = h.FrameRateDiv;
+    b.rtframes = (h.FrameRate + (h.FrameRateDiv >> 1)) / h.FrameRateDiv;
+    b.MaskLength = ((b.YWidth >> 4) * b.YHeight) >> 4;
+    if (b.rtframes == 0)
+        b.rtframes = 1;
+    b.rtsize = (b.rtframes - 1) * 4;
+
+    pushmalloc(&b.MaskPlane, b.MaskLength + 16);
+    pushmalloc(&b.rtframetimes, b.rtframes * 4);
+    pushmalloc(&b.rtadecomptimes, b.rtframes * 4);
+    pushmalloc(&b.rtvdecomptimes, b.rtframes * 4);
+    pushmalloc(&b.rtblittimes, b.rtframes * 4);
+    pushmalloc(&b.rtreadtimes, b.rtframes * 4);
+    pushmalloc(&b.rtidlereadtimes, b.rtframes * 4);
+    pushmalloc(&b.rtthreadreadtimes, b.rtframes * 4);
+    pushmalloc(&b.bsnd, bink_numtracks ? bink_numtracks * sizeof(BINKSND) : sizeof(BINKSND));
+    pushmalloc(&b.trackindexes, bink_numtracks * 4);
+    ExpandBundleSizes(b.expanddata, b.YWidth);
+    pushmalloc(&b.expanddata[0], b.expanddata[0]);
+    pushmalloc(&b.expanddata[1], b.expanddata[1]);
+    pushmalloc(&b.expanddata[2], b.expanddata[2]);
+    pushmalloc(&b.expanddata[3], b.expanddata[3]);
+    pushmalloc(&b.expanddata[4], b.expanddata[4]);
+    pushmalloc(&b.expanddata[5], b.expanddata[5]);
+    pushmalloc(&b.expanddata[6], b.expanddata[6]);
+    pushmalloc(&b.expanddata[7], b.expanddata[7]);
+    pushmalloc(&b.expanddata[8], b.expanddata[8]);
+    if (!(flags & 0x4000000))
+    {
+        pushmalloc(&b.frameoffsets, (b.InternalFrames + 1) * 4);
+        pushmalloc(&b.tracksizes, b.NumTracks * 4);
+        pushmalloc(&b.tracktypes, b.NumTracks * 4);
+        pushmalloc(&b.trackIDs, b.NumTracks * 4);
+    }
+
+    bink = (BINK*)bpopmalloc(&b, sizeof(BINK));
+    if (bink == 0)
+    {
+    oom:
+        BinkSetError("Out of memory.");
+        goto fail;
+    }
+    *bink = b;
+    bink->bio.bink = bink;
+    bink->rtadecomptimes[0] = 0;
+    bink->rtvdecomptimes[0] = 0;
+    bink->rtblittimes[0] = 0;
+    bink->rtreadtimes[0] = 0;
+    bink->rtidlereadtimes[0] = 0;
+    bink->rtthreadreadtimes[0] = 0;
+    if (flags & 0x4000000)
+    {
+        bink->tracksizes = (U32*)name + 11;
+        bink->tracktypes = (U32*)name + 11 + bink->NumTracks;
+        bink->trackIDs = (S32*)name + 11 + bink->NumTracks * 2;
+        bink->frameoffsets = (U32*)name + 11 + bink->NumTracks * 3;
+    }
+    else
+    {
+        bink->bio.ReadHeader(&bink->bio, -1, bink->tracksizes, bink->NumTracks * 4);
+        bink->bio.ReadHeader(&bink->bio, -1, bink->tracktypes, bink->NumTracks * 4);
+        bink->bio.ReadHeader(&bink->bio, -1, bink->trackIDs, bink->NumTracks * 4);
+        bink->bio.ReadHeader(&bink->bio, -1, bink->frameoffsets, (bink->InternalFrames + 1) * 4);
+    }
+    bink->Highest1SecRate =
+        high1secrate(bink->Frames, bink->frameoffsets, bink->rtframes, &bink->Highest1SecFrame, &allkeys);
+    if (bink->OpenFlags & 0x100000)
+    {
+        pushmalloc(&bink->APlane[0], bink->YWidth * bink->YHeight);
+        if (allkeys == 0)
+            pushmalloc(&bink->APlane[1], bink->YWidth * bink->YHeight);
+    }
+    if (allkeys == 0)
+        pushmalloc(&bink->YPlane[1], bink->YWidth * bink->YHeight + bink->UVWidth * bink->UVHeight * 2);
+    bink->YPlane[0] = bpopmalloc(bink, bink->YWidth * bink->YHeight + bink->UVWidth * bink->UVHeight * 2);
+    if (bink->YPlane[0] == 0)
+    {
+    freebink:
+        radfree(bink);
+        goto oom;
+    }
+    if (allkeys)
+    {
+        bink->YPlane[1] = bink->YPlane[0];
+        bink->APlane[1] = bink->APlane[0];
+    }
+    if ((flags & 0x1000000) && bink_iosize != (U32)-1)
+    {
+        bink->iosize = bink_iosize;
+        bink_iosize = -1;
+    }
+    else
+    {
+        bink->iosize = bink->Highest1SecRate;
+    }
+    if ((flags & 0x400000) && bink_simulate != (U32)-1)
+    {
+        sim = bink_simulate;
+        bink_simulate = -1;
+    }
+    else
+    {
+        sim = 0;
+    }
+
+    if (flags & 0x4000000)
+    {
+        bink->preloadptr = (U8*)name + (bink->frameoffsets[0] & ~1);
+    }
+    else
+    {
+        bink->iosize = bink->bio.GetBufferSize(&bink->bio, bink->iosize);
+        if (bink->iosize >= bink->Size * 9 / 10)
+        {
+            flags |= 0x2000;
+            bink->OpenFlags |= 0x2000;
+        }
+        if (flags & 0x2000)
+        {
+            {
+                U32 start = (bink->frameoffsets[0] & ~1) - 8;
+                size = bink->Size - start;
+            }
+            bink->preloadptr = bpopmalloc(bink, size);
+            if (bink->preloadptr == 0)
+            {
+                radfree(b.YPlane[0]);
+                goto freebink;
+            }
+            bink->bio.SetInfo(&bink->bio, 0, 0, bink->Size + 8, sim);
+            bink->bio.ReadFrame(&bink->bio, 0, bink->frameoffsets[0] & ~1, bink->preloadptr, size);
+            bink->bio.Close(&bink->bio);
+            bink->bio.ForegroundTime = 0;
+        }
+        else
+        {
+            pushmalloc(&bink->compframe, bink->LargestFrameSize);
+            bink->iobuf = bpopmalloc(bink, bink->iosize);
+            if (bink->iobuf == 0)
+                bink->iosize = 0;
+            bink->bio.SetInfo(&bink->bio, bink->iobuf, bink->iosize, bink->Size + 8, sim);
+        }
+    }
+
+    bink->MaskPlane[bink->MaskLength] = 0;
+    bink->FrameNum = -1;
+    if (bink->FrameRate)
+        bink->timerslop = mult64anddiv(2000, bink->FrameRateDiv, bink->FrameRate);
+    else
+        bink->timerslop = 2000;
+    bink->videoon = 1;
+    GotoFrame(bink, 1);
+    bink->totalopentime = RADTimerRead() - bink->totalopentime;
+    bink->bsnd[0].sndrateadj = 0x10000;
+    bink->playingtracks = 0;
+    if (bink->NumTracks && bink_numtracks)
+    {
+        for (i = 0; i < bink_numtracks; i++)
+        {
+            for (j = 0; j < bink->NumTracks; j++)
+            {
+                if (bink->trackIDs[j] == bink_tracks[i])
+                {
+                    bink->trackindexes[bink->playingtracks++] = j;
+                    break;
+                }
+            }
+        }
+    }
+    bink_tracks[0] = 0;
+    bink_numtracks = 1;
+
+    for (i = 0; i < bink->playingtracks;)
+    {
+        if ((S32)bink->tracktypes[bink->trackindexes[i]] < 0 || (bink->tracktypes[bink->trackindexes[i]] & 0x10000000))
+        {
+            if (bink_sndsys == 0)
+                BinkSetSoundSystem(BinkOpenNGCSound, 0);
+            bink->bsnd[i].sndbuf = 0;
+            if (bink_sndsys)
+            {
+                freq = bink->tracktypes[bink->trackindexes[i]] & 0xFFFF;
+                if (b.FrameRate && b.FrameRateDiv)
+                    freq = (U32)(((double)freq * b.FrameRate * b.fileframeratediv) /
+                                 ((double)b.FrameRateDiv * b.fileframerate));
+                if (((BINKSNDOPEN)bink_sndsys)(&bink->bsnd[i], freq,
+                                              ((bink->tracktypes[bink->trackindexes[i]] >> 27) & 8) + 8,
+                                              ((bink->tracktypes[bink->trackindexes[i]] >> 29) & 1) + 1,
+                                              bink->OpenFlags, bink))
+                {
+                    if (bink->bsnd[i].sndalign == 0)
+                        bink->bsnd[i].sndalign = -1;
+                    bink->bsnd[i].sndbufsize = (bink->tracksizes[bink->trackindexes[i]] + 255) & ~255;
+                    bink->bsnd[i].sndbuf = bpopmalloc(bink, bink->bsnd[i].sndbufsize);
+                    if (bink->bsnd[i].sndbuf == 0)
+                    {
+                        bink->bsnd[i].Close(&bink->bsnd[i]);
+                    }
+                    else
+                    {
+                        bink_sndopencount++;
+                        bink->bsnd[i].sndconvert8 = (((bink->tracktypes[bink->trackindexes[i]] >> 27) & 8) + 8) == 8;
+                        bink->bsnd[i].sndend = bink->bsnd[i].sndbuf + bink->bsnd[i].sndbufsize;
+                        bink->bsnd[i].sndwritepos = bink->bsnd[i].sndbuf;
+                        bink->bsnd[i].sndreadpos = bink->bsnd[i].sndbuf;
+                        bink->bsnd[i].sndprime =
+                            mult64anddiv((freq << ((bink->tracktypes[bink->trackindexes[i]] >> 29) & 1)) << 1,
+                                         750 - bink->bsnd[i].latency, 1000) &
+                            ~3;
+                        if (bink->bsnd[i].sndprime > bink->bsnd[i].sndbufsize)
+                            bink->bsnd[i].sndprime = bink->bsnd[i].sndbufsize;
+                        type = bink->tracktypes[bink->trackindexes[i]];
+                        bink->bsnd[i].ac = BinkAudioDecompressOpen(type & 0xFFFF, ((type >> 29) & 1) + 1,
+                                                                   ((S32)type >= 0 && (type & 0x10000000)) ? 1 : 0);
+                        bink->bsnd[i].sndendframe =
+                            bink->Frames - (bink->fileframerate * 3) / (bink->fileframeratediv * 4);
+                        bink->bsnd[i].sndamt = 0;
+                    }
+                }
+            }
+        }
+        if (bink->bsnd[i].sndrateadj == 0)
+            bink->bsnd[i].sndrateadj = 0x10000;
+        if (bink->bsnd[i].sndbuf == 0)
+        {
+            bink->playingtracks--;
+            memcpy(&bink->trackindexes[i], &bink->trackindexes[i + 1], (bink->playingtracks - i) * 4);
+        }
+        else
+        {
+            i++;
+        }
+    }
+    if (bink->playingtracks)
+    {
+        bink->soundon = 1;
+        if (bink_sndcbhandler == 0)
+        {
+            bink_sndcbhandler = RADCB_allocate_handler(20);
+            RADCB_resume_handler(bink_sndcbhandler);
+        }
+        RADCB_register_callback(bink_sndcbhandler, bink->soundcb, bink_get_priority_sound, bink_sound_callback);
+    }
+    bink->bio.resume_callback = bink_resume_io;
+    bink->bio.suspend_callback = bink_suspend_io;
+    bink->bio.try_suspend_callback = bink_try_suspend_io;
+    bink->bio.idle_on_callback = bink_idle_on_io;
+    if (bink->preloadptr == 0 && !(flags & 0x200000))
+    {
+        while (bink->bio.Idle(&bink->bio))
+            ;
+    }
+    return bink;
+}
+
 
 void BinkCopyToBuffer(BINK* bink, void* dest, S32 destpitch, U32 destheight, U32 destx, U32 desty, U32 flags)
 {

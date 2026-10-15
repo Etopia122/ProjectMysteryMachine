@@ -26,18 +26,22 @@ typedef void (*BINKSNDPAUSE)(BINKSND* snd, S32 pause);
 typedef S32 (*BINKSNDONOFF)(BINKSND* snd, S32 onoff);
 typedef void (*BINKSNDCLOSE)(BINKSND* snd);
 typedef struct BINKIO BINKIO;
+typedef U32 (*BINKIOREADHEADER)(BINKIO* bio, S32 offset, void* dest, U32 size);
 typedef U32 (*BINKIOREADFRAME)(BINKIO* bio, U32 frame, S32 origofs, void* dest, U32 size);
+typedef U32 (*BINKIOGETBUFFERSIZE)(BINKIO* bio, U32 size);
+typedef void (*BINKIOSETINFO)(BINKIO* bio, void* buf, U32 size, U32 filesize, U32 simulate);
 typedef void (*BINKIOCLOSE)(BINKIO* bio);
 typedef S32 (*BINKIOIDLE)(BINKIO* bio);
 
 struct BINKIO
 {
-    void* ReadHeader; /* 0x0 */
+    BINKIOREADHEADER ReadHeader; /* 0x0 */
     BINKIOREADFRAME ReadFrame; /* 0x4 */
-    U8 pad8[0x8];
+    BINKIOGETBUFFERSIZE GetBufferSize; /* 0x8 */
+    BINKIOSETINFO SetInfo; /* 0xC */
     BINKIOIDLE Idle; /* 0x10 */
     BINKIOCLOSE Close; /* 0x14 */
-    U8 pad18[0x4];
+    void* bink; /* 0x18 */
     volatile U32 ReadError; /* 0x1C */
     volatile U32 DoingARead; /* 0x20 */
     volatile U32 BytesRead; /* 0x24 */
@@ -50,7 +54,11 @@ struct BINKIO
     volatile U32 BufHighUsed; /* 0x40 */
     volatile U32 CurBufSize; /* 0x44 */
     volatile U32 CurBufUsed; /* 0x48 */
-    U8 pad4C[0xB0];
+    U8 pad4C[0xA0];
+    void* suspend_callback; /* 0xEC */
+    void* try_suspend_callback; /* 0xF0 */
+    void* resume_callback; /* 0xF4 */
+    void* idle_on_callback; /* 0xF8 */
     U8 cb[28]; /* 0xFC */
     U8 pad118[0x24];
 };
@@ -81,7 +89,8 @@ struct BINKSND
     U32 sndlowwater; /* 0x54 */
     U32 sndalign; /* 0x58 */
     U32 sndstarved; /* 0x5C */
-    U8 pad60[0x8];
+    U8 pad60[0x4];
+    S32 latency; /* 0x64 */
     U32 sndrateadj; /* 0x68 */
     U32 freq; /* 0x6C */
     U32 bits; /* 0x70 */
@@ -175,7 +184,7 @@ struct BINK
     U32 lastblitdone; /* 0x2FC */
     U32 skippedblits; /* 0x300 */
     U32 totalskippedblits; /* 0x304 */
-    U8 expanddata[36]; /* 0x308 */
+    U32 expanddata[9]; /* 0x308 */
     U32 skipcount; /* 0x32C */
     U32 soundskips; /* 0x330 */
     U32 soundskipframes; /* 0x334 */
