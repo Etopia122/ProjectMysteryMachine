@@ -1160,13 +1160,13 @@ U32 BinkGetKeyFrame(BINK* bink, U32 frame, S32 flags)
                     if (f < bink->Frames && (bink->frameoffsets[f++] & 1))
                         return f;
                 }
-                else
+                else if (f < bink->Frames)
                 {
-                    if (f >= bink->Frames)
-                        return 0;
                     if (bink->frameoffsets[f++] & 1)
                         return f;
                 }
+                else
+                    return 0;
                 back--;
             }
     }
@@ -1726,32 +1726,31 @@ BINKTRACK* BinkOpenTrack(BINK* bink, U32 track)
 
     if (bink && track < (U32)bink->NumTracks)
     {
-        if ((S32)bink->tracktypes[track] < 0 || (bink->tracktypes[track] & 0x10000000))
+        if ((S32)bink->tracktypes[track] >= 0 && !(bink->tracktypes[track] & 0x10000000))
+            return 0;
+        type = bink->tracktypes[track];
+        ac = BinkAudioDecompressOpen(type & 0xFFFF, ((type >> 29) & 1) + 1,
+                                     ((S32)type >= 0 && (type & 0x10000000)) ? 1 : 0);
+        if (ac == 0)
+            return 0;
+        t = (BINKTRACK*)bpopmalloc(bink, sizeof(BINKTRACK));
+        if (t == 0)
         {
-            type = bink->tracktypes[track];
-            ac = BinkAudioDecompressOpen(type & 0xFFFF, ((type >> 29) & 1) + 1,
-                                         ((S32)type >= 0 && (type & 0x10000000)) ? 1 : 0);
-            if (ac == 0)
-                return 0;
-            t = (BINKTRACK*)bpopmalloc(bink, sizeof(BINKTRACK));
-            if (t == 0)
-            {
-                BinkAudioDecompressClose(ac);
-            }
-            else
-            {
-                memset(t, 0, sizeof(BINKTRACK));
-                t->sndcomp = ac;
-                t->bink = bink;
-                t->Frequency = bink->tracktypes[track] & 0xFFFF;
-                t->Bits = ((bink->tracktypes[track] >> 27) & 8) + 8;
-                t->Channels = ((bink->tracktypes[track] >> 29) & 1) + 1;
-                t->MaxSize = (bink->tracksizes[track] + 3) & ~3;
-                if (t->Bits == 8)
-                    t->MaxSize >>= 1;
-                t->trackindex = track;
-                return t;
-            }
+            BinkAudioDecompressClose(ac);
+        }
+        else
+        {
+            memset(t, 0, sizeof(BINKTRACK));
+            t->sndcomp = ac;
+            t->bink = bink;
+            t->Frequency = bink->tracktypes[track] & 0xFFFF;
+            t->Bits = ((bink->tracktypes[track] >> 27) & 8) + 8;
+            t->Channels = ((bink->tracktypes[track] >> 29) & 1) + 1;
+            t->MaxSize = (bink->tracksizes[track] + 3) & ~3;
+            if (t->Bits == 8)
+                t->MaxSize >>= 1;
+            t->trackindex = track;
+            return t;
         }
     }
     return 0;
