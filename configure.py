@@ -866,6 +866,7 @@ config.libs = [
             Object(NonMatching, "bink/idct.c"),
             Object(NonMatching, "bink/bink.c"),
             Object(Matching, "bink/binkfile.c"),
+            Object(NonMatching, "bink/ngcsound.c"),
         ],
     },
     {

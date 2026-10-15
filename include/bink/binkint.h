@@ -89,13 +89,13 @@ struct BINKSND
     U32 sndlowwater; /* 0x54 */
     U32 sndalign; /* 0x58 */
     U32 sndstarved; /* 0x5C */
-    U8 pad60[0x4];
+    S32 onoff; /* 0x60 */
     S32 latency; /* 0x64 */
     U32 sndrateadj; /* 0x68 */
     U32 freq; /* 0x6C */
     U32 bits; /* 0x70 */
     U32 chans; /* 0x74 */
-    U8 pad78[0x100];
+    U8 sysdata[256]; /* 0x78 */
 };
 
 typedef struct BINK BINK;
