@@ -122,6 +122,33 @@ void zoom2heven(S32 n)
     yuvs.d1 = d1 + adv;
 }
 
+void zoom2hodd(S32 n)
+{
+    U8* d0 = yuvs.d0;
+    U8* d1 = yuvs.d1;
+    U8* y0 = yuvs.y0;
+    U8* y1 = yuvs.y1;
+    U8* a0 = yuvs.a0;
+    U8* a1 = yuvs.a1;
+    U8* u = yuvs.u;
+    U8* v = yuvs.v;
+    S32 adv;
+
+    yuv_zoddfn(n);
+    yuvs.d0 = d0 + yuvs.pitch;
+    adv = yuvs.d1 - d1;
+    yuvs.d1 = d1 + yuvs.pitch;
+    yuvs.y0 = y0;
+    yuvs.y1 = y1;
+    yuvs.a0 = a0;
+    yuvs.a1 = a1;
+    yuvs.u = u;
+    yuvs.v = v;
+    yuv_zoddfn(n);
+    yuvs.d0 = d0 + adv;
+    yuvs.d1 = d1 + adv;
+}
+
 void dounaligned32rowm2w(U32 x, U32 n)
 {
     while (n--)
@@ -429,7 +456,9 @@ U32 dounaligned32col(U32 n, S32 x)
 }
 
 
-extern "C" void YUV_blit(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride,
+void YUV_blit_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx,
+                              U32 sy, U32 w, U32 h, U32 stride, U32 uvy, U32 flags, void* alpha, BLITS* b);
+void YUV_blit(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride,
                          U32 uvy, U32 flags, void* alpha, BLITS* b);
 
 extern "C" void YUV_blit_32bpp(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy, U32 flags)
@@ -1381,3 +1410,331 @@ extern "C" void YUV_blit_16a4bpp(void* dst, U32 dx, U32 dy, U32 pitch, void* src
     YUV_blit(dst, dx, dy, pitch, src, sx, sy, w, h, stride, uvy, flags, alpha, &blits16a4);
 }
 
+
+void dounalignedYUY2rowm2wh(U32 x, U32 n)
+{
+    while ((S32)(n -= 2) >= 0)
+    {
+        U32 p0, p1;
+        p0 = 0x80008000 | yuvs.y0[0] | (yuvs.y0[0] << 16);
+        p1 = 0x80008000 | yuvs.y0[1] | (yuvs.y0[1] << 16);
+        ((U32*)yuvs.d0)[0] = p0;
+        ((U32*)yuvs.d0)[1] = p1;
+        ((U32*)(yuvs.d0 + yuvs.pitch))[0] = p0;
+        ((U32*)(yuvs.d0 + yuvs.pitch))[1] = p1;
+        yuvs.y0 += 2;
+        yuvs.d0 += 8;
+    }
+}
+
+U32 dounalignedYUY2colm2wh(U32 n, S32 x)
+{
+    U32 i = n;
+    do
+    {
+        U32 p0, p1;
+        p0 = 0x80008000 | yuvs.y0[0] | (yuvs.y0[0] << 16);
+        p1 = 0x80008000 | yuvs.y0[1] | (yuvs.y0[1] << 16);
+        ((U32*)yuvs.d0)[0] = p0;
+        ((U32*)yuvs.d0)[1] = p1;
+        ((U32*)(yuvs.d0 + yuvs.pitch))[0] = p0;
+        ((U32*)(yuvs.d0 + yuvs.pitch))[1] = p1;
+        p0 = 0x80008000 | yuvs.y1[0] | (yuvs.y1[0] << 16);
+        p1 = 0x80008000 | yuvs.y1[1] | (yuvs.y1[1] << 16);
+        ((U32*)yuvs.d1)[0] = p0;
+        ((U32*)yuvs.d1)[1] = p1;
+        ((U32*)(yuvs.d1 + yuvs.pitch))[0] = p0;
+        ((U32*)(yuvs.d1 + yuvs.pitch))[1] = p1;
+        yuvs.y0 += 2;
+        yuvs.y1 += 2;
+        yuvs.d0 += 8;
+        yuvs.d1 += 8;
+    } while ((S32)(i -= 2) > 0);
+    return x + n;
+}
+
+void dounalignedYUY2rowm2w(U32 x, U32 n)
+{
+    while ((S32)(n -= 2) >= 0)
+    {
+        U32 y;
+        y = yuvs.y0[0];
+        ((U32*)yuvs.d0)[0] = 0x80008000 | y | (y << 16);
+        y = yuvs.y0[1];
+        yuvs.y0 += 2;
+        ((U32*)yuvs.d0)[1] = 0x80008000 | y | (y << 16);
+        yuvs.d0 += 8;
+    }
+}
+
+U32 dounalignedYUY2colm2w(U32 n, S32 x)
+{
+    U32 i = n;
+    do
+    {
+        U32 y;
+        y = yuvs.y0[0];
+        ((U32*)yuvs.d0)[0] = 0x80008000 | y | (y << 16);
+        y = yuvs.y0[1];
+        yuvs.y0 += 2;
+        ((U32*)yuvs.d0)[1] = 0x80008000 | y | (y << 16);
+        y = yuvs.y1[0];
+        ((U32*)yuvs.d1)[0] = 0x80008000 | y | (y << 16);
+        y = yuvs.y1[1];
+        yuvs.y1 += 2;
+        ((U32*)yuvs.d1)[1] = 0x80008000 | y | (y << 16);
+        yuvs.d0 += 8;
+        yuvs.d1 += 8;
+    } while ((S32)(i -= 2) > 0);
+    return x + n;
+}
+
+void dounalignedYUY2rowm2h(U32 x, U32 n)
+{
+    while ((S32)(n -= 2) >= 0)
+    {
+        U32 p;
+        p = 0x80008000 | yuvs.y0[0] | (yuvs.y0[1] << 16);
+        yuvs.y0 += 2;
+        *(U32*)yuvs.d0 = p;
+        *(U32*)(yuvs.d0 + yuvs.pitch) = p;
+        yuvs.d0 += 4;
+    }
+}
+
+U32 dounalignedYUY2colm2h(U32 n, S32 x)
+{
+    U32 i = n;
+    do
+    {
+        U32 p;
+        p = 0x80008000 | yuvs.y0[0] | (yuvs.y0[1] << 16);
+        yuvs.y0 += 2;
+        *(U32*)yuvs.d0 = p;
+        *(U32*)(yuvs.d0 + yuvs.pitch) = p;
+        p = 0x80008000 | yuvs.y1[0] | (yuvs.y1[1] << 16);
+        yuvs.y1 += 2;
+        *(U32*)yuvs.d1 = p;
+        *(U32*)(yuvs.d1 + yuvs.pitch) = p;
+        yuvs.d0 += 4;
+        yuvs.d1 += 4;
+    } while ((S32)(i -= 2) > 0);
+    return x + n;
+}
+
+void dounalignedYUY2row2wh(U32 x, U32 n)
+{
+    while ((S32)(n -= 2) >= 0)
+    {
+        U32 p0, p1;
+        p0 = yuvs.y0[0] | (*yuvs.u++ << 8) | (yuvs.y0[0] << 16) | (*yuvs.v++ << 24);
+        p1 = (p0 & 0xFF00FF00) | yuvs.y0[1] | (yuvs.y0[1] << 16);
+        ((U32*)yuvs.d0)[0] = p0;
+        ((U32*)yuvs.d0)[1] = p1;
+        ((U32*)(yuvs.d0 + yuvs.pitch))[0] = p0;
+        ((U32*)(yuvs.d0 + yuvs.pitch))[1] = p1;
+        yuvs.y0 += 2;
+        yuvs.d0 += 8;
+    }
+}
+
+U32 dounalignedYUY2col2wh(U32 n, S32 x)
+{
+    U32 i = n;
+    do
+    {
+        U32 p0, p1;
+        p0 = yuvs.y0[0] | (*yuvs.u++ << 8) | (yuvs.y0[0] << 16) | (*yuvs.v++ << 24);
+        p1 = (p0 & 0xFF00FF00) | yuvs.y0[1] | (yuvs.y0[1] << 16);
+        ((U32*)yuvs.d0)[0] = p0;
+        ((U32*)yuvs.d0)[1] = p1;
+        ((U32*)(yuvs.d0 + yuvs.pitch))[0] = p0;
+        ((U32*)(yuvs.d0 + yuvs.pitch))[1] = p1;
+        p0 = (p0 & 0xFF00FF00) | yuvs.y1[0] | (yuvs.y1[0] << 16);
+        p1 = (p1 & 0xFF00FF00) | yuvs.y1[1] | (yuvs.y1[1] << 16);
+        ((U32*)yuvs.d1)[0] = p0;
+        ((U32*)yuvs.d1)[1] = p1;
+        ((U32*)(yuvs.d1 + yuvs.pitch))[0] = p0;
+        ((U32*)(yuvs.d1 + yuvs.pitch))[1] = p1;
+        yuvs.y0 += 2;
+        yuvs.y1 += 2;
+        yuvs.d0 += 8;
+        yuvs.d1 += 8;
+    } while ((S32)(i -= 2) > 0);
+    return x + n;
+}
+
+void dounalignedYUY2row2w(U32 x, U32 n)
+{
+    while ((S32)(n -= 2) >= 0)
+    {
+        U32 p = yuvs.y0[0] | (*yuvs.u++ << 8) | (yuvs.y0[0] << 16) | (*yuvs.v++ << 24);
+        U32 y;
+        ((U32*)yuvs.d0)[0] = p;
+        y = yuvs.y0[1];
+        yuvs.y0 += 2;
+        ((U32*)yuvs.d0)[1] = (p & 0xFF00FF00) | y | (y << 16);
+        yuvs.d0 += 8;
+    }
+}
+
+U32 dounalignedYUY2col2w(U32 n, S32 x)
+{
+    U32 i = n;
+    do
+    {
+        U32 p = yuvs.y0[0] | (*yuvs.u++ << 8) | (yuvs.y0[0] << 16) | (*yuvs.v++ << 24);
+        U32 y;
+        ((U32*)yuvs.d0)[0] = p;
+        y = yuvs.y0[1];
+        yuvs.y0 += 2;
+        ((U32*)yuvs.d0)[1] = (p & 0xFF00FF00) | y | (y << 16);
+        p &= 0xFF00FF00;
+        ((U32*)yuvs.d1)[0] = p | yuvs.y1[0] | (yuvs.y1[0] << 16);
+        y = yuvs.y1[1];
+        yuvs.y1 += 2;
+        ((U32*)yuvs.d1)[1] = p | y | (y << 16);
+        yuvs.d0 += 8;
+        yuvs.d1 += 8;
+    } while ((S32)(i -= 2) > 0);
+    return x + n;
+}
+
+void dounalignedYUY2row2h(U32 x, U32 n)
+{
+    while ((S32)(n -= 2) >= 0)
+    {
+        U32 p = yuvs.y0[0] | (*yuvs.u++ << 8) | (yuvs.y0[1] << 16) | (*yuvs.v++ << 24);
+        yuvs.y0 += 2;
+        ((U32*)yuvs.d0)[0] = p;
+        ((U32*)(yuvs.d0 + yuvs.pitch))[0] = p;
+        yuvs.d0 += 4;
+    }
+}
+
+U32 dounalignedYUY2col2h(U32 n, S32 x)
+{
+    U32 i = n;
+    do
+    {
+        U32 p = yuvs.y0[0] | (*yuvs.u++ << 8) | (yuvs.y0[1] << 16) | (*yuvs.v++ << 24);
+        yuvs.y0 += 2;
+        ((U32*)yuvs.d0)[0] = p;
+        ((U32*)(yuvs.d0 + yuvs.pitch))[0] = p;
+        p = (p & 0xFF00FF00) | yuvs.y1[0] | (yuvs.y1[1] << 16);
+        yuvs.y1 += 2;
+        ((U32*)yuvs.d1)[0] = p;
+        ((U32*)(yuvs.d1 + yuvs.pitch))[0] = p;
+        yuvs.d0 += 4;
+        yuvs.d1 += 4;
+    } while ((S32)(i -= 2) > 0);
+    return x + n;
+}
+
+void dounalignedYUY2rowm(U32 x, U32 n)
+{
+    while ((S32)(n -= 2) >= 0)
+    {
+        U32 p;
+        p = 0x80008000 | yuvs.y0[0] | (yuvs.y0[1] << 16);
+        yuvs.y0 += 2;
+        *(U32*)yuvs.d0 = p;
+        yuvs.d0 += 4;
+    }
+}
+
+U32 dounalignedYUY2colm(U32 n, S32 x)
+{
+    U32 i = n;
+    do
+    {
+        U32 p;
+        p = 0x80008000 | yuvs.y0[0] | (yuvs.y0[1] << 16);
+        yuvs.y0 += 2;
+        *(U32*)yuvs.d0 = p;
+        p = 0x80008000 | yuvs.y1[0] | (yuvs.y1[1] << 16);
+        yuvs.y1 += 2;
+        *(U32*)yuvs.d1 = p;
+        yuvs.d0 += 4;
+        yuvs.d1 += 4;
+    } while ((S32)(i -= 2) > 0);
+    return x + n;
+}
+
+void dounalignedYUY2row(U32 x, U32 n)
+{
+    while ((S32)(n -= 2) >= 0)
+    {
+        U32 p = yuvs.y0[0] | (*yuvs.u++ << 8) | (yuvs.y0[1] << 16) | (*yuvs.v++ << 24);
+        yuvs.y0 += 2;
+        ((U32*)yuvs.d0)[0] = p;
+        yuvs.d0 += 4;
+    }
+}
+
+U32 dounalignedYUY2col(U32 n, S32 x)
+{
+    U32 i = n;
+    do
+    {
+        U32 p = yuvs.y0[0] | (*yuvs.u++ << 8) | (yuvs.y0[1] << 16) | (*yuvs.v++ << 24);
+        yuvs.y0 += 2;
+        ((U32*)yuvs.d0)[0] = p;
+        p = (p & 0xFF00FF00) | yuvs.y1[0] | (yuvs.y1[1] << 16);
+        yuvs.y1 += 2;
+        ((U32*)yuvs.d1)[0] = p;
+        yuvs.d0 += 4;
+        yuvs.d1 += 4;
+    } while ((S32)(i -= 2) > 0);
+    return x + n;
+}
+
+extern "C" void YUV_blit_YUY2(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h,
+                              U32 stride, U32 uvy, U32 flags)
+{
+    if (((U32)dst & 3) == 2)
+    {
+        dx++;
+        dst = (void*)((U32)dst & ~3);
+    }
+    if (dx & 1)
+    {
+        if (sx & 1)
+            sx++;
+        dx++;
+        w--;
+    }
+    else if (sx & 1)
+    {
+        sx++;
+        w--;
+    }
+    if (w & 1)
+        w--;
+    YUV_blit(dst, dx, dy, pitch, src, sx, sy, w, h, stride, uvy, flags, 0, &blitsYUY2);
+}
+
+extern "C" void YUV_blit_32bpp_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy, U32 flags)
+{
+    YUV_blit_mask(dst, dx, dy, pitch, mask, maskpitch, src, sx, sy, w, h, stride, uvy, flags, 0, &blits32);
+}
+
+extern "C" void YUV_blit_32abpp_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy, void* alpha, U32 flags)
+{
+    YUV_blit_mask(dst, dx, dy, pitch, mask, maskpitch, src, sx, sy, w, h, stride, uvy, flags, alpha, &blits32a);
+}
+
+extern "C" void YUV_blit_16bpp_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy, U32 flags)
+{
+    YUV_blit_mask(dst, dx, dy, pitch, mask, maskpitch, src, sx, sy, w, h, stride, uvy, flags, 0, &blits16);
+}
+
+extern "C" void YUV_blit_16a4bpp_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy, void* alpha, U32 flags)
+{
+    YUV_blit_mask(dst, dx, dy, pitch, mask, maskpitch, src, sx, sy, w, h, stride, uvy, flags, alpha, &blits16a4);
+}
+
+extern "C" void YUV_blit_YUY2_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy, U32 flags)
+{
+    YUV_blit_mask(dst, dx, dy, pitch, mask, maskpitch, src, sx, sy, w, h, stride, uvy, flags, 0, &blitsYUY2);
+}
