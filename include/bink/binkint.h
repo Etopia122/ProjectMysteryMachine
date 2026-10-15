@@ -5,6 +5,14 @@
 
 #include "bink/rad.h"
 
+typedef struct BINKRECT
+{
+    S32 Left;
+    S32 Top;
+    S32 Width;
+    S32 Height;
+} BINKRECT;
+
 typedef struct BINKSND BINKSND;
 typedef void (*BINKSNDVOLUME)(BINKSND* snd, S32 volume);
 typedef void (*BINKSNDPAN)(BINKSND* snd, S32 pan);

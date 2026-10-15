@@ -681,6 +681,124 @@ void BinkGetRealtime(BINK* bink, BINKREALTIME* rt, U32 frames)
     rt->FramesThreadReadTime = bink->rtthreadreadtimes[0] - bink->rtthreadreadtimes[frames];
 }
 
+S32 smallestrect(BINKRECT* out, U8* mask, S32 pitch, BINKRECT* r)
+{
+    S32 x, y, w, h, x2, last;
+    U8* p;
+
+    mask += r->Left / 16;
+    mask += (r->Top / 16) * pitch;
+    h = r->Height / 16;
+    w = r->Width / 16;
+
+    p = mask;
+    for (y = 0; y < h; y++)
+    {
+        for (x = 0; x < w; x++)
+        {
+            if (p[x])
+                goto foundtop;
+        }
+        p += pitch;
+    }
+    return 0;
+
+foundtop:
+    h -= y;
+    out->Top = y * 16 + r->Top;
+    mask += pitch * y;
+    out->Height = r->Height - y * 16;
+    if (out->Height >= 2)
+    {
+        p = mask + (h - 1) * pitch;
+        for (y = 0; y < h; y++)
+        {
+            for (x = 0; x < w; x++)
+            {
+                if (p[x])
+                    goto foundbottom;
+            }
+            p -= pitch;
+        }
+    foundbottom:
+        h -= y;
+        out->Height -= y * 16;
+    }
+
+    for (x = 0; x < w; x++)
+    {
+        p = mask + x;
+        for (y = 0; y < h; y++)
+        {
+            if (*p)
+                goto foundleft;
+            p += pitch;
+        }
+    }
+foundleft:
+    out->Left = x * 16 + r->Left;
+    out->Width = r->Width - x * 16;
+    if (out->Width >= 2)
+    {
+        last = w - x - 1;
+        for (x2 = last; x2 >= 0; x2--)
+        {
+            p = mask + x + x2;
+            for (y = 0; y < h; y++)
+            {
+                if (*p)
+                    goto foundright;
+                p += pitch;
+            }
+        }
+    foundright:
+        out->Width -= (last - x2) * 16;
+    }
+    return 1;
+}
+
+S32 trysplit(BINKRECT* a, BINKRECT* b, BINKRECT* r, U8* mask, S32 pitch)
+{
+    S32 best, s;
+    BINKRECT a2, b2, t;
+
+    if (r->Width >= 32)
+    {
+        t = *r;
+        best = (t.Width / 2 + 15) & ~15;
+        t.Width = best;
+        smallestrect(a, mask, pitch, &t);
+        t = *r;
+        t.Width -= best;
+        t.Left += best;
+        smallestrect(b, mask, pitch, &t);
+        best = r->Width * r->Height - a->Width * a->Height - b->Width * b->Height;
+    }
+    else
+    {
+        best = 0;
+    }
+    if (r->Height >= 32)
+    {
+        t = *r;
+        s = (t.Height / 2 + 15) & ~15;
+        t.Height = s;
+        smallestrect(&a2, mask, pitch, &t);
+        t = *r;
+        t.Height -= s;
+        t.Top += s;
+        smallestrect(&b2, mask, pitch, &t);
+        s = r->Width * r->Height - a2.Width * a2.Height - b2.Width * b2.Height;
+        if (s > best)
+        {
+            *a = a2;
+            *b = b2;
+            return s;
+        }
+    }
+    return best;
+}
+
 void BinkService(BINK* bink)
 {
     if (bink->playingtracks)
