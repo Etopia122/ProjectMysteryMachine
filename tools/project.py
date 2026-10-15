@@ -691,7 +691,7 @@ def generate_build_ninja(
 
     # SN ProDG (GCC 2.95, used for the RAD libraries); the wrapper sets SN_NGC_PATH
     sncc = config.tools_dir / "sncc.py"
-    prodg_cmd = f"$python {sncc} {compilers} $mw_version $cflags -c $in -o $out"
+    prodg_cmd = f"$python {sncc} {compilers} $mw_version $cflags -Wp,-MD,$basefile.d -c $in -o $out"
     prodg_implicit: List[Optional[Path]] = [sncc]
 
     # MWLD
@@ -757,6 +757,8 @@ def generate_build_ninja(
         name="prodg",
         command=prodg_cmd,
         description="PRODG $out",
+        depfile="$basefile.d",
+        deps="gcc",
     )
     n.newline()
 

@@ -7,8 +7,17 @@ typedef unsigned char U8;
 typedef signed char S8;
 typedef unsigned short U16;
 typedef signed short S16;
+/*
+ * The C files match with int-sized U32/S32 (loop code differs for long),
+ * while the C++ YUV blitters' mangled names (Ul/l) show long.
+ */
+#ifdef __cplusplus
 typedef unsigned long U32;
 typedef signed long S32;
+#else
+typedef unsigned int U32;
+typedef signed int S32;
+#endif
 typedef unsigned long long U64;
 typedef signed long long S64;
 typedef float F32;
@@ -96,8 +105,6 @@ void OSSetPeriodicAlarm(OSAlarm* alarm, OSTime start, OSTime period, OSAlarmHand
 void OSCancelAlarm(OSAlarm* alarm);
 void OSYieldThread(void);
 
-void* memset(void* dst, int c, U32 n);
-void* memcpy(void* dst, const void* src, U32 n);
 
 void* radmalloc(U32 bytes);
 void radfree(void* ptr);

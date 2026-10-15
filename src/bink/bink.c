@@ -12,6 +12,12 @@ S32 RADCB_try_to_suspend_callback(void* h, void* cb);
 void RADCB_resume_callback(void* h, void* cb);
 void RADCB_idle_on_callbacks(void);
 U32 popmalloctotal(void);
+U32 mult64anddiv(U32 a, U32 b, U32 c);
+S32 RADCB_unregister_2_callbacks(void* h1, void* cb1, void* h2, void* cb2, U32 flags);
+void dosilence(BINKSND* snd);
+S32 BinkSetSoundOnOff(BINK* bink, S32 onoff);
+void timeframe(BINK* bink, U32 time);
+void endframe(BINK* bink, U32 time);
 void* popmalloc(U32 bytes);
 void BinkAudioDecompressClose(void* ac);
 void checksound(BINK* bink);
@@ -23,6 +29,7 @@ extern BINKSNDSYSOPEN bink_sndsysopen;
 extern U32 bink_sndsys;
 extern U32 bink_sndopencount;
 extern void* bink_cbhandler;
+extern void* bink_sndcbhandler;
 extern U32 bink_forceframerate;
 extern U32 bink_forceframeratediv;
 extern U32 bink_iosize;
@@ -83,6 +90,38 @@ void inittimer(BINK* bink)
     }
 }
 
+void GotoFrame(BINK* bink, U32 frame)
+{
+    if (frame)
+        frame--;
+    bink->skippedblits = 0;
+    if (bink->playingtracks)
+        checksound(bink);
+    bink->LastFrameNum = bink->FrameNum;
+    if (frame == 0)
+    {
+        if (bink->soundon)
+        {
+            BinkSetSoundOnOff(bink, 0);
+            BinkSetSoundOnOff(bink, 1);
+        }
+        bink->timerstart = 0;
+        bink->soundskips = 0;
+    }
+    if (bink->preloadptr)
+    {
+        bink->compframe = bink->preloadptr + ((bink->frameoffsets[frame] & ~1) - (bink->frameoffsets[0] & ~1));
+    }
+    else
+    {
+        U32 ofs = bink->frameoffsets[frame] & ~1;
+        bink->bio.ReadFrame(&bink->bio, frame, ofs, bink->compframe, (bink->frameoffsets[frame + 1] & ~1) - ofs);
+    }
+    if (bink->playingtracks)
+        checksound(bink);
+    bink->FrameNum = frame + 1;
+}
+
 void BinkSetFrameRate(U32 rate, U32 div)
 {
     bink_forceframerate = rate;
@@ -113,6 +152,37 @@ void BinkSetSoundTrack(U32 total, U32* tracks)
     bink_numtracks = total;
     for (i = 0; i < total; i++)
         bink_tracks[i] = tracks[i];
+}
+
+U32 high1secrate(S32 frames, U32* offsets, S32 rate, U32* frame, U32* allkeys)
+{
+    U32 max = 0;
+    S32 maxframe = 0;
+    U32 keys = 1;
+    S32 i;
+
+    for (i = 0; i < frames - rate; i++)
+    {
+        U32 size = offsets[i + rate] - offsets[i];
+        if (size > max)
+        {
+            max = size;
+            maxframe = i;
+        }
+    }
+    if (max == 0)
+        max = mult64anddiv(offsets[frames] - offsets[0], rate, frames);
+    for (i = 0; i < frames; i++)
+    {
+        if (!(offsets[i] & 1))
+        {
+            keys = 0;
+            break;
+        }
+    }
+    *allkeys = keys;
+    *frame = maxframe;
+    return max;
 }
 
 void bink_suspend_io(U8* bio)
@@ -304,4 +374,125 @@ S32 BinkSetVideoOnOff(BINK* bink, S32 onoff)
     if (bink)
         bink->videoon = onoff;
     return onoff;
+}
+
+S32 BinkPause(BINK* bink, S32 pause)
+{
+    U32 i;
+    U32 t;
+
+    if (bink == 0)
+        return 0;
+    t = RADTimerRead();
+    timeframe(bink, t);
+    endframe(bink, t);
+    if (pause == 0 && bink->Paused)
+    {
+        bink->timerstart = 0;
+        bink->soundskips = 0;
+    }
+    bink->Paused = pause;
+    for (i = 0; i < (U32)bink->playingtracks; i++)
+        bink->bsnd[i].Pause(&bink->bsnd[i], pause);
+    if (bink->runtimeframes && bink->playingtracks)
+        checksound(bink);
+    return bink->Paused;
+}
+
+S32 BinkSetSoundOnOff(BINK* bink, S32 onoff)
+{
+    S32 ret = 0;
+    U32 i;
+    S32 suspended;
+
+    if (bink)
+    {
+        suspended = 0;
+        for (i = 0; i < (U32)bink->playingtracks; i++)
+        {
+            if (bink->bsnd[i].SetOnOff)
+            {
+                if (!suspended)
+                {
+                    suspended = 1;
+                    RADCB_suspend_callback(bink_sndcbhandler, bink->soundcb);
+                }
+                if (!bink->bsnd[i].SetOnOff(&bink->bsnd[i], onoff != 0))
+                {
+                    if (bink->soundon)
+                    {
+                        bink->bsnd[i].sndreadpos = bink->bsnd[i].sndbuf;
+                        bink->bsnd[i].sndwritepos = bink->bsnd[i].sndbuf;
+                        bink->bsnd[i].sndamt = 0;
+                        dosilence(bink->bsnd + i);
+                        bink->soundon = 0;
+                    }
+                }
+                else
+                {
+                    if (bink->soundon == 0)
+                    {
+                        bink->soundskips = 0;
+                        bink->soundon = 1;
+                        bink->timerstart = 0;
+                    }
+                    ret = 1;
+                }
+            }
+        }
+        if (suspended)
+            RADCB_resume_callback(bink_sndcbhandler, bink->soundcb);
+    }
+    return ret;
+}
+
+void BinkClose(BINK* bink)
+{
+    void* ioh;
+    void* sndh;
+    U32 i;
+
+    if (bink == 0)
+        return;
+    BinkPause(bink, 1);
+    ioh = 0;
+    if (!(bink->OpenFlags & 0x8000000) && bink->preloadptr == 0)
+        ioh = bink_cbhandler;
+    sndh = 0;
+    if (bink->playingtracks)
+        sndh = bink_sndcbhandler;
+    switch (RADCB_unregister_2_callbacks(ioh, bink->bio.cb, sndh, bink->soundcb, 1))
+    {
+        case 2:
+            bink_sndcbhandler = 0;
+            break;
+        case 1:
+            bink_cbhandler = 0;
+            break;
+        case 3:
+            bink_sndcbhandler = 0;
+            bink_cbhandler = 0;
+            break;
+    }
+    for (i = 0; i < (U32)bink->playingtracks; i++)
+    {
+        bink->bsnd[i].Close(&bink->bsnd[i]);
+        BinkAudioDecompressClose(bink->bsnd[i].ac);
+        if (bink->bsnd[i].sndbuf)
+            radfree(bink->bsnd[i].sndbuf);
+    }
+    if (bink->preloadptr)
+    {
+        if (!(bink->OpenFlags & 0x4000000))
+            radfree(bink->preloadptr);
+    }
+    else
+    {
+        bink->bio.Close(&bink->bio);
+        radfree(bink->iobuf);
+    }
+    if (bink->framemem)
+        radfree(bink->framemem);
+    memset(bink, 0, sizeof(BINK));
+    radfree(bink);
 }
