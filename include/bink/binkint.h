@@ -103,9 +103,22 @@ struct BINK
     U32 OpenFlags; /* 0x20 */
     U32 BinkType; /* 0x24 */
     U32 Size; /* 0x28 */
-    U8 pad2C[0x90];
-    void* framemem; /* 0xBC */
-    U8 padC0[0x30];
+    U32 FrameSize; /* 0x2C */
+    U32 SndSize; /* 0x30 */
+    BINKRECT FrameRects[8]; /* 0x34 */
+    S32 NumRects; /* 0xB4 */
+    U32 PlaneNum; /* 0xB8 */
+    void* YPlane[2]; /* 0xBC */
+    void* APlane[2]; /* 0xC4 */
+    U32 YWidth; /* 0xCC */
+    U32 YHeight; /* 0xD0 */
+    U32 UVWidth; /* 0xD4 */
+    U32 UVHeight; /* 0xD8 */
+    U8* MaskPlane; /* 0xDC */
+    U32 MaskPitch; /* 0xE0 */
+    U32 MaskLength; /* 0xE4 */
+    U32 LargestFrameSize; /* 0xE8 */
+    U32 InternalFrames; /* 0xEC */
     S32 NumTracks; /* 0xF0 */
     U32 Highest1SecRate; /* 0xF4 */
     U32 Highest1SecFrame; /* 0xF8 */
@@ -117,7 +130,8 @@ struct BINK
     BINKIO bio; /* 0x110 */
     void* iobuf; /* 0x24C */
     U32 iosize; /* 0x250 */
-    U8 pad254[0x8];
+    U32 decompwidth; /* 0x254 */
+    U32 decompheight; /* 0x258 */
     S32* trackindexes; /* 0x25C */
     U32* tracksizes; /* 0x260 */
     U32* tracktypes; /* 0x264 */
@@ -153,7 +167,7 @@ struct BINK
     U32* rtreadtimes; /* 0x2DC */
     U32* rtidlereadtimes; /* 0x2E0 */
     U32* rtthreadreadtimes; /* 0x2E4 */
-    U8 pad2E8[0x4];
+    U32 copyflags; /* 0x2E8 */
     U32 lastdecodedframe; /* 0x2EC */
     S32 playingtracks; /* 0x2F0 */
     U32 soundstarves; /* 0x2F4 */
@@ -161,7 +175,8 @@ struct BINK
     U32 lastblitdone; /* 0x2FC */
     U32 skippedblits; /* 0x300 */
     U32 totalskippedblits; /* 0x304 */
-    U8 pad308[0x28];
+    U8 pad308[0x24];
+    U32 skipcount; /* 0x32C */
     U32 soundskips; /* 0x330 */
     U32 soundskipframes; /* 0x334 */
     U8 pad338[0x8];

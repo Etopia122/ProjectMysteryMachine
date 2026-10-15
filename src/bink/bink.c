@@ -31,8 +31,31 @@ void* popmalloc(U32 bytes);
 void BinkAudioDecompressClose(void* ac);
 void checksound(BINK* bink);
 U8* conv16to8(U8* dest, S16* src, U32 bytes);
-void BinkCopyToBufferRect(BINK* bink, void* dest, S32 destpitch, U32 destheight, U32 destx, U32 desty, U32 srcx,
-                          U32 srcy, U32 srcw, U32 srch, U32 flags);
+S32 BinkCopyToBufferRect(BINK* bink, void* dest, S32 destpitch, U32 destheight, U32 destx, U32 desty, U32 srcx,
+                         U32 srcy, U32 srcw, U32 srch, U32 flags);
+void inittimer(BINK* bink);
+void YUV_init(U32 type);
+U32 strlen(const char* s);
+void YUV_blit_32bpp(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy,
+                    U32 flags);
+void YUV_blit_32abpp(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy,
+                     void* alpha, U32 flags);
+void YUV_blit_16bpp(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy,
+                    U32 flags);
+void YUV_blit_16a4bpp(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride,
+                      U32 uvy, void* alpha, U32 flags);
+void YUV_blit_YUY2(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy,
+                   U32 flags);
+void YUV_blit_32bpp_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx, U32 sy,
+                         U32 w, U32 h, U32 stride, U32 uvy, U32 flags);
+void YUV_blit_32abpp_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx, U32 sy,
+                          U32 w, U32 h, U32 stride, U32 uvy, void* alpha, U32 flags);
+void YUV_blit_16bpp_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx, U32 sy,
+                         U32 w, U32 h, U32 stride, U32 uvy, U32 flags);
+void YUV_blit_16a4bpp_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx, U32 sy,
+                           U32 w, U32 h, U32 stride, U32 uvy, void* alpha, U32 flags);
+void YUV_blit_YUY2_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch, void* src, U32 sx, U32 sy,
+                        U32 w, U32 h, U32 stride, U32 uvy, U32 flags);
 
 extern char bink_error[256];
 extern BINKSNDSYSOPEN bink_sndsysopen;
@@ -327,6 +350,172 @@ void BinkCopyToBuffer(BINK* bink, void* dest, S32 destpitch, U32 destheight, U32
 {
     BinkCopyToBufferRect(bink, dest, destpitch, destheight, destx, desty, 0, 0, bink->Width, bink->Height, flags);
 }
+
+S32 BinkCopyToBufferRect(BINK* bink, void* dest, S32 destpitch, U32 destheight, U32 destx, U32 desty, U32 srcx,
+                         U32 srcy, U32 srcw, U32 srch, U32 flags)
+{
+    S32 skipped = 0;
+    U32 now, t;
+
+    if (bink == 0 || dest == 0)
+        return 0;
+    srcx = mult64anddiv(srcx, bink->decompwidth, bink->Width);
+    srcw = mult64anddiv(srcw, bink->decompwidth, bink->Width);
+    srcy = mult64anddiv(srcy, bink->decompheight, bink->Height);
+    srch = mult64anddiv(srch, bink->decompheight, bink->Height);
+    if (srcx >= bink->decompwidth)
+        srcx = bink->decompwidth;
+    if (srcy >= bink->decompheight)
+        srcy = bink->decompheight;
+    if (srcx + srcw > bink->decompwidth)
+        srcw = bink->decompwidth - srcx;
+    if (srcy + srch > bink->decompheight)
+        srch = bink->decompheight - srcy;
+    if (srcw == 0 || srch == 0 || bink->skippedblits)
+        return bink->skippedblits;
+
+    bink->bio.Working = 1;
+    flags |= bink->OpenFlags & 0x70030000;
+    YUV_init(flags & 15);
+    if (destpitch < 0)
+    {
+        dest = (U8*)dest + -destpitch * (destheight - desty - 1);
+        desty = 0;
+    }
+
+    if (bink->playingtracks && bink->FrameRate && bink->Paused == 0)
+    {
+        inittimer(bink);
+        now = RADTimerRead();
+        t = mult64andshift(
+            mult64anddiv((bink->runtimeframes - bink->timerframe) * 1000, bink->FrameRateDiv, bink->FrameRate),
+            bink->bsnd[0].sndrateadj, 16);
+        now -= bink->timerstart + bink->soundskips;
+        if (now >= t)
+        {
+            now -= t;
+            if (now > (U32)bink->timerslop)
+            {
+                if (++bink->skipcount >= 4)
+                {
+                    bink->skipcount = 0;
+                }
+                else if ((flags & 0x80000) || (bink->OpenFlags & 0x80000))
+                {
+                    skipped = 1;
+                }
+                else
+                {
+                    bink->bio.Working = 0;
+                    bink->lastblitdone = 1;
+                    bink->totalskippedblits++;
+                    return 1;
+                }
+                goto blit;
+            }
+            bink->skipcount = 0;
+        }
+        bink->lastblitdone = 0;
+    }
+
+blit:
+    if (bink->preloadptr == 0 && bink->bio.DoingARead == 0 &&
+        (bink->bio.CurBufUsed + 1) * 100 / (bink->bio.CurBufSize + 1) < 75)
+    {
+        if (RADCB_try_to_suspend_callback(bink_cbhandler, bink->bio.cb))
+        {
+            bink->bio.Idle(&bink->bio);
+            RADCB_resume_callback(bink_cbhandler, bink->bio.cb);
+        }
+        else if (!(bink->OpenFlags & 0x8000000))
+        {
+            RADCB_idle_on_callbacks();
+        }
+    }
+
+    bink->copyflags = flags;
+    if ((S32)flags < 0)
+    {
+    nomask:
+        switch (flags & 15)
+        {
+        case 5:
+            if (bink->APlane[0])
+            {
+                    YUV_blit_32abpp(dest, destx, desty, destpitch, bink->YPlane[bink->PlaneNum], srcx, srcy, srcw, srch,
+                                    bink->YWidth, bink->YHeight, bink->APlane[bink->PlaneNum], flags);
+                break;
+            }
+        case 3:
+            YUV_blit_32bpp(dest, destx, desty, destpitch, bink->YPlane[bink->PlaneNum], srcx, srcy, srcw, srch,
+                           bink->YWidth, bink->YHeight, flags);
+            break;
+        case 7:
+            if (bink->APlane[0])
+            {
+                    YUV_blit_16a4bpp(dest, destx, desty, destpitch, bink->YPlane[bink->PlaneNum], srcx, srcy, srcw,
+                                     srch, bink->YWidth, bink->YHeight, bink->APlane[bink->PlaneNum], flags);
+                break;
+            }
+        case 9:
+        case 10:
+        case 11:
+        case 12:
+            YUV_blit_16bpp(dest, destx, desty, destpitch, bink->YPlane[bink->PlaneNum], srcx, srcy, srcw, srch,
+                           bink->YWidth, bink->YHeight, flags);
+            break;
+        case 13:
+            YUV_blit_YUY2(dest, destx, desty, destpitch, bink->YPlane[bink->PlaneNum], srcx, srcy, srcw, srch,
+                          bink->YWidth, bink->YHeight, flags);
+            break;
+        }
+    }
+    else
+    {
+        if (strlen((char*)bink->MaskPlane) >= bink->MaskLength)
+            goto nomask;
+        switch (flags & 15)
+        {
+        case 5:
+            if (bink->APlane[0])
+            {
+                    YUV_blit_32abpp_mask(dest, destx, desty, destpitch, bink->MaskPlane, bink->MaskPitch,
+                                         bink->YPlane[bink->PlaneNum], srcx, srcy, srcw, srch, bink->YWidth,
+                                         bink->YHeight, bink->APlane[bink->PlaneNum], flags);
+                break;
+            }
+        case 3:
+            YUV_blit_32bpp_mask(dest, destx, desty, destpitch, bink->MaskPlane, bink->MaskPitch,
+                                bink->YPlane[bink->PlaneNum], srcx, srcy, srcw, srch, bink->YWidth, bink->YHeight,
+                                flags);
+            break;
+        case 7:
+            if (bink->APlane[0])
+            {
+                    YUV_blit_16a4bpp_mask(dest, destx, desty, destpitch, bink->MaskPlane, bink->MaskPitch,
+                                          bink->YPlane[bink->PlaneNum], srcx, srcy, srcw, srch, bink->YWidth,
+                                          bink->YHeight, bink->APlane[bink->PlaneNum], flags);
+                break;
+            }
+        case 9:
+        case 10:
+        case 11:
+        case 12:
+            YUV_blit_16bpp_mask(dest, destx, desty, destpitch, bink->MaskPlane, bink->MaskPitch,
+                                bink->YPlane[bink->PlaneNum], srcx, srcy, srcw, srch, bink->YWidth, bink->YHeight,
+                                flags);
+            break;
+        case 13:
+            YUV_blit_YUY2_mask(dest, destx, desty, destpitch, bink->MaskPlane, bink->MaskPitch,
+                               bink->YPlane[bink->PlaneNum], srcx, srcy, srcw, srch, bink->YWidth, bink->YHeight,
+                               flags);
+            break;
+        }
+    }
+    bink->bio.Working = 0;
+    return skipped;
+}
+
 
 void timeframe(BINK* bink, U32 time)
 {
@@ -799,6 +988,95 @@ S32 trysplit(BINKRECT* a, BINKRECT* b, BINKRECT* r, U8* mask, S32 pitch)
     return best;
 }
 
+S32 BinkGetRects(BINK* bink, U32 flags)
+{
+    BINKRECT rects[8];
+    BINKRECT a[8];
+    BINKRECT b[8];
+    S32 gains[8];
+    S32 i, j, best, bi, m;
+    U32 v, minv;
+
+    if ((flags & 0x4000000) || (!(flags & 0x80000) && !(bink->OpenFlags & 0x80000) && bink->lastblitdone))
+        return 0;
+    if (bink->NumRects == -1)
+    {
+        rects[0].Top = 0;
+        rects[0].Left = 0;
+        rects[0].Width = bink->YWidth;
+        rects[0].Height = bink->YHeight;
+        bink->NumRects = smallestrect(&bink->FrameRects[0], bink->MaskPlane, bink->MaskPitch, &rects[0]);
+        if (!(flags & 0x8000000) && bink->NumRects)
+        {
+            rects[0] = bink->FrameRects[0];
+            gains[0] = trysplit(&a[0], &b[0], &rects[0], bink->MaskPlane, bink->MaskPitch);
+            for (;;)
+            {
+                bi = -1;
+                best = 0;
+                for (i = 0; i < bink->NumRects; i++)
+                {
+                    if (gains[i] > best)
+                    {
+                        best = gains[i];
+                        bi = i;
+                    }
+                }
+                if (bi == -1)
+                    break;
+                rects[bi] = a[bi];
+                rects[bink->NumRects] = b[bi];
+                if (++bink->NumRects == 8)
+                    break;
+                gains[bi] = trysplit(&a[bi], &b[bi], &rects[bi], bink->MaskPlane, bink->MaskPitch);
+                bi = bink->NumRects - 1;
+                gains[bi] = trysplit(&a[bi], &b[bi], &rects[bi], bink->MaskPlane, bink->MaskPitch);
+            }
+        }
+        for (i = 0; i < bink->NumRects; i++)
+        {
+            m = 0;
+            minv = 0x7FFF0000;
+            for (j = 0; j < bink->NumRects; j++)
+            {
+                v = rects[j].Top * 65536 + rects[j].Left;
+                if (v < minv)
+                {
+                    minv = v;
+                    m = j;
+                }
+            }
+            switch (bink->copyflags & 0x70000000)
+            {
+            case 0x10000000:
+            case 0x20000000:
+                rects[m].Top *= 2;
+                rects[m].Height *= 2;
+                break;
+            case 0x30000000:
+                rects[m].Left *= 2;
+                rects[m].Width *= 2;
+                break;
+            case 0x40000000:
+            case 0x50000000:
+                rects[m].Left *= 2;
+                rects[m].Width *= 2;
+                rects[m].Top *= 2;
+                rects[m].Height *= 2;
+                break;
+            }
+            if ((U32)(rects[m].Left + rects[m].Width) > bink->Width)
+                rects[m].Width -= (rects[m].Left + rects[m].Width) - bink->Width;
+            if ((U32)(rects[m].Top + rects[m].Height) > bink->Height)
+                rects[m].Height -= (rects[m].Top + rects[m].Height) - bink->Height;
+            bink->FrameRects[i] = rects[m];
+            rects[m].Left = 0;
+            rects[m].Top = 0x7FFFFFFF;
+        }
+    }
+    return bink->NumRects;
+}
+
 void BinkService(BINK* bink)
 {
     if (bink->playingtracks)
@@ -1116,8 +1394,8 @@ void BinkClose(BINK* bink)
         bink->bio.Close(&bink->bio);
         radfree(bink->iobuf);
     }
-    if (bink->framemem)
-        radfree(bink->framemem);
+    if (bink->YPlane[0])
+        radfree(bink->YPlane[0]);
     memset(bink, 0, sizeof(BINK));
     radfree(bink);
 }
