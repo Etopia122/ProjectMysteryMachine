@@ -139,7 +139,7 @@ struct BINK
     U8 pad26C[0x4];
     U32 runtimeframes; /* 0x270 */
     U32 opentime; /* 0x274 */
-    U8 pad278[0x4];
+    U32 framestart; /* 0x278 */
     U32 startblittime; /* 0x27C */
     U32 timerstart; /* 0x280 */
     U32 timerframe; /* 0x284 */
@@ -159,7 +159,7 @@ struct BINK
     U32 fileframerate; /* 0x2BC */
     U32 fileframeratediv; /* 0x2C0 */
     U32 rtframes; /* 0x2C4 */
-    U8 pad2C8[0x4];
+    U32 rtsize; /* 0x2C8 */
     U32* rtframetimes; /* 0x2CC */
     U32* rtadecomptimes; /* 0x2D0 */
     U32* rtvdecomptimes; /* 0x2D4 */
@@ -175,7 +175,7 @@ struct BINK
     U32 lastblitdone; /* 0x2FC */
     U32 skippedblits; /* 0x300 */
     U32 totalskippedblits; /* 0x304 */
-    U8 pad308[0x24];
+    U8 expanddata[36]; /* 0x308 */
     U32 skipcount; /* 0x32C */
     U32 soundskips; /* 0x330 */
     U32 soundskipframes; /* 0x334 */

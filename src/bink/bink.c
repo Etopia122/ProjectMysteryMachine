@@ -20,7 +20,10 @@ void timeframe(BINK* bink, U32 time);
 U32 mult64andshift(U32 a, U32 b, U32 shift);
 void RADCB_suspend_2_callbacks(void* h1, void* cb1, void* h2, void* cb2);
 void GotoFrame(BINK* bink, U32 frame);
-void BinkDoFrame(BINK* bink);
+S32 BinkDoFrame(BINK* bink);
+void* memmove(void* dest, const void* src, U32 n);
+void ExpandBink(void* y, void* prevy, void* a, void* preva, U8* mask, U32 w, U32 h, U32 yw, U32 yh, void* data,
+                U32 key, void* state, U32 flags, U32 type);
 S32 BinkSetVideoOnOff(BINK* bink, S32 onoff);
 void BinkNextFrame(BINK* bink);
 void* BinkAudioDecompressOpen(U32 rate, U32 chans, U32 flags);
@@ -516,6 +519,154 @@ blit:
     return skipped;
 }
 
+
+S32 BinkDoFrame(BINK* bink)
+{
+    S32 suspended = 0;
+    S32 i, j;
+    U32* p;
+    U32* next;
+    U32 size, amt, space, len;
+    U8* out;
+    U32* in;
+    U32 t, now;
+
+    if (bink == 0 || bink->lastdecodedframe == bink->FrameNum)
+        return 0;
+    bink->skippedblits = 0;
+    bink->bio.Working = 1;
+    bink->framestart = RADTimerRead();
+    memmove(bink->rtframetimes + 1, bink->rtframetimes, bink->rtsize);
+    memmove(bink->rtvdecomptimes + 1, bink->rtvdecomptimes, bink->rtsize);
+    memmove(bink->rtadecomptimes + 1, bink->rtadecomptimes, bink->rtsize);
+    memmove(bink->rtblittimes + 1, bink->rtblittimes, bink->rtsize);
+    memmove(bink->rtreadtimes + 1, bink->rtreadtimes, bink->rtsize);
+    memmove(bink->rtidlereadtimes + 1, bink->rtidlereadtimes, bink->rtsize);
+    memmove(bink->rtthreadreadtimes + 1, bink->rtthreadreadtimes, bink->rtsize);
+    bink->rtframetimes[0] = bink->framestart;
+    bink->rtvdecomptimes[0] = bink->totalvdecomptime;
+    bink->rtadecomptimes[0] = bink->totaladecomptime;
+    bink->rtblittimes[0] = bink->totalblittime;
+    bink->rtreadtimes[0] = bink->bio.ForegroundTime;
+    bink->rtidlereadtimes[0] = bink->bio.IdleTime;
+    bink->rtthreadreadtimes[0] = bink->bio.ThreadTime;
+    if (bink->opentime == 0)
+    {
+        bink->rtframetimes[1] = bink->framestart - mult64anddiv(1000, bink->fileframeratediv, bink->fileframerate);
+        bink->bio.ThreadTime = 0;
+        bink->bio.IdleTime = 0;
+        bink->opentime = bink->framestart;
+    }
+    else if (bink->playingtracks)
+    {
+        checksound(bink);
+    }
+    bink->startframetime = bink->framestart;
+
+    p = (U32*)bink->compframe;
+    if (bink->bio.ReadError)
+        bink->ReadError = 1;
+    if (bink->ReadError)
+        return 1;
+
+    for (i = 0; i < bink->NumTracks; i++)
+    {
+        size = *p++;
+        for (j = 0; j < bink->playingtracks; j++)
+        {
+            if (bink->trackindexes[j] == i)
+                goto found;
+        }
+        j = -1;
+    found:
+        next = (U32*)((U8*)p + size);
+        if (j != -1 && size)
+        {
+            in = p;
+            amt = *in++;
+            if (!suspended)
+            {
+                suspended = 1;
+                RADCB_suspend_callback(bink_sndcbhandler, bink->soundcb);
+            }
+            while (amt)
+            {
+                space = bink->bsnd[j].sndbufsize - bink->bsnd[j].sndamt;
+                BinkAudioDecompress(bink->bsnd[j].ac, (S16**)&out, &len, in, (void**)&in);
+                if (len > amt)
+                    len = amt;
+                amt -= len;
+                if (len > space)
+                {
+                    space = len - space;
+                    bink->bsnd[j].sndreadpos += space;
+                    bink->bsnd[j].sndamt -= space;
+                    if (bink->bsnd[j].sndreadpos > bink->bsnd[j].sndend)
+                        bink->bsnd[j].sndreadpos -= bink->bsnd[j].sndbufsize;
+                }
+                bink->bsnd[j].sndamt += len;
+                space = bink->bsnd[j].sndend - bink->bsnd[j].sndwritepos;
+                if (space < len)
+                {
+                    if (space)
+                    {
+                        memcpy(bink->bsnd[j].sndwritepos, out, space);
+                        len -= space;
+                        out += space;
+                    }
+                    memcpy(bink->bsnd[j].sndbuf, out, len);
+                    bink->bsnd[j].sndwritepos = bink->bsnd[j].sndbuf + len;
+                }
+                else
+                {
+                    memcpy(bink->bsnd[j].sndwritepos, out, len);
+                    bink->bsnd[j].sndwritepos += len;
+                }
+            }
+        }
+        p = next;
+    }
+    if (suspended)
+        RADCB_resume_callback(bink_sndcbhandler, bink->soundcb);
+
+    t = RADTimerRead();
+    if (bink->videoon)
+    {
+        if (bink->lastblitdone == 0)
+            memset(bink->MaskPlane, 0, (bink->YWidth >> 4) * (bink->YHeight >> 4));
+        if (bink->preloadptr == 0 && bink->bio.DoingARead == 0 &&
+            (bink->bio.CurBufUsed + 1) * 100 / (bink->bio.CurBufSize + 1) < 75)
+        {
+            if (RADCB_try_to_suspend_callback(bink_cbhandler, bink->bio.cb))
+            {
+                bink->bio.Idle(&bink->bio);
+                RADCB_resume_callback(bink_cbhandler, bink->bio.cb);
+            }
+            else if (!(bink->OpenFlags & 0x8000000))
+            {
+                RADCB_idle_on_callbacks();
+            }
+        }
+        ExpandBink(bink->YPlane[bink->PlaneNum ^ 1], bink->YPlane[bink->PlaneNum], bink->APlane[bink->PlaneNum ^ 1],
+                   bink->APlane[bink->PlaneNum], bink->MaskPlane, bink->decompwidth, bink->decompheight,
+                   bink->YWidth, bink->YHeight, p, bink->frameoffsets[bink->FrameNum - 1] & 1, bink->expanddata,
+                   bink->OpenFlags, bink->BinkType);
+        bink->PlaneNum ^= 1;
+    }
+    if (bink->playingtracks)
+        checksound(bink);
+    bink->NumRects = -1;
+    bink->runtimeframes++;
+    inittimer(bink);
+    now = RADTimerRead();
+    bink->totaladecomptime += t - bink->framestart;
+    bink->totalvdecomptime += now - t;
+    bink->lastdecodedframe = bink->FrameNum;
+    bink->LastFrameNum = bink->FrameNum;
+    bink->startblittime = now;
+    bink->bio.Working = 0;
+    return 0;
+}
 
 void timeframe(BINK* bink, U32 time)
 {
