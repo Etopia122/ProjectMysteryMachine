@@ -76,6 +76,10 @@ extern BLOCKFN yuv_evenfn;
 extern BLOCKFN yuv_oddfn;
 extern BLOCKFN yuv_zevenfn;
 extern BLOCKFN yuv_zoddfn;
+extern ROWFN yuv_rowfn;
+extern COLFN yuv_colfn;
+extern U32 yuv_align;
+extern U32 yuv_alignmask;
 
 void checkzoombufs(U32 size)
 {
@@ -460,6 +464,140 @@ void YUV_blit_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch
                               U32 sy, U32 w, U32 h, U32 stride, U32 uvy, U32 flags, void* alpha, BLITS* b);
 void YUV_blit(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride,
                          U32 uvy, U32 flags, void* alpha, BLITS* b);
+
+void setevenodd(U32 flags, U32* dpitch, U32 w, U32 h, BLITS* b, S32* adv);
+
+void YUV_blit(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy,
+              U32 flags, void* alpha, BLITS* b)
+{
+    U32 dpitch = pitch;
+    S32 adv;
+    U32 half, last, lead;
+    S32 uvadv, yadv, t;
+
+    if ((flags & 0x70000000) == 0x60000000)
+    {
+        dpitch = pitch * 2;
+        sy >>= 1;
+        h >>= 1;
+        uvy >>= 1;
+        stride *= 2;
+    }
+    yuvs.base = (U8*)dst;
+
+    if (b->bpp == 2)
+    {
+        if (((U32)dst & 3) == 2)
+        {
+            dx++;
+            dst = (void*)((U32)dst & ~3);
+        }
+    }
+    else if (b->bpp == 3)
+    {
+        if ((((U32)dst - 3) & 3) == 0)
+        {
+            dx++;
+            dst = (U8*)dst - 3;
+        }
+        else if ((((U32)dst - 6) & 3) == 0)
+        {
+            dx += 2;
+            dst = (U8*)dst - 6;
+        }
+        else if ((((U32)dst - 9) & 3) == 0)
+        {
+            dx += 3;
+            dst = (U8*)dst - 9;
+        }
+    }
+
+    yuvs.d0 = (U8*)dst + dy * pitch + dx * b->bpp;
+    if ((flags & 0x70000000) == 0x20000000 || (flags & 0x70000000) == 0x50000000)
+        dpitch *= 2;
+    setevenodd(flags, &dpitch, w, h, b, &adv);
+
+    yuvs.a0 = (U8*)alpha + sx + sy * stride;
+    yuvs.y0 = (U8*)src + sx + sy * stride;
+    yuvs.d1 = yuvs.d0 + dpitch;
+    half = stride >> 1;
+    yuvs.y1 = yuvs.y0 + stride;
+    yuvs.a1 = yuvs.a0 + stride;
+    uvadv = half - (w >> 1);
+    yadv = stride - w;
+    if ((w & 1) && (sx & 1))
+        uvadv--;
+
+    if (flags & 0x10000)
+    {
+        yuvs.u = (U8*)src + stride * uvy;
+        yuvs.v = yuvs.u + half * (uvy >> 1);
+    }
+    else
+    {
+        yuvs.v = (U8*)src + stride * uvy;
+        yuvs.u = yuvs.v + half * (uvy >> 1);
+    }
+    t = (sy >> 1) * half;
+    yuvs.u += (sx >> 1) + t;
+    yuvs.v += (sx >> 1) + t;
+
+    last = sy + h - 1;
+    if ((sy & 1) && (S32)sy <= (S32)last)
+    {
+        sy++;
+        yuv_rowfn(sx, w);
+        yuvs.d0 += adv;
+        yuvs.y0 += yadv;
+        yuvs.a0 += yadv;
+        yuvs.y1 = yuvs.y0 + stride;
+        yuvs.a1 = yuvs.a0 + stride;
+        yuvs.u += uvadv;
+        yuvs.v += uvadv;
+        yuvs.d1 = yuvs.d0 + dpitch;
+    }
+
+    lead = (4 - (dx & 3)) & 3;
+    if (lead > w)
+        lead = w;
+
+    while ((S32)sy < (S32)last)
+    {
+        U32 x = sx;
+        U32 n = w;
+        U32 cnt, rem;
+
+        if (lead)
+        {
+            n = w - lead;
+            x = yuv_colfn(lead, sx);
+        }
+        cnt = (n & ~yuv_alignmask) >> 2;
+        rem = n - cnt * 4;
+        if (cnt)
+        {
+            if (x & 1)
+                yuv_oddfn(cnt);
+            else
+                yuv_evenfn(cnt);
+        }
+        x += cnt * 4;
+        if (rem)
+            yuv_colfn(rem, x);
+
+        sy += 2;
+        yuvs.y0 = yuvs.y1 + yadv;
+        yuvs.a0 = yuvs.a1 + yadv;
+        yuvs.d0 = yuvs.d1 + adv;
+        yuvs.y1 = yuvs.y0 + stride;
+        yuvs.a1 = yuvs.a0 + stride;
+        yuvs.u += uvadv;
+        yuvs.v += uvadv;
+        yuvs.d1 = yuvs.d0 + dpitch;
+    }
+    if ((S32)sy <= (S32)last)
+        yuv_rowfn(sx, w);
+}
 
 extern "C" void YUV_blit_32bpp(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy, U32 flags)
 {
