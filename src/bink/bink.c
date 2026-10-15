@@ -30,6 +30,7 @@ void endframe(BINK* bink, U32 time);
 void* popmalloc(U32 bytes);
 void BinkAudioDecompressClose(void* ac);
 void checksound(BINK* bink);
+U8* conv16to8(U8* dest, S16* src, U32 bytes);
 void BinkCopyToBufferRect(BINK* bink, void* dest, S32 destpitch, U32 destheight, U32 destx, U32 desty, U32 srcx,
                           U32 srcy, U32 srcw, U32 srch, U32 flags);
 
@@ -84,10 +85,11 @@ S32 BinkSetSoundSystem(BINKSNDSYSOPEN open, U32 param)
     return (bink_sndsys) ? 1 : 0;
 }
 
-void conv16to8(U8* dest, S16* src, U32 bytes)
+U8* conv16to8(U8* dest, S16* src, U32 bytes)
 {
     for (bytes >>= 1; bytes; bytes--)
         *dest++ = (U8)(*src++ >> 8);
+    return dest;
 }
 
 U32 dosilence(BINKSND* snd)
@@ -100,14 +102,14 @@ U32 dosilence(BINKSND* snd)
     {
         amt = snd->sndprime - snd->sndamt;
         buf = snd->sndbuf;
-        pos = snd->sndwritepos - amt;
-        snd->sndwritepos = pos;
+        pos = snd->sndreadpos - amt;
+        snd->sndreadpos = pos;
         ms = (amt * 1000) / ((snd->freq * snd->bits * snd->chans) >> 3);
         if (pos < buf)
         {
-            snd->sndwritepos = pos + snd->sndbufsize;
+            snd->sndreadpos = pos + snd->sndbufsize;
             memset(buf, 0, amt - (buf - pos));
-            memset(snd->sndwritepos, 0, buf - pos);
+            memset(snd->sndreadpos, 0, buf - pos);
         }
         else
         {
@@ -117,6 +119,69 @@ U32 dosilence(BINKSND* snd)
         return ms;
     }
     return 0;
+}
+
+void checksound(BINK* bink)
+{
+    U32 i, left, len;
+    U8* addr;
+    U8* src;
+
+    if (bink->bsnd[bink->playingtracks - 1].Ready == 0)
+        return;
+    if (!RADCB_try_to_suspend_callback(bink_sndcbhandler, bink->soundcb))
+        return;
+    for (i = 0; i < (U32)bink->playingtracks; i++)
+    {
+        while (bink->bsnd[i].Ready(&bink->bsnd[i]) &&
+               (bink->bsnd[i].sndamt > bink->bsnd[i].sndlowwater ||
+                ((S32)bink->FrameNum > bink->bsnd[i].sndendframe && bink->bsnd[i].sndamt)))
+        {
+            if (!bink->bsnd[i].Lock(&bink->bsnd[i], &addr, &len))
+                break;
+            if (bink->bsnd[i].sndconvert8)
+                len *= 2;
+            if (len > bink->bsnd[i].sndamt)
+                len = bink->bsnd[i].sndamt;
+            if ((S32)bink->FrameNum <= bink->bsnd[i].sndendframe)
+                len &= bink->bsnd[i].sndalign << bink->bsnd[i].sndconvert8;
+            bink->bsnd[i].sndamt -= len;
+            src = bink->bsnd[i].sndreadpos;
+            left = bink->bsnd[i].sndend - src;
+            if (left < len)
+            {
+                if (left)
+                {
+                    if (bink->bsnd[i].sndconvert8)
+                    {
+                        addr = conv16to8(addr, (S16*)src, left);
+                    }
+                    else
+                    {
+                        memcpy(addr, src, left);
+                        addr += left;
+                    }
+                }
+                if (bink->bsnd[i].sndconvert8)
+                    conv16to8(addr, (S16*)bink->bsnd[i].sndbuf, len - left);
+                else
+                    memcpy(addr, bink->bsnd[i].sndbuf, len - left);
+                bink->bsnd[i].sndreadpos = bink->bsnd[i].sndbuf + (len - left);
+            }
+            else
+            {
+                if (bink->bsnd[i].sndconvert8)
+                    conv16to8(addr, (S16*)src, len);
+                else
+                    memcpy(addr, src, len);
+                bink->bsnd[i].sndreadpos += len;
+            }
+            if (bink->bsnd[i].sndconvert8)
+                len >>= 1;
+            bink->bsnd[i].Unlock(&bink->bsnd[i], len);
+        }
+    }
+    RADCB_resume_callback(bink_sndcbhandler, bink->soundcb);
 }
 
 void inittimer(BINK* bink)
@@ -863,8 +928,8 @@ S32 BinkSetSoundOnOff(BINK* bink, S32 onoff)
                 {
                     if (bink->soundon)
                     {
-                        bink->bsnd[i].sndreadpos = bink->bsnd[i].sndbuf;
                         bink->bsnd[i].sndwritepos = bink->bsnd[i].sndbuf;
+                        bink->bsnd[i].sndreadpos = bink->bsnd[i].sndbuf;
                         bink->bsnd[i].sndamt = 0;
                         dosilence(bink->bsnd + i);
                         bink->soundon = 0;

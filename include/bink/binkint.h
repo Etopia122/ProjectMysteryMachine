@@ -11,6 +11,9 @@ typedef void (*BINKSNDPAN)(BINKSND* snd, S32 pan);
 typedef void (*BINKSNDMIXBINS)(BINKSND* snd, U32* bins, U32 total);
 typedef void (*BINKSNDMIXBINVOLS)(BINKSND* snd, U32* bins, S32* volumes, U32 total);
 typedef U32 (*BINKSNDSYSOPEN)(U32 param);
+typedef S32 (*BINKSNDREADY)(BINKSND* snd);
+typedef S32 (*BINKSNDLOCK)(BINKSND* snd, U8** addr, U32* len);
+typedef void (*BINKSNDUNLOCK)(BINKSND* snd, U32 filled);
 typedef void (*BINKSNDPAUSE)(BINKSND* snd, S32 pause);
 typedef S32 (*BINKSNDONOFF)(BINKSND* snd, S32 onoff);
 typedef void (*BINKSNDCLOSE)(BINKSND* snd);
@@ -46,7 +49,9 @@ struct BINKIO
 
 struct BINKSND
 {
-    U8 pad0[0xC];
+    BINKSNDREADY Ready; /* 0x0 */
+    BINKSNDLOCK Lock; /* 0x4 */
+    BINKSNDUNLOCK Unlock; /* 0x8 */
     BINKSNDVOLUME Volume; /* 0xC */
     BINKSNDPAN Pan; /* 0x10 */
     BINKSNDPAUSE Pause; /* 0x14 */
@@ -56,15 +61,17 @@ struct BINKSND
     BINKSNDMIXBINVOLS MixBinVols; /* 0x24 */
     U32 sndbufsize; /* 0x28 */
     U8* sndbuf; /* 0x2C */
-    U8 pad30[0x4];
-    U8* sndreadpos; /* 0x34 */
-    U8* sndwritepos; /* 0x38 */
+    U8* sndend; /* 0x30 */
+    U8* sndwritepos; /* 0x34 */
+    U8* sndreadpos; /* 0x38 */
     void* ac; /* 0x3C */
     U32 sndamt; /* 0x40 */
-    U8 pad44[0x4];
+    U32 sndconvert8; /* 0x44 */
     S32 sndendframe; /* 0x48 */
     U32 sndprime; /* 0x4C */
-    U8 pad50[0xC];
+    U8 pad50[0x4];
+    U32 sndlowwater; /* 0x54 */
+    U32 sndalign; /* 0x58 */
     U32 sndstarved; /* 0x5C */
     U8 pad60[0x8];
     U32 sndrateadj; /* 0x68 */
