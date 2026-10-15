@@ -51,6 +51,21 @@ typedef void (*RADMEMFREE)(void* ptr);
 	subfc %1,%3,%1
 	subfe %0,%2,%0"                            : "=r"(hi), "=r"(lo), "=&r"(_mh), "=&r"(_ml)                                                       : "r"(a), "r"(b), "0"(hi), "1"(lo));                                                   }
 
+/* Inline sqrtf from the SDK math header: three Newton steps on frsqrte. */
+static inline float radsqrtf(float x)
+{
+    if (x > 0.0f)
+    {
+        double guess;
+        __asm__("frsqrte %0,%1" : "=f"(guess) : "f"(x));
+        guess = 0.5 * guess * (3.0 - guess * guess * x);
+        guess = 0.5 * guess * (3.0 - guess * guess * x);
+        guess = 0.5 * guess * (3.0 - guess * guess * x);
+        return (float)(x * guess);
+    }
+    return x;
+}
+
 /* Dolphin OS */
 typedef S64 OSTime;
 typedef struct OSAlarm OSAlarm;

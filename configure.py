@@ -861,6 +861,7 @@ config.libs = [
             Object(Matching, "bink/fft.c"),
             Object(NonMatching, "bink/radcb.c"),
             Object(Matching, "bink/popmal.c"),
+            Object(NonMatching, "bink/binkacd.c"),
         ],
     },
     {
