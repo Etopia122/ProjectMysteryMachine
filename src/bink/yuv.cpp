@@ -42,14 +42,22 @@ extern YUVSTATE yuvs;
 extern U32 yuv_ytab[256];   /* Y -> grey 32-bit pixel */
 extern U32* yuv_yclip[256]; /* Y -> clamp table entry for that Y */
 /* Chroma contributions, as indexes into the clamp tables */
+struct YUVTAB
+{
+    S32 t[256];
+};
 struct YUVTABS
 {
-    S32 ub[256]; /* 0x000: blue from U */
-    S32 vg[256]; /* 0x400: green from V */
-    S32 ug[256]; /* 0x800: green from U */
-    S32 vr[256]; /* 0xC00: red from V */
+    YUVTAB ub; /* 0x000: blue from U */
+    YUVTAB vg; /* 0x400: green from V */
+    YUVTAB ug; /* 0x800: green from U */
+    YUVTAB vr; /* 0xC00: red from V */
 };
 extern YUVTABS yuvt;
+extern YUVTABS yuvsave; /* unswapped copy */
+extern S32 yuv_swapped;
+extern U32 yuv_shift;
+extern U32 yuv_f64c;
 extern U32 yuv_y16[256];    /* Y -> grey 16-bit pixel (low half) */
 extern U32 yuv_a16[256];    /* alpha -> 4-bit alpha bits (low half) */
 extern S32 yuv_yprime[256]; /* Y -> scaled luma */
@@ -62,7 +70,7 @@ extern BLITS blits16;
 extern BLITS blits16a4;
 extern BLITS blitsYUY2;
 
-#define YUVCOLOR()                                                                                     yuvs.cb = yuvt.ub[*yuvs.u];                                                                        yuvs.cg = yuvt.ug[*yuvs.u] + yuvt.vg[*yuvs.v];                                                     yuvs.cr = yuvt.vr[*yuvs.v];
+#define YUVCOLOR()                                                                                     yuvs.cb = yuvt.ub.t[*yuvs.u];                                                                      yuvs.cg = yuvt.ug.t[*yuvs.u] + yuvt.vg.t[*yuvs.v];                                                 yuvs.cr = yuvt.vr.t[*yuvs.v];
 
 #define RGB32(c) ((c)[yuvs.cb] | ((c)[yuvs.cg] << 8) | ((c)[yuvs.cr] << 16))
 
@@ -109,7 +117,7 @@ void zoom2heven(S32 n)
     U8* a1 = yuvs.a1;
     U8* u = yuvs.u;
     U8* v = yuvs.v;
-    S32 adv;
+    U32 adv;
 
     yuv_zevenfn(n);
     yuvs.d0 = d0 + yuvs.pitch;
@@ -136,7 +144,7 @@ void zoom2hodd(S32 n)
     U8* a1 = yuvs.a1;
     U8* u = yuvs.u;
     U8* v = yuvs.v;
-    S32 adv;
+    U32 adv;
 
     yuv_zoddfn(n);
     yuvs.d0 = d0 + yuvs.pitch;
@@ -465,13 +473,149 @@ void YUV_blit_mask(void* dst, U32 dx, U32 dy, U32 pitch, U8* mask, U32 maskpitch
 void YUV_blit(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride,
                          U32 uvy, U32 flags, void* alpha, BLITS* b);
 
-void setevenodd(U32 flags, U32* dpitch, U32 w, U32 h, BLITS* b, S32* adv);
+#define BF(k) (b->fn[(k) - 1])
+
+void setevenodd(U32 flags, U32* dpitch, U32 w, U32 h, BLITS* b, U32* adv)
+{
+    U32 m, a, sh;
+
+    yuv_f64c = 0;
+    yuvs.pitch = *dpitch;
+    if (flags & 0x10000)
+    {
+        if (yuv_swapped != 1)
+        {
+            yuv_swapped = 1;
+            yuvt.vr = yuvsave.ub;
+            yuvt.vg = yuvsave.ug;
+            yuvt.ug = yuvsave.vg;
+            yuvt.ub = yuvsave.vr;
+        }
+    }
+    else if (yuv_swapped != 0)
+    {
+        yuv_swapped = 0;
+        yuvt = yuvsave;
+    }
+
+    m = flags & 0x70000000;
+    if (m == 0x10000000)
+    {
+        checkzoombufs(w * b->bpp);
+        *dpitch *= 2;
+        *adv = *dpitch - w * b->bpp;
+        if (flags & 0x20000)
+        {
+            yuv_evenfn = zoom2heven;
+            yuv_oddfn = zoom2hodd;
+            yuv_rowfn = (ROWFN)BF(0x17);
+            yuv_colfn = (COLFN)BF(0x18);
+            yuv_zoddfn = (BLOCKFN)BF(6);
+            yuv_shift = BF(5);
+            yuv_zevenfn = (BLOCKFN)BF(6);
+        }
+        else
+        {
+            sh = BF(3);
+            a = BF(1);
+            yuv_evenfn = zoom2heven;
+            yuv_oddfn = zoom2hodd;
+            yuv_rowfn = (ROWFN)BF(0x15);
+            yuv_colfn = (COLFN)BF(0x16);
+            yuv_zevenfn = (BLOCKFN)BF(2);
+            yuv_zoddfn = (BLOCKFN)BF(4);
+            if (sh < a)
+                sh = a;
+            yuv_shift = sh;
+        }
+    }
+    else if (m == 0x30000000 || m == 0x50000000)
+    {
+        *adv = *dpitch - w * b->bpp * 2;
+        if (flags & 0x20000)
+        {
+            yuv_rowfn = (ROWFN)BF(0x13);
+            yuv_colfn = (COLFN)BF(0x14);
+            yuv_oddfn = (BLOCKFN)BF(0xC);
+            yuv_shift = BF(0xB);
+            yuv_evenfn = (BLOCKFN)BF(0xC);
+        }
+        else
+        {
+            sh = BF(9);
+            a = BF(7);
+            yuv_rowfn = (ROWFN)BF(0x11);
+            yuv_colfn = (COLFN)BF(0x12);
+            yuv_evenfn = (BLOCKFN)BF(8);
+            yuv_oddfn = (BLOCKFN)BF(10);
+            if (sh < a)
+                sh = a;
+            yuv_shift = sh;
+        }
+    }
+    else if (m == 0x40000000)
+    {
+        checkzoombufs(w * b->bpp * 2);
+        *dpitch *= 2;
+        *adv = *dpitch - w * b->bpp * 2;
+        if (flags & 0x20000)
+        {
+            yuv_evenfn = zoom2heven;
+            yuv_oddfn = zoom2hodd;
+            yuv_rowfn = (ROWFN)BF(0x1B);
+            yuv_colfn = (COLFN)BF(0x1C);
+            yuv_zoddfn = (BLOCKFN)BF(0xC);
+            yuv_shift = BF(0xB);
+            yuv_zevenfn = (BLOCKFN)BF(0xC);
+        }
+        else
+        {
+            sh = BF(9);
+            a = BF(7);
+            yuv_evenfn = zoom2heven;
+            yuv_oddfn = zoom2hodd;
+            yuv_rowfn = (ROWFN)BF(0x19);
+            yuv_colfn = (COLFN)BF(0x1A);
+            yuv_zevenfn = (BLOCKFN)BF(8);
+            yuv_zoddfn = (BLOCKFN)BF(10);
+            if (sh < a)
+                sh = a;
+            yuv_shift = sh;
+        }
+    }
+    else
+    {
+        *adv = *dpitch - w * b->bpp;
+        if (flags & 0x20000)
+        {
+            yuv_rowfn = (ROWFN)BF(0xF);
+            yuv_colfn = (COLFN)BF(0x10);
+            yuv_oddfn = (BLOCKFN)BF(6);
+            yuv_shift = BF(5);
+            yuv_evenfn = (BLOCKFN)BF(6);
+        }
+        else
+        {
+            sh = BF(3);
+            a = BF(1);
+            yuv_rowfn = (ROWFN)BF(0xD);
+            yuv_colfn = (COLFN)BF(0xE);
+            yuv_evenfn = (BLOCKFN)BF(2);
+            yuv_oddfn = (BLOCKFN)BF(4);
+            if (sh < a)
+                sh = a;
+            yuv_shift = sh;
+        }
+    }
+    yuv_align = 1 << yuv_shift;
+    yuv_alignmask = yuv_align - 1;
+}
 
 void YUV_blit(void* dst, U32 dx, U32 dy, U32 pitch, void* src, U32 sx, U32 sy, U32 w, U32 h, U32 stride, U32 uvy,
               U32 flags, void* alpha, BLITS* b)
 {
     U32 dpitch = pitch;
-    S32 adv;
+    U32 adv;
     U32 half, last, lead;
     S32 uvadv, yadv, t;
 
