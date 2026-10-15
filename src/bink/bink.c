@@ -23,6 +23,9 @@ void GotoFrame(BINK* bink, U32 frame);
 void BinkDoFrame(BINK* bink);
 S32 BinkSetVideoOnOff(BINK* bink, S32 onoff);
 void BinkNextFrame(BINK* bink);
+void* BinkAudioDecompressOpen(U32 rate, U32 chans, U32 flags);
+void BinkAudioDecompress(void* ac, S16** outp, U32* outlen, void* inp, void** inpend);
+void* bpopmalloc(BINK* bink, U32 bytes);
 void endframe(BINK* bink, U32 time);
 void* popmalloc(U32 bytes);
 void BinkAudioDecompressClose(void* ac);
@@ -293,7 +296,7 @@ void BinkNextFrame(BINK* bink)
         bink->soundstarves++;
         RADCB_suspend_2_callbacks(bink_sndcbhandler, bink->soundcb, bink_cbhandler, bink->bio.cb);
         BinkSetSoundOnOff(bink, 0);
-        while (((bink->bio.CurBufUsed + 1) * 100) / (bink->bio.BufSize + 1) < 90)
+        while (((bink->bio.CurBufUsed + 1) * 100) / (bink->bio.CurBufSize + 1) < 90)
         {
             if (!bink->bio.Idle(&bink->bio))
                 break;
@@ -534,6 +537,85 @@ idle:
     return 1;
 }
 
+void BinkGetSummary(BINK* bink, BINKSUMMARY* sum)
+{
+    U32 t, size;
+
+    if (bink && sum)
+    {
+        t = RADTimerRead();
+        timeframe(bink, t);
+        endframe(bink, t);
+        memset(sum, 0, sizeof(BINKSUMMARY));
+        sum->FrameRate = bink->FrameRate;
+        sum->FrameRateDiv = bink->FrameRateDiv;
+        sum->SkippedBlits = bink->totalskippedblits;
+        sum->SoundSkips = bink->soundstarves;
+        sum->FileFrameRate = bink->fileframerate;
+        sum->FileFrameRateDiv = bink->fileframeratediv;
+        sum->TotalFrames = bink->Frames;
+        sum->TotalPlayedFrames = bink->runtimeframes;
+        sum->TotalTime = RADTimerRead() - bink->opentime;
+        sum->TotalOpenTime = bink->totalopentime;
+        sum->TotalAudioDecompTime = bink->totaladecomptime;
+        sum->TotalVideoDecompTime = bink->totalvdecomptime;
+        sum->TotalBlitTime = bink->totalblittime;
+        sum->HighestMemAmount += bink->totalmem;
+        sum->TotalIOMemory = bink->iosize;
+        sum->TotalReadSpeed = mult64anddiv(bink->bio.BytesRead, 1000, bink->bio.TotalTime + 1);
+        sum->TotalReadTime = bink->bio.ForegroundTime;
+        sum->TotalIdleReadTime = bink->bio.IdleTime;
+        sum->TotalBackReadTime = bink->bio.ThreadTime;
+        size = bink->Size - (bink->frameoffsets[0] & ~1);
+        sum->AverageDataRate = mult64anddiv(size, bink->fileframerate, bink->fileframeratediv * bink->Frames);
+        sum->AverageFrameSize = size / bink->Frames;
+        sum->Highest1SecRate = bink->Highest1SecRate;
+        sum->Highest1SecFrame = bink->Highest1SecFrame + 1;
+        sum->Width = bink->Width;
+        sum->Height = bink->Height;
+        sum->SlowestFrameTime = bink->slowestframetime;
+        sum->Slowest2FrameTime = bink->slowest2frametime;
+        sum->SlowestFrameNum = bink->slowestframe;
+        sum->Slowest2FrameNum = bink->slowest2frame;
+        sum->TotalIOMemory = bink->bio.BufSize;
+        sum->HighestIOUsed = bink->bio.BufHighUsed;
+    }
+}
+
+void BinkGetRealtime(BINK* bink, BINKREALTIME* rt, U32 frames)
+{
+    U32 t;
+
+    t = RADTimerRead();
+    timeframe(bink, t);
+    endframe(bink, t);
+    if (frames == 0 || frames >= bink->rtframes)
+        frames = bink->rtframes - 1;
+    if (frames > bink->FrameNum)
+    {
+        frames = bink->FrameNum - 1;
+        if (frames == 0)
+            frames = 1;
+    }
+    rt->FrameNum = bink->LastFrameNum;
+    rt->FrameRate = bink->FrameRate;
+    rt->FrameRateDiv = bink->FrameRate;
+    rt->ReadBufferSize = bink->bio.CurBufSize;
+    rt->ReadBufferUsed = bink->bio.CurBufUsed;
+    rt->FramesDataRate = mult64anddiv(bink->frameoffsets[bink->FrameNum] - bink->frameoffsets[bink->FrameNum - frames],
+                                      bink->fileframerate, frames * bink->fileframeratediv);
+    rt->Frames = frames;
+    rt->FramesTime = bink->rtframetimes[0] - bink->rtframetimes[frames];
+    if (rt->FramesTime == 0)
+        rt->FramesTime = 1;
+    rt->FramesVideoDecompTime = bink->rtvdecomptimes[0] - bink->rtvdecomptimes[frames];
+    rt->FramesAudioDecompTime = bink->rtadecomptimes[0] - bink->rtadecomptimes[frames];
+    rt->FramesBlitTime = bink->rtblittimes[0] - bink->rtblittimes[frames];
+    rt->FramesReadTime = bink->rtreadtimes[0] - bink->rtreadtimes[frames];
+    rt->FramesIdleReadTime = bink->rtidlereadtimes[0] - bink->rtidlereadtimes[frames];
+    rt->FramesThreadReadTime = bink->rtthreadreadtimes[0] - bink->rtthreadreadtimes[frames];
+}
+
 void BinkService(BINK* bink)
 {
     if (bink->playingtracks)
@@ -629,23 +711,104 @@ U32 BinkGetTrackID(BINK* bink, U32 track)
     return 0;
 }
 
-typedef struct BINKTRACK
+BINKTRACK* BinkOpenTrack(BINK* bink, U32 track)
 {
-    U8 pad[0x14];
-    void* ac; /* 0x14 */
-} BINKTRACK;
+    U32 type;
+    void* ac;
+    BINKTRACK* t;
+
+    if (bink && track < (U32)bink->NumTracks)
+    {
+        if ((S32)bink->tracktypes[track] < 0 || (bink->tracktypes[track] & 0x10000000))
+        {
+            type = bink->tracktypes[track];
+            ac = BinkAudioDecompressOpen(type & 0xFFFF, ((type >> 29) & 1) + 1,
+                                         ((S32)type >= 0 && (type & 0x10000000)) ? 1 : 0);
+            if (ac == 0)
+                return 0;
+            t = (BINKTRACK*)bpopmalloc(bink, sizeof(BINKTRACK));
+            if (t == 0)
+            {
+                BinkAudioDecompressClose(ac);
+            }
+            else
+            {
+                memset(t, 0, sizeof(BINKTRACK));
+                t->sndcomp = ac;
+                t->bink = bink;
+                t->Frequency = bink->tracktypes[track] & 0xFFFF;
+                t->Bits = ((bink->tracktypes[track] >> 27) & 8) + 8;
+                t->Channels = ((bink->tracktypes[track] >> 29) & 1) + 1;
+                t->MaxSize = (bink->tracksizes[track] + 3) & ~3;
+                if (t->Bits == 8)
+                    t->MaxSize >>= 1;
+                t->trackindex = track;
+                return t;
+            }
+        }
+    }
+    return 0;
+}
 
 void BinkCloseTrack(BINKTRACK* t)
 {
     if (t)
     {
-        if (t->ac)
+        if (t->sndcomp)
         {
-            BinkAudioDecompressClose(t->ac);
-            t->ac = 0;
+            BinkAudioDecompressClose(t->sndcomp);
+            t->sndcomp = 0;
         }
         radfree(t);
     }
+}
+
+U32 BinkGetTrackData(BINKTRACK* t, U8* dest)
+{
+    S32 i;
+    U32* p;
+    U32 size, left, amt, j, total;
+    S16* samples;
+
+    if (t)
+    {
+        p = (U32*)t->bink->compframe;
+        for (i = 0; i < t->bink->NumTracks; i++)
+        {
+            size = *p++;
+            if (i == t->trackindex && size)
+            {
+                left = *p++;
+                total = 0;
+                while (left)
+                {
+                    BinkAudioDecompress(t->sndcomp, &samples, &amt, p, (void**)&p);
+                    if (amt > left)
+                        amt = left;
+                    left -= amt;
+                    if (t->Bits == 16)
+                    {
+                        memcpy(dest, samples, amt);
+                    }
+                    else
+                    {
+                        U8* d;
+                        S16* sp;
+                        amt >>= 1;
+                        d = dest;
+                        sp = samples;
+                        for (j = 0; j < amt; j++)
+                            *d++ = (U8)(*sp++ >> 8) + 0x80;
+                    }
+                    dest += amt;
+                    total += amt;
+                }
+                return total;
+            }
+            p = (U32*)((U8*)p + size);
+        }
+    }
+    return 0;
 }
 
 S32 BinkSetVideoOnOff(BINK* bink, S32 onoff)

@@ -26,10 +26,18 @@ struct BINKIO
     U8 pad8[0x8];
     BINKIOIDLE Idle; /* 0x10 */
     BINKIOCLOSE Close; /* 0x14 */
-    U8 pad18[0x10];
+    U8 pad18[0x4];
+    volatile U32 ReadError; /* 0x1C */
+    volatile U32 DoingARead; /* 0x20 */
+    volatile U32 BytesRead; /* 0x24 */
     volatile U32 Working; /* 0x28 */
-    U8 pad2C[0x18];
-    volatile U32 BufSize; /* 0x44 */
+    volatile U32 TotalTime; /* 0x2C */
+    volatile U32 ForegroundTime; /* 0x30 */
+    volatile U32 IdleTime; /* 0x34 */
+    volatile U32 ThreadTime; /* 0x38 */
+    volatile U32 BufSize; /* 0x3C */
+    volatile U32 BufHighUsed; /* 0x40 */
+    volatile U32 CurBufSize; /* 0x44 */
     volatile U32 CurBufUsed; /* 0x48 */
     U8 pad4C[0xB0];
     U8 cb[28]; /* 0xFC */
@@ -78,9 +86,14 @@ struct BINK
     U32 FrameRateDiv; /* 0x18 */
     U32 ReadError; /* 0x1C */
     U32 OpenFlags; /* 0x20 */
-    U8 pad24[0x98];
+    U32 BinkType; /* 0x24 */
+    U32 Size; /* 0x28 */
+    U8 pad2C[0x90];
     void* framemem; /* 0xBC */
-    U8 padC0[0x3C];
+    U8 padC0[0x30];
+    S32 NumTracks; /* 0xF0 */
+    U32 Highest1SecRate; /* 0xF4 */
+    U32 Highest1SecFrame; /* 0xF8 */
     S32 Paused; /* 0xFC */
     U8 pad100[0x4];
     U8* compframe; /* 0x104 */
@@ -88,14 +101,16 @@ struct BINK
     U32* frameoffsets; /* 0x10C */
     BINKIO bio; /* 0x110 */
     void* iobuf; /* 0x24C */
-    U8 pad250[0xC];
+    U32 iosize; /* 0x250 */
+    U8 pad254[0x8];
     S32* trackindexes; /* 0x25C */
     U32* tracksizes; /* 0x260 */
     U32* tracktypes; /* 0x264 */
     S32* trackIDs; /* 0x268 */
     U8 pad26C[0x4];
     U32 runtimeframes; /* 0x270 */
-    U8 pad274[0x8];
+    U32 opentime; /* 0x274 */
+    U8 pad278[0x4];
     U32 startblittime; /* 0x27C */
     U32 timerstart; /* 0x280 */
     U32 timerframe; /* 0x284 */
@@ -108,16 +123,30 @@ struct BINK
     S32 soundon; /* 0x2A0 */
     S32 videoon; /* 0x2A4 */
     U32 totalmem; /* 0x2A8 */
-    U8 pad2AC[0x8];
+    U32 totalvdecomptime; /* 0x2AC */
+    U32 totaladecomptime; /* 0x2B0 */
     U32 totalblittime; /* 0x2B4 */
-    U8 pad2B8[0x34];
+    U32 totalopentime; /* 0x2B8 */
+    U32 fileframerate; /* 0x2BC */
+    U32 fileframeratediv; /* 0x2C0 */
+    U32 rtframes; /* 0x2C4 */
+    U8 pad2C8[0x4];
+    U32* rtframetimes; /* 0x2CC */
+    U32* rtadecomptimes; /* 0x2D0 */
+    U32* rtvdecomptimes; /* 0x2D4 */
+    U32* rtblittimes; /* 0x2D8 */
+    U32* rtreadtimes; /* 0x2DC */
+    U32* rtidlereadtimes; /* 0x2E0 */
+    U32* rtthreadreadtimes; /* 0x2E4 */
+    U8 pad2E8[0x4];
     U32 lastdecodedframe; /* 0x2EC */
     S32 playingtracks; /* 0x2F0 */
     U32 soundstarves; /* 0x2F4 */
     BINKSND* bsnd; /* 0x2F8 */
     U32 lastblitdone; /* 0x2FC */
     U32 skippedblits; /* 0x300 */
-    U8 pad304[0x2C];
+    U32 totalskippedblits; /* 0x304 */
+    U8 pad308[0x28];
     U32 soundskips; /* 0x330 */
     U32 soundskipframes; /* 0x334 */
     U8 pad338[0x8];
@@ -126,5 +155,69 @@ struct BINK
     U8 pad360[0x24];
 };
 
+
+typedef struct BINKTRACK
+{
+    U32 Frequency;   /* 0x00 */
+    U32 Bits;        /* 0x04 */
+    U32 Channels;    /* 0x08 */
+    U32 MaxSize;     /* 0x0C */
+    BINK* bink;      /* 0x10 */
+    void* sndcomp;   /* 0x14 */
+    S32 trackindex;  /* 0x18 */
+} BINKTRACK;
+
+typedef struct BINKSUMMARY
+{
+    U32 Width;                /* 0x00 */
+    U32 Height;               /* 0x04 */
+    U32 TotalTime;            /* 0x08 */
+    U32 FileFrameRate;        /* 0x0C */
+    U32 FileFrameRateDiv;     /* 0x10 */
+    U32 FrameRate;            /* 0x14 */
+    U32 FrameRateDiv;         /* 0x18 */
+    U32 TotalOpenTime;        /* 0x1C */
+    U32 TotalFrames;          /* 0x20 */
+    U32 TotalPlayedFrames;    /* 0x24 */
+    U32 SkippedFrames;        /* 0x28 */
+    U32 SkippedBlits;         /* 0x2C */
+    U32 SoundSkips;           /* 0x30 */
+    U32 TotalBlitTime;        /* 0x34 */
+    U32 TotalReadTime;        /* 0x38 */
+    U32 TotalVideoDecompTime; /* 0x3C */
+    U32 TotalAudioDecompTime; /* 0x40 */
+    U32 TotalIdleReadTime;    /* 0x44 */
+    U32 TotalBackReadTime;    /* 0x48 */
+    U32 TotalReadSpeed;       /* 0x4C */
+    U32 SlowestFrameTime;     /* 0x50 */
+    U32 Slowest2FrameTime;    /* 0x54 */
+    U32 SlowestFrameNum;      /* 0x58 */
+    U32 Slowest2FrameNum;     /* 0x5C */
+    U32 AverageDataRate;      /* 0x60 */
+    U32 AverageFrameSize;     /* 0x64 */
+    U32 HighestMemAmount;     /* 0x68 */
+    U32 TotalIOMemory;        /* 0x6C */
+    U32 HighestIOUsed;        /* 0x70 */
+    U32 Highest1SecRate;      /* 0x74 */
+    U32 Highest1SecFrame;     /* 0x78 */
+} BINKSUMMARY;
+
+typedef struct BINKREALTIME
+{
+    U32 FrameNum;              /* 0x00 */
+    U32 FrameRate;             /* 0x04 */
+    U32 FrameRateDiv;          /* 0x08 */
+    U32 Frames;                /* 0x0C */
+    U32 FramesTime;            /* 0x10 */
+    U32 FramesVideoDecompTime; /* 0x14 */
+    U32 FramesAudioDecompTime; /* 0x18 */
+    U32 FramesReadTime;        /* 0x1C */
+    U32 FramesIdleReadTime;    /* 0x20 */
+    U32 FramesThreadReadTime;  /* 0x24 */
+    U32 FramesBlitTime;        /* 0x28 */
+    U32 ReadBufferSize;        /* 0x2C */
+    U32 ReadBufferUsed;        /* 0x30 */
+    U32 FramesDataRate;        /* 0x34 */
+} BINKREALTIME;
 
 #endif
