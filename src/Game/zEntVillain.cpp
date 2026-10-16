@@ -20056,7 +20056,7 @@ static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp)
             return NULL;
         }
     }
-    else if (vtyp == eEntVillainType_Undefined && pfx == 'P\0\0\0')
+    else if (vtyp == eEntVillainTypeBat && pfx == 'P\0\0\0')
     {
         soap_always = 1;
     }
