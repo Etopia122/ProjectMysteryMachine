@@ -361,16 +361,15 @@ void zEntPickupInit(_zEntPickup* ent, p2EntAsset* asset)
     }
     for (i = 0; i < ent->linkCount; i++)
     {
-        p2LinkAsset* link = &((p2LinkAsset*)ent->link)[i];
-        if (link->dstEvent == 0x99)
+        if (((p2LinkAsset*)ent->link)[i].dstEvent == 0x99)
         {
-            link->dstAssetID = ent->id;
+            ((p2LinkAsset*)ent->link)[i].dstAssetID = ent->id;
         }
     }
 
     ent->pflags = 0;
-    ent->penby = 0;
     ent->chkby = 0;
+    ent->penby = 0;
     ent->update = (void (*)(_xEnt*, _xScene*, float))zEntPickup_Update;
     ent->move = NULL;
     ent->eventFunc = zEntPickupEventCB;
@@ -398,12 +397,11 @@ void zEntPickupInit(_zEntPickup* ent, p2EntAsset* asset)
                     ((zEntPickupAsset*)asset)->pickupHash);
     }
 
-    unsigned int animID = p->animID;
     RpAtomic* model = (RpAtomic*)xSTFindAsset(p->modelID, &size);
     void* anim = NULL;
-    if (animID != 0)
+    if (p->animID != 0)
     {
-        anim = xSTFindAsset(animID, &size);
+        anim = xSTFindAsset(p->animID, &size);
         if (iAnimBoneCount(anim) != iModelNumBones(model))
         {
             anim = NULL;
@@ -411,7 +409,7 @@ void zEntPickupInit(_zEntPickup* ent, p2EntAsset* asset)
     }
 
     ent->model = xModelInstanceAlloc(model, ent, 0, 0, NULL);
-    ent->model->Flags &= ~2;
+    ent->model->Flags &= 0xFFFD;
     ent->state = 0x41;
     ent->p = p;
     if (ent->p->pickupType == 1 && ent->p->pickupIndex == 2)

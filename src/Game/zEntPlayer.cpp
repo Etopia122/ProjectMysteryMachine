@@ -5574,7 +5574,7 @@ static void PlayerEGenCheck(_xEnt* ent, zScene* sc, float dt)
             if (isect.dist < r * r + 0.1f * (2.0f * r) + 0.1f * 0.1f)
             {
                 globals.player.earc_coll.flags |= 1;
-                if (zEntPlayer_Damage(egen, 1) != 0)
+                if (zEntPlayer_Damage(egen, 1) ? 1 : 0)
                 {
                     globals.player.DamageTimer = 5.0f;
                 }
