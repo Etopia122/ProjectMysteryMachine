@@ -871,6 +871,7 @@ config.libs = [
             Object(NonMatching, "bink/yuv4x2.c"),
             Object(Matching, "bink/yuy2.c"),
             Object(NonMatching, "bink/varbits.c"),
+            Object(NonMatching, "bink/bitplane.c"),
         ],
     },
     {
