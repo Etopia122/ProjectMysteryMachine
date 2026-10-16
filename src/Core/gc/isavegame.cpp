@@ -624,8 +624,8 @@ signed int iSGTgtFormat(st_ISGSESSION* isgdata, signed int tgtidx, signed int as
 
 unsigned int iSGTgtState(st_ISGSESSION* isgdata, signed int tgtidx, const char* dpath)
 {
-    signed int isSectSizeValid = 0;
     unsigned int state = 0;
+    signed int isSectSizeValid = 0;
     signed int slot = 0;
     signed int x = 0;
     signed int y = 0;
