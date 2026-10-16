@@ -69,7 +69,6 @@ RxPipeline* iFXanimUVCreatePipe()
 
 void iFXWarbSetParams(unsigned int mode, float* val);
 
-// TODO (96.8%): the original still tests the coeffs address before the copy.
 void iFXWarbInit(void* vp_ent, unsigned int warb_mode)
 {
     _xEnt* ent = (_xEnt*)vp_ent;
@@ -90,7 +89,7 @@ void iFXWarbInit(void* vp_ent, unsigned int warb_mode)
         ent->asset->seeThruSpeed = 0.0f;
     }
     float coeffs[4] = { 0.5f, 2.0f, 0.9f, 1.0f };
-    iFXWarbSetParams(warb_mode, coeffs);
+    iFXWarbSetParams(warb_mode, (float*)&coeffs);
     warbEnt = ent;
     warbTime = 0.0f;
 }
