@@ -1084,7 +1084,7 @@ static void xEntMotionDebugIPad(_xEntMotion* xem)
 
     if (gDebugPad->pressed & 0x20000)
     {
-        if (xem->flags & 4)
+        if (xEntMotionIsStopped(xem))
         {
             xEntMotionRun(xem);
         }
@@ -1097,7 +1097,6 @@ static void xEntMotionDebugIPad(_xEntMotion* xem)
 
 #pragma auto_inline off
 
-// TODO: 96.8% - register allocation
 void xEntMotionDebugCB()
 {
     if (dbg_idx != -1 && dbg_num)
@@ -1109,7 +1108,6 @@ void xEntMotionDebugCB()
     }
 }
 
-// TODO: 98.5% - register allocation in the print block
 static void xEntMotionDebugWrite(_xEntMotion* xem)
 {
     const char* name;
@@ -1209,7 +1207,10 @@ static void xEntMotionDebugWrite(_xEntMotion* xem)
         switch (xem->mech.state)
         {
         case 0:
-            name = (xem->asset->mech.type == 2) ? "sliding + rotating forth" : "sliding forth";
+            if (xem->asset->mech.type == 2)
+                name = "sliding + rotating forth";
+            else
+                name = "sliding forth";
             break;
         case 1:
             name = "rotating forth";
@@ -1218,7 +1219,10 @@ static void xEntMotionDebugWrite(_xEntMotion* xem)
             name = "waiting to return";
             break;
         case 3:
-            name = (xem->asset->mech.type == 2) ? "sliding + rotating back" : "sliding back";
+            if (xem->asset->mech.type == 2)
+                name = "sliding + rotating back";
+            else
+                name = "sliding back";
             break;
         case 4:
             name = "rotating back";

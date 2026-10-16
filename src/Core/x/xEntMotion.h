@@ -187,4 +187,9 @@ inline void xEntMotionStop(_xEntMotion* motion)
     motion->flags |= 4;
 }
 
+inline unsigned int xEntMotionIsStopped(const _xEntMotion* motion)
+{
+    return motion->flags & 4;
+}
+
 #endif
