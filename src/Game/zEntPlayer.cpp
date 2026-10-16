@@ -736,7 +736,7 @@ static void zEntPlayer_FXUpdate(_xEnt* ent, float seconds);
 void zEntPlayer_FXSetup(xAnimTable* table);
 void zEntPlayer_ButtonHBFX();
 void zEntPlayer_ButtonBBFX(_xEnt* ent);
-static void zEntPlayer_FXLostChance(_xEnt* ent);
+static void zEntPlayer_FXLostChance(_xEnt* ent, float);
 void zEntPlayer_Notify(signed int situation);
 void zEntPlayer_Notify(unsigned char characterSubType);
 void zEntPlayer_SituationDo();
@@ -1146,7 +1146,7 @@ static inline void PlayerScareReset()
         globals.player.Jump_CanFloat = 0;
         globals.player.Jump_CanDouble = 0;
     }
-    zEntPlayer_FXLostChance(&globals.player.ent);
+    zEntPlayer_FXLostChance(&globals.player.ent, 0.03f);
     zRumbleStart(0, (_tagSDRumbleType)7);
 }
 
@@ -2365,8 +2365,8 @@ static unsigned int ScareKnockbackCB(xAnimTransition*, xAnimSingle*, void*)
     knock.z = mat->at.z;
     xVec3Normalize(&knock, &knock);
     knock.x *= -4.0f;
-    knock.z *= -4.0f;
     knock.y = 15.0f;
+    knock.z *= -4.0f;
     globals.player.ent.frame->vel = knock;
     PlayerScareReset();
     return 0;
@@ -2709,26 +2709,19 @@ static unsigned int ProjectileCheck(xAnimTransition*, xAnimSingle*, void*)
 
 static unsigned int ProjectileRepeatSync(xAnimTransition* tran, xAnimSingle* anim, void* data)
 {
-    if (anim->Time >= globals.player.s.FirePress && anim->Time < globals.player.s.FireRepeat)
+    if (anim->Time >= globals.player.s.FirePress && anim->Time < globals.player.s.FireRepeat &&
+        ProjectileCheck(tran, anim, data))
     {
-        if (ProjectileCheck(tran, anim, data))
-        {
-            return 1;
-        }
-        return 0;
+        return 1;
     }
     return 0;
 }
 
 static unsigned int ProjectileRepeat(xAnimTransition* tran, xAnimSingle* anim, void* data)
 {
-    if (anim->Time >= globals.player.s.FireRepeat)
+    if (anim->Time >= globals.player.s.FireRepeat && ProjectileCheck(tran, anim, data))
     {
-        if (ProjectileCheck(tran, anim, data))
-        {
-            return 1;
-        }
-        return 0;
+        return 1;
     }
     return 0;
 }
@@ -8402,7 +8395,7 @@ void zEntPlayer_Notify(signed int situation)
 }
 #pragma auto_inline reset
 
-static void zEntPlayer_FXLostChance(_xEnt* ent)
+static void zEntPlayer_FXLostChance(_xEnt* ent, float)
 {
     _LostChanceFX fx_to_play = LCFX_StdShock;
     signed int sd_surface = -1;
