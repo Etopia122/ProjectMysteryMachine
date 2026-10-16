@@ -1308,8 +1308,8 @@ void zEntPickup_Drop(_zEntPickup* ent)
             *(_xVec3*)&ent->model->Mat->pos = *(_xVec3*)&ent->useThisEntPos->model->Mat->pos;
         }
     }
-    float h = ent->model->Mat->pos.y - ent->droppos.y;
     float vy = xsqrt(75.0f);
+    float h = ent->model->Mat->pos.y - ent->droppos.y;
     ent->vel.x = 0.0f;
     ent->vel.y = vy;
     ent->vel.z = 0.0f;
