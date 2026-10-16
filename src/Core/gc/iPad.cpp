@@ -46,7 +46,7 @@ extern "C" unsigned int fn_800443F8();
 
 PADStatus sPadData[4] = {};
 
-static inline signed int iPadConvStick(float value)
+static inline signed char iPadConvStick(float value)
 {
     if (value > 40.0f)
     {

@@ -413,7 +413,7 @@ config.libs = [
             Object(Equivalent, "Core/gc/iModel.cpp"),
             Object(Equivalent, "Core/gc/iMorph.cpp"),
             Object(
-                Equivalent,
+                Matching,
                 "Core/gc/iPad.cpp",
                 # Test builds can script controller input (tools/make_test_iso.py --autoplay)
                 extra_cflags=(
