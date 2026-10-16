@@ -1,10 +1,10 @@
-// TODO: 99.1% (NonMatching). The remaining differences are register allocation:
-// the inlined zHudInterp1d clamp evaluates fabs(step) and fabs(diff) into
-// swapped float registers in the element update loops, zHudInterp2d keeps the
-// squared length in a different register, zHud_Init does not reuse the loop
-// counter's zero for the colour bytes, and the Setup callbacks swap the globals
-// and item base registers. zHudAspectDeadStripped and zHudLayoutDeadStripped
-// must be stripped by the linker once this unit is Matching.
+// TODO: NonMatching. The remaining differences are register allocation: the
+// inlined zHudInterp1d clamp's negative branch picks swapped float registers
+// when the step is a hoisted dt multiple (SoapUpdate and friends),
+// zHudInterp2d keeps the squared length in a different register, and zHud_Init
+// does not reuse the loop counter's zero for the colour bytes.
+// zHudAspectDeadStripped and zHudLayoutDeadStripped must be stripped by the
+// linker once this unit is Matching.
 #include "zGlobals.h"
 #include "zScene.h"
 #include "xMath.h"
@@ -802,10 +802,11 @@ void zHudElementsCB_PlayerStatusSetup()
 
         if (item->model->Anim != NULL)
         {
-            item->model->Anim->Single->Time = 0.0f;
-            item->model->Anim->Single->CurrentSpeed = 1.0f;
-            xAnimPlaySetState(item->model->Anim->Single, item->model->Anim->Table->StateList,
-                              0.0f);
+            xAnimPlay* anim = item->model->Anim;
+            xAnimSingle* single = anim->Single;
+            single->Time = 0.0f;
+            single->CurrentSpeed = 1.0f;
+            xAnimPlaySetState(anim->Single, item->model->Anim->Table->StateList, 0.0f);
         }
     }
 }
@@ -1389,10 +1390,11 @@ void zHudElementsCB_GumSetup()
 
         if (item->model->Anim != NULL)
         {
-            item->model->Anim->Single->Time = 0.0f;
-            item->model->Anim->Single->CurrentSpeed = 1.0f;
-            xAnimPlaySetState(item->model->Anim->Single, item->model->Anim->Table->StateList,
-                              0.0f);
+            xAnimPlay* anim = item->model->Anim;
+            xAnimSingle* single = anim->Single;
+            single->Time = 0.0f;
+            single->CurrentSpeed = 1.0f;
+            xAnimPlaySetState(anim->Single, item->model->Anim->Table->StateList, 0.0f);
         }
     }
 }
@@ -2076,10 +2078,11 @@ void zHudElementsCB_SoapboxSetup()
 
     if (item->model->Anim != NULL)
     {
-        item->model->Anim->Single->Time = 0.0f;
-        item->model->Anim->Single->CurrentSpeed = 1.0f;
-        xAnimPlaySetState(item->model->Anim->Single,
-                          item->model->Anim->Table->StateList, 0.0f);
+        xAnimPlay* anim = item->model->Anim;
+        xAnimSingle* single = anim->Single;
+        single->Time = 0.0f;
+        single->CurrentSpeed = 1.0f;
+        xAnimPlaySetState(anim->Single, item->model->Anim->Table->StateList, 0.0f);
     }
 }
 
@@ -2334,10 +2337,11 @@ void zHudElementsCB_GumpackSetup()
 
     if (item->model->Anim != NULL)
     {
-        item->model->Anim->Single->Time = 0.0f;
-        item->model->Anim->Single->CurrentSpeed = 1.0f;
-        xAnimPlaySetState(item->model->Anim->Single,
-                          item->model->Anim->Table->StateList, 0.0f);
+        xAnimPlay* anim = item->model->Anim;
+        xAnimSingle* single = anim->Single;
+        single->Time = 0.0f;
+        single->CurrentSpeed = 1.0f;
+        xAnimPlaySetState(anim->Single, item->model->Anim->Table->StateList, 0.0f);
     }
 }
 
@@ -2609,10 +2613,11 @@ void zHudElementsCB_HealthbarSetup()
 
         if (item->model->Anim != NULL)
         {
-            item->model->Anim->Single->Time = 0.0f;
-            item->model->Anim->Single->CurrentSpeed = 1.0f;
-            xAnimPlaySetState(item->model->Anim->Single, item->model->Anim->Table->StateList,
-                              0.0f);
+            xAnimPlay* anim = item->model->Anim;
+            xAnimSingle* single = anim->Single;
+            single->Time = 0.0f;
+            single->CurrentSpeed = 1.0f;
+            xAnimPlaySetState(anim->Single, item->model->Anim->Table->StateList, 0.0f);
         }
     }
 }
