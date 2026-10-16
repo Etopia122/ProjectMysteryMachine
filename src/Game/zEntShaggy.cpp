@@ -2528,13 +2528,15 @@ unsigned int Shaggy3_MoveDead(xAnimTransition*, xAnimSingle*, _zPlatform* ent)
 
 unsigned int Shaggy3_Stop(xAnimTransition*, xAnimSingle*, _zPlatform* ent)
 {
+    unsigned char stopped;
+    unsigned char ret;
     _xEntFrame* frame = ent->frame;
     if (frame == NULL)
     {
         return 0;
     }
-    unsigned char ret = 0;
-    unsigned char stopped = 1;
+    ret = 0;
+    stopped = 1;
     if (frame->mode & 2)
     {
         if (!(frame->dpos.x * frame->dpos.x + frame->dpos.y * frame->dpos.y +

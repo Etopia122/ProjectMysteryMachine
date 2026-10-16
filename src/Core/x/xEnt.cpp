@@ -26,6 +26,12 @@ double cos(double x);
 double fabs(double x);
 signed int RwRenderStateSet(signed int state, void* value);
 // TODO: unidentified iBound helpers (set an OBB/box bound from a model)
+static inline void xRotCopy(_xRot* o, const _xRot* r)
+{
+    xVec3Copy(&o->axis, &r->axis);
+    o->angle = r->angle;
+}
+
 void fn_80007738(void* bound, xModelInstance* model);
 void fn_800077C0(void* bound, xModelInstance* model);
 }
@@ -544,8 +550,7 @@ void xEntReset(_xEnt* ent)
         xVec3Copy(&ent->frame->oldvel, &g_O3);
         xVec3Copy(&ent->frame->rot.axis, &ent->asset->ang);
         ent->frame->rot.angle = 0.0f;
-        xVec3Copy(&ent->frame->oldrot.axis, &ent->frame->rot.axis);
-        ent->frame->oldrot.angle = ent->frame->rot.angle;
+        xRotCopy(&ent->frame->oldrot, &ent->frame->rot);
     }
 
     switch (ent->bound.type)
@@ -553,7 +558,9 @@ void xEntReset(_xEnt* ent)
     case 0:
         break;
     case 1:
-        xVec3Copy(&ent->bound.sph.center, &ent->asset->pos);
+        ent->bound.sph.center.x = ent->asset->pos.x;
+        ent->bound.sph.center.y = ent->asset->pos.y;
+        ent->bound.sph.center.z = ent->asset->pos.z;
         break;
     }
 
@@ -629,8 +636,7 @@ void xEntBeginUpdate(_xEnt* ent, _xScene* sc, float dt)
         {
             xVec3Copy(&ent->frame->oldvel, &ent->frame->vel);
             xVec3Copy(&ent->frame->oldpos, &ent->frame->mat.pos);
-            xVec3Copy(&ent->frame->oldrot.axis, &ent->frame->rot.axis);
-            ent->frame->oldrot.angle = ent->frame->rot.angle;
+            xRotCopy(&ent->frame->oldrot, &ent->frame->rot);
             memcpy(&ent->frame->mat, ent->model->Mat, sizeof(_xMat4x3));
             ent->frame->mode = 0;
         }
