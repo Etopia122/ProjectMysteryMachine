@@ -2972,8 +2972,8 @@ void Shaggy5_Update(_zEnt* ent, _xScene* sc, float dt)
             _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
             info.pos.x = -0.15f * mat->at.x + mat->pos.x;
             info.pos.y = -0.15f * mat->at.y + mat->pos.y;
-            info.pos.y = info.pos.y + 0.9f;
             info.pos.z = -0.15f * mat->at.z + mat->pos.z;
+            info.pos.y += 0.9f;
             zParEmitterEmitCustom(gBurningManEmitter, dt, &info);
         }
     }
@@ -3005,7 +3005,7 @@ void Shaggy5_Update(_zEnt* ent, _xScene* sc, float dt)
     if (guts->witchDrop != NULL)
     {
         _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
-        mat->pos.y = ent->frame->vel.y * dt + mat->pos.y;
+        mat->pos.y += ent->frame->vel.y * dt;
         ent->frame->vel.y = -(10.0f * dt - ent->frame->vel.y);
         if (((_xMat4x3*)ent->model->Mat)->pos.y <
             -2.0f + ((_xMat4x3*)guts->witchDrop->model->Mat)->pos.y)
@@ -3034,9 +3034,8 @@ void Shaggy5_Update(_zEnt* ent, _xScene* sc, float dt)
         float* spd_chase = (float*)((char*)ent + 0x158);
         if (d2 < 16.0f)
         {
-            float d = 0.5f * dt;
-            *spd_move += d;
-            *spd_chase += d;
+            *spd_move += 0.5f * dt;
+            *spd_chase += 0.5f * dt;
             if (*spd_move > 4.1f)
             {
                 *spd_move = 4.1f;
