@@ -6,6 +6,39 @@
 
 #include "bink/yuvstate.h"
 
+/* Odd-pixel steps: the 4x2 converters always consume whole blocks. */
+inline void YUV_16_4x2_odd(U32 n)
+{
+}
+
+inline void YUV_32_4x2_odd(U32 n)
+{
+}
+
+inline void YUV_16x2_4x2_odd(U32 n)
+{
+}
+
+inline void YUV_16a4x2_4x2_odd(U32 n)
+{
+}
+
+inline void YUV_32x2_4x2_odd(U32 n)
+{
+}
+
+inline void YUV_16a4_4x2_odd(U32 n)
+{
+}
+
+inline void YUV_32a_4x2_odd(U32 n)
+{
+}
+
+inline void YUV_32ax2_4x2_odd(U32 n)
+{
+}
+
 /* Address of a linear framebuffer position in the tiled RGBA8 layout. */
 inline U8* GetTiledRgbLoc(U8* p, U32 tilepitch)
 {
