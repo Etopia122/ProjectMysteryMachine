@@ -965,8 +965,7 @@ static inline void PlayerCollisTranslate(_xCollis* c, float x, float y, float z)
         c->hdng.x = dx * s;
         c->hdng.y = dy * s;
         c->hdng.z = dz * s;
-        s = s * (dist - 0.7f);
-        s = (s > 0.0f) ? 0.0f : s;
+        s = (0.0f < s * (dist - 0.7f)) ? 0.0f : s * (dist - 0.7f);
         c->depen.x = dx * s;
         c->depen.y = dy * s;
         c->depen.z = dz * s;
@@ -5226,13 +5225,16 @@ signed int zEntPlayer_Damage(xBase* src, unsigned int damage)
 
 unsigned int zEntPlayer_MoveInfo()
 {
+    unsigned int type;
+    unsigned int flags;
+    xAnimState* state;
     unsigned int retval = 0;
-    xAnimState* state = globals.player.ent.model->Anim->Single->State;
-    unsigned int flags = state->UserFlags;
-    unsigned int type = flags & 0x1E;
+    state = globals.player.ent.model->Anim->Single->State;
+    flags = state->UserFlags;
+    type = flags & 0x1E;
     if (type == 0 || (flags & 1))
     {
-        retval = 1;
+        retval |= 1;
     }
     if (type == 4)
     {
@@ -7883,9 +7885,16 @@ void zEntPlayer_StoreCheckPoint(float* toParam)
     _xVec3 p = globals.player.ent.frame->mat.pos;
     float r = globals.player.ent.frame->rot.angle;
     globals.player.cp.pos = p;
-    if (toParam != NULL && *toParam)
+    if (toParam != NULL)
     {
-        globals.player.cp.rot = *toParam;
+        if (*toParam)
+        {
+            globals.player.cp.rot = *toParam;
+        }
+        else
+        {
+            globals.player.cp.rot = r;
+        }
     }
     else
     {
