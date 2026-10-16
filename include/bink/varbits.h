@@ -26,9 +26,10 @@ typedef struct VARBITS
         else                                                                                       \
         {                                                                                          \
             U32 nb_ = *(vb).cur++;                                                                 \
-            v = (typ)(((vb).bits | (nb_ << (vb).bitlen)) & GetBitsLen(len));                       \
-            (vb).bits = nb_ >> ((len) - (vb).bitlen);                                              \
-            (vb).bitlen = (vb).bitlen + 32 - (len);                                                \
+            U32 bl_ = (vb).bitlen;                                                                 \
+            v = (typ)(((vb).bits | (nb_ << bl_)) & GetBitsLen(len));                               \
+            (vb).bitlen = bl_ + 32 - (len);                                                        \
+            (vb).bits = nb_ >> ((len) - bl_);                                                      \
         }                                                                                          \
     }
 
