@@ -575,9 +575,16 @@ xAnimPlay* xAnimPoolAlloc(xMemPool* pool, void* object, xAnimTable* table,
 static inline void zHudInterp1d(float dt, float* src, float dst, float speed, signed int type)
 {
     float diff = dst - *src;
-    if (diff > 0.0f)
+    if (type == eHudInterpTypeDecel)
     {
-        *src += ((float)__fabs(speed * dt) > (float)__fabs(diff)) ? diff : speed * dt;
+        float step = dt * (diff * speed);
+        double ad = __fabs(diff);
+        *src += ((float)__fabs(step) > (float)ad) ? diff : step;
+    }
+    else if (diff > 0.0f)
+    {
+        double ad = __fabs(diff);
+        *src += ((float)__fabs(speed * dt) > (float)ad) ? diff : speed * dt;
     }
     else
     {
@@ -1870,13 +1877,9 @@ void zHudElementsCB_SoapUpdate(float dt)
             break;
         case eHudStatusSizeZeroHoriz:
         {
-            float d = item->zHudStatusSizeTable[eHudStatusSizeZeroHoriz].y - item->hframe.size.y;
-            float s = dt * (d * 7.2f);
-            if ((float)__fabs(s) > (float)__fabs(d))
-            {
-                s = d;
-            }
-            item->hframe.size.y += s;
+            zHudInterp1d(dt, &item->hframe.size.y,
+                         item->zHudStatusSizeTable[eHudStatusSizeZeroHoriz].y, 7.2f,
+                         eHudInterpTypeDecel);
             break;
         }
         }
