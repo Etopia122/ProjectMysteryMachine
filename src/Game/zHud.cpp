@@ -1282,9 +1282,11 @@ void zHudElementsCB_SnacksRender()
     _xRect r = { 0.0f, 0.0f, 0.0f, 0.0f };
     _xMat4x3 frame;
 
-    r.x = -(0.5f * item->hframe.size.x - item->hframe.pos.x) + -45.0f;
+    float x = -(0.5f * item->hframe.size.x - item->hframe.pos.x);
+    float y = -(0.5f * item->hframe.size.y - item->hframe.pos.y);
+    r.x = x + -45.0f;
+    r.y = y + 22.0f;
     r.w = item->hframe.size.x * widthAspect;
-    r.y = -(0.5f * item->hframe.size.y - item->hframe.pos.y) + 22.0f;
     r.h = item->hframe.size.y;
     _xVec3 unused = { 0.0f, 0.0f, 0.0f };
     _xVec3 from = { 0.0f, 0.0f, 0.8f };
@@ -2209,9 +2211,11 @@ void zHudElementsCB_SoapboxRender()
         _xRect r = { 0.0f, 0.0f, 0.0f, 0.0f };
         _xMat4x3 frame;
 
-        r.x = 23.0f + -(0.5f * item->hframe.size.x - item->hframe.pos.x);
+        float x = -(0.5f * item->hframe.size.x - item->hframe.pos.x);
+        float y = -(0.5f * item->hframe.size.y - item->hframe.pos.y);
+        r.y = 17.0f + y;
+        r.x = 23.0f + x;
         r.w = item->hframe.size.x * widthAspect;
-        r.y = 17.0f + -(0.5f * item->hframe.size.y - item->hframe.pos.y);
         r.h = item->hframe.size.y;
         _xVec3 unused = { 0.0f, 0.0f, 0.0f };
         _xVec3 from = { -1.3f, 0.3f, 2.0f };
@@ -2463,8 +2467,10 @@ void zHudElementsCB_GumpackRender()
     _xRect r = { 0.0f, 0.0f, 0.0f, 0.0f };
     _xMat4x3 frame;
 
-    r.x = -(0.5f * item->hframe.size.x - item->hframe.pos.x) + 33.0f;
-    r.y = -(0.5f * item->hframe.size.y - item->hframe.pos.y) + 21.0f;
+    float x = -(0.5f * item->hframe.size.x - item->hframe.pos.x);
+    float y = -(0.5f * item->hframe.size.y - item->hframe.pos.y);
+    r.x = x + 33.0f;
+    r.y = y + 21.0f;
     r.w = item->hframe.size.x * widthAspect;
     r.h = item->hframe.size.y;
     _xVec3 unused = { 0.0f, 0.0f, 0.0f };
@@ -3109,7 +3115,8 @@ void zHudElementsCB_GameStatsRender()
         for (signed int i = 0; i < 7; i++)
         {
             zHudItem* item = &sHudGameStatsArray[i];
-            if (item->hframe.color.a != 0.0f)
+            // Bug-compatible: the original only draws items whose alpha is zero.
+            if (item->hframe.color.a == 0.0f)
             {
                 if (i != 3)
                 {
@@ -3169,7 +3176,9 @@ void zHud_DrawText(float x, float y, float w, float h, char* s, signed int just,
 
     if (shadow == DROPSHADOW_NORMAL)
     {
-        fontBox = xFontBoxCreate(x + -3.0f, y + 3.0f, w, h, 0, clrDropShadow);
+        float dx = -3.0f;
+        float dy = 3.0f;
+        fontBox = xFontBoxCreate(x + dx, y + dy, w, h, 0, clrDropShadow);
         xFontBoxSetJustification(fontBox, just);
         xFontBoxSetDrawSize(fontBox, drawSizeX, drawSizeY);
         xFontBoxSetDrawSpacing(fontBox, drawSizeX, drawSizeY);

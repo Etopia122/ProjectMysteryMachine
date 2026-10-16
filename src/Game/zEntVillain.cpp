@@ -8297,8 +8297,8 @@ static inline signed int VANM_inDmgWindow(st_zEntVillain* vil)
 {
     xAnimSingle* single = VANM_single(vil);
     float tym = single ? single->Time : 0.0f;
-    float end = -2.0f;
     float beg = -1.0f;
+    float end = -2.0f;
 
     VCFG_getParm(&vil->vilcfg, ZVIL_PARM_DMG_BEGTIME, &beg);
     VCFG_getParm(&vil->vilcfg, ZVIL_PARM_DMG_ENDTIME, &end);
