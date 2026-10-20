@@ -15355,34 +15355,38 @@ static signed int VCFG_getParm(st_ZVIL_CONFIG_REFERENCE* vilcfg, en_NPC_INI_PARA
         *ival = vilcfg->cnt_lobSalvo;
         break;
     case ZVIL_PARM_LOB_PRJTYPE:
+    {
+        unsigned int prjtype;
         switch (vilcfg->asset->subtype)
         {
         case 5:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_GARGOYLE");
+            prjtype = xStrHash("_PRJ_VWEP_GARGOYLE");
             break;
         case 0x10:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_TARMONSTER");
+            prjtype = xStrHash("_PRJ_VWEP_TARMONSTER");
             break;
         case 0x12:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_WITCHDOCTOR");
+            prjtype = xStrHash("_PRJ_VWEP_WITCHDOCTOR");
             break;
         case eEntVillainBossBlackKnight:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_BLACKKNIGHT");
+            prjtype = xStrHash("_PRJ_VWEP_BLACKKNIGHT");
             break;
         case eEntVillainBossGreenGhost:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_GREENGHOST");
+            prjtype = xStrHash("_PRJ_VWEP_GREENGHOST");
             break;
         case eEntVillainBossRedbeard:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_REDBEARD");
+            prjtype = xStrHash("_PRJ_VWEP_REDBEARD");
             break;
         case eEntVillainBossMastermind:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_MASTERMIND");
+            prjtype = xStrHash("_PRJ_VWEP_MASTERMIND");
             break;
         default:
-            *(unsigned int*)val = 0;
+            prjtype = 0;
             break;
         }
+        *(unsigned int*)val = prjtype;
         break;
+    }
     case ZVIL_PARM_LOB_ARC:
         *fval = vilcfg->fac_lobarc;
         break;
