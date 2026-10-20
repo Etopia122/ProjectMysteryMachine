@@ -17752,6 +17752,11 @@ static void VPAR_emit_partype(st_zEntVillain* ent, en_VPAR_EMITTER_ROLE emittype
             pecust.custom_flags = 0x20;
             pecust.pos = vilhed;
             break;
+        case VPAR_EMIT_WALLPRINT:
+            pecust.custom_flags = 0x20;
+            do_emit = 1;
+            pecust.pos = vilctr;
+            break;
         case VPAR_EMIT_POOF:
         case VPAR_EMIT_TELEPORT:
             do_emit = 0;
@@ -17790,8 +17795,8 @@ static inline signed int VPAR_emit_headbutt(float dt, st_zEntVillain_ParEmitReco
     mat = (_xMat4x3*)globals.player.ent.model->Mat;
     pecust->pos.x = mat->pos.x + mat->at.x;
     pecust->pos.y = 1.1f + mat->pos.y;
-    pecust->custom_flags = 0x20 | 0x10000;
     pecust->pos.z = mat->pos.z + mat->at.z;
+    pecust->custom_flags |= 0x10000;
     xMat3x3GetEuler((_xMat3x3*)mat, &angles);
     pecust->rot[1] = 0x40;
     pecust->rot[0] = 255.0f * (angles.x / 6.2831855f);
