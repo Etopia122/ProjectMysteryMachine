@@ -15917,11 +15917,11 @@ static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec
 static signed int VWEP_lobInitBKAxe(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
                                     float arcness, float heavy)
 {
+    zEntProjectile* prj = vil->prj_reserved;
     _xVec3 ang_flip = { 0.0f, 0.0f, 1.5707964f };
     _xMat3x3 mat_rot = {};
     _xVec3 delta = {};
     _xVec3 ang_yaw = {};
-    zEntProjectile* prj = vil->prj_reserved;
     st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
     _xMat4x3* frame;
 
@@ -16290,10 +16290,10 @@ static signed int VPRJ_BBK_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event
 
 static void VPRJ_zapTheAxe(zEntProjectile* prj, signed int cleanup)
 {
-    _xVec3 from = {};
-    _xVec3 loca = {};
-    signed int i;
     st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
+    _xVec3 loca = {};
+    _xVec3 from = {};
+    signed int i;
     _xVec3* pos;
 
     for (i = 0; i < 8; i++)
