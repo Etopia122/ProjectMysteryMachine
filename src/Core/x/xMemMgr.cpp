@@ -159,12 +159,12 @@ void xMemExit()
 // original gives heap r12, hdr r6, sp r7).
 void* xMemGrowAlloc(unsigned int heapID, unsigned int size)
 {
-    void* memptr;
-    xHeapState_tag* sp;
-    xMemBlock_tag* hdr;
-    xMemHeap_tag* heap;
-    unsigned int oldalignsize;
     unsigned int align;
+    unsigned int oldalignsize;
+    xMemHeap_tag* heap;
+    xMemBlock_tag* hdr;
+    xHeapState_tag* sp;
+    void* memptr;
 
     heap = &gxHeap[heapID];
     sp = &heap->state[heap->state_idx];

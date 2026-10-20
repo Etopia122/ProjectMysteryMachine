@@ -14627,13 +14627,13 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
 
 static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
 {
-    _xVec3 pos_cur = {};
-    signed int doturn = 0;
     signed int dotran = 0;
+    float yaw;
+    float dang = 0.0f;
     signed int dovel = 0;
     signed int bigturn = 0;
-    float dang = 0.0f;
-    float yaw;
+    signed int doturn = 0;
+    _xVec3 pos_cur = {};
     _xMat4x3* mdlmat = (_xMat4x3*)vil->model->Mat;
 
     pos_cur = mdlmat->pos;
@@ -17667,13 +17667,13 @@ static void VPAR_readyize_emitters()
 
 static void VPAR_emit_partype(st_zEntVillain* ent, en_VPAR_EMITTER_ROLE emittype, float dt)
 {
-    _xVec3 vilhed = {};
-    _xVec3 vilctr = {};
-    signed int idx;
-    signed int do_emit = 0;
-    signed int i;
-    st_zEntVillain_ParEmitRecord* vpar;
     _zParEmitterCustomSettings pecust = { 0 };
+    st_zEntVillain_ParEmitRecord* vpar;
+    signed int i;
+    signed int do_emit = 0;
+    signed int idx;
+    _xVec3 vilctr = {};
+    _xVec3 vilhed = {};
 
     vilctr = *xBoundCenter(&ent->bound);
     if (!VUTIL_tagpos(ent, 8, &vilhed))
