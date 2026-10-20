@@ -385,7 +385,9 @@ static signed int iSG_mc_fdel(st_ISG_MEMCARD_DATA* mcdata, const char* fname)
         case CARD_RESULT_NOPERM:
         case CARD_RESULT_FATAL_ERROR:
         case CARD_RESULT_WRONGDEVICE:
-        case CARD_RESULT_NOCARD:
+            break;
+        case CARD_RESULT_NOFILE:
+            ret = 0;
             break;
         }
     }
@@ -981,7 +983,7 @@ static void iSG_upd_icostat(CARDStat*, CARDStat* stat)
     stat->iconAddr = 0x40;
     stat->bannerFormat = stat->bannerFormat & ~4;
 
-    for (signed int i = 0; i < 8; i++)
+    for (signed int i = 0; i < 4; i++)
     {
         stat->iconFormat = (stat->iconFormat & ~(3 << (2 * i))) | (2 << (2 * i));
         stat->iconSpeed = (stat->iconSpeed & ~(3 << (2 * i))) | (2 << (2 * i));
@@ -993,6 +995,7 @@ static void iSG_upd_icostat(CARDStat*, CARDStat* stat)
 signed int iSGSaveFile(st_ISGSESSION* isgdata, const char* fname, char* data, signed int n,
                        signed int async, char* label)
 {
+    char* icondata;
     signed int writeret = 0;
     en_ASYNC_OPERR operr = ISG_OPERR_NONE;
     CARDStat statA = { 0 };
@@ -1021,7 +1024,7 @@ signed int iSGSaveFile(st_ISGSESSION* isgdata, const char* fname, char* data, si
     signed int allocsize = iconsize + 0x1F;
     void* alloc = xMemPushTemp(allocsize);
     memset(alloc, 0, allocsize);
-    char* icondata = (char*)((unsigned int)alloc + 0x1F & 0xFFFFFFE0);
+    icondata = (char*)((unsigned int)alloc + 0x1F & 0xFFFFFFE0);
 
     memcpy(iSG_bfr_icondata(icondata, &statA, label, mcdata->sectorSize), data, n);
     fn_80016768();
@@ -1150,7 +1153,14 @@ signed int iSGReadLeader(st_ISGSESSION* isgdata, const char* fname, char* databu
 
     if (iSG_mc_fopen(data, fname, -1, ISG_IOMODE_READ, &operr) != 0)
     {
-        readret = iSG_mcqa_fread(data, readbuf, bufsize, iconsize) ? 1 : 0;
+        if (iSG_mcqa_fread(data, readbuf, bufsize, iconsize))
+        {
+            readret = 1;
+        }
+        else
+        {
+            readret = 0;
+        }
         iSG_mc_fclose(data);
     }
 
