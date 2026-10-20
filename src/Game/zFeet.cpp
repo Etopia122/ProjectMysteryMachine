@@ -389,16 +389,16 @@ void zFeetInit(signed int ent_type, _xEnt* owner, tagzFeet* feet, signed int fee
 // TODO: 99.8%. feet and collided_with_ground swap r27/r29.
 static unsigned int zFeetStepCB(unsigned int, xAnimActiveEffect* acteffect, xAnimSingle*, void*)
 {
-    _xVec3 angles;
-    xBase* b;
-    float pitch;
-    signed int surface_type;
-    signed int collided_with_ground;
-    _xRay3 ray;
-    _zParEmitterCustomSettings info;
-    _xEnt* ent;
-    tagzFeet* feet;
     _tagFoot* foot;
+    tagzFeet* feet;
+    _xEnt* ent;
+    _zParEmitterCustomSettings info;
+    _xRay3 ray;
+    signed int collided_with_ground;
+    signed int surface_type;
+    float pitch;
+    xBase* b;
+    _xVec3 angles;
 
     if (zMenuRunning())
     {

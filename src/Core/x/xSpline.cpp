@@ -319,11 +319,11 @@ float ArcLength3(xCoef3* coef, double ustart, double uend)
 
 void EvalBspline3(xSpline3* spl, float u, unsigned int deriv, _xVec3* o)
 {
-    float N[7][4];
-    xCoef3 coef;
-    unsigned int min;
-    unsigned int max;
     unsigned int mid;
+    unsigned int max;
+    unsigned int min;
+    xCoef3 coef;
+    float N[7][4];
 
     if (u < 0.0f)
     {

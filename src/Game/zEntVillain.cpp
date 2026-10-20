@@ -20038,14 +20038,14 @@ static void VBON_drop_bonusItem(st_zEntVillain* vil)
 
 static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp)
 {
-    signed int wt_ramp;
-    signed int soap_always;
-    float food_weight;
-    float gum_weight;
-    float soap_weight;
-    float rat;
-    signed int choice;
     signed int cnt;
+    signed int choice;
+    float rat;
+    float soap_weight;
+    float gum_weight;
+    float food_weight;
+    signed int soap_always;
+    signed int wt_ramp;
     float wts[11] = {};
     signed int list[11] = {};
     _xVec3 farfar = { -9999.0f, -8888.0f, -7777.0f };
