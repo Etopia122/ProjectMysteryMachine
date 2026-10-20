@@ -1224,14 +1224,7 @@ void PKR_xform_asset(st_PACKER_ATOC_NODE* assnode)
 {
     if (!(assnode->infoflag & 4))
     {
-        if (assnode->typeref == 0)
-        {
-            return;
-        }
-        if (assnode->typeref->readXForm != 0)
-        {
-        }
-        else
+        if (assnode->typeref == 0 || assnode->typeref->readXForm == 0)
         {
             return;
         }
