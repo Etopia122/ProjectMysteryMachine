@@ -82,13 +82,15 @@ static inline void iAnimSKBSlerp(RtQuat* result, RtQuat* from, RtQuat* to, float
     }
     else
     {
-        float w0 = 1.0f - t;
         float w1 = t;
+        float w0 = 1.0f - t;
 
         if (!cache->nearlyEqual)
         {
-            w0 = iAnimSKBSin(w0 * cache->omega);
-            w1 = iAnimSKBSin(w1 * cache->omega);
+            w0 *= cache->omega;
+            w1 *= cache->omega;
+            w0 = iAnimSKBSin(w0);
+            w1 = iAnimSKBSin(w1);
         }
 
         result->imag.x = cache->raFrom.imag.x * w0;
