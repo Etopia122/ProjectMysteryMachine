@@ -16541,13 +16541,13 @@ static signed int VPRJ_BGG_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event
 
 static signed int VPRJ_BGG_shockwave(zEntProjectile* prj, float dt)
 {
-    float br;
-    float fb;
-    _xVec3 delta = {};
-    _xVec3 pos_plyr = {};
-    _xVec3 pos_prj = {};
-    float outer;
     float inner;
+    float outer;
+    _xVec3 pos_prj = {};
+    _xVec3 pos_plyr = {};
+    _xVec3 delta = {};
+    float fb;
+    float br;
     st_BGG_QUAKEBALL* quake = (st_BGG_QUAKEBALL*)prj->xtradata;
     _zParEmitterCustomSettings pecust;
     float d2;
@@ -19303,13 +19303,13 @@ static inline void VANM_starttran(st_zEntVillain* ent, xAnimState* from, xAnimSt
 static en_NPC_ANIMSTATES VANM_randset(st_zEntVillain* ent, float* wts, en_NPC_ANIMSTATES* choice_list,
                                       signed int cnt)
 {
-    signed int act_cnt = 0;
-    float* act_wts = NULL;
-    signed int use_anim;
-    signed int* act_list;
-    xAnimState* chk_ast;
-    signed int i;
     en_NPC_ANIMSTATES fnl_anim;
+    signed int i;
+    xAnimState* chk_ast;
+    signed int* act_list;
+    signed int use_anim;
+    float* act_wts = NULL;
+    signed int act_cnt = 0;
 
     if (!choice_list)
     {
@@ -19609,9 +19609,9 @@ static inline signed int VSND_addQueueEntry(st_zEntVillain* vil, en_NPC_SOUND sn
 
 static signed int VSND_procQueue(st_zEntVillain* vil, float dt)
 {
-    signed int cnt = 0;
-    signed int i;
     st_NPC_SOUND_QUEUE* que;
+    signed int i;
+    signed int cnt = 0;
 
     for (i = 0; i < 4; i++)
     {
