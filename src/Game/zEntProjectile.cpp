@@ -1177,10 +1177,7 @@ signed int zEntProjectile::ZPRJ_render()
         dst2 = vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
         xVec3Sub(&vec, &pmat->pos, &mat->pos);
         dst2_plyr = vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
-        if (dst2 < dst2_plyr)
-        {
-        }
-        else
+        if (dst2 >= dst2_plyr)
         {
             dst2 = dst2_plyr;
         }
