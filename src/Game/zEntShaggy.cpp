@@ -2476,6 +2476,8 @@ signed int Shaggy2_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
     default:
         ret = zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
         break;
+    case 0x13:
+        break;
     }
     return ret;
 }
@@ -3496,8 +3498,8 @@ signed int Shaggy8_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
             {
                 if (sMagnetList[i].shaggy == ent && sMagnetList[i].target == toParamWidget)
                 {
+                    sMagnetList[i] = sMagnetList[sMagnetCount - 1];
                     sMagnetCount--;
-                    sMagnetList[i] = sMagnetList[sMagnetCount];
                     break;
                 }
             }
