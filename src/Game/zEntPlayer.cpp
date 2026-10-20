@@ -6166,7 +6166,7 @@ void zEntPlayerSurfDamageUpdate(_xEnt* p)
             {
             case 4:
             case 6:
-                if (zEntPlayer_Damage(surf, 1) != 0)
+                if (zEntPlayer_Damage(surf, 1) ? 1 : 0)
                 {
                     globals.player.DamageTimer = 5.0f;
                 }
@@ -6181,6 +6181,8 @@ void zEntPlayerSurfDamageUpdate(_xEnt* p)
                     break;
                 }
             }
+            case 2:
+            case 3:
             case 5:
                 if (globals.player.Health)
                 {
