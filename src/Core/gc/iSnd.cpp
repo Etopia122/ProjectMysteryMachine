@@ -424,11 +424,7 @@ static void arqcb(unsigned long pointerToARQRequest)
 {
     iSndStream* s = (iSndStream*)((ARQRequest*)pointerToARQRequest)->owner;
     unsigned int left = s->size - s->read;
-    if (((ARQRequest*)pointerToARQRequest)->length == 0)
-    {
-        return;
-    }
-    if (s->vinf.voice == NULL)
+    if (((ARQRequest*)pointerToARQRequest)->length == 0 || s->vinf.voice == NULL)
     {
         return;
     }
