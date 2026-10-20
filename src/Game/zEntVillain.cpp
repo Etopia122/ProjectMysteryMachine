@@ -19408,11 +19408,13 @@ static xAnimTransition* VANM_findtran(st_zEntVillain* ent, xAnimTable* table, xA
 
     if (!da_tran)
     {
-        for (tmp_tranlist = from->List; tmp_tranlist; tmp_tranlist = tmp_tranlist->Next)
+        tmp_tranlist = from->List;
+        while (tmp_tranlist)
         {
             tmp_tran = tmp_tranlist->T;
             if (!tmp_tran)
             {
+                tmp_tranlist = tmp_tranlist->Next;
                 continue;
             }
             if (to->ID == tmp_tran->Dest->ID)
@@ -19420,6 +19422,7 @@ static xAnimTransition* VANM_findtran(st_zEntVillain* ent, xAnimTable* table, xA
                 da_tran = tmp_tran;
                 break;
             }
+            tmp_tranlist = tmp_tranlist->Next;
         }
     }
 
