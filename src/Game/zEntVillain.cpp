@@ -10080,6 +10080,7 @@ static signed int VILN_BBK_sysevent(st_zEntVillain* vil, xBase* from, unsigned i
             case 4:
                 vil->cnt_lobSalvo += 1;
                 break;
+            case 0:
             default:
                 vil->cnt_lobSalvo = 4;
                 break;
@@ -12063,6 +12064,8 @@ static signed int VILN_BMM_sysevent(st_zEntVillain* vil, xBase* from, unsigned i
             resp->stim = (en_NPC_STIMULUS)0x27;
         }
         return 1;
+    case 0x2E:
+    case 0x2F:
     default:
         return VILN_std_sysevent(vil, from, toEvent, toParam, toParamWidget, resp);
     }
