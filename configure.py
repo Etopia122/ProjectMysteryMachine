@@ -496,7 +496,7 @@ config.libs = [
             Object(Matching, "Game/zAnimList.cpp"),
             Object(Equivalent, "Game/zAssetTypes.cpp"),
             Object(Matching, "Game/zCamera.cpp"),
-            Object(Equivalent, "Game/zConditional.cpp"),
+            Object(Matching, "Game/zConditional.cpp"),
             Object(Matching, "Game/zCounter.cpp"),
             Object(Matching, "Game/zCutsceneMgr.cpp"),
             Object(Equivalent, "Game/zDispatcher.cpp"),
