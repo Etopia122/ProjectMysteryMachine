@@ -117,8 +117,8 @@ static inline void CoefToUnity3(xCoef3* dest, xCoef3* coef, float t1, float t2)
 
 static inline void BasisBspline(float (*N)[4], float* t)
 {
-    unsigned int i;
     unsigned int k;
+    unsigned int i;
     unsigned int c;
     float d1;
     float d2;
