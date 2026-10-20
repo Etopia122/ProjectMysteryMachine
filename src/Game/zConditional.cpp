@@ -94,6 +94,8 @@ signed int zConditionalEventCB(xBase* from, xBase* to, unsigned int toEvent, flo
     case 0xA:
         xBaseReset(c, c->asset);
         break;
+    case 0x3D:
+        break;
     }
     return 1;
 }
