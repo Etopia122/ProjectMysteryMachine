@@ -17602,21 +17602,23 @@ static inline _tagLightning* VEFX_zapper_type_A(_xVec3* from, _xVec3* to, float 
 
 static void VPAR_readyize_emitters()
 {
-    en_zEntVillainSubTypeID viltype;
-    st_zEntVillain_ParEmitInfo* vinf;
-    xBase* pebase;
-    signed int flg_omit;
-    signed int flg_need;
-    unsigned int emitid;
     en_VPAR_EMITTER_ROLE emitrole;
+    signed int flg_need;
+    signed int flg_omit;
+    st_zEntVillain_ParEmitInfo* vinf;
+    en_zEntVillainSubTypeID viltype;
+    xBase* pebase;
+    unsigned int emitid;
 
-    for (vinf = g_emitinfo; vinf->emitname; vinf++)
+    vinf = g_emitinfo;
+    while (vinf->emitname)
     {
         emitid = xStrHash(vinf->emitname);
         emitrole = vinf->emitrole;
         viltype = vinf->viltype;
         flg_need = vinf->flg_need;
         flg_omit = vinf->flg_omit;
+        vinf++;
         pebase = zSceneFindObject(emitid);
         if (pebase && pebase->baseType == 0x26)
         {
