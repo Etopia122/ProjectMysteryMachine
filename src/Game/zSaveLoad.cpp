@@ -1608,13 +1608,17 @@ signed int zSaveLoad_SaveGame()
 
 signed int zSaveLoad_LoadGame()
 {
-    signed int success = 0;
+    st_XSAVEGAME_DATA*ldinst;
+    en_XSG_WHYFAIL whyFail;
+    signed int use_tgt;
+    en_XSGASYNC_STATUS asstat;
     signed int teststat = 1;
-    en_XSGASYNC_STATUS asstat = XSG_ASTAT_NOOP;
-    signed int use_tgt = currentCard;
-    en_XSG_WHYFAIL whyFail = XSG_WHYERR_NONE;
-    st_XSAVEGAME_DATA* ldinst = xSGInit(XSG_MODE_LOAD);
+    signed int success = 0;
     signed int tgtmax;
+    asstat = XSG_ASTAT_NOOP;
+    use_tgt = currentCard;
+    whyFail = XSG_WHYERR_NONE;
+    ldinst = xSGInit(XSG_MODE_LOAD);
 
     switch (xSGTgtCount(ldinst, &tgtmax))
     {

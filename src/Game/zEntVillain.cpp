@@ -9582,8 +9582,9 @@ static signed int VILN_gang_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal
 
 static signed int VILN_gang_animtran(st_zEntVillain* vil, xAnimTransition* tran, xAnimSingle* single)
 {
+    xModelInstance*minst;
     signed int idx = 0;
-    xModelInstance* minst = vil->model;
+    minst = vil->model;
 
     if (vil->asset->subtype != 0x26)
     {
@@ -12651,9 +12652,10 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
 
 static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt)
 {
-    en_NPC_STIMULUS stim = stimctxt->stim;
-    signed int rc = 1;
     en_BEHAVIOUR_GOAL goal;
+    signed int rc = 1;
+    en_NPC_STIMULUS stim;
+    stim = stimctxt->stim;
 
     if (stim == ZVIL_STIM_ENTERGOAL || stim == ZVIL_STIM_EXITGOAL)
     {
@@ -15870,12 +15872,13 @@ static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt,
 static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
                                      float arcness, float heavy)
 {
-    signed int retval = 1;
-    _xVec3 pos = {};
-    ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
-    _xVec3 vec_tmp = {};
-    zEntProjectile* prj = vil->prj_reserved;
     _xMat4x3* mat;
+    zEntProjectile*prj;
+    _xVec3 vec_tmp = {};
+    ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
+    _xVec3 pos = {};
+    signed int retval = 1;
+    prj = vil->prj_reserved;
 
     aiminf.idx_caim = ZPRJ_CAIM_GRAVBALL;
     prj->ColDelaySet(0.4f, 1);
@@ -15987,10 +15990,12 @@ static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xV
 static signed int VWEP_lobInitRBSword(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
                                       float arcness, float heavy)
 {
-    zEntProjectile* prj = vil->prj_reserved;
-    st_REDBEARD_SWORD* rbs = (st_REDBEARD_SWORD*)prj->xtradata;
+    zEntProjectile*prj;
+    st_REDBEARD_SWORD*rbs;
     _xVec3 vec_pos = {};
     signed int rc;
+    prj = vil->prj_reserved;
+    rbs = (st_REDBEARD_SWORD*)prj->xtradata;
 
     rc = VUTIL_tagpos(vil, 10, &vec_pos);
     if (!rc)
@@ -16368,16 +16373,16 @@ static void VPRJ_BGG_detach(zEntProjectile* prj)
 
 static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
 {
-    signed int start_fall;
-    float dist;
-    _xVec3 dir_delt = {};
-    _xVec3 vec_delt = {};
-    _xVec3 pos_ryht = {};
-    _xVec3 pos_left = {};
-    _xVec3 vec_tmp = {};
-    st_zEntVillain* vil;
-    st_BGG_QUAKEBALL* quake;
     _xEntCollis* collis;
+    st_BGG_QUAKEBALL* quake;
+    st_zEntVillain* vil;
+    _xVec3 vec_tmp = {};
+    _xVec3 pos_left = {};
+    _xVec3 pos_ryht = {};
+    _xVec3 vec_delt = {};
+    _xVec3 dir_delt = {};
+    float dist;
+    signed int start_fall;
 
     quake = (st_BGG_QUAKEBALL*)prj->xtradata;
     vil = (st_zEntVillain*)prj->owner;

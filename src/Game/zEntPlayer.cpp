@@ -6206,8 +6206,9 @@ void zEntPlayerSurfDamageUpdate(_xEnt* p)
 
 void zEntPlayerDriveUpdate(_xEnt* p, float dt)
 {
-    _xEntDrive* drv = &globals.player.drv;
     _zPlatform* plat;
+    _xEntDrive*drv;
+    drv = &globals.player.drv;
 
     if (globals.player.drv.odriver != NULL)
     {
@@ -6599,9 +6600,10 @@ void zEntPlayerReset(_xEnt* ent)
 
 static _xEnt* PlayerCollCheckOneEnt(_xEnt* ent, _xScene*, void* data)
 {
-    _xEnt* p = (_xEnt*)data;
-    unsigned int modl_coll = 0;
     unsigned int head_hit = 0;
+    unsigned int modl_coll = 0;
+    _xEnt*p;
+    p = (_xEnt*)data;
 
     if (p->collis->idx >= 15)
     {
@@ -6850,10 +6852,12 @@ static void PlayerCollsSideTranslate(_xCollis* colls, float x, float y, float z)
 
 static void PlayerCollsSelectDepen(_xEnt* p)
 {
-    _xCollis* colls = &p->collis->colls[0];
-    _xMat4x3* mat = (_xMat4x3*)p->frame;
-    _xCollis* c;
     _xCollis* cend;
+    _xCollis* c;
+    _xCollis*colls;
+    _xMat4x3*mat;
+    colls = &p->collis->colls[0];
+    mat = (_xMat4x3*)p->frame;
 
     for (c = colls + 6, cend = colls + p->collis->idx; c < cend; c++)
     {
@@ -8399,8 +8403,9 @@ void zEntPlayer_Notify(signed int situation)
 
 static void zEntPlayer_FXLostChance(_xEnt* ent, float)
 {
-    _LostChanceFX fx_to_play = LCFX_StdShock;
     signed int sd_surface = -1;
+    _LostChanceFX fx_to_play;
+    fx_to_play = LCFX_StdShock;
 
     xSurface* fsurf = zSurfaceGetSurface(&ent->collis->colls[0]);
     if (fsurf != NULL && fsurf->state == 0)

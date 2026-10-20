@@ -1633,11 +1633,14 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
 
 void Shaggy1_Move(_xEnt* ent, _xScene* s, float dt, _xEntFrame* frame)
 {
-    zShaggy1Globals* s1;
-    xAnimPlay* play = ent->model->Anim;
-    xAnimState* state = play->Single->State;
-    ShaggyGuts* guts = ShaggyGetGuts((_zEnt*)ent);
     unsigned int thrown;
+    ShaggyGuts*guts;
+    xAnimPlay*play;
+    xAnimState*state;
+    zShaggy1Globals* s1;
+    play = ent->model->Anim;
+    state = play->Single->State;
+    guts = ShaggyGetGuts((_zEnt*)ent);
 
     frame->mode = 0;
     frame->dpos.x = 0.0f;
@@ -3430,9 +3433,11 @@ void Shaggy8_Update(_zEnt* ent, _xScene* sc, float dt)
 signed int Shaggy8_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
                            xBase* toParamWidget)
 {
-    _zEnt* ent = (_zEnt*)to;
-    ShaggyGuts* guts = ShaggyGetGuts(ent);
     signed int ret = 0;
+    ShaggyGuts*guts;
+    _zEnt*ent;
+    ent = (_zEnt*)to;
+    guts = ShaggyGetGuts(ent);
 
     switch (toEvent)
     {

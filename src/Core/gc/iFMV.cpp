@@ -267,9 +267,10 @@ signed int iFMVPlay(char* filename, unsigned int buttons, float time)
 
 static void DrawFrame(float x, float y, float sx, float sy)
 {
-    GXRenderModeObj* rm = lbl_8025F860;
-    float mtx[4][4];
     float idt[3][4];
+    float mtx[4][4];
+    GXRenderModeObj*rm;
+    rm = lbl_8025F860;
 
     GXSetViewport(0.0f, 0.0f, rm->fbWidth, rm->efbHeight, 0.0f, 1.0f);
     GXSetScissor(0, 0, rm->fbWidth, rm->efbHeight);
