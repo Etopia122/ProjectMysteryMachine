@@ -123,7 +123,7 @@ static inline void zGameExtrasSetFog(iFogParams* fog, float intensity)
 
 static inline unsigned char zGameExtrasRandByte()
 {
-    return 127.0f * iurand();
+    return (unsigned char)(signed int)(127.0f * iurand());
 }
 
 static inline void zGameExtrasSetColor(zParEmitterAsset* a, unsigned char r, unsigned char g,
@@ -517,8 +517,7 @@ static void InitThunderSounds()
 }
 #pragma auto_inline reset
 
-// TODO: 99.0%. The original zero-extends each random colour byte (clrlwi)
-// before adding 128.
+// TODO: 99.5%. The firework pointer lands in r26 instead of r27.
 static void UpdateFireworks(float dt)
 {
     static signed int july_4_rgb = 0.0f;
