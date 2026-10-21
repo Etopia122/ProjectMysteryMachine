@@ -1079,11 +1079,16 @@ _xEnt* xEntCollCheckOneEntNoDepen(_xEnt* ent, _xScene* sc, void* data)
         if ((ent->pflags & 0x20) && ent->bound.type == 1 && p->bound.type == 1 &&
             coll->hdng.y < -0.866025f)
         {
-            float dz = p->bound.sph.center.z - ent->bound.sph.center.z;
-            float dx = p->bound.sph.center.x - ent->bound.sph.center.x;
-            float rsum = p->bound.sph.r + ent->bound.sph.r;
-            float dy = p->bound.sph.center.y - ent->bound.sph.center.y;
-            float hsqr = rsum * rsum - (dz * dz + dx * dx);
+            float hsqr;
+            float dy;
+            float rsum;
+            float dx;
+            float dz;
+            dz = p->bound.sph.center.z - ent->bound.sph.center.z;
+            dx = p->bound.sph.center.x - ent->bound.sph.center.x;
+            rsum = p->bound.sph.r + ent->bound.sph.r;
+            dy = p->bound.sph.center.y - ent->bound.sph.center.y;
+            hsqr = rsum * rsum - (dz * dz + dx * dx);
             if (hsqr >= 0.0f)
             {
                 coll->depen.x = 0.0f;

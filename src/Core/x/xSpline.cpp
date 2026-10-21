@@ -532,8 +532,8 @@ float xSpline3_EvalArcApprox(xSpline3* spl, float s, unsigned int deriv, _xVec3*
 void xSpline3_ArcInit(xSpline3* spl, unsigned int sample)
 {
     xCoef3 tempCoef;
-    float arcsum;
     float len = 0.0f;
+    float arcsum;
     unsigned int seg;
     unsigned int i;
 

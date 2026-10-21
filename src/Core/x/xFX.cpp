@@ -274,8 +274,9 @@ void xFX_SceneEnter(RpWorld* world)
 {
     RpWorldForAllWorldSectors(world, SectorMatFXEnableCB, NULL);
 
-    signed int num = world->numMaterials;
     signed int i;
+    signed int num;
+    num = world->numMaterials;
     for (i = 0; i < num; i++)
     {
         xSurface* sp = zSurfaceGetSurface(i);

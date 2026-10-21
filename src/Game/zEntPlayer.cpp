@@ -5875,8 +5875,9 @@ void zEntPlayerFloorUpdate(_xEnt* p, float dt)
     ray.min_t = -0.7f;
     ray.max_t = 1.0f;
     ray.flags = 0xC00;
-    _xEnt* fent = (_xEnt*)fcoll->optr;
     signed int i;
+    _xEnt* fent;
+    fent = (_xEnt*)fcoll->optr;
     for (i = 0; i < 4; i++)
     {
         xMat3x3RMulVec(&ray.origin, (_xMat3x3*)p->frame, &lorigins[i]);
@@ -5918,15 +5919,24 @@ void zEntPlayerFloorUpdate(_xEnt* p, float dt)
         floor_supp[i].y -= d;
     }
 
-    float ax = floor_supp[1].x - floor_supp[0].x;
-    float bx = floor_supp[2].x - floor_supp[0].x;
-    float cx = floor_supp[3].x - floor_supp[0].x;
-    float ay = floor_supp[1].y - floor_supp[0].y;
-    float by = floor_supp[2].y - floor_supp[0].y;
-    float cy = floor_supp[3].y - floor_supp[0].y;
-    float az = floor_supp[1].z - floor_supp[0].z;
-    float bz = floor_supp[2].z - floor_supp[0].z;
-    float cz = floor_supp[3].z - floor_supp[0].z;
+    float cz;
+    float bz;
+    float az;
+    float cy;
+    float by;
+    float ay;
+    float cx;
+    float bx;
+    float ax;
+    ax = floor_supp[1].x - floor_supp[0].x;
+    bx = floor_supp[2].x - floor_supp[0].x;
+    cx = floor_supp[3].x - floor_supp[0].x;
+    ay = floor_supp[1].y - floor_supp[0].y;
+    by = floor_supp[2].y - floor_supp[0].y;
+    cy = floor_supp[3].y - floor_supp[0].y;
+    az = floor_supp[1].z - floor_supp[0].z;
+    bz = floor_supp[2].z - floor_supp[0].z;
+    cz = floor_supp[3].z - floor_supp[0].z;
     globals.player.floor_norm.x = (ay * bz - by * az) + (by * cz - cy * bz);
     globals.player.floor_norm.y = (az * bx - bz * ax) + (bz * cx - cz * bx);
     globals.player.floor_norm.z = (ax * by - bx * ay) + (bx * cy - cx * by);
