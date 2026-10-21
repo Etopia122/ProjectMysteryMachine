@@ -1084,11 +1084,11 @@ _xEnt* xEntCollCheckOneEntNoDepen(_xEnt* ent, _xScene* sc, void* data)
             float rsum;
             float dx;
             float dz;
-            dz = p->bound.sph.center.z - ent->bound.sph.center.z;
             dx = p->bound.sph.center.x - ent->bound.sph.center.x;
+            dz = p->bound.sph.center.z - ent->bound.sph.center.z;
             rsum = p->bound.sph.r + ent->bound.sph.r;
             dy = p->bound.sph.center.y - ent->bound.sph.center.y;
-            hsqr = rsum * rsum - (dz * dz + dx * dx);
+            hsqr = rsum * rsum - (dx * dx + dz * dz);
             if (hsqr >= 0.0f)
             {
                 coll->depen.x = 0.0f;
