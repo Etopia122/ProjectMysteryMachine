@@ -6099,7 +6099,7 @@ static void PlayerBoundUpdate(_xEnt* ent, _xVec3* pos)
     _xVec3 dpos;
 
     xEntDefaultBoundUpdate(ent, pos);
-    if ((headcoll_anim >= 4 && headcoll_anim <= 7) || headcoll_anim == 8)
+    if ((unsigned int)(headcoll_anim - 4) <= 3 || headcoll_anim == 8)
     {
         dpos.x = pos->x - ((_xMat4x3*)ent->model->Mat)->pos.x;
         dpos.y = pos->y - ((_xMat4x3*)ent->model->Mat)->pos.y;
@@ -6132,8 +6132,8 @@ static void PlayerBoundUpdate(_xEnt* ent, _xVec3* pos)
         _xVec3* c = xBoundCenter(&ent->bound);
         globals.player.head_sph.center.x = c->x + dpos.x;
         globals.player.head_sph.center.y = c->y + dpos.y;
-        globals.player.head_sph.r = 0.7f;
         globals.player.head_sph.center.z = c->z + dpos.z;
+        globals.player.head_sph.r = 0.7f;
     }
 }
 
