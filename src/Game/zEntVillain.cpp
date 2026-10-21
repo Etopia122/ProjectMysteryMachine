@@ -3785,13 +3785,16 @@ signed int zEntVillain_Startup()
     memset(g_datablock, 0, 0x20000);
 
     // Count the tables (the counts are not used).
-    for (i = 0; g_npcTable[i].enabled; i++)
+    i = 0;
+    while (g_npcTable[i++].enabled)
     {
     }
-    for (i = 0; g_npcFuncs[i].flg_funcs & 1; i++)
+    i = 0;
+    while (g_npcFuncs[i++].flg_funcs & 1)
     {
     }
-    for (i = 0; g_animname[i]; i++)
+    i = 0;
+    while (g_animname[i++])
     {
     }
 
