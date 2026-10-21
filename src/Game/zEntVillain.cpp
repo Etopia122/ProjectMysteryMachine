@@ -16373,16 +16373,16 @@ static void VPRJ_BGG_detach(zEntProjectile* prj)
 
 static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
 {
-    _xEntCollis* collis;
-    st_BGG_QUAKEBALL* quake;
-    st_zEntVillain* vil;
-    _xVec3 vec_tmp = {};
-    _xVec3 pos_left = {};
-    _xVec3 pos_ryht = {};
-    _xVec3 vec_delt = {};
-    _xVec3 dir_delt = {};
-    float dist;
     signed int start_fall;
+    float dist;
+    _xVec3 dir_delt = {};
+    _xVec3 vec_delt = {};
+    _xVec3 pos_ryht = {};
+    _xVec3 pos_left = {};
+    _xVec3 vec_tmp = {};
+    st_zEntVillain* vil;
+    st_BGG_QUAKEBALL* quake;
+    _xEntCollis* collis;
 
     quake = (st_BGG_QUAKEBALL*)prj->xtradata;
     vil = (st_zEntVillain*)prj->owner;
