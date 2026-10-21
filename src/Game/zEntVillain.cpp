@@ -15990,12 +15990,10 @@ static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xV
 static signed int VWEP_lobInitRBSword(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
                                       float arcness, float heavy)
 {
-    zEntProjectile* prj;
-    st_REDBEARD_SWORD* rbs;
+    zEntProjectile* prj = vil->prj_reserved;
     _xVec3 vec_pos = {};
+    st_REDBEARD_SWORD* rbs = (st_REDBEARD_SWORD*)prj->xtradata;
     signed int rc;
-    prj = vil->prj_reserved;
-    rbs = (st_REDBEARD_SWORD*)prj->xtradata;
 
     rc = VUTIL_tagpos(vil, 10, &vec_pos);
     if (!rc)
