@@ -15775,7 +15775,7 @@ static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT e
 {
     signed int rc = 0;
     st_zEntVillain* vil = (st_zEntVillain*)prj->owner;
-    signed int dosnd = !(vil->ability & 1);
+    signed int dosnd = (vil->ability & 1) ^ 1;
 
     switch (event)
     {
