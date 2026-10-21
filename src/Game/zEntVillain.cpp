@@ -4224,7 +4224,7 @@ signed int zEntVillain_Headbutt(st_zEntVillain* vil, _xVec3* dir)
 
         xVec3SMul(&dir_back, &vil->precalc.dir_VtoP, -1.0f);
         dot = dir_back.x * pmat->at.x + dir_back.y * pmat->at.y + dir_back.z * pmat->at.z;
-        dot = VIL_MIN(VIL_MAX(0.0f, dot), 1.0f);
+        dot = VIL_MAX(0.0f, VIL_MIN(dot, 1.0f));
         stimctxt.mag_headbutt = VIL_MAX(0.0f, dot * len);
     }
     zVIL_input_stim(vil, &stimctxt);
