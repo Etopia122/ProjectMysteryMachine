@@ -6207,7 +6207,7 @@ void zEntPlayerSurfDamageUpdate(_xEnt* p)
 void zEntPlayerDriveUpdate(_xEnt* p, float dt)
 {
     _zPlatform* plat;
-    _xEntDrive*drv;
+    _xEntDrive* drv;
     drv = &globals.player.drv;
 
     if (globals.player.drv.odriver != NULL)
@@ -6602,7 +6602,7 @@ static _xEnt* PlayerCollCheckOneEnt(_xEnt* ent, _xScene*, void* data)
 {
     unsigned int head_hit = 0;
     unsigned int modl_coll = 0;
-    _xEnt*p;
+    _xEnt* p;
     p = (_xEnt*)data;
 
     if (p->collis->idx >= 15)
@@ -6854,8 +6854,8 @@ static void PlayerCollsSelectDepen(_xEnt* p)
 {
     _xCollis* cend;
     _xCollis* c;
-    _xCollis*colls;
-    _xMat4x3*mat;
+    _xCollis* colls;
+    _xMat4x3* mat;
     colls = &p->collis->colls[0];
     mat = (_xMat4x3*)p->frame;
 

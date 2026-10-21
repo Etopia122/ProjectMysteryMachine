@@ -1608,7 +1608,7 @@ signed int zSaveLoad_SaveGame()
 
 signed int zSaveLoad_LoadGame()
 {
-    st_XSAVEGAME_DATA*ldinst;
+    st_XSAVEGAME_DATA* ldinst;
     en_XSG_WHYFAIL whyFail;
     signed int use_tgt;
     en_XSGASYNC_STATUS asstat;

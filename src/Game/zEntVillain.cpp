@@ -9582,7 +9582,7 @@ static signed int VILN_gang_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal
 
 static signed int VILN_gang_animtran(st_zEntVillain* vil, xAnimTransition* tran, xAnimSingle* single)
 {
-    xModelInstance*minst;
+    xModelInstance* minst;
     signed int idx = 0;
     minst = vil->model;
 
@@ -15873,7 +15873,7 @@ static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec
                                      float arcness, float heavy)
 {
     _xMat4x3* mat;
-    zEntProjectile*prj;
+    zEntProjectile* prj;
     _xVec3 vec_tmp = {};
     ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
     _xVec3 pos = {};
@@ -15990,8 +15990,8 @@ static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xV
 static signed int VWEP_lobInitRBSword(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
                                       float arcness, float heavy)
 {
-    zEntProjectile*prj;
-    st_REDBEARD_SWORD*rbs;
+    zEntProjectile* prj;
+    st_REDBEARD_SWORD* rbs;
     _xVec3 vec_pos = {};
     signed int rc;
     prj = vil->prj_reserved;

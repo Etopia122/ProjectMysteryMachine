@@ -269,7 +269,7 @@ static void DrawFrame(float x, float y, float sx, float sy)
 {
     float idt[3][4];
     float mtx[4][4];
-    GXRenderModeObj*rm;
+    GXRenderModeObj* rm;
     rm = lbl_8025F860;
 
     GXSetViewport(0.0f, 0.0f, rm->fbWidth, rm->efbHeight, 0.0f, 1.0f);

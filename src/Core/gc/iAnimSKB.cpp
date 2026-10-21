@@ -463,8 +463,8 @@ void _iAnimSKBFlip180(iAnimSKBHeader* data, unsigned int bone)
     float quat[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
     unsigned int tcount;
     unsigned int kcount;
-    iAnimSKBKey*keys;
-    unsigned short*offsets;
+    iAnimSKBKey* keys;
+    unsigned short* offsets;
     unsigned int keyfirst;
     tcount = data->TimeCount;
     kcount = data->KeyCount;
