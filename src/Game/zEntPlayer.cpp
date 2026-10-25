@@ -3985,6 +3985,12 @@ static void zEntPlayer_SnackDecrement(float dt)
     }
 }
 
+// The original runs out of inline budget in zEntPlayer_Update: HeadbuttTest
+// and zEntPlayerJumpStart are called there, not inlined. Our source is
+// smaller than the original, so lower the budget to stop at the same call.
+// Deferred inlining uses the value in effect at the end of the file, so this
+// applies to the whole unit (no other function here reaches it).
+#pragma inline_max_total_size(6400)
 void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
 {
     _xCollis* coll;
@@ -4323,9 +4329,15 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                 ent->frame->mat.pos.y -= m;
                 float s = xsqrt((dz * dz + (dy * dy + dx * dx)) / (dz * dz + (sdy * sdy + dx * dx)));
                 s = 0.25f * (s - 1.0f);
-                ent->frame->mat.pos.x += s * dx;
-                ent->frame->mat.pos.y += s * sdy;
-                ent->frame->mat.pos.z += s * dz;
+                {
+                    float ax = s * dx;
+                    float ay = s * sdy;
+                    float az = s * dz;
+                    _xVec3* pos = &ent->frame->mat.pos;
+                    pos->x += ax;
+                    pos->y += ay;
+                    pos->z += az;
+                }
             }
             else if (ndotm < 0.0f)
             {
@@ -4503,13 +4515,12 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                     {
                         bounceResponse = zEntVillain_Bounce((st_zEntVillain*)coll->optr);
                     }
-                    switch (bounceResponse)
-                    {
-                    case 1:
-                    case 2:
+                    if (bounceResponse == 1 || bounceResponse == 2)
                     {
                         zJumpParam* jump = &globals.player.s.Spring;
-                        ent->frame->mat.pos = *(_xVec3*)&((_xMat4x3*)ent->model->Mat)->pos;
+                        ent->frame->mat.pos.x = ((_xMat4x3*)ent->model->Mat)->pos.x;
+                        ent->frame->mat.pos.y = ((_xMat4x3*)ent->model->Mat)->pos.y;
+                        ent->frame->mat.pos.z = ((_xMat4x3*)ent->model->Mat)->pos.z;
                         startBounce = ent->frame->mat.pos.y;
                         if (bounceResponse == 1)
                         {
@@ -4529,15 +4540,12 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                         globals.player.Jump_CanFloat = 1;
                         zRumbleStart(0, (_tagSDRumbleType)2);
                         zEntPlayer_SNDButtBounce(0);
-                    }
-                    case 4:
-                        if (coll->hdng.x == 0.0f && coll->hdng.z == 0.0f)
-                        {
-                            ent->frame->vel.y = 0.0f;
-                        }
                         break;
                     }
-                    break;
+                    if (bounceResponse == 4 && coll->hdng.x == 0.0f && coll->hdng.z == 0.0f)
+                    {
+                        ent->frame->vel.y = 0.0f;
+                    }
                 }
             }
         }
