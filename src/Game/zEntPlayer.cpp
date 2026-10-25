@@ -2015,17 +2015,17 @@ static void HeadbuttTest(_xCollis* coll, _xCollis* endcoll, float angle_cosine,
                          signed int (*headbuttCB)(_zEnt*, _xCollis*))
 {
     _zEnt* ent = (_zEnt*)&globals.player.ent;
-    if ((globals.player.ent.model->Anim->Single->State->UserFlags & 0x1E) == 0xC)
+    if ((ent->model->Anim->Single->State->UserFlags & 0x1E) == 0xC)
     {
-        float dx2 = isin(globals.player.ent.frame->rot.angle);
-        float dz2 = icos(globals.player.ent.frame->rot.angle);
+        float dx2 = isin(ent->frame->rot.angle);
+        float dz2 = icos(ent->frame->rot.angle);
         for (; coll < endcoll; coll++)
         {
+            _zEnt* villent = (_zEnt*)coll->optr;
             if ((float)__fabs(coll->hdng.y) < 0.7071f)
             {
-                _zEnt* villent = (_zEnt*)coll->optr;
-                float dx = villent->frame->mat.pos.x - ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x;
-                float dz = villent->frame->mat.pos.z - ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z;
+                float dx = villent->frame->mat.pos.x - ((_xMat4x3*)ent->model->Mat)->pos.x;
+                float dz = villent->frame->mat.pos.z - ((_xMat4x3*)ent->model->Mat)->pos.z;
                 float mag = xsqrt(dx * dx + dz * dz);
                 if (mag > 1e-7f && dx2 * dx + dz2 * dz > angle_cosine * mag && headbuttCB(ent, coll))
                 {
