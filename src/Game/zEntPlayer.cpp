@@ -2599,13 +2599,13 @@ static unsigned int ButtSmashLandCB(xAnimTransition*, xAnimSingle*, void*)
         if (sEmitterStars != NULL)
         {
             g_info.custom_flags = 0x205E1;
-            _xMat4x3* mat = (_xMat4x3*)globals.player.ent.model->Mat;
             _xCollis* coll = &globals.player.ent.collis->colls[0];
+            _xMat4x3* mat = (_xMat4x3*)globals.player.ent.model->Mat;
             g_info.pos.x = coll->dist * coll->tohit.x + mat->pos.x;
             g_info.pos.y = 0.5f + (coll->dist * coll->tohit.y + mat->pos.y);
+            g_info.pos.z = coll->dist * coll->tohit.z + mat->pos.z;
             g_info.size_birth = 0.0f;
             g_info.size_death = 0.5f;
-            g_info.pos.z = coll->dist * coll->tohit.z + mat->pos.z;
             g_info.color_death[0] = 0x40;
             g_info.color_death[1] = 0x40;
             g_info.color_death[2] = 0x40;
