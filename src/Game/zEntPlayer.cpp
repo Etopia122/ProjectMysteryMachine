@@ -4587,7 +4587,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                     break;
                 case 3:
                     {
-                        unsigned char hurt = zEntPlayer_Damage((xBase*)coll->optr, 1) != 0;
+                        signed int hurt = zEntPlayer_Damage((xBase*)coll->optr, 1) ? 1 : 0;
                         if (hurt)
                         {
                             zRumbleStart(0, (_tagSDRumbleType)4);
@@ -4597,7 +4597,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                     break;
                 case 4:
                     {
-                        unsigned char hurt = zEntPlayer_Damage((xBase*)coll->optr, 1) != 0;
+                        signed int hurt = zEntPlayer_Damage((xBase*)coll->optr, 1) ? 1 : 0;
                         if (hurt)
                         {
                             zRumbleStart(0, (_tagSDRumbleType)4);
@@ -4647,6 +4647,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                                 zEntVillain_Bounce(vill);
                             }
                         }
+                        break;
                     }
                     else if (bub->subType == 1)
                     {
@@ -4656,7 +4657,6 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                             zEntVillain_Headbutt(vill, &coll->hdng);
                         }
                     }
-                    break;
                 }
                 coll++;
             }
@@ -4695,10 +4695,14 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         }
         else
         {
-            float s = (1.0f / xsqrt(mag)) * lerpspeed;
-            globals.player.RootUp.x += dx * s;
-            globals.player.RootUp.y += dy * s;
-            globals.player.RootUp.z += dz * s;
+            mag = xsqrt(mag);
+            float s = (1.0f / mag) * lerpspeed;
+            dx *= s;
+            dy *= s;
+            dz *= s;
+            globals.player.RootUp.x += dx;
+            globals.player.RootUp.y += dy;
+            globals.player.RootUp.z += dz;
             xVec3Normalize(&globals.player.RootUp, &globals.player.RootUp);
         }
         if (PlayerFpClassify(globals.player.RootUp.y) == 1 || PlayerFpClassify(globals.player.RootUpTarget.y) == 1)
@@ -4779,7 +4783,10 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                     float dy = globals.player.ent.bound.sph.center.y - mat->pos.y;
                     float dz = globals.player.ent.bound.sph.center.z - mat->pos.z;
                     float r = 1.25f * globals.player.ent.bound.sph.r;
-                    if (dx * dx + dy * dy + dz * dz < r * r)
+                    float dx2 = dx * dx;
+                    float dy2 = dy * dy;
+                    float dz2 = dz * dz;
+                    if (dx2 + dy2 + dz2 < r * r)
                     {
                         globals.player.Diggable = simpent;
                         if (!(sflags & 2))
