@@ -4015,7 +4015,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         }
         else if (globals.player.Inv_Specials & 0x10)
         {
-            globals.player.Sneak = ((globals.player.Inv_Specials >> 5) & 1) + 1;
+            globals.player.Sneak = ((globals.player.Inv_Specials & 0x20) >> 5) + 1;
             zLaughNotify(0);
         }
     }
@@ -4357,7 +4357,8 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
 
         if (lastFloorEnt != NULL)
         {
-            if (surfSlickRatio != 0.0f)
+            float slip = globals.player.SlipFadeTimer;
+            if (surfSlickRatio)
             {
                 float mag = globals.player.floor_norm.x * globals.player.floor_norm.x +
                             globals.player.floor_norm.z * globals.player.floor_norm.z;
@@ -4365,9 +4366,9 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                 ent->frame->mat.pos.y = ent->frame->mat.pos.y - sett2 * xsqrt(mag);
                 ent->frame->mat.pos.z = sett2 * globals.player.floor_norm.z + ent->frame->mat.pos.z;
             }
-            else if (globals.player.SlipFadeTimer > 0.0f)
+            else if (slip > 0.0f)
             {
-                float lerpspeed = 30.0f * ((globals.player.SlipFadeTimer / 0.8f) * sdt);
+                float lerpspeed = 30.0f * ((slip / 0.8f) * sdt);
                 ent->frame->mat.pos.x = lerpspeed * lastFloorNorm.x + ent->frame->mat.pos.x;
                 ent->frame->mat.pos.z = lerpspeed * lastFloorNorm.z + ent->frame->mat.pos.z;
             }
