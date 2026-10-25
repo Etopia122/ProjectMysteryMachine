@@ -5488,27 +5488,29 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
     }
     else
     {
-        switch (globals.player.JumpState)
+        if (globals.player.JumpState == 0)
         {
-        case 0:
             globals.player.JumpState = 1;
             globals.player.JumpTimer = 0.0f;
-            break;
-        case 1:
+        }
+        else if (globals.player.JumpState == 1)
+        {
             globals.player.JumpTimer += dt;
             if (globals.player.JumpTimer >= 0.25f)
             {
                 globals.player.JumpState = 2;
             }
-            break;
-        case 2:
+        }
+        else if (globals.player.JumpState == 2)
+        {
             if (ent->frame->vel.y < 16.0f && globals.player.Jump_SpringboardStart)
             {
+                _zPlatform* spring = globals.player.Jump_Springboard;
                 if (sEmitterSpringBoard != NULL)
                 {
                     _zParEmitterCustomSettings info;
                     info.custom_flags = 0x20;
-                    info.pos = *xBoundCenter(&globals.player.Jump_Springboard->bound);
+                    info.pos = *xBoundCenter(&spring->bound);
                     for (signed int i = 0; i < 25; i++)
                     {
                         zParEmitterEmitCustom(sEmitterSpringBoard, 1.0f / 30.0f, &info);
@@ -5521,7 +5523,6 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
                     globals.player.Jump_CanDouble = 1;
                 }
             }
-            break;
         }
         if (globals.player.JumpState == 3)
         {
@@ -5530,7 +5531,7 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
         }
     }
 
-    if (globals.player.Jump_CurrGravity != 0.0f)
+    if (globals.player.Jump_CurrGravity)
     {
         if (globals.player.JumpState == 2 || globals.player.JumpState == 1)
         {
