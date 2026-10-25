@@ -1401,7 +1401,7 @@ void xCameraPickInitial(_tagxCamFrame* cam, _tagxCam* c)
     xCameraRunState(cam, -1.0f);
 }
 
-void xCameraTargetOnGround(signed int on_ground)
+void xCameraTargetOnGround(signed int on_ground, float)
 {
     sOnGround = on_ground;
 }
