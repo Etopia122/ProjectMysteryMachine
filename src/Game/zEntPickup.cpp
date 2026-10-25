@@ -1775,7 +1775,7 @@ static inline unsigned int zEntPickup_snacksLeftInArea()
 
 unsigned int zEntPickup_lastSnackInArea()
 {
-    return zEntPickup_snacksLeftInArea() == 0;
+    return !zEntPickup_snacksLeftInArea();
 }
 
 void zEntPickup_UnlockSnackGate(_xEnt* ent)
