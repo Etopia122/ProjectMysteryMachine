@@ -4390,19 +4390,19 @@ signed int zEntVillain_PlayAFXSound(st_zEntVillain* vil, zAnimFxSound* snd, unsi
 
 static void zVIL_setup_npcTable()
 {
-    signed int vuln;
+    signed int i;
     signed int dtct;
     signed int spyk;
+    signed int vuln;
     unsigned char chk;
-    unsigned char chkby;
     unsigned char pen;
     unsigned char penby;
     unsigned char physics;
-    signed int i;
     signed int ability;
     signed int atak;
     signed int move;
     signed int person = 0;
+    unsigned char chkby;
 
     // Behaviour flags per villain type (the original builds them from named
     // flag constants; the values are what it compiles to). The personality is
