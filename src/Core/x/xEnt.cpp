@@ -1348,11 +1348,7 @@ static inline signed int xEntFadeMode()
 
 void xEntRender(_xEnt* ent)
 {
-    if (ent->model == NULL)
-    {
-        return;
-    }
-    if (!xEntIsVisible(ent))
+    if (ent->model == NULL || !xEntIsVisible(ent))
     {
         return;
     }
@@ -1383,10 +1379,9 @@ void xEntRender(_xEnt* ent)
             }
             else
             {
-                float min = 255.0f * ent->asset->seeThru;
-                if (ent->material_alpha <= min)
+                if (ent->material_alpha <= 255.0f * ent->asset->seeThru)
                 {
-                    ent->material_alpha = min;
+                    ent->material_alpha = 255.0f * ent->asset->seeThru;
                 }
             }
         }
@@ -1409,10 +1404,9 @@ void xEntRender(_xEnt* ent)
         else
         {
             ent->material_alpha -= ent->asset->seeThruSpeed * sEntityTimePassed;
-            float min = 255.0f * ent->asset->seeThru;
-            if (ent->material_alpha <= min)
+            if (ent->material_alpha <= 255.0f * ent->asset->seeThru)
             {
-                ent->material_alpha = min;
+                ent->material_alpha = 255.0f * ent->asset->seeThru;
             }
         }
 
