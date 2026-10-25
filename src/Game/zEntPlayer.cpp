@@ -3105,7 +3105,7 @@ void DestructObjBBCheck(_xEnt* ent)
         _xCollis* coll = &ent->collis->colls[ent->collis->dyn_sidx];
         if (coll->optr != NULL && ((xBase*)coll->optr)->baseType == 0x1B)
         {
-            HeadbuttTest(coll, &ent->collis->colls[ent->collis->dyn_eidx], 0.1f, DestructObjHBCallback);
+            HeadbuttTest(&ent->collis->colls[ent->collis->dyn_sidx], &ent->collis->colls[ent->collis->dyn_eidx], 0.1f, DestructObjHBCallback);
             coll = &ent->collis->colls[ent->collis->dyn_sidx];
             _xCollis* endcoll = &ent->collis->colls[ent->collis->dyn_eidx];
             if (globals.player.Health && (ent->model->Anim->Single->State->UserFlags & 0x1E) == 0xE)
