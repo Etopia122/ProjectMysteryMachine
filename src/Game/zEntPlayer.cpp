@@ -4411,8 +4411,9 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         }
         else
         {
+            _xCollis* c = &ent->collis->colls[6];
             _xCollis* cend = &ent->collis->colls[ent->collis->idx];
-            for (_xCollis* c = &ent->collis->colls[6]; c < cend; c++)
+            for (; c < cend; c++)
             {
                 _xEnt* cent = (_xEnt*)c->optr;
                 if (cent != NULL &&
@@ -4427,7 +4428,9 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         }
     }
 
-    for (_xCollis* wcoll = &ent->collis->colls[2]; wcoll < &ent->collis->colls[6]; wcoll++)
+    _xCollis* wcoll = &ent->collis->colls[2];
+    _xCollis* wend = &ent->collis->colls[6];
+    for (; wcoll < wend; wcoll++)
     {
         if (wcoll->flags & 1)
         {
