@@ -19250,6 +19250,7 @@ static inline en_NPC_ANIMSTATES VANM_hashToAnim(unsigned int id)
     return anim;
 }
 
+// TODO: 99.9%. The duration multiply has its operands swapped.
 static en_NPC_ANIMSTATES VANM_set(st_zEntVillain* ent, en_NPC_ANIMSTATES* best, signed int cnt, signed int sync)
 {
     xAnimState* astate = NULL;
@@ -19279,6 +19280,10 @@ static en_NPC_ANIMSTATES VANM_set(st_zEntVillain* ent, en_NPC_ANIMSTATES* best, 
             astate = NULL;
             continue;
         }
+        if (!astate)
+        {
+            continue;
+        }
         if (ent->anim_playnext != best[i])
         {
             ent->anim_playnext = best[i];
@@ -19304,11 +19309,12 @@ static en_NPC_ANIMSTATES VANM_set(st_zEntVillain* ent, en_NPC_ANIMSTATES* best, 
 
 static inline void VANM_starttran(st_zEntVillain* ent, xAnimState* from, xAnimState* to)
 {
+    xAnimTable* table = ent->model->Anim->Table;
     xAnimTransition* tran = NULL;
 
     if (from && to && from->ID != to->ID)
     {
-        if (!VANM_findtran(ent, ent->model->Anim->Table, from, to, 1, &tran) && tran)
+        if (!VANM_findtran(ent, table, from, to, 1, &tran) && tran)
         {
             xAnimPlayStartTransition(ent->model->Anim, tran);
         }
