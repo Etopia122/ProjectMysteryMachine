@@ -2835,7 +2835,7 @@ unsigned int Witch_DropShaggyIdle(xAnimTransition*, xAnimSingle*, _zEnt* ent)
 
 unsigned int Witch_GrabShaggyCB(xAnimTransition*, xAnimSingle*, _zEnt* ent)
 {
-    ent->collis->chk &= ~0x20;
+    ent->collis->chk &= 0xDF;
     return 0;
 }
 

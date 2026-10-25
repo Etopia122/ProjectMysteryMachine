@@ -12769,10 +12769,10 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, (en_BEHAVIOUR_GOAL)ZVIL_GOAL_TELEPORT, 0);
             vil->flags &= ~1;
-            vil->chkby &= ~0x10;
-            vil->penby &= ~0x10;
-            vil->collis->chk &= ~0x10;
-            vil->collis->pen &= ~0x10;
+            vil->chkby &= 0xEF;
+            vil->penby &= 0xEF;
+            vil->collis->chk &= 0xEF;
+            vil->collis->pen &= 0xEF;
             if (stimctxt->mm_teleport_hurtz_doggie > 0)
             {
                 VEFX_mm_zapper(vil, 0);
@@ -12882,7 +12882,7 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->dst_navTween = 7.5f;
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 1.5f;
             vil->pos_bowling = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
-            vil->pflags &= ~4;
+            vil->pflags &= 0xFB;
             break;
         case ZVIL_STIM_EXITGOAL:
             vil->frame->dvel.x = 0.0f;
@@ -16887,8 +16887,8 @@ static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, zScene* scn, _xE
             prj->frame->vel.y = 0.0f;
             prj->frame->vel.z = 0.0f;
             prj->frame->mode |= 0xC;
-            prj->flg_chk &= ~0x10;
-            prj->flg_pen &= ~0x10;
+            prj->flg_chk &= 0xEF;
+            prj->flg_pen &= 0xEF;
             prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
         }
         prj->SendEvent((en_PROJECTILE_EVENT)0x10, dt);
