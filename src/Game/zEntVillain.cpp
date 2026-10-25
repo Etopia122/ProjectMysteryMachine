@@ -3551,7 +3551,7 @@ static void VCFG_readParms(st_ZVIL_CONFIG_REFERENCE* vilcfg);
 static void VIRM_initVilDflt(st_zEntVillain* vil);
 static inline signed int VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe);
 static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float chance);
-static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame);
+static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame* frame);
 static void zVIL_precalc(st_zEntVillain* vil, signed int flags);
 static inline void VTMR_tick(st_zEntVillain* vil, signed int idx, float dt);
 static void zVIL_upd_timers(st_zEntVillain* vil, float dt);
@@ -13509,7 +13509,7 @@ static void zVIL_elcb_move(_xEnt* xe, _xScene* scn, float dt, _xEntFrame* frame)
     vil->vhf->calcmove(vil, scn, dt, frame);
     if (vil->domove)
     {
-        zVIL_apply_move(vil, dt, frame);
+        zVIL_apply_move(vil, scn, dt, frame);
     }
 }
 
@@ -14630,7 +14630,7 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
     pc->flg_status |= 0x80000000;
 }
 
-static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
+static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame* frame)
 {
     signed int dotran = 0;
     float yaw;
