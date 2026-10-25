@@ -4147,7 +4147,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
             globals.player.ControlOffTimer = 0.0f;
         }
     }
-    if (globals.player.DamageTimer != 0.0f && globals.player.Health)
+    if (globals.player.DamageTimer && globals.player.Health)
     {
         globals.player.Transparent++;
         if (globals.player.Transparent == 4)
@@ -4194,7 +4194,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         {
             xScrFxFade(&black, &clear, 0.3f, NULL, 1, 1);
         }
-        if (globals.player.DamageTimer == 0.0f)
+        if (!globals.player.DamageTimer)
         {
             zSceneGameStatsTally_death();
             zGameStateSwitch(2);
@@ -4216,8 +4216,10 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         {
             globals.player.ShockRadius = 4.0f;
         }
-        float rad2 = globals.player.ShockRadius * globals.player.ShockRadius;
-        float radold2 = globals.player.ShockRadiusOld * globals.player.ShockRadiusOld;
+        float radold2;
+        float rad2;
+        rad2 = globals.player.ShockRadius * globals.player.ShockRadius;
+        radold2 = globals.player.ShockRadiusOld * globals.player.ShockRadiusOld;
         for (i = 0; i < sc->num_npcs; i++)
         {
             _xEnt* vill = sc->npcs[i];
@@ -4225,8 +4227,12 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
             float dz = vill->frame->mat.pos.z - ent->frame->mat.pos.z;
             float dxo = vill->frame->oldpos.x - ent->frame->mat.pos.x;
             float dzo = vill->frame->oldpos.z - ent->frame->mat.pos.z;
-            float sdist2 = dx * dx + dz * dz;
-            float sdistold2 = dxo * dxo + dzo * dzo;
+            float dx2 = dx * dx;
+            float dz2 = dz * dz;
+            float sdist2 = dx2 + dz2;
+            float dxo2 = dxo * dxo;
+            float dzo2 = dzo * dzo;
+            float sdistold2 = dxo2 + dzo2;
             float ydist = (float)__fabs(vill->frame->mat.pos.y - ent->frame->mat.pos.y);
             if (((rad2 > sdist2 && radold2 <= sdist2) || (rad2 > sdistold2 && radold2 <= sdistold2)) &&
                 ydist < 0.5f)
@@ -4317,7 +4323,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         float dy = ent->frame->mat.pos.y - suboldpos.y;
         float dz = ent->frame->mat.pos.z - suboldpos.z;
         if (globals.player.cheat_mode == 0 && (globals.player.JumpState == 0 || globals.player.JumpState == 1) &&
-            globals.player.FallDeathTimer == 0.0f)
+            !globals.player.FallDeathTimer)
         {
             ent->frame->mat.pos.y -= fg;
             float ndotm = globals.player.floor_norm.x * dx + globals.player.floor_norm.z * dz;
