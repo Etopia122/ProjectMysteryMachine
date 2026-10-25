@@ -4391,33 +4391,34 @@ signed int zEntVillain_PlayAFXSound(st_zEntVillain* vil, zAnimFxSound* snd, unsi
 static void zVIL_setup_npcTable()
 {
     signed int i;
+    signed int person = 0;
 
     for (i = 0; i < 50; i++)
     {
         // Behaviour flags per villain type (the original builds them from
-        // named flag constants; the values are what it compiles to).
-        unsigned int person;
-        unsigned char physics;
-        unsigned char chk;
-        unsigned char pen;
-        unsigned char chkby;
-        unsigned char penby;
-        signed int ability;
-        signed int atak;
-        signed int dtct;
-        signed int move;
-        signed int spyk;
+        // named flag constants; the values are what it compiles to). The
+        // personality is only cleared once, before the loop.
         signed int vuln;
+        signed int dtct;
+        signed int spyk;
+        signed int atak;
+        signed int ability;
+        unsigned char penby;
+        unsigned char chkby;
+        unsigned char pen;
+        unsigned char chk;
+        unsigned char physics;
+        signed int move;
 
         switch (i)
         {
         case 0:
             person = 0x1;
-            physics = 0x1B;
-            chk = 0x10;
-            pen = 0x10;
             chkby = 0x10;
             penby = 0x10;
+            chk = 0x10;
+            pen = 0x10;
+            physics = 0x1B;
             ability = 0x22804A;
             atak = 0x10003;
             dtct = 0x80;
@@ -4427,11 +4428,11 @@ static void zVIL_setup_npcTable()
             break;
         case 5:
             person = 0x0;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1B;
             ability = 0x2A1F4A;
             atak = 0x40001;
             dtct = 0x800000B1;
@@ -4441,11 +4442,11 @@ static void zVIL_setup_npcTable()
             break;
         case 2:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4455,11 +4456,11 @@ static void zVIL_setup_npcTable()
             break;
         case 3:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281FCA;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4469,11 +4470,11 @@ static void zVIL_setup_npcTable()
             break;
         case 4:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281FCA;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4483,11 +4484,11 @@ static void zVIL_setup_npcTable()
             break;
         case 6:
             person = 0x0;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x0;
             chkby = 0x1C;
             penby = 0x0;
+            chk = 0x2E;
+            pen = 0x0;
+            physics = 0x1B;
             ability = 0x281F4A;
             atak = 0x10003;
             dtct = 0x80;
@@ -4497,25 +4498,26 @@ static void zVIL_setup_npcTable()
             break;
         case 7:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x20001;
             dtct = 0x80;
-            move = 0x213F;
+            move = 0x21BF;
+            move &= ~0x80;
             spyk = 0x0;
             vuln = 0x5F9E7;
             break;
         case 9:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x299F4A;
             atak = 0x20001;
             dtct = 0x80;
@@ -4525,11 +4527,11 @@ static void zVIL_setup_npcTable()
             break;
         case 12:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281FCA;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4539,25 +4541,26 @@ static void zVIL_setup_npcTable()
             break;
         case 13:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x20001;
             dtct = 0x80;
             move = 0x213F;
+            move &= ~0x80;
             spyk = 0x0;
             vuln = 0x5F9E7;
             break;
         case 15:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x80001;
             dtct = 0xB1;
@@ -4567,11 +4570,11 @@ static void zVIL_setup_npcTable()
             break;
         case 16:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x40001;
             dtct = 0xB1;
@@ -4581,11 +4584,11 @@ static void zVIL_setup_npcTable()
             break;
         case 17:
             person = 0x0;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1B;
             ability = 0x2A1F4A;
             atak = 0x80001;
             dtct = 0x800000B1;
@@ -4595,11 +4598,11 @@ static void zVIL_setup_npcTable()
             break;
         case 18:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x40001;
             dtct = 0xB1;
@@ -4609,25 +4612,26 @@ static void zVIL_setup_npcTable()
             break;
         case 19:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x20014A;
             atak = 0x20001;
             dtct = 0x80;
             move = 0x213F;
+            move &= ~0x80;
             spyk = 0x0;
             vuln = 0x5F9E7;
             break;
         case 20:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4637,11 +4641,11 @@ static void zVIL_setup_npcTable()
             break;
         case 45:
             person = 0x0;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x8;
             chkby = 0x1C;
             penby = 0x8;
+            chk = 0x2E;
+            pen = 0x8;
+            physics = 0x1B;
             ability = 0x281F4A;
             atak = 0x10001;
             dtct = 0xB1;
@@ -4651,11 +4655,11 @@ static void zVIL_setup_npcTable()
             break;
         case 46:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281FCA;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4665,11 +4669,11 @@ static void zVIL_setup_npcTable()
             break;
         case 21:
             person = 0x1;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x2080CA;
             atak = 0x0;
             dtct = 0x80;
@@ -4679,11 +4683,11 @@ static void zVIL_setup_npcTable()
             break;
         case 14:
             person = 0x1;
-            physics = 0x0;
-            chk = 0x20;
-            pen = 0x20;
             chkby = 0x0;
             penby = 0x0;
+            chk = 0x20;
+            pen = 0x20;
+            physics = 0x0;
             ability = 0x20000A;
             atak = 0x0;
             dtct = 0x0;
@@ -4693,11 +4697,11 @@ static void zVIL_setup_npcTable()
             break;
         case 22:
             person = 0x1;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x20804A;
             atak = 0x0;
             dtct = 0x80;
@@ -4707,11 +4711,11 @@ static void zVIL_setup_npcTable()
             break;
         case 23:
             person = 0x1;
-            physics = 0x1B;
-            chk = 0x10;
-            pen = 0x10;
             chkby = 0x10;
             penby = 0x10;
+            chk = 0x10;
+            pen = 0x10;
+            physics = 0x1B;
             ability = 0x20804A;
             atak = 0x0;
             dtct = 0x80;
@@ -4721,11 +4725,11 @@ static void zVIL_setup_npcTable()
             break;
         case 24:
             person = 0x1;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x22804A;
             atak = 0x0;
             dtct = 0x80;
@@ -4735,11 +4739,11 @@ static void zVIL_setup_npcTable()
             break;
         case 25:
             person = 0x1;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x0;
             chkby = 0x1C;
             penby = 0x0;
+            chk = 0x2E;
+            pen = 0x0;
+            physics = 0x1B;
             ability = 0x281F4A;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4749,11 +4753,11 @@ static void zVIL_setup_npcTable()
             break;
         case 26:
             person = 0x1;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x80001;
             dtct = 0x81;
@@ -4763,11 +4767,11 @@ static void zVIL_setup_npcTable()
             break;
         case 27:
             person = 0x1;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1B;
             ability = 0x22804A;
             atak = 0x10003;
             dtct = 0x80;
@@ -4777,25 +4781,16 @@ static void zVIL_setup_npcTable()
             break;
         case 1:
             person = 0x5;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
-            chkby = 0x1C;
-            penby = 0x1C;
-            ability = 0x20014B;
-            atak = 0x40001;
-            dtct = 0x1;
-            move = 0x2137;
-            spyk = 0x0;
-            vuln = 0x9;
-            break;
         case 41:
-            person = 0x7;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
+            if (!person)
+            {
+                person = 0x6;
+            }
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x20014B;
             atak = 0x40001;
             dtct = 0x1;
@@ -4805,25 +4800,16 @@ static void zVIL_setup_npcTable()
             break;
         case 10:
             person = 0x5;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
-            chkby = 0x1C;
-            penby = 0x1C;
-            ability = 0x2001C3;
-            atak = 0x40001;
-            dtct = 0x1;
-            move = 0x137;
-            spyk = 0x0;
-            vuln = 0x109;
-            break;
         case 44:
-            person = 0x7;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
+            if (!person)
+            {
+                person = 0x6;
+            }
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x2001C3;
             atak = 0x40001;
             dtct = 0x1;
@@ -4833,25 +4819,16 @@ static void zVIL_setup_npcTable()
             break;
         case 11:
             person = 0x5;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
-            chkby = 0x1C;
-            penby = 0x1C;
-            ability = 0x20014B;
-            atak = 0x80001;
-            dtct = 0x1;
-            move = 0x2137;
-            spyk = 0x0;
-            vuln = 0x9;
-            break;
         case 43:
-            person = 0x7;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
+            if (!person)
+            {
+                person = 0x6;
+            }
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x20014B;
             atak = 0x80001;
             dtct = 0x1;
@@ -4861,25 +4838,16 @@ static void zVIL_setup_npcTable()
             break;
         case 8:
             person = 0x5;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x0;
-            chkby = 0x1C;
-            penby = 0x0;
-            ability = 0x20014B;
-            atak = 0x40001;
-            dtct = 0x1;
-            move = 0x43137;
-            spyk = 0x0;
-            vuln = 0x9;
-            break;
         case 42:
-            person = 0x7;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x0;
+            if (!person)
+            {
+                person = 0x6;
+            }
             chkby = 0x1C;
             penby = 0x0;
+            chk = 0x2E;
+            pen = 0x0;
+            physics = 0x1B;
             ability = 0x20014B;
             atak = 0x40001;
             dtct = 0x1;
@@ -4904,11 +4872,11 @@ static void zVIL_setup_npcTable()
         case 48:
         case 49:
             person = 0x7;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x48004;
             atak = 0x0;
             dtct = 0x1;
@@ -4918,11 +4886,11 @@ static void zVIL_setup_npcTable()
             break;
         default:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x81F40;
             atak = 0x0;
             dtct = 0x80;
@@ -4934,11 +4902,11 @@ static void zVIL_setup_npcTable()
 
         if (move & 0x40000)
         {
-            pen &= ~0x40;
+            pen &= 0xBF;
         }
         if (move & 0x400)
         {
-            pen &= ~0x20;
+            pen &= 0xDF;
         }
         g_npcTable[i].typ_person = (en_NPC_PERSONALITIES)person;
         g_npcTable[i].flg_physics = physics;
