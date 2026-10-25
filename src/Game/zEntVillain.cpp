@@ -3543,7 +3543,7 @@ static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT e
 static signed int VWEP_lobActivatePRJ(zEntProjectile* prj, st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static zEntProjectile* VWEP_lobReservePRJ(st_zEntVillain* vil);
 static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* pos_tgt);
-static signed int VWEP_swipe(st_zEntVillain* vil);
+static signed int VWEP_swipe(st_zEntVillain* vil, float);
 static en_BEHAVIOUR_GOAL VGOL_set(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal);
 static signed int VCFG_getParm(st_ZVIL_CONFIG_REFERENCE* vilcfg, en_NPC_INI_PARAMETERS pid, void* val);
 static void VCFG_readAsset(st_ZVIL_CONFIG_REFERENCE* vilcfg);
@@ -5946,7 +5946,7 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         if (!(vil->abl_move & 0x4000) && vil->tmr_list[28] < 0.3f)
         {
             ang = vil->frame->rot.angle;
-            if ((float)__fabs(ang - vil->precalc.ang_VtoP) <= 0.1f)
+            if ((float)__fabs(vil->frame->rot.angle - vil->precalc.ang_VtoP) <= 0.1f)
             {
                 VILN_std_awarePick(vil, (en_BEHAVIOUR_GOAL)0x11, 0);
             }
@@ -5958,12 +5958,8 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         if (vil->anim_playing == 9)
         {
             // Still turning to face the player.
-            float fov = vil->fov_detect;
             float diff = __fabs(ang - vil->precalc.ang_VtoP);
-            if (!(fov > 0.2f))
-            {
-                fov = 0.2f;
-            }
+            float fov = VIL_MAX(vil->fov_detect, 0.2f);
             if (diff <= 0.5 * fov)
             {
                 break;
@@ -6056,7 +6052,7 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
     case 20:
         if (VANM_inDmgWindow(vil) && !vil->goodattack)
         {
-            vil->goodattack = VWEP_swipe(vil);
+            vil->goodattack = VWEP_swipe(vil, dt);
             if (vil->goodattack)
             {
                 if (vil->precalc.plyr_mvinf & 1)
@@ -8268,7 +8264,7 @@ static signed int VILN_kp_aware(st_zEntVillain* vil, _xScene* scn, float dt, st_
     case 20:
         if (!vil->goodattack && (vil->precalc.plyr_mvinf & 1))
         {
-            vil->goodattack = VWEP_swipe(vil);
+            vil->goodattack = VWEP_swipe(vil, dt);
             if (vil->goodattack)
             {
                 VIRM_initVilDflt(vil);
@@ -15563,7 +15559,7 @@ static en_BEHAVIOUR_GOAL VGOL_set(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal)
     return vil->goal;
 }
 
-static signed int VWEP_swipe(st_zEntVillain* vil)
+static signed int VWEP_swipe(st_zEntVillain* vil, float)
 {
     static const iColor_tag clr_swipe = { 0x80, 0x00, 0x00, 0xFF };
     signed int hit = 0;
