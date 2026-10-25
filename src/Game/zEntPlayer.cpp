@@ -3051,10 +3051,13 @@ void ButtonBBCheck(_xEnt* ent)
         _xCollis* coll = &ent->collis->colls[ent->collis->dyn_sidx];
         if (coll->optr != NULL && ((xBase*)coll->optr)->baseType == 0x18)
         {
-            if ((globals.player.Inv_Specials & 0x800) && ((xBase*)coll->optr)->baseType == 0x18 &&
-                (globals.player.ent.model->Anim->Single->State->UserFlags & 0x1E) == 0xC)
+            if (globals.player.Inv_Specials & 0x800)
             {
-                HeadbuttTest(coll, &ent->collis->colls[ent->collis->dyn_eidx], 0.1f, ButtonHBCallback);
+                _xCollis* hbend = &ent->collis->colls[ent->collis->dyn_eidx];
+                if (((xBase*)coll->optr)->baseType == 0x18)
+                {
+                    HeadbuttTest(&ent->collis->colls[ent->collis->dyn_sidx], hbend, 0.1f, ButtonHBCallback);
+                }
             }
             coll = &ent->collis->colls[ent->collis->dyn_sidx];
             _xCollis* endcoll = &ent->collis->colls[ent->collis->dyn_eidx];
