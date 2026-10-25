@@ -14666,13 +14666,13 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
 
     if (vil->domove & 0x40)
     {
-        doturn = 1;
         dang = vil->ang_moveto - frame->rot.angle;
+        doturn = 1;
     }
     else if (vil->domove & 0x80)
     {
-        doturn = 1;
         dang = xAngleClamp(atan2(vil->dir_moveto.x, vil->dir_moveto.z)) - frame->rot.angle;
+        doturn = 1;
     }
     else if (vil->domove & 0x100)
     {
@@ -14681,14 +14681,14 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
     }
     else if (vil->domove & 0x800)
     {
-        doturn = 1;
         dang = xAngleClamp(atan2(vil->pos_moveto.x - pos_cur.x, vil->pos_moveto.z - pos_cur.z)) -
                frame->rot.angle;
+        doturn = 1;
     }
     else if (vil->domove & 0x400)
     {
-        doturn = 1;
         dang = xAngleClamp(atan2(vil->dlt_moveto.x, vil->dlt_moveto.z)) - frame->rot.angle;
+        doturn = 1;
     }
 
     if (!(vil->domove & 1))
