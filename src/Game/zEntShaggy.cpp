@@ -3352,7 +3352,9 @@ signed int Shaggy8_HBCallback(_zEnt* plyr, _xCollis* coll)
             return 0;
         }
         guts->barrelButted = 1;
-        plyr->frame->mat.pos = ((_xMat4x3*)plyr->model->Mat)->pos;
+        plyr->frame->mat.pos.x = ((_xMat4x3*)plyr->model->Mat)->pos.x;
+        plyr->frame->mat.pos.y = ((_xMat4x3*)plyr->model->Mat)->pos.y;
+        plyr->frame->mat.pos.z = ((_xMat4x3*)plyr->model->Mat)->pos.z;
         globals.player.HeadbuttHit = 1;
         globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         zRumbleStart(0, (_tagSDRumbleType)1);
