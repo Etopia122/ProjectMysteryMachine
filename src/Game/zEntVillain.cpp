@@ -3725,8 +3725,6 @@ static inline void VILN_std_stunTimer(st_zEntVillain* vil, signed int idx);
 static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt);
 static inline signed int VUTIL_hitSide(st_zEntVillain* vil);
 static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, st_STIMULUS_CONTEXT_DATA* resp);
-static inline signed int VILN_std_awareAlert(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
-static inline signed int VILN_std_awareRoam(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp, signed int patrolmode);
 static inline void VILN_std_awareGuardOrIdle(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
 static inline void VILN_std_awareTymr(st_zEntVillain* vil, signed int idx);
 static inline void VILN_std_awarePick(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, signed int spot);
@@ -5622,8 +5620,43 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         VILN_tran(resp, vil->goaldflt, 3);
         break;
     case 4:
-        if (VILN_std_awareAlert(vil, resp) || VILN_std_awareRoam(vil, resp, 3))
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
         {
+            VILN_tran(resp, 0x11, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
+        {
+            VILN_tran(resp, 0xF, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
+        {
+            VILN_tran(resp, 0xE, 4);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)6))
+        {
+            VILN_tran(resp, 8, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)4))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)5))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)7))
+        {
+            VNAV_get_nav(vil);
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)8))
+        {
+            VILN_tran(resp, 6, 3);
             break;
         }
         if (vil->tmr_list[1] <= 0.0f && !(vil->ability & 0x20000))
@@ -5638,8 +5671,43 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         break;
     case 5:
         VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)0xE, dt);
-        if (VILN_std_awareAlert(vil, resp) || VILN_std_awareRoam(vil, resp, 3))
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
         {
+            VILN_tran(resp, 0x11, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
+        {
+            VILN_tran(resp, 0xF, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
+        {
+            VILN_tran(resp, 0xE, 4);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)6))
+        {
+            VILN_tran(resp, 8, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)4))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)5))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)7))
+        {
+            VNAV_get_nav(vil);
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)8))
+        {
+            VILN_tran(resp, 6, 3);
             break;
         }
         if (vil->tmr_list[0] <= 0.0f && !(vil->ability & 0x20000))
@@ -5666,8 +5734,19 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         }
         break;
     case 6:
-        if (VILN_std_awareAlert(vil, resp))
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
         {
+            VILN_tran(resp, 0x11, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
+        {
+            VILN_tran(resp, 0xF, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
+        {
+            VILN_tran(resp, 0xE, 4);
             break;
         }
         if (vil->vhf->query(vil, (en_ZVIL_QUERY)7) && VNAV_get_nav(vil))
@@ -5686,12 +5765,20 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         }
         else if (!vil->vhf->query(vil, (en_ZVIL_QUERY)4))
         {
-            if (vil->mode >= 4)
+            vil->mode = (en_NPC_MODE)VIL_MIN(vil->mode, 4);
+            if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
             {
-                vil->mode = (en_NPC_MODE)4;
+                VILN_tran(resp, 0x11, 5);
+                break;
             }
-            if (VILN_std_awareAlert(vil, resp))
+            if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
             {
+                VILN_tran(resp, 0xF, 5);
+                break;
+            }
+            if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
+            {
+                VILN_tran(resp, 0xE, 4);
                 break;
             }
             if (!vil->vhf->query(vil, (en_ZVIL_QUERY)5))
@@ -5705,8 +5792,43 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         {
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)0xF, dt);
         }
-        if (VILN_std_awareAlert(vil, resp) || VILN_std_awareRoam(vil, resp, 0))
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
         {
+            VILN_tran(resp, 0x11, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
+        {
+            VILN_tran(resp, 0xF, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
+        {
+            VILN_tran(resp, 0xE, 4);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)6))
+        {
+            VILN_tran(resp, 8, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)4))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)5))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)7))
+        {
+            VNAV_get_nav(vil);
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)8))
+        {
+            VILN_tran(resp, 6, 0);
             break;
         }
         if (vil->anim_playnext == 0x14 && vil->anim_playing)
@@ -6224,56 +6346,6 @@ static inline void VILN_std_awareGuardOrIdle(st_zEntVillain* vil, st_STIMULUS_CO
 }
 
 // Follow / mini patrol / patrol checks shared by the idle-type goals.
-static inline signed int VILN_std_awareRoam(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp, signed int patrolmode)
-{
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)6))
-    {
-        VILN_tran(resp, 8, 3);
-        return 1;
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)4))
-    {
-        VILN_tran(resp, 7, 3);
-        return 1;
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)5))
-    {
-        VILN_tran(resp, 7, 3);
-        return 1;
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)7))
-    {
-        VNAV_get_nav(vil);
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)8))
-    {
-        VILN_tran(resp, 6, patrolmode);
-        return 1;
-    }
-    return 0;
-}
-
-// Alerted by the player: attack, surprise or listen. Returns 1 if a transition was requested.
-static inline signed int VILN_std_awareAlert(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp)
-{
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
-    {
-        VILN_tran(resp, 0x11, 5);
-        return 1;
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
-    {
-        VILN_tran(resp, 0xF, 5);
-        return 1;
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
-    {
-        VILN_tran(resp, 0xE, 4);
-        return 1;
-    }
-    return 0;
-}
-
 static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, st_STIMULUS_CONTEXT_DATA* resp)
 {
     _xVec3 vecC;
