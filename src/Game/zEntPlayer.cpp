@@ -929,7 +929,7 @@ static inline void zEntPlayer_SNDButtBounce(signed int hit_villain)
     {
         sPlayerSndfx.head_pitch = zPitchChange(sPlayerSndfx.head_pitch, &pitch, 0x1E, 1.5f);
         xSndPlay(sPlayerSndfx.head_id[sPlayerSndfx.head_snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
-        signed int newsnd = sPlayerSndfx.head_snd;
+        signed short newsnd = sPlayerSndfx.head_snd;
         while (newsnd == sPlayerSndfx.head_snd)
         {
             newsnd = rand() % 3;
@@ -940,7 +940,7 @@ static inline void zEntPlayer_SNDButtBounce(signed int hit_villain)
     {
         sPlayerSndfx.butt_pitch = zPitchChange(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
         xSndPlay(sPlayerSndfx.butt_id[sPlayerSndfx.butt_snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
-        signed int newsnd = sPlayerSndfx.butt_snd;
+        signed short newsnd = sPlayerSndfx.butt_snd;
         while (newsnd == sPlayerSndfx.butt_snd)
         {
             newsnd = rand() % 3;
@@ -2053,7 +2053,6 @@ static signed int VillHBCallback(_zEnt* ent, _xCollis* coll)
         globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         zEntPlayer_SNDButtBounce(1);
         zRumbleStart(0, (_tagSDRumbleType)1);
-        return 1;
     }
     return 0;
 }
