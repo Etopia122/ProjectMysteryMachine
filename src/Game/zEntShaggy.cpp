@@ -968,8 +968,8 @@ unsigned int Shaggy1_TalkFlag(xAnimTransition* tran, xAnimSingle*, _zEnt* ent)
     unsigned char ret = 0;
     if (guts->talkTimer != 0.0f && guts->talkSwitch <= 0.0f)
     {
-        unsigned char mod = tran->UserFlags;
-        if (guts->talkRand % mod == 0 && guts->talkFlag == (unsigned int)(mod >> 8))
+        unsigned int mod = (unsigned char)tran->UserFlags;
+        if (guts->talkRand % mod == 0 && guts->talkFlag == mod >> 8)
         {
             ret = 1;
         }
