@@ -4586,16 +4586,22 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                     }
                     break;
                 case 3:
-                    if (zEntPlayer_Damage((xBase*)coll->optr, 1) != 0)
                     {
-                        zRumbleStart(0, (_tagSDRumbleType)4);
+                        unsigned char hurt = zEntPlayer_Damage((xBase*)coll->optr, 1) != 0;
+                        if (hurt)
+                        {
+                            zRumbleStart(0, (_tagSDRumbleType)4);
+                        }
                     }
                     took_damage = 1;
                     break;
                 case 4:
-                    if (zEntPlayer_Damage((xBase*)coll->optr, 1) != 0)
                     {
-                        zRumbleStart(0, (_tagSDRumbleType)4);
+                        unsigned char hurt = zEntPlayer_Damage((xBase*)coll->optr, 1) != 0;
+                        if (hurt)
+                        {
+                            zRumbleStart(0, (_tagSDRumbleType)4);
+                        }
                     }
                     took_damage = 1;
                     break;
@@ -4612,12 +4618,14 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
     {
         if (ent->collis->dyn_eidx > ent->collis->dyn_sidx)
         {
+            coll = &ent->collis->colls[ent->collis->dyn_sidx];
             endcoll = &ent->collis->colls[ent->collis->dyn_eidx];
-            for (coll = &ent->collis->colls[ent->collis->dyn_sidx]; coll < endcoll; coll++)
+            while (coll < endcoll)
             {
                 _zEntBubble* bub = (_zEntBubble*)coll->optr;
                 if (bub == NULL)
                 {
+                    coll++;
                     continue;
                 }
                 if (bub->baseType == 0xF)
@@ -4650,6 +4658,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                     }
                     break;
                 }
+                coll++;
             }
         }
     }
