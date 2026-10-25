@@ -1239,18 +1239,14 @@ static void PlayerAbsControl(_xEnt* ent, float x, float z, float dt)
     }
 
     xMat3x3GetEuler((_xMat3x3*)ent->frame, &euler);
-    if (euler.x >= 0.0f)
-    {
-    }
-    else
-    {
-        euler.x += 6.2831855f;
-    }
-    ent->frame->rot.angle = euler.x;
+    float ex = euler.x;
+    ex = (ex >= 0.0f) ? ex : ex + 6.2831855f;
+    ent->frame->rot.angle = ex;
     surfMaxSpeed = 0.0f;
 
     xAnimSingle* single = ent->model->Anim->Single;
     unsigned int animUserFlag = (single->State != NULL) ? single->State->UserFlags : 0;
+    unsigned int moveFlag = animUserFlag;
     xAnimSingle* blend = single->Blend;
     unsigned char hasblend = 0;
     if (blend != NULL && blend->State != NULL)
@@ -1258,7 +1254,6 @@ static void PlayerAbsControl(_xEnt* ent, float x, float z, float dt)
         hasblend = 1;
     }
     unsigned int blendUserFlag = hasblend ? (blend->State->UserFlags | 0x80000000) : 0;
-    unsigned int moveFlag = animUserFlag;
     unsigned int blendFlag = blendUserFlag;
     if ((animUserFlag & 0x1E) == 0xE && !(animUserFlag & 0x800))
     {
