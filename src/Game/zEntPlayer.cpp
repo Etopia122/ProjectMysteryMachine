@@ -518,7 +518,7 @@ void xEntApplyPhysics(_xEnt* ent, _xScene* sc, float dt);
 void xEntMove(_xEnt* ent, _xScene* sc, float dt);
 void xEntBeginUpdate(_xEnt* ent, _xScene* sc, float dt);
 void xEntEndUpdate(_xEnt* ent, _xScene* sc, float dt);
-void xEntDriveUpdate(_xEntDrive* drv, float dt);
+void xEntDriveUpdate(_xEntDrive* drv, _xScene* s, float dt);
 void zGustUpdateEnt(_xEnt* ent, _xScene* sc, float dt, void* fdata);
 unsigned int zSurfaceGetStep(xSurface* surf);
 void zSceneGameStatsTally_death();
@@ -4286,7 +4286,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         xEntApplyPhysics(ent, sc, sdt);
         xEntMove(ent, sc, sdt);
         req_motion = ent->frame->dpos;
-        xEntDriveUpdate(&globals.player.drv, sdt);
+        xEntDriveUpdate(&globals.player.drv, sc, sdt);
         if (globals.player.MountChimney != NULL && globals.player.MountChimney->eventFunc == Shaggy2Plat_EventCB)
         {
             globals.player.ent.frame->mat.pos.y +=
@@ -4527,16 +4527,11 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                     }
                     if (bounceResponse == 1 || bounceResponse == 2)
                     {
-                        zJumpParam* jump = &globals.player.s.Spring;
                         ent->frame->mat.pos.x = ((_xMat4x3*)ent->model->Mat)->pos.x;
                         ent->frame->mat.pos.y = ((_xMat4x3*)ent->model->Mat)->pos.y;
                         ent->frame->mat.pos.z = ((_xMat4x3*)ent->model->Mat)->pos.z;
                         startBounce = ent->frame->mat.pos.y;
-                        if (bounceResponse == 1)
-                        {
-                            jump = &globals.player.s.Bounce;
-                        }
-                        zEntPlayerJumpStart(ent, jump);
+                        zEntPlayerJumpStart(ent, (bounceResponse == 1) ? &globals.player.s.Bounce : &globals.player.s.Spring);
                         if (((_xEnt*)coll->optr)->subType == 0x16 || ((_xEnt*)coll->optr)->subType == 0x18 ||
                             ((_xEnt*)coll->optr)->subType == 0x15 || ((_xEnt*)coll->optr)->subType == 0)
                         {

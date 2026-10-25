@@ -67,7 +67,7 @@ void xEntDriveDismount(_xEntDrive* drv, float dmt)
     }
 }
 
-void xEntDriveUpdate(_xEntDrive* drv, float dt)
+void xEntDriveUpdate(_xEntDrive* drv, _xScene*, float dt)
 {
     _xMat3x3 rot;
     _xVec3 euler;
