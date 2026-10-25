@@ -2505,14 +2505,17 @@ static unsigned int ActiveCheck(xAnimTransition* tran, xAnimSingle* anim, void* 
     return ret;
 }
 
+// TODO: 99.3%. The globals base and collis registers are swapped.
 static unsigned int JumpCheck(xAnimTransition*, xAnimSingle*, void*)
 {
     unsigned char ret = 0;
     _xEnt* fent;
-    if ((globals.player.Slide != 1 || !(globals.player.SlideTimer < 0.5f) ||
-         ((fent = (_xEnt*)globals.player.ent.collis->colls[0].optr) != NULL && fent->baseType == 6 &&
+    _xEntCollis* collis = globals.player.ent.collis;
+    signed int slide = globals.player.Slide;
+    if ((slide != 1 || !(globals.player.SlideTimer < 0.5f) ||
+         ((fent = (_xEnt*)collis->colls[0].optr) != NULL && fent->baseType == 6 &&
           fent->subType == 0xB)) &&
-        globals.player.Slide != 3 && (!surfSticky || (globals.player.Inv_Specials & 4)) && globals.player.ControlOn &&
+        slide != 3 && (!surfSticky || (globals.player.Inv_Specials & 4)) && globals.player.ControlOn &&
         (globals.pad0->pressed & 0x10000))
     {
         ret = 1;
