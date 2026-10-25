@@ -4477,8 +4477,9 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         globals.player.Shaggy1.GrabOn && !zEntShaggy_GetSwap(globals.player.Shaggy1.Grab) &&
         globals.player.Shaggy1.Grab->subType == 0x1C)
     {
+        coll = &ent->collis->colls[ent->collis->npc_sidx];
         endcoll = &ent->collis->colls[ent->collis->npc_eidx];
-        for (coll = &ent->collis->colls[ent->collis->npc_sidx]; coll < endcoll; coll++)
+        for (; coll < endcoll; coll++)
         {
             _zEnt* shagent = (_zEnt*)coll->optr;
             if (shagent == globals.player.Shaggy1.Grab && coll->hdng.y < -0.7071f)
