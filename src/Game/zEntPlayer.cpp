@@ -4533,8 +4533,8 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                             jump = &globals.player.s.Bounce;
                         }
                         zEntPlayerJumpStart(ent, jump);
-                        unsigned char st = ((_xEnt*)coll->optr)->subType;
-                        if (st == 0x16 || st == 0x18 || st == 0x15 || st == 0)
+                        if (((_xEnt*)coll->optr)->subType == 0x16 || ((_xEnt*)coll->optr)->subType == 0x18 ||
+                            ((_xEnt*)coll->optr)->subType == 0x15 || ((_xEnt*)coll->optr)->subType == 0)
                         {
                             globals.player.Bounced = 1;
                         }
@@ -4545,7 +4545,19 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                         globals.player.Jump_CanDouble = 1;
                         globals.player.Jump_CanFloat = 1;
                         zRumbleStart(0, (_tagSDRumbleType)2);
-                        zEntPlayer_SNDButtBounce(0);
+                        {
+                            // zEntPlayer_SNDButtBounce(0), written out: the
+                            // inline budget is spent by this point.
+                            float pitch;
+                            sPlayerSndfx.butt_pitch = zPitchChange(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
+                            xSndPlay(sPlayerSndfx.butt_id[sPlayerSndfx.butt_snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
+                            signed short newsnd = sPlayerSndfx.butt_snd;
+                            while (newsnd == sPlayerSndfx.butt_snd)
+                            {
+                                newsnd = rand() % 3;
+                            }
+                            sPlayerSndfx.butt_snd = newsnd;
+                        }
                         break;
                     }
                     if (bounceResponse == 4 && coll->hdng.x == 0.0f && coll->hdng.z == 0.0f)
