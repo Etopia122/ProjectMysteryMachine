@@ -19201,7 +19201,9 @@ static unsigned int VANM_didtran(xAnimTransition* tran, xAnimSingle* single, st_
 
     ent->anim_playing = 1;
     ent->anim_playnext = VANM_hashToAnim(single->State->ID);
-    ent->tmr_list[ZVIL_TYMR_MINANIMPLAY] = VANM_duration(single->State, ent, &tym) * ent->anim_loopmult;
+    float mult = ent->anim_loopmult;
+    float dur = VANM_duration(single->State, ent, &tym);
+    ent->tmr_list[ZVIL_TYMR_MINANIMPLAY] = dur * mult;
     if (single->State->Flags & 0x10)
     {
         ent->anim_loopmult = 0.97f;
@@ -19221,7 +19223,9 @@ static unsigned int VANM_diddflt(xAnimTransition* tran, xAnimSingle* single, st_
 
     ent->anim_playing = 1;
     ent->anim_playnext = VANM_hashToAnim(single->State->ID);
-    ent->tmr_list[ZVIL_TYMR_MINANIMPLAY] = VANM_duration(single->State, ent, &tym) * ent->anim_loopmult;
+    float mult = ent->anim_loopmult;
+    float dur = VANM_duration(single->State, ent, &tym);
+    ent->tmr_list[ZVIL_TYMR_MINANIMPLAY] = dur * mult;
     if (single->State->Flags & 0x10)
     {
         ent->anim_loopmult = 0.97f;
@@ -19232,8 +19236,8 @@ static unsigned int VANM_diddflt(xAnimTransition* tran, xAnimSingle* single, st_
 
 static inline en_NPC_ANIMSTATES VANM_hashToAnim(unsigned int id)
 {
-    signed int i;
     en_NPC_ANIMSTATES anim = ZVIL_ANIM_UNKNOWN;
+    signed int i;
 
     for (i = 0; i < 147; i++)
     {
@@ -19498,25 +19502,21 @@ static inline xAnimState* VANM_entState(_zEnt* ent)
 
 static inline xAnimSingle* VANM_entSingle(_zEnt* ent)
 {
-    xAnimPlay* play;
+    xAnimSingle* single;
 
     if (!ent->model)
     {
-        play = NULL;
+        single = NULL;
     }
     else if (!ent->model->Anim)
     {
-        play = NULL;
+        single = NULL;
     }
     else
     {
-        play = ent->model->Anim;
+        single = ent->model->Anim->Single;
     }
-    if (play)
-    {
-        return play->Single;
-    }
-    return NULL;
+    return single;
 }
 
 static inline void VSND_setup_soundTable()
