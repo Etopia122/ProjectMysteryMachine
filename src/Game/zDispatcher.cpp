@@ -73,7 +73,7 @@ void zHudShow();
 void zHudHide();
 void zLaughNotify(signed int situation);
 void zMusicNotify(signed int situation);
-void zMusicNotifyEvent(float* toParam);
+void zMusicNotifyEvent(float* toParam, xBase* toParamWidget);
 void zMusicKill();
 char* zFMVFileGetName(eFMVFile fileEnum);
 unsigned int zFMVPlay(char* filename, unsigned int buttons, float time);
@@ -703,7 +703,7 @@ static signed int ZDSP_elcb_event(xBase* from, xBase* xb, unsigned int toEvent, 
         zMusicNotify(3);
         break;
     case 0x129:
-        zMusicNotifyEvent(toParam);
+        zMusicNotifyEvent(toParam, toParamWidget);
         break;
     case 0xC2:
         zEntPlayer_StoreCheckPoint(toParam);
