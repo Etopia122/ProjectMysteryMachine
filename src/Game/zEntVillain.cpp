@@ -14762,7 +14762,7 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
         frame->drot.angle = rate * dang;
         frame->mode |= 0x20;
         yaw += frame->drot.angle;
-        if (((dang < 0.0f) ? -dang : dang) > 0.5f * vil->fov_detect)
+        if ((float)__fabs(dang) > 0.5f * vil->fov_detect)
         {
             bigturn = 1;
         }
@@ -14811,7 +14811,11 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
         dx = vil->pos_moveto.x - pos_cur.x;
         dz = vil->pos_moveto.z - pos_cur.z;
         ds2_step = spd * spd;
-        ds2 = dx * dx + dz * dz;
+        {
+            float x2 = dx * dx;
+            float z2 = dz * dz;
+            ds2 = x2 + z2;
+        }
         if (ds2 < ds2_step)
         {
             dst = xsqrt(ds2);
@@ -14889,20 +14893,19 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
             }
             else if (ds2 < 0.0625f)
             {
-                frame->dpos.y = (dy < 0.0f) ? -1.0f * spd : spd;
+                if (dy < 0.0f)
+                {
+                    frame->dpos.y = -1.0f * spd;
+                }
+                else
+                {
+                    frame->dpos.y = spd;
+                }
             }
             else
             {
                 float frac = dy / xsqrt(ds2);
-                if (frac > 1.0f)
-                {
-                    frac = 1.0f;
-                }
-                if (frac < -1.0f)
-                {
-                    frac = -1.0f;
-                }
-                frame->dpos.y = spd * frac;
+                frame->dpos.y = spd * VIL_MAX(-1.0f, VIL_MIN(frac, 1.0f));
             }
         }
         frame->mode |= 2;
