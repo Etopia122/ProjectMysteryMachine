@@ -14669,22 +14669,21 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
 {
     signed int dotran = 0;
     float z2;
-    float yaw;
-    float ds2_step;
-    float dang = 0.0f;
     signed int dovel = 0;
+    float ds2_step;
+    float spd;
     signed int bigturn = 0;
     signed int doturn = 0;
+    float yaw;
     _xVec3 pos_cur = {};
     _xMat4x3* mdlmat = (_xMat4x3*)vil->model->Mat;
     float trnd;
     float rate;
     float frac;
-    float spd;
     float dst;
+    float dang = 0.0f;
     float ds2;
     float lim_rand;
-    float rnd;
     float lim_snap;
     float dx;
     float dz;
@@ -14692,6 +14691,7 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
     float cs;
     float sn;
     float dy;
+    float rnd;
 
     pos_cur = mdlmat->pos;
     if (!vil->domove)
