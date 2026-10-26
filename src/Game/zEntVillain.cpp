@@ -14815,12 +14815,12 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
 
     if (dotran)
     {
-        float rnd;
         float spd;
+        float ds2_step;
         float dst;
         float ds2;
-        float ds2_step;
         float lim_rand;
+        float rnd;
         float lim_snap;
         float dx;
         float dz;
