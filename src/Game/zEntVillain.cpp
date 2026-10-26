@@ -14668,13 +14668,30 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
 static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame* frame)
 {
     signed int dotran = 0;
+    float z2;
     float yaw;
+    float ds2_step;
     float dang = 0.0f;
     signed int dovel = 0;
     signed int bigturn = 0;
     signed int doturn = 0;
     _xVec3 pos_cur = {};
     _xMat4x3* mdlmat = (_xMat4x3*)vil->model->Mat;
+    float trnd;
+    float rate;
+    float frac;
+    float spd;
+    float dst;
+    float ds2;
+    float lim_rand;
+    float rnd;
+    float lim_snap;
+    float dx;
+    float dz;
+    float x2;
+    float cs;
+    float sn;
+    float dy;
 
     pos_cur = mdlmat->pos;
     if (!vil->domove)
@@ -14763,8 +14780,7 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
     if (doturn &&
         ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400) || (VANM_stateUserFlags(vil, 0x1E000000) & 0x02000000)))
     {
-        float rnd = 0.15f * iurand() + 0.85f;
-        float rate;
+        trnd = 0.15f * iurand() + 0.85f;
 
         if (vil->domove & 0x10000)
         {
@@ -14772,7 +14788,7 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
         }
         else
         {
-            rate = rnd * (dt * vil->spd_turn);
+            rate = trnd * (dt * vil->spd_turn);
         }
         if (dang > 3.1415927f)
         {
@@ -14815,15 +14831,6 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
 
     if (dotran)
     {
-        float spd;
-        float ds2_step;
-        float dst;
-        float ds2;
-        float lim_rand;
-        float rnd;
-        float lim_snap;
-        float dx;
-        float dz;
 
         if (bigturn)
         {
@@ -14847,8 +14854,8 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
         dz = vil->pos_moveto.z - pos_cur.z;
         ds2_step = spd * spd;
         {
-            float x2 = dx * dx;
-            float z2 = dz * dz;
+            x2 = dx * dx;
+            z2 = dz * dz;
             ds2 = x2 + z2;
         }
         if (ds2 < ds2_step)
@@ -14883,8 +14890,8 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
         }
         else
         {
-            float cs = cos(yaw);
-            float sn = sin(yaw);
+            cs = cos(yaw);
+            sn = sin(yaw);
 
             if (vil->domove & 2)
             {
@@ -14920,7 +14927,7 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
 
         if (vil->domove & 4)
         {
-            float dy = vil->pos_moveto.y - pos_cur.y;
+            dy = vil->pos_moveto.y - pos_cur.y;
 
             if (dy * dy < ds2_step)
             {
@@ -14939,7 +14946,7 @@ static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame*
             }
             else
             {
-                float frac = dy / xsqrt(ds2);
+                frac = dy / xsqrt(ds2);
                 frame->dpos.y = spd * VIL_MAX(-1.0f, VIL_MIN(frac, 1.0f));
             }
         }
