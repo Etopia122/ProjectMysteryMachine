@@ -3384,9 +3384,9 @@ signed int Shaggy8_BBCallback(_xEnt*, _xCollis* coll)
     _zEnt* ent = (_zEnt*)coll->optr;
     if (ent->baseType == 2 && ent->subType == 0x24)
     {
-        char* name = ent->model->Anim->Single->State->Name;
-        if (strcmp(name, "Stand_idle") == 0 || strcmp(name, "Stand_walk") == 0 ||
-            strcmp(name, "Stand_run") == 0)
+        if (strcmp(ent->model->Anim->Single->State->Name, "Stand_idle") == 0 ||
+            strcmp(ent->model->Anim->Single->State->Name, "Stand_walk") == 0 ||
+            strcmp(ent->model->Anim->Single->State->Name, "Stand_run") == 0)
         {
             ShaggyGuts* guts = ShaggyGetGuts(ent);
             if (guts == NULL)
