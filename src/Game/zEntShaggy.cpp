@@ -619,10 +619,10 @@ _zEnt* zEntShaggy_GetSwap(_zEnt* ent)
 unsigned int Shaggy1_Grab(xAnimTransition* tran, xAnimSingle*, _zEnt* ent)
 {
     unsigned char ret = 0;
-    if (globals.player.Shaggy1.GrabTry != NULL &&
-        (ent == &globals.player.ent || ent == globals.player.Shaggy1.GrabTry) &&
-        globals.player.Shaggy1.GrabTry->subType == tran->UserFlags + 0x1C &&
-        globals.player.ScareTimer == 0.0f)
+    _zEnt* grab = globals.player.Shaggy1.GrabTry;
+    if (grab != NULL && (ent == &globals.player.ent || ent == grab) &&
+        grab->subType == tran->UserFlags + 0x1C &&
+        !globals.player.ScareTimer)
     {
         ret = 1;
     }
@@ -631,8 +631,8 @@ unsigned int Shaggy1_Grab(xAnimTransition* tran, xAnimSingle*, _zEnt* ent)
 
 unsigned int Shaggy1_GrabCB(xAnimTransition*, xAnimSingle*, _zEnt* ent)
 {
-    globals.player.Shaggy1.SetDown = 0;
     globals.player.Shaggy1.Grab = globals.player.Shaggy1.GrabTry;
+    globals.player.Shaggy1.SetDown = 0;
     globals.player.Shaggy1.ThrowState = 0;
     zEntEvent(ent, 0xE8);
     return 0;
