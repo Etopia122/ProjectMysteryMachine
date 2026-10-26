@@ -471,8 +471,8 @@ static inline unsigned int Shaggy3FrameMoving(_xEntFrame* frame)
 static inline float Shaggy1_CalcThrowAccel(float peak, float* timepeak)
 {
     float sol[2];
-    float Vthrow = globals.player.Shaggy1.ThrowVel.y;
     float Ta = gACCEL_END - gACCEL_START;
+    float Vthrow = globals.player.Shaggy1.ThrowVel.y;
     unsigned int solcnt = xMathSolveQuadratic(
         Ta * Ta, 20.0f * (Ta * Ta) + 2.0f * Vthrow * Ta,
         40.0f * ((globals.player.Shaggy1.ThrowPos.y - globals.player.Shaggy1.ReleaseTrans.y) -
