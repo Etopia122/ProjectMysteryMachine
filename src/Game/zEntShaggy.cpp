@@ -821,16 +821,15 @@ unsigned int Shaggy1_Scare(xAnimTransition*, xAnimSingle*, _zEnt*)
 
 unsigned int Shaggy1_ScareCB(xAnimTransition*, xAnimSingle*, _zEnt* ent)
 {
-    zShaggy1Globals* s1 = &globals.player.Shaggy1;
-    s1->ThrowAccel = Shaggy1_CalcThrowAccel(THROW_MINHEIGHT, NULL);
-    s1->ThrowTgtSpeed = 0.0f;
-    s1->HangTarget = NULL;
-    s1->ThrowState = 0;
+    globals.player.Shaggy1.ThrowAccel = Shaggy1_CalcThrowAccel(THROW_MINHEIGHT, NULL);
+    globals.player.Shaggy1.ThrowTgtSpeed = 0.0f;
+    globals.player.Shaggy1.HangTarget = NULL;
+    globals.player.Shaggy1.ThrowState = 0;
     if (ent->subType == 0x1D)
     {
-        s1->ThrowTimer = 0.0f;
+        globals.player.Shaggy1.ThrowTimer = 0.0f;
     }
-    s1->CatchYou = 0;
+    globals.player.Shaggy1.CatchYou = 0;
     zEntEvent(ent, 0xE9);
     return 0;
 }
@@ -1577,8 +1576,7 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
         }
     }
 
-    zShaggy1Globals* s1 = &globals.player.Shaggy1;
-    if (ent == s1->Grab)
+    if (ent == globals.player.Shaggy1.Grab)
     {
         if (ent->subType == 0x1C && globals.player.JumpState != 0 &&
             globals.player.ent.frame->vel.y < 0.0f &&
@@ -1610,19 +1608,19 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
     Shaggy1_MiddleUpdate(ent, sc, dt);
     xEntEndUpdate(ent, sc, dt);
 
-    if (ent == s1->GrabTry && ent != s1->Grab)
+    if (ent == globals.player.Shaggy1.GrabTry && ent != globals.player.Shaggy1.Grab)
     {
-        s1->Grab = NULL;
-        s1->GrabTry = NULL;
+        globals.player.Shaggy1.Grab = NULL;
+        globals.player.Shaggy1.GrabTry = NULL;
     }
 
-    if (ent == s1->Grab)
+    if (ent == globals.player.Shaggy1.Grab)
     {
         float dx = ent->bound.sph.center.x - globals.player.ent.bound.sph.center.x;
         float dz = ent->bound.sph.center.z - globals.player.ent.bound.sph.center.z;
-        s1->GrabTimer = 0.000001f;
-        s1->GrabRot = xAngleClamp(atan2(dx, dz));
-        s1->GrabOffset = xsqrt(dx * dx + dz * dz) - ent->model->Anim->Translate[1].z;
+        globals.player.Shaggy1.GrabTimer = 0.000001f;
+        globals.player.Shaggy1.GrabRot = xAngleClamp(atan2(dx, dz));
+        globals.player.Shaggy1.GrabOffset = xsqrt(dx * dx + dz * dz) - ent->model->Anim->Translate[1].z;
     }
 
     if (guts->swap != NULL)
@@ -1873,10 +1871,9 @@ void Shaggy1_Move(_xEnt* ent, _xScene* s, float dt, _xEntFrame* frame)
 
 void Shaggy1_PlayerUpdate(_zEnt* shag, _xScene* sc, float dt)
 {
-    zShaggy1Globals* s1 = &globals.player.Shaggy1;
 
-    s1->ThrowEnded = 0;
-    if (s1->GrabTry == NULL)
+    globals.player.Shaggy1.ThrowEnded = 0;
+    if (globals.player.Shaggy1.GrabTry == NULL)
     {
         xEntBeginUpdate(shag, sc, dt);
     }
@@ -1884,14 +1881,14 @@ void Shaggy1_PlayerUpdate(_zEnt* shag, _xScene* sc, float dt)
     xAnimState* state = shag->model->Anim->Single->State;
     if (state->UserFlags & 0x1000)
     {
-        if (s1->GrabTimer)
+        if (globals.player.Shaggy1.GrabTimer)
         {
-            s1->GrabTimer += dt;
-            if (s1->GrabTimer > 0.75f)
+            globals.player.Shaggy1.GrabTimer += dt;
+            if (globals.player.Shaggy1.GrabTimer > 0.75f)
             {
-                s1->GrabTimer = 0.0f;
+                globals.player.Shaggy1.GrabTimer = 0.0f;
             }
-            xMat3x3RotY((_xMat3x3*)shag->frame, s1->GrabRot);
+            xMat3x3RotY((_xMat3x3*)shag->frame, globals.player.Shaggy1.GrabRot);
             _xEntFrame* frame = shag->frame;
             frame->mat.pos.x = globals.player.ent.frame->mat.pos.x;
             frame->mat.pos.y = globals.player.ent.frame->mat.pos.y;
@@ -1902,12 +1899,12 @@ void Shaggy1_PlayerUpdate(_zEnt* shag, _xScene* sc, float dt)
             shag->frame->mat = globals.player.ent.frame->mat;
             if (shag->subType == 0x1D && xStricmp(state->Name, "CatchThrow") == 0)
             {
-                s1->CatchHeight = s1->CatchVel * dt + s1->CatchHeight;
-                if (s1->CatchHeight < 0.0f)
+                globals.player.Shaggy1.CatchHeight = globals.player.Shaggy1.CatchVel * dt + globals.player.Shaggy1.CatchHeight;
+                if (globals.player.Shaggy1.CatchHeight < 0.0f)
                 {
-                    s1->CatchHeight = 0.0f;
+                    globals.player.Shaggy1.CatchHeight = 0.0f;
                 }
-                shag->frame->mat.pos.y += s1->CatchHeight;
+                shag->frame->mat.pos.y += globals.player.Shaggy1.CatchHeight;
             }
         }
         *(_xMat4x3*)shag->model->Mat = shag->frame->mat;
@@ -1918,11 +1915,11 @@ void Shaggy1_PlayerUpdate(_zEnt* shag, _xScene* sc, float dt)
         Shaggy1_MiddleUpdate(shag, sc, dt);
     }
 
-    if (s1->GrabTry == NULL)
+    if (globals.player.Shaggy1.GrabTry == NULL)
     {
         xEntEndUpdate(shag, sc, dt);
     }
-    s1->GrabTry = NULL;
+    globals.player.Shaggy1.GrabTry = NULL;
 }
 
 void NearestPointObb2D(_xVec3* near, _xVec3* vec, _xBox* b, _xMat4x3* m)
@@ -2028,20 +2025,19 @@ void NearestPointBound2D(_xVec3* near, _xVec3* vec, _xBound* b)
 
 void Shaggy1_ChooseThrowTarget(_zEnt* ent)
 {
-    zShaggy1Globals* s1 = &globals.player.Shaggy1;
     float timepeak;
     _xVec3 nearpt;
 
-    s1->ThrowState = 3;
-    s1->HangTarget = NULL;
-    s1->ThrowAccel = Shaggy1_CalcThrowAccel(THROW_DEFHEIGHT, &timepeak);
-    s1->ThrowTgtSpeed = 0.0f;
-    s1->ThrowTgtAdjust = 0;
+    globals.player.Shaggy1.ThrowState = 3;
+    globals.player.Shaggy1.HangTarget = NULL;
+    globals.player.Shaggy1.ThrowAccel = Shaggy1_CalcThrowAccel(THROW_DEFHEIGHT, &timepeak);
+    globals.player.Shaggy1.ThrowTgtSpeed = 0.0f;
+    globals.player.Shaggy1.ThrowTgtAdjust = 0;
     sHangVirtualPeak = 0.75f + THROW_DEFHEIGHT;
 
-    if (s1->ThrowTgt != NULL)
+    if (globals.player.Shaggy1.ThrowTgt != NULL)
     {
-        xBase* tgt = s1->ThrowTgt;
+        xBase* tgt = globals.player.Shaggy1.ThrowTgt;
         switch (tgt->baseType)
         {
         case 1:
@@ -2096,29 +2092,29 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
         float mag = dx * dx + dz * dz;
         float dot = dx * frame->mat.at.x + dz * frame->mat.at.z;
         mag = xsqrt(mag);
-        if (mag < 0.00001f || dot < mag * (float)cos(3.1415927f * s1->ThrowTgtAngle / 180.0f))
+        if (mag < 0.00001f || dot < mag * (float)cos(3.1415927f * globals.player.Shaggy1.ThrowTgtAngle / 180.0f))
         {
-            s1->ThrowTgtVec = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.Shaggy1.ThrowTgtVec = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
             sDefHangTime = timepeak + xsqrt(2.0f * THROW_DEFHEIGHT / 20.0f);
             return;
         }
 
-        s1->ThrowState = 1;
-        nearpt.y += s1->ThrowTgtOffset;
-        s1->ThrowTgtVec = nearpt;
-        s1->ThrowAccel = Shaggy1_CalcThrowAccel(s1->ThrowTgtPeak, &timepeak);
+        globals.player.Shaggy1.ThrowState = 1;
+        nearpt.y += globals.player.Shaggy1.ThrowTgtOffset;
+        globals.player.Shaggy1.ThrowTgtVec = nearpt;
+        globals.player.Shaggy1.ThrowAccel = Shaggy1_CalcThrowAccel(globals.player.Shaggy1.ThrowTgtPeak, &timepeak);
 
-        if (s1->ThrowTgt->baseType == 0x17)
+        if (globals.player.Shaggy1.ThrowTgt->baseType == 0x17)
         {
-            s1->HangTarget = (_zEnt*)s1->ThrowTgt;
-            s1->HangStart.y = 0.0f;
-            sHangVirtualPeak = 0.75f + s1->ThrowTgtPeak;
-            s1->HangRelative.y = 0.0f;
+            globals.player.Shaggy1.HangTarget = (_zEnt*)globals.player.Shaggy1.ThrowTgt;
+            globals.player.Shaggy1.HangStart.y = 0.0f;
+            sHangVirtualPeak = 0.75f + globals.player.Shaggy1.ThrowTgtPeak;
+            globals.player.Shaggy1.HangRelative.y = 0.0f;
             return;
         }
 
         float time = timepeak;
-        float drop = (((_xMat4x3*)globals.player.ent.model->Mat)->pos.y + s1->ThrowTgtPeak) -
+        float drop = (((_xMat4x3*)globals.player.ent.model->Mat)->pos.y + globals.player.Shaggy1.ThrowTgtPeak) -
                      nearpt.y;
         if (drop > 0.0f)
         {
@@ -2128,8 +2124,8 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
         float tx = nearpt.x - pmat->pos.x;
         float tz = nearpt.z - pmat->pos.z;
         float dist = xsqrt(tx * tx + tz * tz);
-        s1->ThrowTgtAdjust = 1;
-        s1->ThrowTgtSpeed = dist / time;
+        globals.player.Shaggy1.ThrowTgtAdjust = 1;
+        globals.player.Shaggy1.ThrowTgtSpeed = dist / time;
         return;
     }
 
@@ -2138,7 +2134,7 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
     float atz = frame->mat.at.z;
     for (signed int i = 0; i < 10; i++)
     {
-        _zEnt* hang = s1->Hangable[i];
+        _zEnt* hang = globals.player.Shaggy1.Hangable[i];
         if (hang == NULL)
         {
             return;
@@ -2156,16 +2152,16 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
                 float ddx = ((_xMat4x3*)hang->model->Mat)->pos.x - emat->pos.x;
                 if (!(ddx * ddx + ddz * ddz > 25.0f))
                 {
-                    s1->HangTarget = hang;
-                    s1->HangStart.y = 0.0f;
-                    s1->HangRelative.y = 0.0f;
+                    globals.player.Shaggy1.HangTarget = hang;
+                    globals.player.Shaggy1.HangStart.y = 0.0f;
+                    globals.player.Shaggy1.HangRelative.y = 0.0f;
                     xBase* link = *(xBase**)((char*)hang + 0x134);
                     if (link != NULL)
                     {
                         zEntEvent(link, 0x13);
                     }
-                    s1->ThrowState = 1;
-                    s1->ThrowTgtVec = ((_xMat4x3*)hang->model->Mat)->pos;
+                    globals.player.Shaggy1.ThrowState = 1;
+                    globals.player.Shaggy1.ThrowTgtVec = ((_xMat4x3*)hang->model->Mat)->pos;
                     return;
                 }
             }
