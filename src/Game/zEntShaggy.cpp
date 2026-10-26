@@ -2640,9 +2640,9 @@ void Shaggy3_Update(_zEnt* ent, _xScene* sc, float dt)
         _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
         info.pos.x = -1.45f * mat->at.x + mat->pos.x;
         info.pos.y = -1.45f * mat->at.y + mat->pos.y;
+        info.pos.z = -1.45f * mat->at.z + mat->pos.z;
         info.vel.x = -1.25f * mat->at.x;
         info.vel.y = 1.0f;
-        info.pos.z = -1.45f * mat->at.z + mat->pos.z;
         info.vel.z = -1.25f * mat->at.z;
         zParEmitterEmitCustom(gTractorEmitter, dt, &info);
     }
@@ -2654,17 +2654,15 @@ void Shaggy3_Update(_zEnt* ent, _xScene* sc, float dt)
     float oldAng = atan2(guts->oldAt2.x, guts->oldAt2.z);
     float newAng = atan2(guts->oldAt.x, guts->oldAt.z);
     oldAng = xAngleClamp(oldAng);
-    float diff = xAngleClamp(newAng) - oldAng;
-    gShaggy3TurnAngle = diff;
-    while (diff > 3.1415927f)
+    gShaggy3TurnAngle = xAngleClamp(newAng) - oldAng;
+    while (gShaggy3TurnAngle > 3.1415927f)
     {
-        diff -= 6.2831855f;
+        gShaggy3TurnAngle -= 6.2831855f;
     }
-    while (diff < -3.1415927f)
+    while (gShaggy3TurnAngle < -3.1415927f)
     {
-        diff += 6.2831855f;
+        gShaggy3TurnAngle += 6.2831855f;
     }
-    gShaggy3TurnAngle = diff;
 
     if (globals.player.Health != 0)
     {
@@ -2681,10 +2679,8 @@ void Shaggy3_Update(_zEnt* ent, _xScene* sc, float dt)
         }
     }
 
-    _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
-    _xMat4x3* pmat = (_xMat4x3*)globals.player.ent.model->Mat;
-    float dx = pmat->pos.x - mat->pos.x;
-    float dz = pmat->pos.z - mat->pos.z;
+    float dx = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x - ((_xMat4x3*)ent->model->Mat)->pos.x;
+    float dz = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z - ((_xMat4x3*)ent->model->Mat)->pos.z;
     if (guts->stopMode == 3)
     {
         if (dx * dx + dz * dz > guts->stopParam * guts->stopParam)
