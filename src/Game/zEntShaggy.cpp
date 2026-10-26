@@ -2138,7 +2138,9 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
         _xMat4x3* pmat = (_xMat4x3*)globals.player.ent.model->Mat;
         float tx = nearpt.x - pmat->pos.x;
         float tz = nearpt.z - pmat->pos.z;
-        float dist = xsqrt(tx * tx + tz * tz);
+        float tx2 = tx * tx;
+        float tz2 = tz * tz;
+        float dist = xsqrt(tx2 + tz2);
         globals.player.Shaggy1.ThrowTgtAdjust = 1;
         globals.player.Shaggy1.ThrowTgtSpeed = dist / time;
         return;
@@ -2147,6 +2149,8 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
     _xEntFrame* frame = ent->frame;
     float atx = frame->mat.at.x;
     float atz = frame->mat.at.z;
+    float bx = -2.0f * atx + frame->mat.pos.x;
+    float bz = -2.0f * atz + frame->mat.pos.z;
     for (signed int i = 0; i < 10; i++)
     {
         _zEnt* hang = globals.player.Shaggy1.Hangable[i];
@@ -2157,10 +2161,11 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
         if (*(signed int*)((char*)hang + 0x130) > 0)
         {
             _xMat4x3* hmat = (_xMat4x3*)hang->model->Mat;
-            float dz = hmat->pos.z - (-2.0f * atz + frame->mat.pos.z);
-            float dx = hmat->pos.x - (-2.0f * atx + frame->mat.pos.x);
+            float dz = hmat->pos.z - bz;
+            float dx = hmat->pos.x - bx;
+            float dot = dx * atx + dz * atz;
             float mag = xsqrt(dx * dx + dz * dz);
-            if (!(mag < 0.00001f) && !(dx * atx + dz * atz < 0.7071f * mag))
+            if (!(mag < 0.00001f) && !(dot < 0.7071f * mag))
             {
                 _xMat4x3* emat = (_xMat4x3*)ent->model->Mat;
                 float ddz = ((_xMat4x3*)hang->model->Mat)->pos.z - emat->pos.z;
