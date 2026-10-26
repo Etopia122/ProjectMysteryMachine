@@ -3425,7 +3425,9 @@ void Shaggy8_Update(_zEnt* ent, _xScene* sc, float dt)
     if (xEntIsVisible(ent))
     {
         xAnimSingle* single = ent->model->Anim->Single;
-        xAnimState* blendState = single->Blend != NULL ? single->Blend->State : NULL;
+        xAnimState* state = single->State;
+        xAnimSingle* blend = single->Blend;
+        xAnimState* blendState = blend != NULL ? blend->State : NULL;
         ShaggyGuts* guts = ShaggyGetGuts(ent);
 
         if (guts->swap == NULL)
@@ -3437,10 +3439,11 @@ void Shaggy8_Update(_zEnt* ent, _xScene* sc, float dt)
             guts->swapTimer += dt;
         }
 
-        if (single->State->UserFlags == 0 || (blendState != NULL && blendState->UserFlags == 0))
+        if (state->UserFlags == 0 || (blendState != NULL && blendState->UserFlags == 0))
         {
             xEntBeginUpdate(ent, sc, dt);
             xEntEndUpdate(ent, sc, dt);
+            return;
         }
 
         sVilUpdateFunc(ent, sc, dt);
@@ -3449,13 +3452,16 @@ void Shaggy8_Update(_zEnt* ent, _xScene* sc, float dt)
         {
             if (!(ent->frame->mode & 0x20) || (float)__fabs(ent->frame->drot.angle) < 0.01308997f)
             {
-                _xCollis* coll = &ent->collis->colls[i];
-                if ((coll->flags & 1) && !(coll->flags & 0xC) && coll->optr == NULL)
+                if ((ent->collis->colls[i].flags & 1) && !(ent->collis->colls[i].flags & 0xC) &&
+                    ent->collis->colls[i].optr == NULL)
                 {
-                    if (coll->depen.x * coll->depen.x + coll->depen.z * coll->depen.z > 0.001f)
+                    float x2 = ent->collis->colls[i].depen.x * ent->collis->colls[i].depen.x;
+                    float z2 = ent->collis->colls[i].depen.z * ent->collis->colls[i].depen.z;
+                    if (x2 + z2 > 0.001f)
                     {
                         guts->barrelFellOver = 1;
                         zEntEvent(ent, 0x29);
+                        break;
                     }
                 }
             }
