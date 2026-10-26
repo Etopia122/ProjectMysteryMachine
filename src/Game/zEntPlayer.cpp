@@ -575,7 +575,7 @@ xAnimState* xAnimTableGetState(xAnimTable* table, char* name);
 signed int zGameModeGet();
 signed int zGameStateGet();
 void iModelTagSetup(iModelTag* tag, RpAtomic* model, float x, float y, float z);
-signed int iModelVertCount(RpAtomic* model);
+unsigned int iModelVertCount(RpAtomic* model);
 void iModelTagIndex(iModelTag* tag, RpAtomic* model, signed int index);
 void xScrFxFade(iColor_tag* base, iColor_tag* dest, float seconds, void (*callback)(), signed int hold,
                 signed int unk);

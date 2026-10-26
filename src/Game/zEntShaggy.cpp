@@ -188,7 +188,7 @@ signed int fn_80015EAC(char* fmt, ...);
 
 unsigned int irand();
 float iurand();
-signed int iModelVertCount(RpAtomic* model);
+unsigned int iModelVertCount(RpAtomic* model);
 void iModelTagIndex(iModelTag* tag, RpAtomic* model, signed int index);
 xModelInstance* xModelInstanceAlloc(RpAtomic* data, void* object, unsigned short flags,
                                     unsigned char boneIndex, unsigned char* boneRemap);
@@ -3714,6 +3714,9 @@ void zEntShaggy_SceneStart(zScene* sc)
             case 0x1C:
             case 0x1D:
                 Shaggy1_BonusAnims(ent);
+                break;
+            case 0x1E:
+            case 0x1F:
                 break;
             case 0x24:
             {
