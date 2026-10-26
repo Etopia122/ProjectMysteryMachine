@@ -1897,10 +1897,7 @@ void Shaggy1_PlayerUpdate(_zEnt* shag, _xScene* sc, float dt)
                 globals.player.Shaggy1.GrabTimer = 0.0f;
             }
             xMat3x3RotY((_xMat3x3*)shag->frame, globals.player.Shaggy1.GrabRot);
-            _xEntFrame* frame = shag->frame;
-            frame->mat.pos.x = globals.player.ent.frame->mat.pos.x;
-            frame->mat.pos.y = globals.player.ent.frame->mat.pos.y;
-            frame->mat.pos.z = globals.player.ent.frame->mat.pos.z;
+            shag->frame->mat.pos = globals.player.ent.frame->mat.pos;
         }
         else
         {
