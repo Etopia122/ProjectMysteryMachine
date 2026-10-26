@@ -2192,8 +2192,8 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
 signed int Shaggy1_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
                            xBase* toParamWidget)
 {
-    _zEnt* ent = (_zEnt*)to;
     signed int ret = 0;
+    _zEnt* ent = (_zEnt*)to;
 
     switch (toEvent)
     {
@@ -2216,14 +2216,15 @@ signed int Shaggy1_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
     case 0xCF:
         if (toParamWidget != NULL)
         {
-            xAnimPlay* play = ent->model->Anim;
             if (toParam != NULL && *toParam == 1.0f)
             {
-                xAnimPlaySetState(play->Single, xAnimTableGetState(play->Table, "SharkHang"), 0.0f);
+                xAnimPlaySetState(ent->model->Anim->Single,
+                                  xAnimTableGetState(ent->model->Anim->Table, "SharkHang"), 0.0f);
             }
             else
             {
-                xAnimPlaySetState(play->Single, xAnimTableGetState(play->Table, "Hang"), 0.0f);
+                xAnimPlaySetState(ent->model->Anim->Single,
+                                  xAnimTableGetState(ent->model->Anim->Table, "Hang"), 0.0f);
             }
             zEntHangable_SetShaggy((_zEntHangable*)toParamWidget, ent);
             ShaggyGetGuts(ent)->hangme = (_zEntHangable*)toParamWidget;
@@ -2252,7 +2253,7 @@ signed int Shaggy1_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
         break;
     case 0xD0:
     default:
-        ret = sVilEventFunc(from, to, toEvent, toParam, toParamWidget);
+        ret = sVilEventFunc(from, ent, toEvent, toParam, toParamWidget);
         break;
     }
     return ret;
