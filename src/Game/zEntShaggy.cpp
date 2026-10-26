@@ -3189,9 +3189,9 @@ void ShaggySwap(_zEnt* src, _zEnt* dest)
 signed int Shaggy5_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
                            xBase* toParamWidget)
 {
+    signed int ret = 0;
     _zEnt* ent = (_zEnt*)to;
     ShaggyGuts* guts = ShaggyGetGuts(ent);
-    signed int ret = 0;
 
     switch (toEvent)
     {
@@ -3249,11 +3249,11 @@ signed int Shaggy5_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
         if (guts->actionIndex == 1 && toParamWidget != NULL)
         {
             float param[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-            ret = sVilEventFunc(from, to, 0xCD, param, toParamWidget);
+            ret = sVilEventFunc(from, ent, 0xCD, param, toParamWidget);
         }
         break;
     default:
-        ret = sVilEventFunc(from, to, toEvent, toParam, toParamWidget);
+        ret = sVilEventFunc(from, ent, toEvent, toParam, toParamWidget);
         break;
     }
     return ret;
