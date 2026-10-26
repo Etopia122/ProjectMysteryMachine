@@ -588,8 +588,9 @@ static inline void zHudInterp1d(float dt, float* src, float dst, float speed, si
     }
     else
     {
+        float as = __fabs(speed * dt);
         float ad = __fabs(diff);
-        *src -= ((float)__fabs(speed * dt) > ad) ? ad : speed * dt;
+        *src -= (as > ad) ? ad : speed * dt;
     }
 }
 
@@ -815,8 +816,14 @@ void zHudElementsCB_PlayerStatusUpdate(float dt)
 {
     signed int i;
 
-    if ((signed int)globals.player.Health < 6 && (signed int)globals.player.Health >= 0)
+    switch ((signed int)globals.player.Health)
     {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
         for (unsigned int j = 0; j < 6; j++)
         {
             if (j == globals.player.Health)
@@ -828,6 +835,7 @@ void zHudElementsCB_PlayerStatusUpdate(float dt)
                 sHudPlayerStatusArray[j].statusSize = eHudStatusSizeZero;
             }
         }
+        break;
     }
 
     if (globals.player.Health != oldHealthCnt)
