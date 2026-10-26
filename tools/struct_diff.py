@@ -17,6 +17,8 @@ def norm(lines):
     prev_lis = set()
     for t in lines:
         t = re.sub(r"-?0x[0-9a-f]+\((r2|r13)\)", "SYM", t)
+        # sda21 address loads: unrelocated ours shows "li rX, 0"
+        t = re.sub(r"^addi (r\d+), r(?:2|13), -?0x[0-9a-f]+$", r"li \1, 0", t)
         t = re.sub(r"\b0\(0\)", "SYM", t)
         if STACK:
             t = re.sub(r"-?(0x[0-9a-f]+|\d+)\(r1\)", "STK", t)

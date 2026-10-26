@@ -1524,6 +1524,9 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
             xStricmp(ent->model->Anim->Single->State->Name, "Apex") == 0)
         {
             zScene* zsc = (zScene*)sc;
+            float cx = ent->bound.sph.center.x;
+            float cy = ent->bound.sph.center.y;
+            float cz = ent->bound.sph.center.z;
             for (unsigned int i = 0; i < zsc->num_ents; i++)
             {
                 _zEnt* other = zsc->ents[i];
@@ -1533,10 +1536,13 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
                     if ((flags & 0x3F) == 1)
                     {
                         _xMat4x3* m = (_xMat4x3*)other->model->Mat;
-                        float dx = ent->bound.sph.center.x - m->pos.x;
-                        float dy = ent->bound.sph.center.y - m->pos.y;
-                        float dz = ent->bound.sph.center.z - m->pos.z;
-                        if (dx * dx + dy * dy + dz * dz < 4.0f)
+                        float dx = cx - m->pos.x;
+                        float dy = cy - m->pos.y;
+                        float dz = cz - m->pos.z;
+                        float x2 = dx * dx;
+                        float y2 = dy * dy;
+                        float z2 = dz * dz;
+                        if (x2 + y2 + z2 < 4.0f)
                         {
                             *(unsigned int*)((char*)other + 0xEC) = (flags & ~0x3F) | 2;
                         }
@@ -1563,10 +1569,14 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
                 }
                 else
                 {
-                    float s = 0.07f * (1.0f / xsqrt(len));
-                    mat->up.x += dx * s;
-                    mat->up.y += dy * s;
-                    mat->up.z += dz * s;
+                    len = xsqrt(len);
+                    float s = 0.07f * (1.0f / len);
+                    dx *= s;
+                    dy *= s;
+                    dz *= s;
+                    mat->up.x += dx;
+                    mat->up.y += dy;
+                    mat->up.z += dz;
                     xVec3Normalize(&mat->up, &mat->up);
                     xVec3Cross(&mat->right, &mat->up, &mat->at);
                     xVec3Normalize(&mat->right, &mat->right);
@@ -1587,16 +1597,16 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
         }
         else
         {
-            ent->penby &= ~0x10;
-            ent->chkby &= ~0x10;
+            ent->penby &= 0xEF;
+            ent->chkby &= 0xEF;
         }
         return;
     }
 
     if (guts->hangme != NULL)
     {
-        ent->penby &= ~0x10;
-        ent->chkby &= ~0x10;
+        ent->penby &= 0xEF;
+        ent->chkby &= 0xEF;
         xEntBeginUpdate(ent, sc, dt);
         xEntEndUpdate(ent, sc, dt);
         return;
