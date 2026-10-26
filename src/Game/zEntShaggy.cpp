@@ -2716,12 +2716,20 @@ signed int Shaggy3_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
             guts->runEvent = 1;
             guts->stopEvent = 0;
         }
+        else
+        {
+            return zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
+        }
         break;
     case 0x12:
         guts->stopEvent = 0;
         if (xStricmp(state->Name, "Talk") == 0 || xStricmp(state->Name, "StopReact") == 0)
         {
             guts->runEvent = 1;
+        }
+        else
+        {
+            return zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
         }
         break;
     case 0x13:
@@ -2731,6 +2739,10 @@ signed int Shaggy3_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
             if (guts->stopMode == 2 || guts->stopMode == 3)
             {
                 guts->stopEvent = 1;
+            }
+            else
+            {
+                return zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
             }
         }
         break;
@@ -2752,8 +2764,10 @@ signed int Shaggy3_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
             guts->stopMode = 1;
         }
         break;
+    default:
+        return zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
     }
-    return zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
+    return 1;
 }
 
 unsigned int Shaggy5_MoveTran(xAnimTransition* tran, xAnimSingle*, _zEnt* ent)
