@@ -1161,16 +1161,9 @@ void zHudElementsCB_SnacksUpdate(float dt)
     }
     else
     {
-        if (globals.player.Inv_ScoobySnacks > 999)
-        {
-            sHudSnackArray[0].statusColor = eHudStatusColorSolid;
-            sHudSnackArray[0].statusPos = eHudStatusPosOnScreenAlt1;
-        }
-        else
-        {
-            sHudSnackArray[0].statusColor = eHudStatusColorSolid;
-            sHudSnackArray[0].statusPos = eHudStatusPosOnScreen;
-        }
+        sHudSnackArray[0].statusColor = eHudStatusColorSolid;
+        sHudSnackArray[0].statusPos =
+            (globals.player.Inv_ScoobySnacks > 999) ? eHudStatusPosOnScreenAlt1 : eHudStatusPosOnScreen;
         sHudDisplayTimer_snacks -= dt;
         if (sHudDisplayTimer_snacks < 0.0f)
         {
@@ -1224,6 +1217,8 @@ void zHudElementsCB_SnacksUpdate(float dt)
         zHudInterp1d(dt, &item->hframe.dang.z, item->zHudStatusAngTable[eHudStatusAngTest1].z,
                      1.0f, eHudInterpTypeLinear);
         break;
+    case eHudStatusAngTest2:
+        break;
     }
 
     switch (item->statusSize)
@@ -1233,6 +1228,9 @@ void zHudElementsCB_SnacksUpdate(float dt)
                      10.0f, eHudInterpTypeLinear);
         zHudInterp1d(dt, &item->hframe.size.y, item->zHudStatusSizeTable[eHudStatusSizeDefault].y,
                      10.0f, eHudInterpTypeLinear);
+        break;
+    case eHudStatusSizeZero:
+    case eHudStatusSizeSmall:
         break;
     }
 
