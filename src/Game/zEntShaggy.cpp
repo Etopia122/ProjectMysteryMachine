@@ -3540,9 +3540,9 @@ signed int Shaggy8_CallToPlayer()
         return 0;
     }
 
-    zPlayerGlobals* p = &globals.player;
+    zGlobals* p = &globals;
     _xMat4x3* smat = (_xMat4x3*)minst->Mat;
-    _xMat4x3* pmat = (_xMat4x3*)globals.player.ent.model->Mat;
+    _xMat4x3* pmat = (_xMat4x3*)p->player.ent.model->Mat;
     float dz = pmat->pos.z - smat->pos.z;
     float dx = pmat->pos.x - smat->pos.x;
     float dist = xsqrt(dx * dx + dz * dz);
@@ -3556,8 +3556,8 @@ signed int Shaggy8_CallToPlayer()
 
     float pitch;
     sSndCallPitch = zPitchChange(sSndCallPitch, &pitch, 30, 0.15f);
-    unsigned int snd = 0x0176632D - ((irand() >> 16) & 1);
-    if (xEntIsVisible(shaggy))
+    unsigned int snd = -((irand() >> 16) & 1) + 0x0176632D;
+    if (xEntIsVisible(p->player.Shaggy8Call))
     {
         xSndPlay(snd, 0.5f, 0.5f, pitch, 0x80, 2, 0);
     }
@@ -3597,7 +3597,8 @@ signed int Shaggy8_CallToPlayer()
             if (!(tx * tx + tz * tz < r * r))
             {
                 float along = tx * dx + tz * dz;
-                if (along >= r && along < best && (float)__fabs(tx * dz - tz * dx) < mag->radius)
+                float side = tx * dz - tz * dx;
+                if (along >= r && along < best && (float)__fabs(side) < mag->radius)
                 {
                     bestIdx = i;
                     best = along;
@@ -3614,13 +3615,13 @@ signed int Shaggy8_CallToPlayer()
     }
     else
     {
-        float oldx = ((_xMat4x3*)p->ent.model->Mat)->pos.x;
-        float oldz = ((_xMat4x3*)p->ent.model->Mat)->pos.z;
-        ((_xMat4x3*)p->ent.model->Mat)->pos.x = 20.0f * dx + oldx;
-        ((_xMat4x3*)p->ent.model->Mat)->pos.z = 20.0f * dz + ((_xMat4x3*)p->ent.model->Mat)->pos.z;
-        zEntEvent(NULL, 0, shaggy, 0xCD, param, &p->ent, 0);
-        ((_xMat4x3*)p->ent.model->Mat)->pos.x = oldx;
-        ((_xMat4x3*)p->ent.model->Mat)->pos.z = oldz;
+        float oldx = ((_xMat4x3*)p->player.ent.model->Mat)->pos.x;
+        float oldz = ((_xMat4x3*)p->player.ent.model->Mat)->pos.z;
+        ((_xMat4x3*)p->player.ent.model->Mat)->pos.x = 20.0f * dx + oldx;
+        ((_xMat4x3*)p->player.ent.model->Mat)->pos.z = 20.0f * dz + ((_xMat4x3*)p->player.ent.model->Mat)->pos.z;
+        zEntEvent(NULL, 0, shaggy, 0xCD, param, &p->player.ent, 0);
+        ((_xMat4x3*)p->player.ent.model->Mat)->pos.x = oldx;
+        ((_xMat4x3*)p->player.ent.model->Mat)->pos.z = oldz;
     }
     return 1;
 }
