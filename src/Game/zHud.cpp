@@ -916,6 +916,8 @@ void zHudElementsCB_PlayerStatusUpdate(float dt)
             item->hframe.size.x = item->zHudStatusSizeTable[eHudStatusSizeZero].x;
             item->hframe.size.y = item->zHudStatusSizeTable[eHudStatusSizeZero].y;
             break;
+        case eHudStatusSizeSmall:
+            break;
         }
 
         switch (item->statusColor)
@@ -1543,6 +1545,8 @@ void zHudElementsCB_GumUpdate(float dt)
         case eHudStatusSizeZero:
             item->hframe.size.x = item->zHudStatusSizeTable[eHudStatusSizeZero].x;
             item->hframe.size.y = item->zHudStatusSizeTable[eHudStatusSizeZero].y;
+            break;
+        case eHudStatusSizeSmall:
             break;
         }
 
@@ -2183,6 +2187,8 @@ void zHudElementsCB_SoapboxUpdate(float dt)
         item->hframe.size.x = item->zHudStatusSizeTable[eHudStatusSizeZero].x;
         item->hframe.size.y = item->zHudStatusSizeTable[eHudStatusSizeZero].y;
         break;
+    case eHudStatusSizeSmall:
+        break;
     }
 
     switch (item->statusColor)
@@ -2442,6 +2448,8 @@ void zHudElementsCB_GumpackUpdate(float dt)
     case eHudStatusSizeZero:
         item->hframe.size.x = item->zHudStatusSizeTable[eHudStatusSizeZero].x;
         item->hframe.size.y = item->zHudStatusSizeTable[eHudStatusSizeZero].y;
+        break;
+    case eHudStatusSizeSmall:
         break;
     }
 
@@ -2761,6 +2769,8 @@ void zHudElementsCB_HealthbarUpdate(float dt)
             zHudInterp1d(dt, &item->hframe.size.y, item->zHudStatusSizeTable[eHudStatusSizeZero].y,
                          50.0f, eHudInterpTypeLinear);
             break;
+        case eHudStatusSizeSmall:
+            break;
         }
 
         switch (item->statusColor)
@@ -3054,6 +3064,8 @@ void zHudElementsCB_GameStatsUpdate(float dt)
             zHudInterp1d(dt, &item->hframe.dang.z, item->zHudStatusAngTable[eHudStatusAngTest1].z,
                          1.0f, eHudInterpTypeLinear);
             break;
+        case eHudStatusAngTest2:
+            break;
         }
 
         switch (item->statusSize)
@@ -3071,6 +3083,8 @@ void zHudElementsCB_GameStatsUpdate(float dt)
                          90.0f, eHudInterpTypeLinear);
             zHudInterp1d(dt, &item->hframe.size.y, item->zHudStatusSizeTable[eHudStatusSizeZero].y,
                          90.0f, eHudInterpTypeLinear);
+            break;
+        case eHudStatusSizeSmall:
             break;
         }
 
