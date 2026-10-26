@@ -2387,11 +2387,11 @@ void zHudElementsCB_GumpackUpdate(float dt)
 
     if (sHudDisplayTimer_gum == 0.0f)
     {
-        item->statusColor = eHudStatusColorTransparent;
+        sHudGumpackArray[0].statusColor = eHudStatusColorTransparent;
     }
     else
     {
-        item->statusColor = eHudStatusColorSolid;
+        sHudGumpackArray[0].statusColor = eHudStatusColorSolid;
         sHudDisplayTimer_gum -= dt;
         if (sHudDisplayTimer_gum < 0.0f)
         {
