@@ -7132,9 +7132,10 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
 
 static inline signed int VUTIL_hitSide(st_zEntVillain* vil)
 {
-    signed int side = 0;
+    // Type-punned through a cast so it stays in memory, as in the original.
+    long side = 0;
 
-    VSUP_ent_AOI(vil, &globals.player.ent, &side);
+    VSUP_ent_AOI(vil, &globals.player.ent, (signed int*)&side);
     return side;
 }
 
@@ -14089,14 +14090,15 @@ static signed int VOUT_apply_anchor(st_zEntVillain* vil)
 static en_ZVILLAIN_HEADBUTT_RESPONSE VOUT_spikey_header(st_zEntVillain* vil)
 {
     signed int resp = 0;
-    signed int side = 0;
+    // Type-punned through a cast so it stays in memory, as in the original.
+    long side = 0;
 
     if (!(vil->abl_spyk & 1))
     {
         return (en_ZVILLAIN_HEADBUTT_RESPONSE)0;
     }
 
-    VSUP_ent_AOI(vil, &globals.player.ent, &side);
+    VSUP_ent_AOI(vil, &globals.player.ent, (signed int*)&side);
 
     // The original has no breaks here, so each side also checks the later ones.
     switch (side)
@@ -20634,7 +20636,6 @@ static inline float VSUP_ent_AOI(st_zEntVillain* vil, _zEnt* ent, signed int* qd
     float dang = VSUP_dir_toPos(vil, VUTIL_ctrOf(ent), NULL) - vil->frame->rot.angle;
     float ang = xAngleClamp(dang + 0.7853982f);
 
-    *qdrant = 0;
     if (ang > 0.0f && ang <= 1.5707964f)
     {
         *qdrant = 1;
