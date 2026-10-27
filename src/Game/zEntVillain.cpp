@@ -17331,7 +17331,6 @@ static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil)
     unsigned int aid;
     signed int i;
     _xVec3 vec_pos = {};
-    _xMat4x3 mat = {};
 
     if (rbs->flg_stat & 1)
     {
@@ -17351,7 +17350,12 @@ static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil)
     rbs->collis = (_xEntCollis*)&rbs->raw_collis;
 
     vec_pos = ((_xMat4x3*)rbs->rbvil->model->Mat)->pos;
+    _xMat4x3 mat = {};
     xMat3x3Euler((_xMat3x3*)&mat, 0.0f, 0.0f, 0.0f);
+    // Unit scale, kept: the original multiplies the rotation rows by 1.0.
+    xVec3SMulBy(&mat.right, 1.0f);
+    xVec3SMulBy(&mat.up, 1.0f);
+    xVec3SMulBy(&mat.at, 1.0f);
     mat.flags = 0;
     mat.pos = vec_pos;
 
@@ -17380,15 +17384,19 @@ static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil)
 
 static inline xModelInstance* VWEP_rbs_animmodel(st_zEntVillain* vil)
 {
-    signed int idx = 0;
     xModelInstance* minst = vil->model;
     xModelInstance* da_minst = NULL;
+    signed int idx = 0;
 
     while (minst && !da_minst)
     {
-        if (idx == 1)
+        switch (idx)
         {
+        case 0:
+            break;
+        case 1:
             da_minst = minst;
+            break;
         }
         minst = minst->Next;
         idx++;
