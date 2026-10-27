@@ -16093,15 +16093,13 @@ static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt,
 static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
                                      float arcness, float heavy)
 {
-    _xMat4x3* mat;
-    zEntProjectile* prj;
-    _xVec3 vec_tmp = {};
-    ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
-    _xVec3 pos = {};
     signed int retval = 1;
-    prj = vil->prj_reserved;
+    _xMat4x3* mat;
+    zEntProjectile* prj = vil->prj_reserved;
+    _xVec3 pos = {};
+    ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
+    _xVec3 vec_tmp = {};
 
-    aiminf.idx_caim = ZPRJ_CAIM_GRAVBALL;
     prj->ColDelaySet(0.4f, 1);
     VWEP_lobLaunchPos(vil, &pos, &vec_tmp);
 
@@ -16125,8 +16123,22 @@ static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec
     {
         aiminf.grav.pos_tgt = *pos_tgt;
     }
-    aiminf.grav.fac_arcness = (arcness <= 0.0f) ? 1.0f : arcness;
-    aiminf.grav.acc_gravity = (heavy <= 0.0f) ? 1.5f : heavy;
+    if (arcness <= 0.0f)
+    {
+        aiminf.grav.fac_arcness = 1.0f;
+    }
+    else
+    {
+        aiminf.grav.fac_arcness = arcness;
+    }
+    if (heavy <= 0.0f)
+    {
+        aiminf.grav.acc_gravity = 1.5f;
+    }
+    else
+    {
+        aiminf.grav.acc_gravity = heavy;
+    }
 
     if (vec_spin)
     {
