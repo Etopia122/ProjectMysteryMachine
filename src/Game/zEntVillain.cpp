@@ -1450,7 +1450,7 @@ void xEntMove(_xEnt* ent, _xScene* sc, float dt);
 void xEntCollide(_xEnt* ent, _xScene* sc, float dt);
 void xEntMotionToMatrix(_xEnt* ent, _xEntFrame* frame);
 _xVec3* zMovePointGetPos(_zMovePoint* m);
-unsigned char zMovePointIsOn(_zMovePoint* m);
+signed int zMovePointIsOn(_zMovePoint* m);
 float zMovePointGetDelay(_zMovePoint* m);
 _zMovePoint* zMovePoint_From_xAssetID(unsigned int aid);
 float zMovePointGetNext(_zMovePoint* current, _zMovePoint* prev, _zMovePoint** next, _xVec3* hdng);
@@ -4945,157 +4945,232 @@ static signed int VILN_std_flag(st_zEntVillain* vil, en_ZVIL_FLAG_GROUPS flaggro
 static signed int VILN_std_query(st_zEntVillain* vil, en_ZVIL_QUERY query)
 {
     st_ZVIL_PRECALC* pc = &vil->precalc;
+    signed int ret;
 
     switch (query)
     {
     case ZVIL_Q_DOUPDATE:
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_ALIVE:
-        return vil->mode >= ZVIL_MODE_NORMAL;
+        if (vil->mode < ZVIL_MODE_NORMAL)
+        {
+            ret = 0;
+            break;
+        }
+        ret = 1;
+        break;
     case ZVIL_Q_ASLEEP:
-        return vil->goal == ZVIL_GOAL_BORED && (vil->ability & 0x20000);
+        if (vil->goal == ZVIL_GOAL_BORED && (vil->ability & 0x20000))
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_PITFALL:
-        return 0;
-    case ZVIL_Q_HAVEANCHOR:
-        if (vil->ability & 1)
-        {
-            return 0;
-        }
-        if (!(vil->allow & 0x80))
-        {
-            return 0;
-        }
-        if (!(vil->allow & 0x40))
-        {
-            return 0;
-        }
-        return (vil->flg_misc & 0x80000000) ? 1 : 0;
-    case ZVIL_Q_HAVEGUARDPOS:
-        if (vil->ability & 1)
-        {
-            return 0;
-        }
-        return (vil->flg_misc & 0x40000000) ? 1 : 0;
+        ret = 0;
+        break;
     case ZVIL_Q_DOFOLLOW:
         if (vil->ability & 1)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 0x100))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (vil->flg_misc & 0x10000000)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (vil->flg_misc & 0x20000000)
         {
-            return 1;
+            ret = 1;
+            break;
         }
-        return 0;
+        ret = 0;
+        break;
+    case ZVIL_Q_HAVEANCHOR:
+        if (vil->ability & 1)
+        {
+            ret = 0;
+            break;
+        }
+        if (!(vil->allow & 0x80))
+        {
+            ret = 0;
+            break;
+        }
+        if (!(vil->allow & 0x40))
+        {
+            ret = 0;
+            break;
+        }
+        if (vil->flg_misc & 0x80000000)
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
+    case ZVIL_Q_HAVEGUARDPOS:
+        if (vil->ability & 1)
+        {
+            ret = 0;
+            break;
+        }
+        if (vil->flg_misc & 0x40000000)
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_NEEDNAV:
         if (!vil->vhf->query(vil, ZVIL_Q_CANPATROL))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!vil->need_navpt)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (vil->nav_next && !(vil->tmr_list[3] <= 0.0f))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_HAVENAV:
         if (!vil->need_navpt && vil->nav_next && zMovePointIsOn(vil->nav_next))
         {
-            return 1;
+            ret = 1;
+            break;
         }
-        return 0;
+        ret = 0;
+        break;
     case ZVIL_Q_CANGUARD:
-        return (vil->abl_move & 0x10) && (vil->allow & 2);
+        if ((vil->abl_move & 0x10) && (vil->allow & 2))
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_CANPATROL:
         if (!(vil->allow & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 0x20))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 4))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->tmr_list[ZVIL_TDUR_NAVDELAY] <= 0.0f))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return vil->nav_mvptlist != NULL;
+        if (vil->nav_mvptlist == NULL)
+        {
+            ret = 0;
+            break;
+        }
+        ret = 1;
+        break;
     case ZVIL_Q_CANCHASE:
         if (!vil->vhf->query(vil, ZVIL_Q_CANDETECT))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 0x80))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->allow & 0x10))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_RUNAWAY:
-        return 0;
+        ret = 0;
+        break;
     case ZVIL_Q_CANPURSUE:
         if (vil->ability & 1)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (g_scene_is_a_boss_battle > 2)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_CANCHASE))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_PLYRSEEN))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if ((pc->flg_xtra & 1) && !(vil->abl_move & 0x1000) && !(vil->abl_move & 0x400))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (vil->vhf->query(vil, ZVIL_Q_HAVEANCHOR))
         {
             if (pc->ds2_anchor < vil->ds2_pursue)
             {
-                return 1;
+                ret = 1;
+                break;
             }
             if (pc->ds2_plyrToAnchor < vil->ds2_pursue)
             {
-                return 1;
+                ret = 1;
+                break;
             }
             if (pc->flg_plyr & 0x400)
             {
-                return 1;
+                ret = 1;
+                break;
             }
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_CANATTACK:
     {
         float ang_face;
@@ -5103,218 +5178,284 @@ static signed int VILN_std_query(st_zEntVillain* vil, en_ZVIL_QUERY query)
 
         if ((vil->ability & 1) && (vil->allow & 8))
         {
-            return 1;
+            ret = 1;
+            break;
         }
         ang_plyr = pc->ang_VtoP;
         ang_face = vil->frame->rot.angle;
         if (!(vil->allow & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_CANSEEPLYR))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if ((vil->abl_move & 0x80) && !(pc->flg_plyr & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 4))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_CANDETECT))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (vil->asset->subtype == 0xF)
         {
-            float da = ang_face - ang_plyr;
-            if (da < 0.0f)
+            if (!((float)__fabs(ang_face - ang_plyr) <= 0.34f))
             {
-                da = -da;
-            }
-            if (!(da <= 0.34f))
-            {
-                return 0;
+                ret = 0;
+                break;
             }
         }
-        return 1;
+        ret = 1;
+        break;
     }
     case ZVIL_Q_CANDETECT:
         if (!(vil->abl_dtct & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->allow & 4))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_PLYRTOOCLOSE:
-        return 0;
+        ret = 0;
+        break;
     case ZVIL_Q_PLYRNEAR:
         if (vil->ability & 1)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (!(pc->plyr_mvinf & 0x100) && (pc->flg_plyr & 1))
         {
-            return 1;
+            ret = 1;
+            break;
         }
-        return (pc->flg_plyr & 1) ? 1 : 0;
+        if (pc->flg_plyr & 1)
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_PLYRINFOV:
-        return (pc->flg_plyr & 4) ? 1 : 0;
+        if (pc->flg_plyr & 4)
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_PLYRINLOS:
-        return (pc->flg_plyr & 8) ? 1 : 0;
+        if (pc->flg_plyr & 8)
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_CANSEEPLYR:
         if (vil->ability & 1)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_CANDETECT))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (g_scene_is_a_boss_battle > 2 && (pc->flg_plyr & 8))
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (!(vil->abl_dtct & 0x10))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 4))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (vil->vhf->query(vil, ZVIL_Q_ASLEEP))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x800)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x1000)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if ((pc->plyr_mvinf & 0x400) && !(pc->flg_plyr & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_CANHEARPLYR:
         if (vil->ability & 1)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_CANDETECT))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (g_scene_is_a_boss_battle > 2)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_dtct & 0x20))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x400)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x800)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x1000)
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_PLYRSEEN:
     {
         signed int near;
 
         if (vil->ability & 1)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (g_scene_is_a_boss_battle > 2)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         near = pc->flg_plyr & 1;
         if (!near)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->tgt_stat & 0x20))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->tgt_stat & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x800)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x1000)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if ((pc->plyr_mvinf & 0x400) && !near)
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     }
     case ZVIL_Q_PLYRHEARD:
         if (vil->ability & 1)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (g_scene_is_a_boss_battle > 2)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (vil->tgt_stat & 0x20)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (vil->tgt_stat & 4)
         {
-            return 1;
+            ret = 1;
+            break;
         }
-        return 0;
+        ret = 0;
+        break;
     default:
-        return 1;
+        ret = 1;
+        break;
     }
+    return ret;
 }
 
 static signed int VILN_std_sysevent(st_zEntVillain* vil, xBase* from, unsigned int toEvent, float* toParam,

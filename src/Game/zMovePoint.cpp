@@ -129,7 +129,7 @@ float zMovePointGetDelay(_zMovePoint* m)
     return m->delay;
 }
 
-unsigned char zMovePointIsOn(_zMovePoint* m)
+signed int zMovePointIsOn(_zMovePoint* m)
 {
     if (m)
     {
