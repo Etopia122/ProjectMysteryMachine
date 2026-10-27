@@ -3518,6 +3518,7 @@ static signed int VPRJ_BRB_logix(zEntProjectile* prj, float dt);
 static void VPRJ_BRB_detach(zEntProjectile* prj);
 static signed int VPRJ_BRB_attach(zEntProjectile* prj);
 static inline void VPRJ_emitat(_zParEmitter* emitter, zEntProjectile* prj, float dt, float yoff);
+static inline void VPRJ_emitat(_zParEmitter* emitter, zEntProjectile* prj, float dt);
 static inline void VPRJ_BGG_shockpos(zEntProjectile* prj, float dt);
 static signed int VPRJ_BGG_shockwave(zEntProjectile* prj, float dt);
 static signed int VPRJ_BGG_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event);
@@ -16604,19 +16605,14 @@ static void VPRJ_BGG_detach(zEntProjectile* prj)
 
 static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
 {
+    st_BGG_QUAKEBALL* quake = (st_BGG_QUAKEBALL*)prj->xtradata;
+    st_zEntVillain* vil = (st_zEntVillain*)prj->owner;
+    _xVec3 vec_tmp = {};
+    _xVec3 pos_left = {};
+    _xVec3 pos_ryht = {};
     signed int start_fall;
     float dist;
-    _xVec3 dir_delt = {};
-    _xVec3 vec_delt = {};
-    _xVec3 pos_ryht = {};
-    _xVec3 pos_left = {};
-    _xVec3 vec_tmp = {};
-    st_zEntVillain* vil;
-    st_BGG_QUAKEBALL* quake;
     _xEntCollis* collis;
-
-    quake = (st_BGG_QUAKEBALL*)prj->xtradata;
-    vil = (st_zEntVillain*)prj->owner;
 
     if (prj->tmr_alive > prj->tym_maxlife)
     {
@@ -16632,6 +16628,8 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
 
     switch (quake->phase)
     {
+    case BGG_PHAZ_UNKNOWN:
+        break;
     case BGG_PHAZ_BUILDUP:
         VPRJ_emitat(sEmitGreenBall, prj, dt, 3.0f);
         prj->SendEvent((en_PROJECTILE_EVENT)0xF, dt);
@@ -16643,8 +16641,11 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
         prj->frame->mode |= 1;
         break;
     case BGG_PHAZ_FLY:
+    {
         prj->SendEvent(ZPRJ_EVNT_INFLIGHT, dt);
         VPRJ_emitat(sEmitGreenBall, prj, dt, 1.5f);
+        _xVec3 vec_delt = {};
+        _xVec3 dir_delt = {};
         start_fall = 0;
         xVec3Sub(&vec_delt, &quake->pos_tgt, &((_xMat4x3*)prj->model->Mat)->pos);
         if (quake->flg_stat & 2)
@@ -16656,7 +16657,6 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
             xVec3SMul(&prj->frame->vel, &dir_delt, quake->spd_flight);
             prj->frame->mode |= 4;
         }
-        collis = prj->collis;
         if (prj->tmr_curstate > quake->tym_flightMax)
         {
             start_fall = 1;
@@ -16665,7 +16665,7 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
         {
             start_fall = 1;
         }
-        else if (collis->env_sidx < collis->env_eidx || collis->npc_sidx < collis->npc_eidx ||
+        else if ((collis = prj->collis)->env_sidx < collis->env_eidx || collis->npc_sidx < collis->npc_eidx ||
                  collis->stat_sidx < collis->stat_eidx || collis->dyn_sidx < collis->dyn_eidx)
         {
             start_fall = 1;
@@ -16676,6 +16676,7 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
             quake->phase = BGG_PHAZ_FALL;
         }
         break;
+    }
     case BGG_PHAZ_FALL:
         prj->SendEvent(ZPRJ_EVNT_INFLIGHT, dt);
         VPRJ_emitat(sEmitGreenBall, prj, dt, 0.0f);
@@ -16712,9 +16713,9 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
             prj->frame->vel.y = 0.0f;
             prj->frame->vel.z = 0.0f;
             prj->frame->mode |= 0xC;
-            prj->flg_chk &= ~0x10;
-            prj->flg_pen &= ~0x10;
-            VPRJ_emitat(sEmitGreenBallSmack, prj, dt, 0.0f);
+            prj->flg_chk &= 0xEF;
+            prj->flg_pen &= 0xEF;
+            VPRJ_emitat(sEmitGreenBallSmack, prj, dt);
             VPRJ_BGG_shockpos(prj, dt);
             prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
         }
@@ -16842,6 +16843,16 @@ static inline void VPRJ_BGG_shockpos(zEntProjectile* prj, float dt)
         pecust.pos = g_bgg_prj_pos;
         zParEmitterEmitCustom(sEmitGreenBallShockwave, dt, &pecust);
     }
+}
+
+// The smack burst emits at the projectile itself, with no height offset.
+static inline void VPRJ_emitat(_zParEmitter* emitter, zEntProjectile* prj, float dt)
+{
+    _zParEmitterCustomSettings pecust;
+
+    pecust.custom_flags = 0x20;
+    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
+    zParEmitterEmitCustom(emitter, dt, &pecust);
 }
 
 static inline void VPRJ_emitat(_zParEmitter* emitter, zEntProjectile* prj, float dt, float yoff)
