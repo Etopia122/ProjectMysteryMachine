@@ -3558,7 +3558,7 @@ static void zVIL_upd_timers(st_zEntVillain* vil, float dt);
 static void zVIL_apply_vilcfg(st_zEntVillain* vil, st_ZVIL_CONFIG_REFERENCE* vilcfg);
 static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force);
 static inline xAnimSingle* VANM_single(st_zEntVillain* vil);
-static inline unsigned int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int mask);
+static inline signed int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int mask);
 static inline void VNAV_animspeed(st_zEntVillain* vil, float spd, _xVec3* sanim);
 static float VNAV_get_movespeed(st_zEntVillain* vil, float rnd);
 static signed int VNAV_chklos_timz(void* usrdata, _xVec3* pos, _zMovePoint* mvpt);
@@ -14234,7 +14234,8 @@ static float VNAV_get_movespeed(st_zEntVillain* vil, float rnd)
 
     if (VANM_stateUserFlags(vil, 0x1E) == 0xA)
     {
-        return spd * 5.0f;
+        spd *= 5.0f;
+        return spd;
     }
 
     if (VANM_stateUserFlags(vil, 0x1E) == 6)
@@ -14251,11 +14252,8 @@ static float VNAV_get_movespeed(st_zEntVillain* vil, float rnd)
     {
         if (vil->asset->subtype == eEntVillainBossBlackKnight)
         {
-            float ext = vil->spd_chase - vil->spd_move;
-            if (ext < 0.0f)
-            {
-                ext = -ext;
-            }
+            double dext = __fabs(vil->spd_chase - vil->spd_move);
+            float ext = dext;
             switch (vil->hitpts)
             {
             case 4:
@@ -14313,19 +14311,15 @@ static inline void VNAV_animspeed(st_zEntVillain* vil, float spd, _xVec3* sanim)
         return;
     }
     fac = spd / sa.x;
-    lim = (fac < sa.z) ? fac : sa.z;
-    if (!(sa.y > lim))
-    {
-        sa.y = (fac < sa.z) ? fac : sa.z;
-    }
+    lim = (sa.y > ((fac < sa.z) ? fac : sa.z)) ? sa.y : ((fac < sa.z) ? fac : sa.z);
     single = VANM_single(vil);
     if (single)
     {
-        single->CurrentSpeed = sa.y;
+        single->CurrentSpeed = lim;
     }
 }
 
-static inline unsigned int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int mask)
+static inline signed int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int mask)
 {
     xAnimSingle* single = VANM_single(vil);
     xAnimState* state = single ? single->State : NULL;
