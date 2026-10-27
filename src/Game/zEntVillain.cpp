@@ -16396,7 +16396,6 @@ static void VPRJ_BBK_detach(zEntProjectile* prj)
 
 static signed int VPRJ_BBK_logix(zEntProjectile* prj, float dt)
 {
-    _xVec3 pos_prj = {};
     st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
     st_ZPRJ_CAT_BOUNCEBALL* bounce = &prj->cat_data.bounce;
 
@@ -16409,6 +16408,7 @@ static signed int VPRJ_BBK_logix(zEntProjectile* prj, float dt)
         prj->SendEvent(ZPRJ_EVNT_INFLIGHT, dt);
     }
 
+    _xVec3 pos_prj = {};
     pos_prj = ((_xMat4x3*)prj->model->Mat)->pos;
     if (prj->tmr_alive >= prj->tym_maxlife)
     {
@@ -17757,9 +17757,10 @@ static void VEFX_mm_zapper(st_zEntVillain* vil, signed int cleanup)
 
 static void VEFX_zapTheKnight(st_zEntVillain* vil, signed int cleanup)
 {
-    _xVec3 loca = {};
-    signed int i;
+    _xBound* bnd;
     _tagLightningAdd add = {};
+    signed int i;
+    _xVec3 loca = {};
 
     for (i = 0; i < 5; i++)
     {
@@ -17775,9 +17776,10 @@ static void VEFX_zapTheKnight(st_zEntVillain* vil, signed int cleanup)
         return;
     }
 
-    loca = *xBoundCenter(&vil->bound);
+    bnd = &vil->bound;
+    loca = *xBoundCenter(bnd);
     loca.y += 20.0f;
-    add.start = xBoundCenter(&vil->bound);
+    add.start = xBoundCenter(bnd);
     add.end = &loca;
     add.time = (vil->tmr_list[ZVIL_TDUR_HURT] > vil->tmr_list[ZVIL_TYMR_MINANIMPLAY]) ?
                    vil->tmr_list[ZVIL_TDUR_HURT] :
@@ -18067,12 +18069,12 @@ static inline signed int VPAR_emit_headbutt(float dt, st_zEntVillain_ParEmitReco
 static void VPAR_emit_extattack(st_zEntVillain* ent, _xVec3* origin, _xVec3* aimdir, float length, float slope,
                                 float dt)
 {
-    st_zEntVillain_ParEmitRecord* vpar;
-    _zParEmitterCustomSettings* pecust;
-    float delta;
-    float fv = 0.0f;
-    signed int j;
     signed int i;
+    signed int j;
+    float fv = 0.0f;
+    float delta;
+    _zParEmitterCustomSettings* pecust = &g_pecust;
+    st_zEntVillain_ParEmitRecord* vpar;
 
     for (i = 0; i < g_emitlist.cnt; i++)
     {
@@ -18098,10 +18100,9 @@ static void VPAR_emit_extattack(st_zEntVillain* ent, _xVec3* origin, _xVec3* aim
             continue;
         }
 
-        delta = length / 25.0f;
-        pecust = &g_pecust;
         pecust->custom_flags = 0x2FE1;
         pecust->life = 0.75f;
+        delta = length / 25.0f;
         pecust->count = 1;
         pecust->color_birth[0] = 0xAA;
         pecust->color_birth[1] = 0xAA;
@@ -18117,9 +18118,11 @@ static void VPAR_emit_extattack(st_zEntVillain* ent, _xVec3* origin, _xVec3* aim
             pecust->size_birth = slope * fv * (1.0f + (1.0f - iurand()));
             pecust->size_death = 0.25f * pecust->size_birth;
             pecust->size_birth_variation = pecust->size_death;
-            xVec3SMul(&pecust->pos, aimdir, fv);
+            pecust->pos = *aimdir;
+            xVec3SMulBy(&pecust->pos, fv);
             xVec3AddTo(&pecust->pos, origin);
-            xVec3SMul(&pecust->vel, aimdir, -ent->spd_extend);
+            pecust->vel = *aimdir;
+            xVec3SMulBy(&pecust->vel, -ent->spd_extend);
             zParEmitterEmitCustom(vpar->emitctxt, dt, pecust);
         }
     }
