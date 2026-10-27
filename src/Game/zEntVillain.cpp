@@ -11674,13 +11674,14 @@ static signed int VILN_BRB_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         if (vil->tmr_list[ZVIL_TYMR_MINANIMPLAY] < 0.3f)
         {
             float da = vil->frame->rot.angle - vil->precalc.ang_VtoP;
-            vil->anim_loopmult = 0.97f;
             if ((float)__fabs(da) <= 0.2f)
             {
+                vil->anim_loopmult = 0.97f;
                 vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)0);
             }
             else
             {
+                vil->anim_loopmult = 0.97f;
                 vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)0xC);
             }
         }
@@ -17416,14 +17417,12 @@ static void VWEP_rbs_throw(st_REDBEARD_SWORD* rbs)
     rbs->flg_stat |= 4;
 }
 
+// Name invented: the original runs the age update before these locals are
+// initialized, so the spin/move half was its own inline.
+static inline void VWEP_rbs_spin(st_REDBEARD_SWORD* rbs, float dt);
+
 static inline void VWEP_rbs_flight(st_REDBEARD_SWORD* rbs, float dt)
 {
-    _xMat3x3 mat_rot = {};
-    _xVec3 ang = { 25.132741f, 0.0f, 0.0f };
-    _xVec3 dpos = {};
-    _xMat4x3* mat;
-    unsigned int snd;
-
     rbs->tym_age += dt;
     if (rbs->tym_age > 2.5f)
     {
@@ -17433,6 +17432,16 @@ static inline void VWEP_rbs_flight(st_REDBEARD_SWORD* rbs, float dt)
     {
         rbs->flg_stat &= ~8;
     }
+    VWEP_rbs_spin(rbs, dt);
+}
+
+static inline void VWEP_rbs_spin(st_REDBEARD_SWORD* rbs, float dt)
+{
+    _xMat3x3 mat_rot = {};
+    _xVec3 ang = { 25.132741f, 0.0f, 0.0f };
+    _xVec3 dpos = {};
+    _xMat4x3* mat;
+    unsigned int snd;
 
     ang.x *= dt;
     ang.y *= dt;
