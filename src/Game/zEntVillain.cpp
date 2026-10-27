@@ -8289,21 +8289,28 @@ static void VILN_KookRender(_xEnt* ent)
 
 static signed int VILN_kp_query(st_zEntVillain* vil, en_ZVIL_QUERY query)
 {
+    signed int ret;
+
     switch (query)
     {
     case ZVIL_Q_CANATTACK:
         if (!(vil->allow & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->precalc.flg_plyr & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     default:
-        return VILN_std_query(vil, query);
+        ret = VILN_std_query(vil, query);
+        break;
     }
+    return ret;
 }
 
 static signed int VILN_kp_aware(st_zEntVillain* vil, _xScene* scn, float dt, st_STIMULUS_CONTEXT_DATA* resp)
@@ -12215,15 +12222,35 @@ static signed int VILN_BMM_flag(st_zEntVillain* vil, en_ZVIL_FLAG_GROUPS flaggro
 
 static signed int VILN_BMM_query(st_zEntVillain* vil, en_ZVIL_QUERY query)
 {
+    signed int ret;
+
     switch (query)
     {
     case ZVIL_Q_PLYRTOOCLOSE:
-        return vil->precalc.ds2_VtoP < 9.0f;
+        if (vil->precalc.ds2_VtoP < 9.0f)
+        {
+            ret = 1;
+        }
+        else
+        {
+            ret = 0;
+        }
+        break;
     case ZVIL_Q_CANATTACK:
-        return (vil->allow & 8) ? 1 : 0;
+        if (vil->allow & 8)
+        {
+            ret = 1;
+        }
+        else
+        {
+            ret = 0;
+        }
+        break;
     default:
-        return VILN_std_query(vil, query);
+        ret = VILN_std_query(vil, query);
+        break;
     }
+    return ret;
 }
 
 static signed int VILN_BMM_sysevent(st_zEntVillain* vil, xBase* from, unsigned int toEvent, float* toParam,
