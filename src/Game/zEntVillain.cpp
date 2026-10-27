@@ -3549,7 +3549,7 @@ static signed int VCFG_getParm(st_ZVIL_CONFIG_REFERENCE* vilcfg, en_NPC_INI_PARA
 static void VCFG_readAsset(st_ZVIL_CONFIG_REFERENCE* vilcfg);
 static void VCFG_readParms(st_ZVIL_CONFIG_REFERENCE* vilcfg);
 static void VIRM_initVilDflt(st_zEntVillain* vil);
-static inline signed int VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe);
+static inline unsigned char VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe);
 static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float chance);
 static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame* frame);
 static void zVIL_precalc(st_zEntVillain* vil, signed int flags);
@@ -15152,7 +15152,7 @@ static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float ch
     _xVec3 pos_eye = {};
     _xVec3 pos_probe = {};
     _xVec3 vec_side = {};
-    signed int pitfall;
+    unsigned char pitfall;
     float rad;
     _xMat4x3* mat;
 
@@ -15173,10 +15173,10 @@ static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float ch
     pos_probe.y -= 3.5f * rad;
     xVec3AddTo(&pos_probe, &mat->pos);
     xVec3SMul(&vec_side, &mat->right, 0.3f);
-    xVec3AddTo(&pos_probe, &vec_side);
-
     ray.min_t = 0.001f;
     ray.flags = 0x800;
+    xVec3AddTo(&pos_probe, &vec_side);
+
     pitfall = VUTIL_rayhole(&ray, &pos_eye, &pos_probe);
     if (!pitfall)
     {
@@ -15189,13 +15189,12 @@ static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float ch
     return pitfall;
 }
 
-static inline signed int VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe)
+static inline unsigned char VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe)
 {
     xVec3Sub(&ray->dir, pos_probe, pos_eye);
     ray->max_t = xVec3Normalize(&ray->dir, &ray->dir);
-    ray->origin.x = ray->dir.x * ray->min_t + pos_eye->x;
-    ray->origin.y = ray->dir.y * ray->min_t + pos_eye->y;
-    ray->origin.z = ray->dir.z * ray->min_t + pos_eye->z;
+    xVec3SMul(&ray->origin, &ray->dir, ray->min_t);
+    xVec3AddTo(&ray->origin, pos_eye);
     return xRayHitsSceneFast(ray, globals.sceneCur) == 0;
 }
 
