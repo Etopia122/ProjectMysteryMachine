@@ -1957,22 +1957,21 @@ void NearestPointObb2D(_xVec3* near, _xVec3* vec, _xBox* b, _xMat4x3* m)
     }
     corner[3].y = corner[2].y = corner[1].y = corner[0].y = b->lower.y;
 
-    for (signed int i = 0; i < 4; i++)
-    {
-        xMat3x3RMulVec(&corner[i], (_xMat3x3*)m, &corner[i]);
-        corner[i].x += m->pos.x;
-        corner[i].y += m->pos.y;
-        corner[i].z += m->pos.z;
-    }
+    xMat3x3RMulVec(&corner[0], (_xMat3x3*)m, &corner[0]);
+    xVec3AddTo(&corner[0], &m->pos);
+    xMat3x3RMulVec(&corner[1], (_xMat3x3*)m, &corner[1]);
+    xVec3AddTo(&corner[1], &m->pos);
+    xMat3x3RMulVec(&corner[2], (_xMat3x3*)m, &corner[2]);
+    xVec3AddTo(&corner[2], &m->pos);
+    xMat3x3RMulVec(&corner[3], (_xMat3x3*)m, &corner[3]);
+    xVec3AddTo(&corner[3], &m->pos);
 
     if ((float)__fabs(m->up.y) > 0.0001f && PointInQuadXZ(corner, vec))
     {
+        float d = xVec3Dot(&corner[0], &m->up);
         near->x = vec->x;
         near->z = vec->z;
-        near->y = -(m->up.z * vec->z -
-                    -(m->up.x * vec->x -
-                      (corner[0].z * m->up.z + (corner[0].x * m->up.x + corner[0].y * m->up.y)))) /
-                  m->up.y;
+        near->y = (d - m->up.x * vec->x - m->up.z * vec->z) / m->up.y;
         return;
     }
 
@@ -2009,7 +2008,10 @@ void NearestPointObb2D(_xVec3* near, _xVec3* vec, _xBox* b, _xMat4x3* m)
         }
         float tx = px - vec->x;
         float tz = pz - vec->z;
-        if (i == 0 || tx * tx + tz * tz < 1e20f)
+        float tx2 = tx * tx;
+        float tz2 = tz * tz;
+        float d2 = tx2 + tz2;
+        if (i == 0 || d2 < 1e20f)
         {
             near->x = px;
             near->y = py;
