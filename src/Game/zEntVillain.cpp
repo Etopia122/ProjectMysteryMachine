@@ -3538,7 +3538,7 @@ static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xV
 static signed int VWEP_lobInitBKAxe(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off);
-static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos);
+static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos, _xVec3* vec_tmp);
 static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT event, void* ctxt);
 static signed int VWEP_lobActivatePRJ(zEntProjectile* prj, st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static zEntProjectile* VWEP_lobReservePRJ(st_zEntVillain* vil);
@@ -16049,17 +16049,20 @@ static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT e
     return rc;
 }
 
-static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos)
+// The scratch vector belongs to the caller: the original reuses the caller's
+// temp here. The unused local only emits its (dead) initializer data, which
+// keeps the rodata layout.
+static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos, _xVec3* vec_tmp)
 {
-    _xVec3 vec_tmp = {};
+    _xVec3 vec_unused = {};
 
     if (!VUTIL_tagpos(vil, 6, pos))
     {
         xSceneID2Name(globals.sceneCur, vil->id);
         *pos = *xBoundCenter(&vil->bound);
-        xVec3SMul(&vec_tmp, &((_xMat4x3*)vil->model->Mat)->at, 0.5f);
-        vec_tmp.y += 0.5f;
-        xVec3AddTo(pos, &vec_tmp);
+        xVec3SMul(vec_tmp, &((_xMat4x3*)vil->model->Mat)->at, 0.5f);
+        vec_tmp->y += 0.5f;
+        xVec3AddTo(pos, vec_tmp);
     }
 }
 
@@ -16071,15 +16074,14 @@ static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt,
     zEntProjectile* prj = vil->prj_reserved;
 
     prj->ColDelaySet(0.4f, 1);
-    VWEP_lobLaunchPos(vil, &pos);
+    VWEP_lobLaunchPos(vil, &pos, &tmp_vec);
 
     aiminf.spd_base = vil->spd_lob;
     aiminf.dir_base = ((_xMat4x3*)vil->model->Mat)->at;
     aiminf.arrow.pos_src = pos;
     if (vec_off)
     {
-        xVec3Add(&tmp_vec, pos_tgt, vec_off);
-        aiminf.arrow.pos_tgt = tmp_vec;
+        xVec3Add(&aiminf.arrow.pos_tgt, pos_tgt, vec_off);
     }
     else
     {
@@ -16101,7 +16103,7 @@ static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec
 
     aiminf.idx_caim = ZPRJ_CAIM_GRAVBALL;
     prj->ColDelaySet(0.4f, 1);
-    VWEP_lobLaunchPos(vil, &pos);
+    VWEP_lobLaunchPos(vil, &pos, &vec_tmp);
 
     if (vil->asset->subtype == eEntVillainBossBlackKnight)
     {
