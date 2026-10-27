@@ -16068,10 +16068,10 @@ static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos, _xVec3* v
 
 static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off)
 {
+    zEntProjectile* prj = vil->prj_reserved;
     _xVec3 pos = {};
     ST_CAT_AIMDATA aiminf = {};
     _xVec3 tmp_vec = {};
-    zEntProjectile* prj = vil->prj_reserved;
 
     prj->ColDelaySet(0.4f, 1);
     VWEP_lobLaunchPos(vil, &pos, &tmp_vec);
@@ -16211,7 +16211,14 @@ static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xV
     st_BGG_QUAKEBALL* quake = (st_BGG_QUAKEBALL*)prj->xtradata;
 
     VWEP_lobInitArrow(vil, pos_tgt, vec_off);
-    prj->cat_data.gravball.acc_gravity = (heavy <= 0.0f) ? 1.5f : heavy;
+    if (heavy <= 0.0f)
+    {
+        prj->cat_data.gravball.acc_gravity = 1.5f;
+    }
+    else
+    {
+        prj->cat_data.gravball.acc_gravity = heavy;
+    }
     quake->rad_build = vil->dst_lob;
     quake->spd_flight = (vil->spd_lob > 0.2f) ? vil->spd_lob : 0.2f;
     quake->hyt_shock = vil->wid_extend;
