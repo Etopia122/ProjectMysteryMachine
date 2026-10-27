@@ -17612,12 +17612,12 @@ static void SuperVillainGumDraw(_xVec3* from, _xVec3* to, float top_radius, floa
 static void VEFX_plop_gum(st_zEntVillain* ent)
 {
     RwTexture* tex;
-    _xMat3x3 dir_shoot = {};
-    _xVec3 pos_vert = {};
-    _xVec3 npcpos = {};
-    signed int i;
     _xVec3 to = {};
     _xVec3 from = {};
+    signed int i;
+    _xVec3 npcpos = {};
+    _xVec3 pos_vert = {};
+    _xMat3x3 dir_shoot = {};
 
     tex = (RwTexture*)xSTFindAsset(xStrHash("GUM-FLOOR"), NULL);
     if (tex)
@@ -17632,7 +17632,9 @@ static void VEFX_plop_gum(st_zEntVillain* ent)
         {
             continue;
         }
-        from = pos_vert;
+        from.x = pos_vert.x;
+        from.y = pos_vert.y;
+        from.z = pos_vert.z;
         to.x = pos_vert.x;
         to.z = pos_vert.z;
         if (pos_vert.y > npcpos.y)
@@ -17642,8 +17644,8 @@ static void VEFX_plop_gum(st_zEntVillain* ent)
         else
         {
             to.y = pos_vert.y;
-            from.y = npcpos.y;
         }
+        from.y = npcpos.y;
         if (!(from.y - to.y < 0.002f))
         {
             _xVec3 dir;
