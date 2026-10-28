@@ -8611,22 +8611,50 @@ static signed int VILN_shark_aware(st_zEntVillain* vil, _xScene* scn, float dt, 
 static signed int VILN_shark_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt,
                                       st_STIMULUS_CONTEXT_DATA* resp)
 {
-    en_NPC_STIMULUS stim = stimctxt->stim;
+    signed int goal;
+    signed int stim;
 
-    g_pgol = vil->goal;
-    g_pstm = stim;
-    switch (vil->goal)
+    goal = vil->goal;
+    stim = stimctxt->stim;
+    g_pgol = (en_BEHAVIOUR_GOAL)goal;
+    switch (goal)
     {
-    case 0:
-    case 1:
-        if (stim == 2)
-        {
-            VILN_settran(resp, 2, 1);
-        }
+    case -1:
         break;
-    case 4:
+    case 0:
+        g_pstm = (en_NPC_STIMULUS)stim;
         switch (stim)
         {
+        case 5:
+        case 0:
+            break;
+        case 2:
+            VILN_settran(resp, 2, 1);
+            break;
+        }
+        break;
+    case 1:
+        g_pstm = (en_NPC_STIMULUS)stim;
+        switch (stim)
+        {
+        case 5:
+        case 0:
+            break;
+        case 2:
+            VILN_settran(resp, 2, 1);
+            break;
+        }
+        break;
+    case 2:
+    case 3:
+        g_pstm = (en_NPC_STIMULUS)stim;
+        break;
+    case 4:
+        g_pstm = (en_NPC_STIMULUS)stim;
+        switch (stim)
+        {
+        case 0:
+            break;
         case 34:
             vil->hitpts = 0;
             VILN_settran(resp, 0x20, 7);
@@ -8635,10 +8663,14 @@ static signed int VILN_shark_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_D
             VILN_settran(resp, 0, 1);
             break;
         case 32:
+            stimctxt->res_gods = 2;
+            break;
         case 33:
             stimctxt->res_gods = 2;
             break;
         case 27:
+            stimctxt->res_gods = 0;
+            break;
         case 28:
             stimctxt->res_gods = 0;
             break;
@@ -8646,6 +8678,9 @@ static signed int VILN_shark_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_D
             stimctxt->res_gods = 3;
             break;
         }
+        break;
+    case 32:
+        g_pstm = (en_NPC_STIMULUS)stim;
         break;
     }
     return 1;
