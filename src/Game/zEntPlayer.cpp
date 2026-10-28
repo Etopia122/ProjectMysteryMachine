@@ -8048,12 +8048,13 @@ void zEntPlayer_SNDInit()
     sPlayerSndfx.leap_id[i++] = xStrHash("scooby_bounce_18");
     sPlayerSndfx.leap_id[i++] = xStrHash("scooby_bounce_19");
     sPlayerSndfx.leap_id[i++] = xStrHash("scooby_bounce_20");
-    for (signed int n = 0; n < 13; n++)
+    for (i = 0; i < 13; i++)
     {
-        sprintf(name, "scooby_excite_%02d", n + 1);
-        sPlayerSndfx.excite_id[n] = xStrHash(name);
+        sprintf(name, "scooby_excite_%02d", i + 1);
+        sPlayerSndfx.excite_id[i] = xStrHash(name);
     }
-    sPlayerSndfx.see_geronimo_id[0] = xStrHash("scooby_one_42b");
+    i = 0;
+    sPlayerSndfx.see_geronimo_id[i++] = xStrHash("scooby_one_42b");
     i = 0;
     sPlayerSndfx.see_shaggy_id[i++] = xStrHash("scooby_one_19a");
     sPlayerSndfx.see_shaggy_id[i++] = xStrHash("scooby_one_19b");
@@ -8070,13 +8071,16 @@ void zEntPlayer_SNDInit()
     sPlayerSndfx.see_holly_id[i++] = xStrHash("scooby_holly1a");
     sPlayerSndfx.see_holly_id[i++] = xStrHash("scooby_holly1b");
     sPlayerSndfx.see_holly_id[i++] = xStrHash("scooby_holly2");
-    sPlayerSndfx.see_groundskeeper_id[0] = xStrHash("scooby_holly1a");
-    sPlayerSndfx.see_warpgate_id[0] = xStrHash("scooby_one_25");
+    i = 0;
+    sPlayerSndfx.see_groundskeeper_id[i++] = xStrHash("scooby_holly1a");
+    i = 0;
+    sPlayerSndfx.see_warpgate_id[i++] = xStrHash("scooby_one_25");
     i = 0;
     sPlayerSndfx.need_more_snacks_id[i++] = xStrHash("scooby_one_23a");
     sPlayerSndfx.need_more_snacks_id[i++] = xStrHash("scooby_one_23b");
     sPlayerSndfx.need_more_snacks_id[i++] = xStrHash("scooby_one_23c");
-    sPlayerSndfx.success_id[0] = xStrHash("scooby_one_07");
+    i = 0;
+    sPlayerSndfx.success_id[i++] = xStrHash("scooby_one_07");
     i = 0;
     sPlayerSndfx.see_token_id[i++] = xStrHash("scooby_one_24a");
     sPlayerSndfx.see_token_id[i++] = xStrHash("scooby_one_24b");
@@ -8138,7 +8142,8 @@ void zEntPlayer_SNDInit()
     sPlayerSndfx.sorry_id[i++] = xStrHash("scooby_one_14b");
     sPlayerSndfx.sorry_id[i++] = xStrHash("scooby_one_15a");
     sPlayerSndfx.sorry_id[i++] = xStrHash("scooby_one_14b");
-    sPlayerSndfx.collect_all_snacks_id[0] = xStrHash("scooby_one_07");
+    i = 0;
+    sPlayerSndfx.collect_all_snacks_id[i++] = xStrHash("scooby_one_07");
     i = 0;
     sPlayerSndfx.eat_sandwich_id[i++] = xStrHash("scooby_one_09");
     sPlayerSndfx.eat_sandwich_id[i++] = xStrHash("scooby_one_06b");
