@@ -15852,7 +15852,6 @@ static signed int VWEP_swipe(st_zEntVillain* vil, float)
     static const iColor_tag clr_swipe = { 0x80, 0x00, 0x00, 0xFF };
     signed int hit = 0;
     _xCollis colrec = {};
-    iColor_tag clr = {};
     _xBound bound = {};
 
     if (vil->precalc.ds2_VtoP > 2.2f)
@@ -15864,9 +15863,8 @@ static signed int VWEP_swipe(st_zEntVillain* vil, float)
     colrec.oid = globals.player.ent.id;
     colrec.optr = &globals.player.ent;
     bound.type = 1;
-    bound.qcd = globals.player.ent.bound.qcd;
-    clr = clr_swipe;
-    xDrawSetColor(clr);
+    memcpy(&bound.qcd, &globals.player.ent.bound.qcd, sizeof(bound.qcd));
+    xDrawSetColor(clr_swipe);
 
     if (VUTIL_tagpos(vil, 6, &bound.sph.center))
     {
