@@ -3924,7 +3924,6 @@ st_zEntVillain* zEntVillain_NPCInst(unsigned int npcidx)
 
 void zEntVillain_Init(st_zEntVillain* vil, p2EntAsset* asset)
 {
-    st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
     _xMat4x3* mat;
 
     zEntInit(vil, asset, 0x4E504320);
@@ -3942,18 +3941,18 @@ void zEntVillain_Init(st_zEntVillain* vil, p2EntAsset* asset)
         vil->link = NULL;
     }
     vil->vhf = &g_npcFuncs[vil->asset->subtype];
-    vil->vilcfg.asset = vil->asset;
-    vil->vilcfg.vilp2ass = (p2EntVillainAsset*)((char*)vil->asset + sizeof(p2EntAsset));
+    p2EntAsset* ent_asset = vil->asset;
+    vil->vilcfg.asset = ent_asset;
+    vil->vilcfg.vilp2ass = (p2EntVillainAsset*)((char*)ent_asset + sizeof(p2EntAsset));
     VCFG_readParms(&vil->vilcfg);
     VCFG_readAsset(&vil->vilcfg);
 
-    npcinfo = &g_npcTable[vil->asset->subtype];
-    vil->ability = npcinfo->ability;
-    vil->abl_atak = npcinfo->abl_atak;
-    vil->abl_dtct = npcinfo->abl_dtct;
-    vil->abl_move = npcinfo->abl_move;
-    vil->abl_spyk = npcinfo->abl_spyk;
-    vil->abl_vuln = npcinfo->abl_vuln;
+    vil->ability = g_npcTable[vil->asset->subtype].ability;
+    vil->abl_atak = g_npcTable[vil->asset->subtype].abl_atak;
+    vil->abl_dtct = g_npcTable[vil->asset->subtype].abl_dtct;
+    vil->abl_move = g_npcTable[vil->asset->subtype].abl_move;
+    vil->abl_spyk = g_npcTable[vil->asset->subtype].abl_spyk;
+    vil->abl_vuln = g_npcTable[vil->asset->subtype].abl_vuln;
     vil->chkby = vil->vhf->flags(vil, ZVIL_FGRP_CHKBY, ZVIL_GOAL_NONE);
     vil->penby = vil->vhf->flags(vil, ZVIL_FGRP_PENBY, ZVIL_GOAL_NONE);
     vil->collis->chk = vil->vhf->flags(vil, ZVIL_FGRP_CHK, ZVIL_GOAL_NONE);
