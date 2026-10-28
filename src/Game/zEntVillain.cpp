@@ -11004,7 +11004,8 @@ static signed int VILN_BGG_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
     case 4:
         if (vil->tmr_list[ZVIL_TDUR_LOBRELOAD] <= 0.0f)
         {
-            if (vil->vhf->query(vil, ZVIL_Q_CANATTACK) && (vil->prj_reserved = VWEP_lobReservePRJ(vil)) != NULL)
+            if (vil->vhf->query(vil, ZVIL_Q_CANATTACK) &&
+                (vil->prj_reserved = VWEP_lobReservePRJ(vil), vil->prj_reserved != NULL))
             {
                 VILN_tran(resp, 0x15, 5);
             }
@@ -11152,15 +11153,15 @@ static inline void VILN_BGG_quakeSalvo(st_zEntVillain* vil)
 
         if (!(vil->cnt_lobSalvo & 1))
         {
-            off.x = vil->precalc.vec_VtoP.x * 0.6f;
+            off = vil->precalc.vec_VtoP;
+            off.x *= 0.6f;
             off.y = 0.0f;
-            off.z = vil->precalc.vec_VtoP.z * 0.6f;
+            off.z *= 0.6f;
         }
         ctr = xBoundCenter(&globals.player.ent.bound);
         quake = (st_BGG_QUAKEBALL*)vil->prj_reserved->xtradata;
-        quake->pos_tgt.x = off.x + ctr->x;
-        quake->pos_tgt.y = off.y + ctr->y;
-        quake->pos_tgt.z = off.z + ctr->z;
+        xVec3AddTo(&off, ctr);
+        quake->pos_tgt = off;
         quake->phase = BGG_PHAZ_FLY;
         quake->flg_stat |= 2;
         vil->prj_reserved = NULL;
