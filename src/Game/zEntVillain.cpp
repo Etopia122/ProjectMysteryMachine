@@ -18893,12 +18893,18 @@ static xAnimTable* VANM_mktable_SIMP()
     xAnimTransition* tran;
     signed int i;
 
+    typedef unsigned int (*tranfn)(xAnimTransition*, xAnimSingle*, void*);
+
+    // The original keeps the transition callbacks in locals (held in saved
+    // registers across the table calls).
     table = xAnimTableNew("Villain_Simple", NULL);
     xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
     xAnimTableNewState(table, "SIMP_Action", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
-    xAnimTableNewTransition(table, g_animname[146], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
-    xAnimTableNewTransition(table, g_animname[146], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
-    xAnimTableNewTransition(table, "Idle", g_animname[146], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    tranfn didtran = (tranfn)VANM_didtran;
+    tranfn dotran = (tranfn)VANM_dotran;
+    xAnimTableNewTransition(table, g_animname[146], "Idle", (tranfn)VANM_dodflt, (tranfn)VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, g_animname[146], "Idle", dotran, didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Idle", g_animname[146], dotran, didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
     return table;
 }
 
