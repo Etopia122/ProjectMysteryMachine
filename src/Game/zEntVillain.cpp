@@ -4337,56 +4337,86 @@ signed int zEntVillain_PlayAFXSound(st_zEntVillain* vil, zAnimFxSound* snd, unsi
 {
     st_NPC_SOUND_ENTRY* entry;
     st_NPC_SOUND_PROPERTIES* props;
-    signed int found = -1;
+    signed int found;
     unsigned int sndID;
     signed int subtype;
     unsigned int sid;
+    signed int rc;
 
-    if (vil->goal >= 0 && vil->goal < 3 && vil->goaldflt != ZVIL_GOAL_AMBUSH)
+    switch (vil->goal)
     {
-        // The original still reports success here.
-        return 1;
+    case 0:
+    case 1:
+    case 2:
+        if (vil->goaldflt != ZVIL_GOAL_AMBUSH)
+        {
+            // Converted to a boolean on the way out, so this still reads as success.
+            rc = -1;
+            goto done;
+        }
+        break;
     }
 
     sndID = snd->ID;
+    found = -1;
     subtype = vil->asset->subtype;
-    for (entry = g_npcJukeBox; entry->sndList; entry++)
+    st_NPC_SOUND_RECORDS* rec;
+    entry = g_npcJukeBox;
+    while ((rec = entry->sndList) != NULL)
     {
-        if (entry->viltyp == subtype || entry->viltyp != -1)
+        if (entry->viltyp == subtype)
         {
-            st_NPC_SOUND_RECORDS* rec;
-            for (rec = entry->sndList; rec->typ_sound != 0x8000; rec++)
+        }
+        else if (entry->viltyp != -1)
+        {
+        }
+        else
+        {
+            entry++;
+            continue;
+        }
+
+        for (; rec->typ_sound != 0x8000; rec++)
+        {
+            if (rec->aid_sound == sndID)
             {
-                if (rec->aid_sound == sndID)
-                {
-                    found = rec->typ_sound;
-                    break;
-                }
-            }
-            if (entry->viltyp == subtype || found != -1)
-            {
+                found = rec->typ_sound;
                 break;
             }
         }
+        if (entry->viltyp == subtype || found != -1)
+        {
+            break;
+        }
+        entry++;
     }
 
-    for (props = g_sndProps; props->sndEvent != 0x8000 && props->sndEvent != found; props++)
+    for (props = g_sndProps; props->sndEvent != 0x8000; props++)
     {
+        if (props->sndEvent == found)
+        {
+            break;
+        }
     }
 
+    unsigned int flg_vsnd = props->flg_vsnd;
+    float dst_noisy = g_npcTable[subtype].dst_noisy;
     if (found != -1)
     {
-        sid = VSND_goPlay(vil, (en_NPC_SOUND)found, 0, props->flg_vsnd, g_npcTable[subtype].dst_noisy);
+        sid = VSND_goPlay(vil, (en_NPC_SOUND)found, 0, flg_vsnd, dst_noisy);
     }
     else
     {
-        sid = VSND_goPlay(vil, (en_NPC_SOUND)0x8000, sndID, props->flg_vsnd, g_npcTable[subtype].dst_noisy);
+        sid = VSND_goPlay(vil, (en_NPC_SOUND)0x8000, sndID, flg_vsnd, dst_noisy);
     }
     if (sid_played)
     {
         *sid_played = sid;
     }
-    return 1;
+    rc = 1;
+
+done:
+    return rc != 0;
 }
 
 static void zVIL_setup_npcTable()
@@ -17796,7 +17826,6 @@ static void VEFX_hologram(st_zEntVillain* vil, float dt)
 
 static void VEFX_mm_zapper(st_zEntVillain* vil, signed int cleanup)
 {
-    _tagLightningAdd add = {};
     signed int i;
 
     for (i = 0; i < 5; i++)
@@ -17813,6 +17842,7 @@ static void VEFX_mm_zapper(st_zEntVillain* vil, signed int cleanup)
         return;
     }
 
+    _tagLightningAdd add = {};
     add.type = eLT_Line;
     add.start = xBoundCenter(&vil->bound);
     add.end = xBoundCenter(&globals.player.ent.bound);

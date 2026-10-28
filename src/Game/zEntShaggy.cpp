@@ -2544,10 +2544,15 @@ unsigned int Shaggy3_MoveDead(xAnimTransition*, xAnimSingle*, _zPlatform* ent)
     {
         return 0;
     }
+    unsigned char ret = 0;
     unsigned char moving = globals.player.Health == 0 && (frame->mode & 2);
-    return moving && frame->dpos.x * frame->dpos.x + frame->dpos.y * frame->dpos.y +
-                             frame->dpos.z * frame->dpos.z >=
-                         0.0005f;
+    if (moving && frame->dpos.x * frame->dpos.x + frame->dpos.y * frame->dpos.y +
+                      frame->dpos.z * frame->dpos.z >=
+                  0.0005f)
+    {
+        ret = 1;
+    }
+    return ret;
 }
 
 unsigned int Shaggy3_Stop(xAnimTransition*, xAnimSingle*, _zPlatform* ent)
