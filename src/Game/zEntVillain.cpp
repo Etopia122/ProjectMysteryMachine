@@ -9578,27 +9578,27 @@ static signed int VILN_gang_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
             vil->tmr_list[0] = VUTIL_jitter(tym);
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 0.5f;
             sfx = stimctxt->talkSFX;
-            if (sfx == (zSFX*)-1)
+            if ((signed int)sfx == -1)
             {
                 // No scripted line: play a greeting, or a hint for the hint giver.
                 signed int snd = 0x30;
-                unsigned int specials = globals.player.Inv_Specials;
 
                 if (vil->asset->subtype == 0x30 && xUtil_yesno(0.1f))
                 {
-                    if (!(specials & 4) && VSND_select_sound(vil, (en_NPC_SOUND)0x32))
+                    if (!(globals.player.Inv_Specials & 4) && VSND_select_sound(vil, (en_NPC_SOUND)0x32))
                     {
                         snd = 0x32;
                     }
-                    else if ((specials & 0x200) && !(specials & 0x20) && VSND_select_sound(vil, (en_NPC_SOUND)0x33))
+                    else if ((globals.player.Inv_Specials & 0x200) && !(globals.player.Inv_Specials & 0x20) &&
+                             VSND_select_sound(vil, (en_NPC_SOUND)0x33))
                     {
                         snd = 0x33;
                     }
-                    else if (!(specials & 0x1000) && VSND_select_sound(vil, (en_NPC_SOUND)0x34))
+                    else if (!(globals.player.Inv_Specials & 0x1000) && VSND_select_sound(vil, (en_NPC_SOUND)0x34))
                     {
                         snd = 0x34;
                     }
-                    else if ((specials & 0x1000) && VSND_select_sound(vil, (en_NPC_SOUND)0x35))
+                    else if ((globals.player.Inv_Specials & 0x1000) && VSND_select_sound(vil, (en_NPC_SOUND)0x35))
                     {
                         snd = 0x35;
                     }
@@ -9629,8 +9629,16 @@ static signed int VILN_gang_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
         case ZVIL_STIM_TRANGOAL:
             break;
         case ZVIL_STIM_ENTERGOAL:
-            vil->anim_loopmult = 0.97f;
-            vil->vhf->pickanim(vil, goal, (en_ZVIL_GOAL_SPOT)(stimctxt->use_alt_action ? 0xA : 0));
+            if (stimctxt->use_alt_action)
+            {
+                vil->anim_loopmult = 0.97f;
+                vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x1F, (en_ZVIL_GOAL_SPOT)0xA);
+            }
+            else
+            {
+                vil->anim_loopmult = 0.97f;
+                vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x1F, (en_ZVIL_GOAL_SPOT)0);
+            }
             break;
         }
         break;
