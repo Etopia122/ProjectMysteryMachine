@@ -15938,21 +15938,20 @@ static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* p
     {
         xSceneID2Name(globals.sceneCur, vil->id);
         pos_emit = *xBoundCenter(&vil->bound);
-        pos_emit.y += 0.4f;
         pos_emit.x += 1.5f * vil->precalc.sin_faceang;
+        pos_emit.y += 0.4f;
         pos_emit.z += 1.5f * vil->precalc.cos_faceang;
     }
 
-    spd = vil->tmr_list[ZVIL_TDUR_EXTEND];
-    if (!(spd < vil->tmr_list[ZVIL_TYMR_CURGOAL]))
+    float tym = vil->tmr_list[ZVIL_TYMR_CURGOAL];
+    float ext = vil->tmr_list[ZVIL_TDUR_EXTEND];
+    spd = vil->spd_extend;
+    if (ext < tym)
     {
-        spd = vil->tmr_list[ZVIL_TYMR_CURGOAL];
+        tym = ext;
     }
-    spd = vil->spd_extend * spd;
-    if (!(spd < vil->dst_extend))
-    {
-        spd = vil->dst_extend;
-    }
+    spd = tym * spd;
+    spd = (spd < vil->dst_extend) ? spd : vil->dst_extend;
     rad = (0.01f > spd) ? 0.01f : spd;
     fac_wid = vil->wid_extend / vil->dst_extend;
 
@@ -15973,15 +15972,7 @@ static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* p
         }
         else
         {
-            float hi = (pitch < 0.25f) ? pitch : 0.25f;
-            if (-0.25f > hi)
-            {
-                pitch = -0.25f;
-            }
-            else if (!(pitch < 0.25f))
-            {
-                pitch = 0.25f;
-            }
+            pitch = VIL_MAX(-0.25f, VIL_MIN(pitch, 0.25f));
         }
         xMat3x3Euler(&mat_rot, 0.0f, pitch, 0.0f);
         xMat3x3LMulVec(&dir_ext, &mat_rot, (_xVec3*)&g_Z3);
@@ -15999,8 +15990,8 @@ static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* p
             float spd_vel;
 
             pecust.pos = mat->pos;
-            pecust.pos.y += 1.6f;
             pecust.pos.x += 0.25f * mat->at.x;
+            pecust.pos.y += 1.6f;
             pecust.pos.z += 0.25f * mat->at.z;
             xVec3Normalize(&dir_vel, &dir_ext);
             pecust.custom_flags = 0x60;
