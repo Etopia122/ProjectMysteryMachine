@@ -14304,11 +14304,11 @@ static signed int VNAV_get_nav(st_zEntVillain* vil)
             nxt = NULL;
         }
     }
-    else if (vil->nav_next)
+    else if (vil->nav_prev && vil->nav_next)
     {
         zMovePointGetNext(vil->nav_next, vil->nav_prev, &nxt, NULL);
     }
-    else
+    else if (vil->nav_prev)
     {
         zMovePointGetNext(vil->nav_prev, NULL, &nxt, NULL);
     }
@@ -14341,11 +14341,7 @@ static inline float VNAV_dist(_xVec3* d, _xVec3* a, _xVec3* b)
 
     xVec3Sub(d, a, b);
     d2 = xVec3Dot(d, d);
-    if (d2 > 0.0f)
-    {
-        d2 = xsqrt(d2);
-    }
-    return d2;
+    return xsqrt(d2);
 }
 
 static signed int VNAV_chklos_timz(void* usrdata, _xVec3* pos, _zMovePoint* mvpt)
