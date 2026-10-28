@@ -20799,11 +20799,10 @@ static inline signed int VSUP_ent_inLOS_timz(st_zEntVillain* vil, _zEnt* ent, si
     {
         r.max_t = VUTIL_sqrt(vil->ds2_detect);
     }
-    r.origin.x = r.dir.x * r.min_t + mypos.x;
-    r.origin.y = r.dir.y * r.min_t + mypos.y;
-    r.origin.z = r.dir.z * r.min_t + mypos.z;
+    xVec3SMul(&r.origin, &r.dir, r.min_t);
+    xVec3AddTo(&r.origin, &mypos);
     r.flags = 0x800;
-    return xRayHitsSceneFast(&r, globals.sceneCur) == 0;
+    return (unsigned char)(xRayHitsSceneFast(&r, globals.sceneCur) == 0);
 }
 
 static inline float VSUP_ent_facedot(st_zEntVillain* vil, _zEnt* ent)
