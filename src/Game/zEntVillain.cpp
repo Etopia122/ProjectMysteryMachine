@@ -14349,16 +14349,14 @@ static signed int VNAV_chklos_timz(void* usrdata, _xVec3* pos, _zMovePoint* mvpt
     st_zEntVillain* vil = (st_zEntVillain*)usrdata;
     _xRay3 ray;
     _xVec3* pos_mp;
-    float len;
 
     ray.min_t = 0.001f + vil->bound.sph.r;
     pos_mp = zMovePointGetPos(mvpt);
     xVec3Sub(&ray.dir, pos_mp, pos);
-    len = xVec3Normalize(&ray.dir, &ray.dir);
-    ray.origin.x = ray.dir.x * ray.min_t + pos->x;
-    ray.origin.y = ray.dir.y * ray.min_t + pos->y;
-    ray.origin.z = ray.dir.z * ray.min_t + pos->z;
-    ray.max_t = len - ray.min_t;
+    ray.max_t = xVec3Normalize(&ray.dir, &ray.dir);
+    xVec3SMul(&ray.origin, &ray.dir, ray.min_t);
+    xVec3AddTo(&ray.origin, pos);
+    ray.max_t -= ray.min_t;
     ray.flags = 0x800;
     return (unsigned char)(xRayHitsSceneFast(&ray, globals.sceneCur) == 0);
 }
