@@ -11518,7 +11518,8 @@ static signed int VILN_BGG_calcmove(st_zEntVillain* vil, _xScene* scn, float dt,
         // Spiral in towards the vortex.
         _xVec3 off = {};
 
-        VSUP_ang_toXZDir(vil->ang_spiral, &off);
+        off.x = sin(vil->ang_spiral);
+        off.z = cos(vil->ang_spiral);
         xVec3SMulBy(&off, vil->rad_spiral);
         xVec3Add(&vil->pos_moveto, &vil->pos_vortex, &off);
         vil->domove |= 0x800;
@@ -11540,8 +11541,10 @@ static signed int VILN_BGG_calcmove(st_zEntVillain* vil, _xScene* scn, float dt,
 // The Green Ghost faces left or right of where it was standing.
 static inline void VILN_BGG_face(st_zEntVillain* vil, _xVec3* pos)
 {
+    float dx = vil->pos_moveto.x - pos->x;
+
     vil->domove &= ~0xC0000;
-    if (vil->pos_moveto.x - pos->x > 0.0f)
+    if (dx > 0.0f)
     {
         vil->domove |= 0x80000;
     }
