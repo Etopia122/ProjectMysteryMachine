@@ -20135,20 +20135,19 @@ static inline void VANM_playRand5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_N
 
 static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent)
 {
+    en_zEntVillainSubTypeID viltyp = (en_zEntVillainSubTypeID)vil->asset->subtype;
+    unsigned int da_aid_of_sound = 0;
     float use_wt;
     signed int cnt;
-    float wts[32] = {};
     signed int list[32] = { 0x3F800000 };
-    st_NPC_SOUND_RECORDS* trax;
+    float wts[32] = {};
     st_NPC_SOUND_ENTRY* entry;
-    en_zEntVillainSubTypeID viltyp;
-    unsigned int da_aid_of_sound;
+    st_NPC_SOUND_RECORDS* trax;
 
-    viltyp = (en_zEntVillainSubTypeID)vil->asset->subtype;
-    da_aid_of_sound = 0;
     cnt = 0;
 
-    for (entry = g_npcJukeBox; entry->sndList; entry++)
+    entry = g_npcJukeBox;
+    while (entry->sndList)
     {
         if (entry->viltyp == viltyp)
         {
@@ -20160,6 +20159,7 @@ static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent
         }
         else
         {
+            entry++;
             continue;
         }
 
@@ -20184,6 +20184,7 @@ static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent
         {
             break;
         }
+        entry++;
     }
 
     if (cnt > 0)
