@@ -12722,17 +12722,38 @@ static inline signed int VILN_BMM_teleport(st_zEntVillain* vil, st_STIMULUS_CONT
 static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt,
                                     st_STIMULUS_CONTEXT_DATA* resp)
 {
-    en_NPC_STIMULUS stim = stimctxt->stim;
+    signed int goal;
+    signed int stim;
 
-    g_pgol = vil->goal;
-    switch (vil->goal)
+    goal = vil->goal;
+    stim = stimctxt->stim;
+    g_pgol = (en_BEHAVIOUR_GOAL)goal;
+    switch (goal)
     {
+    case -1:
+        break;
     case 0:
-    case 1:
-        g_pstm = stim;
-        if (stim == ZVIL_STIM_MAKEREADY)
+        g_pstm = (en_NPC_STIMULUS)stim;
+        switch (stim)
         {
+        case 5:
+        case 0:
+            break;
+        case 2:
             VILN_tran(resp, 2, 1);
+            break;
+        }
+        break;
+    case 1:
+        g_pstm = (en_NPC_STIMULUS)stim;
+        switch (stim)
+        {
+        case 5:
+        case 0:
+            break;
+        case 2:
+            VILN_tran(resp, 2, 1);
+            break;
         }
         break;
     case 2:
@@ -12742,7 +12763,7 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     case 27:
     case 29:
     case 32:
-        g_pstm = stim;
+        g_pstm = (en_NPC_STIMULUS)stim;
         break;
     case 4:
     case 6:
@@ -12752,9 +12773,11 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     case 28:
     case 30:
     case 31:
-        g_pstm = stim;
+        g_pstm = (en_NPC_STIMULUS)stim;
         switch (stim)
         {
+        case ZVIL_STIM_NONE:
+            break;
         case ZVIL_STIM_KILLSELF:
             vil->hitpts = 0;
             VILN_tran(resp, 0x20, 7);
@@ -12769,6 +12792,9 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             VILN_tran(resp, 0x1B, 0);
             break;
         case ZVIL_STIM_SOAPED:
+            stimctxt->res_gods = 2;
+            VSND_cue(vil, (en_NPC_SOUND)0x17);
+            break;
         case ZVIL_STIM_GUMMED:
             stimctxt->res_gods = 2;
             VSND_cue(vil, (en_NPC_SOUND)0x17);
@@ -12816,7 +12842,14 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             {
                 signed int follow = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1);
                 vil->tmr_list[ZVIL_TDUR_NAVDELAY] = -1.0f;
-                VILN_tran(resp, follow ? 6 : 8, 0);
+                if (follow)
+                {
+                    VILN_tran(resp, 6, 0);
+                }
+                else
+                {
+                    VILN_tran(resp, 8, 0);
+                }
             }
             break;
         case ZVIL_STIM_STARTPATROL:
@@ -12825,10 +12858,21 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             {
                 VNAV_get_nav(vil);
             }
-            VILN_tran(resp, vil->vhf->query(vil, ZVIL_Q_HAVENAV) ? 6 : 4, 0);
+            if (vil->vhf->query(vil, ZVIL_Q_HAVENAV))
+            {
+                VILN_tran(resp, 6, 0);
+            }
+            else
+            {
+                VILN_tran(resp, 4, 0);
+            }
             break;
         case ZVIL_STIM_STOPPATROL:
+            VILN_tran(resp, 4, 0);
+            break;
         case ZVIL_STIM_STARTGUARD:
+            VILN_tran(resp, 4, 0);
+            break;
         case ZVIL_STIM_STOPGUARD:
             VILN_tran(resp, 4, 0);
             break;
@@ -12836,9 +12880,12 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         break;
     }
 
-    g_pgol = vil->goal;
-    switch (vil->goal)
+    goal = vil->goal;
+    g_pgol = (en_BEHAVIOUR_GOAL)goal;
+    switch (goal)
     {
+    case -1:
+        break;
     case 0:
     case 1:
     case 2:
@@ -12852,12 +12899,14 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     case 29:
     case 30:
     case 31:
-        g_pstm = stim;
+        g_pstm = (en_NPC_STIMULUS)stim;
         break;
     case 24:
-        g_pstm = stim;
+        g_pstm = (en_NPC_STIMULUS)stim;
         switch (stim)
         {
+        case ZVIL_STIM_NONE:
+            break;
         case ZVIL_STIM_KILLSELF:
             vil->hitpts = 0;
             VILN_tran(resp, 0x20, 7);
@@ -12869,6 +12918,8 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             VILN_tran(resp, 0x1B, 0);
             break;
         case ZVIL_STIM_SOAPED:
+            stimctxt->res_gods = 2;
+            break;
         case ZVIL_STIM_GUMMED:
             stimctxt->res_gods = 2;
             break;
