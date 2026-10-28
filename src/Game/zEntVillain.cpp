@@ -3603,7 +3603,8 @@ static inline void VILN_BMM_enterGoal(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goa
 static inline void VILN_BMM_tymrRand(st_zEntVillain* vil, signed int idx);
 static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt);
 static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, st_STIMULUS_CONTEXT_DATA* resp);
-static inline signed int VILN_BMM_teleport(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp, signed int hurt);
+static inline signed int VILN_BMM_teleport(st_zEntVillain* vil);
+static inline void VILN_BMM_teleTran(st_STIMULUS_CONTEXT_DATA* resp, signed int hurt);
 static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st_STIMULUS_CONTEXT_DATA* resp);
 static signed int VILN_BMM_notice(st_zEntVillain* vil, en_ZVIL_NOTICE note, st_STIMULUS_CONTEXT_DATA* resp);
 static signed int VILN_BMM_sysevent(st_zEntVillain* vil, xBase* from, unsigned int toEvent, float* toParam, xBase* toParamWidget, st_STIMULUS_CONTEXT_DATA* resp);
@@ -12424,7 +12425,11 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         {
             VILN_tran(resp, 0x11, 0);
         }
-        else if (!((vil->allow & 4) && VILN_BMM_teleport(vil, resp, 0)))
+        else if ((vil->allow & 4) && VILN_BMM_teleport(vil))
+        {
+            VILN_BMM_teleTran(resp, 0);
+        }
+        else
         {
             if (vil->vhf->query(vil, (en_ZVIL_QUERY)0xA))
             {
@@ -12446,7 +12451,11 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
             {
                 VILN_tran(resp, 0x11, 0);
             }
-            else if (!((vil->allow & 4) && VILN_BMM_teleport(vil, resp, 0)))
+            else if ((vil->allow & 4) && VILN_BMM_teleport(vil))
+            {
+                VILN_BMM_teleTran(resp, 0);
+            }
+            else
             {
                 VILN_tran(resp, 4, 0);
             }
@@ -12457,7 +12466,11 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         {
             VILN_tran(resp, 0x11, 0);
         }
-        else if (!((vil->allow & 4) && VILN_BMM_teleport(vil, resp, 0)))
+        else if ((vil->allow & 4) && VILN_BMM_teleport(vil))
+        {
+            VILN_BMM_teleTran(resp, 0);
+        }
+        else
         {
             if (!vil->vhf->query(vil, (en_ZVIL_QUERY)6))
             {
@@ -12470,7 +12483,11 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         {
             VILN_tran(resp, 0x11, 0);
         }
-        else if (!((vil->allow & 4) && VILN_BMM_teleport(vil, resp, 0)))
+        else if ((vil->allow & 4) && VILN_BMM_teleport(vil))
+        {
+            VILN_BMM_teleTran(resp, 0);
+        }
+        else
         {
             if (vil->vhf->query(vil, (en_ZVIL_QUERY)7))
             {
@@ -12527,13 +12544,14 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         {
             if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f)
             {
-                vil->anim_loopmult = 0.97f;
                 if ((float)__fabs(vil->frame->rot.angle - vil->precalc.ang_VtoP) <= 0.2f)
                 {
+                    vil->anim_loopmult = 0.97f;
                     vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x11, (en_ZVIL_GOAL_SPOT)0);
                 }
                 else
                 {
+                    vil->anim_loopmult = 0.97f;
                     vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x11, (en_ZVIL_GOAL_SPOT)0xC);
                 }
                 vil->tmr_list[ZVIL_TYMR_GENERIC] = 0.2f;
@@ -12579,25 +12597,28 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
 
                     if (!(vil->cnt_lobSalvo & 1))
                     {
-                        off.x = vil->precalc.vec_VtoP.x * 0.6f;
+                        off = vil->precalc.vec_VtoP;
+                        off.x *= 0.6f;
                         off.y = 0.0f;
-                        off.z = vil->precalc.vec_VtoP.z * 0.6f;
+                        off.z *= 0.6f;
                     }
                     ctr = xBoundCenter(&globals.player.ent.bound);
                     flask = (st_ZVMM_FLASK_DATA*)vil->prj_reserved->xtradata;
-                    flask->pos_tgt.x = off.x + ctr->x;
-                    flask->pos_tgt.y = off.y + ctr->y;
-                    flask->pos_tgt.z = off.z + ctr->z;
+                    xVec3AddTo(&off, ctr);
+                    flask->pos_tgt = off;
                     flask->stage = MAST_STAGE_TOSS;
                     flask->flg_stat |= 2;
                     vil->prj_reserved = NULL;
                     vil->cnt_lobSalvo--;
                     if (vil->cnt_lobSalvo > 0 && !vil->prj_reserved)
                     {
+                        zEntProjectile* prj;
+
                         vil->prj_reserved = VWEP_lobReservePRJ(vil);
-                        if (vil->prj_reserved)
+                        prj = vil->prj_reserved;
+                        if (prj)
                         {
-                            VWEP_lobActivatePRJ(vil->prj_reserved, vil, xBoundCenter(&globals.player.ent.bound), NULL,
+                            VWEP_lobActivatePRJ(prj, vil, xBoundCenter(&globals.player.ent.bound), NULL,
                                                 &vil->vec_lobSpin, vil->fac_lobarc, vil->fac_lobheavy);
                         }
                     }
@@ -12605,7 +12626,10 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
             }
             else if (vil->tmr_list[28] <= 0.0f)
             {
-                VILN_BMM_teleport(vil, resp, 0);
+                if (VILN_BMM_teleport(vil))
+                {
+                    VILN_BMM_teleTran(resp, 0);
+                }
             }
         }
         break;
@@ -12632,8 +12656,9 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         }
         else if (vil->tmr_list[28] <= 0.0f)
         {
-            if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && VILN_BMM_teleport(vil, resp, 1))
+            if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && VILN_BMM_teleport(vil))
             {
+                VILN_BMM_teleTran(resp, 1);
                 break;
             }
             if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
@@ -12677,9 +12702,16 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
             }
             else if (an == 0x77 && vil->anim_playing)
             {
-                if (!VSND_isPlaying(vil, 1) && !VILN_BMM_teleport(vil, resp, 0))
+                if (!VSND_isPlaying(vil, 1))
                 {
-                    VILN_tran(resp, 0x11, 0);
+                    if (VILN_BMM_teleport(vil))
+                    {
+                        VILN_BMM_teleTran(resp, 0);
+                    }
+                    else
+                    {
+                        VILN_tran(resp, 0x11, 0);
+                    }
                 }
             }
             else
@@ -12716,7 +12748,7 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
 }
 
 // Pick another teleport point and request the teleport goal. Returns 1 if one was found.
-static inline signed int VILN_BMM_teleport(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp, signed int hurt)
+static inline signed int VILN_BMM_teleport(st_zEntVillain* vil)
 {
     signed int found = 0;
     _zMovePoint* mvpt;
@@ -12742,12 +12774,14 @@ static inline signed int VILN_BMM_teleport(st_zEntVillain* vil, st_STIMULUS_CONT
         tym = vil->vilcfg.tymref_list[3];
         vil->tmr_list[3] = VUTIL_jitter(tym);
     }
-    if (found)
-    {
-        VILN_tran(resp, 0x1D, 0);
-        resp->mm_teleport_hurtz_doggie = hurt;
-    }
     return found;
+}
+
+// The callers start the teleport themselves once a point was found.
+static inline void VILN_BMM_teleTran(st_STIMULUS_CONTEXT_DATA* resp, signed int hurt)
+{
+    VILN_tran(resp, 0x1D, 0);
+    resp->mm_teleport_hurtz_doggie = hurt;
 }
 
 static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt,
