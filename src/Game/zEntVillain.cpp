@@ -8589,6 +8589,8 @@ static signed int VILN_shark_aware(st_zEntVillain* vil, _xScene* scn, float dt, 
     switch (vil->goal)
     {
     case 0:
+        VILN_nocollide(vil);
+        break;
     case 1:
         VILN_nocollide(vil);
         break;
@@ -9245,10 +9247,17 @@ static signed int VILN_gang_aware(st_zEntVillain* vil, _xScene* scn, float dt, s
         {
             xSceneID2Name(globals.sceneCur, vil->id);
         }
-        if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && vil->sfx_curTalk &&
-            !iSndIsPlaying(0, (unsigned int)vil + 2))
+        if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && vil->sfx_curTalk && !VSND_isPlaying(vil, 2))
         {
-            xSceneID2Name(globals.sceneCur, vil->id);
+            if (vil->sfx_curTalk != (zSFX*)-1)
+            {
+                xSceneID2Name(globals.sceneCur, vil->id);
+                xSceneID2Name(globals.sceneCur, **(unsigned int**)((char*)vil->sfx_curTalk + 0x10));
+            }
+            else
+            {
+                xSceneID2Name(globals.sceneCur, vil->id);
+            }
             vil->sfx_curTalk = NULL;
             VILN_tran(resp, 4, 3);
         }
@@ -9317,19 +9326,21 @@ static inline void VILN_gangIdle(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* 
     {
         signed int anim = vil->anim_playnext;
 
-        vil->anim_loopmult = 0.97f;
         if (anim == 0x7D || (unsigned int)(anim - 0x7E) <= 1 || anim == 0x80)
         {
+            vil->anim_loopmult = 0.97f;
             vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)1);
             vil->tmr_list[0] = 5.0f * (0.25f * (iurand() - 0.5f)) + 5.0f;
         }
         else if (xUtil_yesno(0.35f))
         {
+            vil->anim_loopmult = 0.97f;
             vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)2);
             vil->tmr_list[0] = 2.0f * (0.25f * (iurand() - 0.5f)) + 2.0f;
         }
         else
         {
+            vil->anim_loopmult = 0.97f;
             vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)1);
             vil->tmr_list[0] = 5.0f * (0.25f * (iurand() - 0.5f)) + 5.0f;
         }
@@ -12478,7 +12489,7 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         }
         if (vil->allow & 0x10)
         {
-            if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && !iSndIsPlaying(0, (unsigned int)vil + 1))
+            if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && !VSND_isPlaying(vil, 1))
             {
                 VILN_tran(resp, 0x11, 0);
             }
@@ -12550,7 +12561,7 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
             }
             else if (an == 0x6D)
             {
-                if (vil->tmr_list[21] <= 0.0f && !iSndIsPlaying(0, (unsigned int)vil + 1))
+                if (vil->tmr_list[21] <= 0.0f && !VSND_isPlaying(vil, 1))
                 {
                     vil->anim_loopmult = 0.97f;
                     vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x15, (en_ZVIL_GOAL_SPOT)4);
@@ -12600,7 +12611,7 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         break;
     case 24:
         VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)8, dt);
-        if (vil->tmr_list[28] <= 0.0f && !iSndIsPlaying(0, (unsigned int)vil + 1))
+        if (vil->tmr_list[28] <= 0.0f && !VSND_isPlaying(vil, 1))
         {
             if (vil->tmr_list[4] <= 0.0f)
             {
@@ -12615,7 +12626,7 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         }
         break;
     case 28:
-        if (iSndIsPlaying(0, (unsigned int)vil + 1))
+        if (VSND_isPlaying(vil, 1))
         {
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 3.0f * (0.25f * (iurand() - 0.5f)) + 3.0f;
         }
@@ -12666,7 +12677,7 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
             }
             else if (an == 0x77 && vil->anim_playing)
             {
-                if (!iSndIsPlaying(0, (unsigned int)vil + 1) && !VILN_BMM_teleport(vil, resp, 0))
+                if (!VSND_isPlaying(vil, 1) && !VILN_BMM_teleport(vil, resp, 0))
                 {
                     VILN_tran(resp, 0x11, 0);
                 }
