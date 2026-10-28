@@ -17522,7 +17522,6 @@ static void VWEP_rbs_bupdate(_xEnt* ent_rbs, _xVec3* pos)
 static void VWEP_rbs_throw(st_REDBEARD_SWORD* rbs)
 {
     signed int rc;
-    _xMat4x3* mat;
 
     rbs->tym_age = 0.0f;
     rbs->dst_far = rbs->rbvil->dst_extend;
@@ -17530,24 +17529,23 @@ static void VWEP_rbs_throw(st_REDBEARD_SWORD* rbs)
     rbs->dir_end = rbs->rbvil->precalc.dir_VtoP;
     xVec3SMul(&rbs->pos_end, &rbs->dir_end, rbs->dst_far);
 
-    mat = (_xMat4x3*)rbs->frame;
-    xMat3x3Euler((_xMat3x3*)mat, 0.0f, 0.0f, 0.0f);
-    rc = VUTIL_tagpos(rbs->rbvil, 10, &mat->pos);
+    xMat3x3Euler((_xMat3x3*)rbs->frame, 0.0f, 0.0f, 0.0f);
+    rc = VUTIL_tagpos(rbs->rbvil, 10, &((_xMat4x3*)rbs->frame)->pos);
     if (!rc)
     {
-        rc = VUTIL_tagpos(rbs->rbvil, 6, &mat->pos);
+        rc = VUTIL_tagpos(rbs->rbvil, 6, &((_xMat4x3*)rbs->frame)->pos);
     }
     if (!rc)
     {
-        rc = VUTIL_tagpos(rbs->rbvil, 5, &mat->pos);
+        rc = VUTIL_tagpos(rbs->rbvil, 5, &((_xMat4x3*)rbs->frame)->pos);
     }
     if (!rc)
     {
-        rc = VUTIL_tagpos(rbs->rbvil, 9, &mat->pos);
+        rc = VUTIL_tagpos(rbs->rbvil, 9, &((_xMat4x3*)rbs->frame)->pos);
     }
     if (!rc)
     {
-        mat->pos = *xBoundCenter(&rbs->rbvil->bound);
+        ((_xMat4x3*)rbs->frame)->pos = *xBoundCenter(&rbs->rbvil->bound);
     }
 
     memcpy(rbs->model->Mat, rbs->frame, 0x40);
