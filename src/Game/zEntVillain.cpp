@@ -14686,6 +14686,8 @@ static void zVIL_upd_timers(st_zEntVillain* vil, float dt)
 
     switch (vil->goal)
     {
+    case 0:
+        break;
     case 9:
         VTMR_tick(vil, 15, dt);
     case 4:
@@ -14760,8 +14762,7 @@ static void zVIL_upd_timers(st_zEntVillain* vil, float dt)
 
 static inline void VTMR_tick(st_zEntVillain* vil, signed int idx, float dt)
 {
-    float t = vil->tmr_list[idx] - dt;
-    vil->tmr_list[idx] = (t < -1.0f) ? -1.0f : t;
+    vil->tmr_list[idx] = (vil->tmr_list[idx] - dt < -1.0f) ? -1.0f : vil->tmr_list[idx] - dt;
 }
 
 static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
