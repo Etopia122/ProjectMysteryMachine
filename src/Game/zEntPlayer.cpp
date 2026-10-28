@@ -3028,7 +3028,9 @@ static inline signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll)
     {
         if (!(globals.player.Inv_Specials & 0x800))
         {
-            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.ent.frame->mat.pos.x = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x;
+            globals.player.ent.frame->mat.pos.y = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.y;
+            globals.player.ent.frame->mat.pos.z = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z;
             globals.player.HeadbuttHit = 1;
             globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         }
@@ -3036,7 +3038,9 @@ static inline signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll)
         {
             zEntEvent((xBase*)coll->optr, 0x37);
             zEntPlayer_ButtonHBFX();
-            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.ent.frame->mat.pos.x = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x;
+            globals.player.ent.frame->mat.pos.y = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.y;
+            globals.player.ent.frame->mat.pos.z = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z;
             globals.player.HeadbuttHit = 1;
             globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         }
@@ -3119,7 +3123,9 @@ void DestructObjBBCheck(_xEnt* ent)
                         if (bounceResponse == 3 && buttonState != 2)
                         {
                             zEntEvent((xBase*)coll->optr, 0x3A);
-                            ent->frame->mat.pos = *(_xVec3*)&((_xMat4x3*)ent->model->Mat)->pos;
+                            ent->frame->mat.pos.x = ((_xMat4x3*)ent->model->Mat)->pos.x;
+                            ent->frame->mat.pos.y = ((_xMat4x3*)ent->model->Mat)->pos.y;
+                            ent->frame->mat.pos.z = ((_xMat4x3*)ent->model->Mat)->pos.z;
                             startBounce = ent->frame->mat.pos.y;
                             zEntPlayerJumpStart(ent, &globals.player.s.Bounce);
                             globals.player.Jump_CanDouble = 1;
@@ -3149,14 +3155,18 @@ static inline signed int DestructObjHBCallback(_zEnt* ent, _xCollis* coll)
     {
         if (!(globals.player.Inv_Specials & 0x800))
         {
-            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.ent.frame->mat.pos.x = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x;
+            globals.player.ent.frame->mat.pos.y = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.y;
+            globals.player.ent.frame->mat.pos.z = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z;
             globals.player.HeadbuttHit = 1;
             globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         }
         else
         {
             zEntEvent((xBase*)coll->optr, 0x3A);
-            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.ent.frame->mat.pos.x = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x;
+            globals.player.ent.frame->mat.pos.y = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.y;
+            globals.player.ent.frame->mat.pos.z = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z;
             if (dobjState != 1 || headResponse != 5)
             {
                 globals.player.HeadbuttHit = 1;
