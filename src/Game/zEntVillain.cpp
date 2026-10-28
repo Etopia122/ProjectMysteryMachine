@@ -13851,6 +13851,8 @@ static inline void zVIL_input_stim(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA
 static signed int zVIL_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt)
 {
     signed int rc = 1;
+    // Unreferenced in the original as well; only its guarded init remains.
+    static signed int unused_static = 0;
     st_STIMULUS_CONTEXT_DATA exitctxt = {};
     signed int i;
 
