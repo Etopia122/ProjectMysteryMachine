@@ -17200,6 +17200,8 @@ static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, zScene* scn, _xE
 
     switch (flask->stage)
     {
+    case MAST_STAGE_UNKNOWN:
+        break;
     case MAST_STAGE_TEASE:
         prj->SendEvent((en_PROJECTILE_EVENT)0xF, dt);
         prj->ColDelaySet(0.4f, 0);
@@ -17217,12 +17219,12 @@ static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, zScene* scn, _xE
     case MAST_STAGE_TOSS:
         if (flask->flg_stat & 2)
         {
-            ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
             _xVec3* tgt;
             _xVec3* src;
 
             flask->flg_stat &= ~2;
             prj->tmr_curstate = 0.0f;
+            ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
             aiminf.spd_base = flask->spd_flight;
             tgt = &((_xMat4x3*)globals.player.ent.model->Mat)->pos;
             src = &((_xMat4x3*)prj->model->Mat)->pos;
@@ -17390,17 +17392,17 @@ static inline void VPRJ_prjsound(st_zEntVillain* vil, zEntProjectile* prj, en_NP
 
 static inline void VPRJ_BMM_redflask(zEntProjectile* prj, float dt)
 {
-    _xCollis colrec = {};
-    float rad_oldbnd;
     st_ZVMM_FLASK_DATA* flask = (st_ZVMM_FLASK_DATA*)prj->xtradata;
-    _zParEmitterCustomSettings pecust;
+    float rad_oldbnd;
+    _xCollis colrec = {};
 
     if (flask->tym_aftermath < 0.1f)
     {
         return;
     }
     rad_oldbnd = prj->bound.sph.r;
-    prj->bound.sph.r = (prj->tmr_curstate / flask->tym_aftermath) * flask->rad_aftermath;
+    float frac = prj->tmr_curstate / flask->tym_aftermath;
+    prj->bound.sph.r = frac * flask->rad_aftermath;
     xBoundHitsBound(&prj->bound, &globals.player.ent.bound, &colrec);
     if (colrec.flags & 1)
     {
@@ -17408,24 +17410,22 @@ static inline void VPRJ_BMM_redflask(zEntProjectile* prj, float dt)
         prj->SendEvent(ZPRJ_EVNT_HITPLYR);
     }
     prj->bound.sph.r = rad_oldbnd;
-    pecust.custom_flags = 0x20;
-    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
-    zParEmitterEmitCustom(sEmitMMRedFlask, dt, &pecust);
+    VPRJ_emitat(sEmitMMRedFlask, prj, dt);
 }
 
 static inline void VPRJ_BMM_greenflask(zEntProjectile* prj, float dt)
 {
-    _xCollis colrec = {};
-    float rad_oldbnd;
     st_ZVMM_FLASK_DATA* flask = (st_ZVMM_FLASK_DATA*)prj->xtradata;
-    _zParEmitterCustomSettings pecust;
+    float rad_oldbnd;
+    _xCollis colrec = {};
 
     if (flask->tym_aftermath < 0.1f)
     {
         return;
     }
     rad_oldbnd = prj->bound.sph.r;
-    prj->bound.sph.r = (prj->tmr_curstate / flask->tym_aftermath) * flask->rad_aftermath;
+    float frac = prj->tmr_curstate / flask->tym_aftermath;
+    prj->bound.sph.r = frac * flask->rad_aftermath;
     xBoundHitsBound(&prj->bound, &globals.player.ent.bound, &colrec);
     if (colrec.flags & 1)
     {
@@ -17433,24 +17433,22 @@ static inline void VPRJ_BMM_greenflask(zEntProjectile* prj, float dt)
         prj->SendEvent(ZPRJ_EVNT_HITPLYR);
     }
     prj->bound.sph.r = rad_oldbnd;
-    pecust.custom_flags = 0x20;
-    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
-    zParEmitterEmitCustom(sEmitMMGreenFlask, dt, &pecust);
+    VPRJ_emitat(sEmitMMGreenFlask, prj, dt);
 }
 
 static inline void VPRJ_BMM_blackflask(zEntProjectile* prj, float dt)
 {
-    _xCollis colrec = {};
-    float rad_oldbnd;
     st_ZVMM_FLASK_DATA* flask = (st_ZVMM_FLASK_DATA*)prj->xtradata;
-    _zParEmitterCustomSettings pecust;
+    float rad_oldbnd;
+    _xCollis colrec = {};
 
     if (flask->tym_aftermath < 0.1f)
     {
         return;
     }
     rad_oldbnd = prj->bound.sph.r;
-    prj->bound.sph.r = (prj->tmr_curstate / flask->tym_aftermath) * flask->rad_aftermath;
+    float frac = prj->tmr_curstate / flask->tym_aftermath;
+    prj->bound.sph.r = frac * flask->rad_aftermath;
     xBoundHitsBound(&prj->bound, &globals.player.ent.bound, &colrec);
     if (colrec.flags & 1)
     {
@@ -17458,9 +17456,7 @@ static inline void VPRJ_BMM_blackflask(zEntProjectile* prj, float dt)
         prj->SendEvent(ZPRJ_EVNT_HITPLYR);
     }
     prj->bound.sph.r = rad_oldbnd;
-    pecust.custom_flags = 0x20;
-    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
-    zParEmitterEmitCustom(sEmitMMBlackFlask, dt, &pecust);
+    VPRJ_emitat(sEmitMMBlackFlask, prj, dt);
 }
 
 static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil)
