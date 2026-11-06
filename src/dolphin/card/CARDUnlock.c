@@ -1,4 +1,6 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDUnlock.c"
+#include "dolphin/card/card_dbg.h"
 
 static u8 CardData[352] ATTRIBUTE_ALIGN(32) = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -106,7 +108,7 @@ static s32 ReadArrayUnlock(s32 chan, u32 data, void* rbuf, s32 rlen, int mode) {
     BOOL err;
     u8 cmd[5];
 
-    ASSERTLINE(240, 0 <= chan && chan < 2);
+    ASSERTLINE(229, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
     if (!EXISelect(chan, 0, 4))
@@ -315,7 +317,7 @@ static void InitCallback(void* _task) {
             break;
     }
 
-    ASSERTLINE(514, 0 <= chan && chan < 2);
+    ASSERTLINE(503, 0 <= chan && chan < 2);
     
     param = (CARDDecParam*)card->workArea;
 
@@ -354,7 +356,7 @@ static void DoneCallback(void* _task) {
             break;
     }
 
-    ASSERTLINE(563, 0 <= chan && chan < 2);
+    ASSERTLINE(552, 0 <= chan && chan < 2);
 
     param = (CARDDecParam*)card->workArea;
     input = (u8*)((u8*)param + sizeof(CARDDecParam));

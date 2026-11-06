@@ -125,8 +125,14 @@ void* RwIm3DTransform(RxObjSpace3DVertex* pVerts, unsigned int numVerts, RwMatri
                       unsigned int flags);
 signed int RwIm3DRenderPrimitive(signed int primType);
 signed int RwIm3DEnd();
-signed short fn_800C751C(signed short last, float* pitch, signed int range, float scale);
+#ifndef PC_PORT
+signed int zPitchChange(signed int angle, float* offset, signed int range, float max);
+#endif
 }
+#ifdef PC_PORT
+// zPitchChange.cpp defines it as a C++ function; the port links it by that name.
+signed int zPitchChange(signed int angle, float* offset, signed int range, float max);
+#endif
 
 xAnimState* xAnimTableGetState(xAnimTable* table, char* name);
 void xAnimTableRemoveEffectByCB(xAnimTable* table, xAnimEffectCallback callback);
@@ -389,16 +395,16 @@ void zFeetInit(signed int ent_type, _xEnt* owner, tagzFeet* feet, signed int fee
 // TODO: 99.8%. feet and collided_with_ground swap r27/r29.
 static unsigned int zFeetStepCB(unsigned int, xAnimActiveEffect* acteffect, xAnimSingle*, void*)
 {
-    _xVec3 angles;
-    xBase* b;
-    float pitch;
-    signed int surface_type;
-    signed int collided_with_ground;
-    _xRay3 ray;
-    _zParEmitterCustomSettings info;
-    _xEnt* ent;
-    tagzFeet* feet;
     _tagFoot* foot;
+    tagzFeet* feet;
+    _xEnt* ent;
+    _zParEmitterCustomSettings info;
+    _xRay3 ray;
+    signed int collided_with_ground;
+    signed int surface_type;
+    float pitch;
+    xBase* b;
+    _xVec3 angles;
 
     if (zMenuRunning())
     {
@@ -438,7 +444,7 @@ static unsigned int zFeetStepCB(unsigned int, xAnimActiveEffect* acteffect, xAni
 
     if (sSurfaceSoundIDStep[surface_type] != 0)
     {
-        feet->pitch = fn_800C751C(feet->pitch, &pitch, 45, 3.0f);
+        feet->pitch = zPitchChange(feet->pitch, &pitch, 45, 3.0f);
         if (xSndPlay3D(sSurfaceSoundIDStep[surface_type], 0.25f, pitch, 0, 2, &info.pos, 25.0f) ==
             0xFFFFFFFF)
         {
@@ -498,7 +504,7 @@ static unsigned int zFeetStepVillainCB(unsigned int, xAnimActiveEffect* acteffec
 
     if (sSurfaceSoundIDStep[surface_type] != 0)
     {
-        feet->pitch = fn_800C751C(feet->pitch, &pitch, 45, 3.0f);
+        feet->pitch = zPitchChange(feet->pitch, &pitch, 45, 3.0f);
         if (xSndPlay3D(sSurfaceSoundIDStep[surface_type], 0.25f, pitch, 0, 2, &info.pos, 25.0f) ==
             0xFFFFFFFF)
         {

@@ -544,12 +544,12 @@ static void CalcPhysFromKeys(xAnimFile* data, float* k0, float* k1, float* d0, f
 
     if (flags & 0x1000)
     {
-        float* tmp = k0;
+        float* tk = k0;
+        float* td = d0;
         k0 = k1;
-        k1 = tmp;
-        tmp = d0;
         d0 = d1;
-        d1 = tmp;
+        k1 = tk;
+        d1 = td;
     }
     if (flags & 0x2000)
     {
@@ -630,12 +630,12 @@ static void CalcPhys(xAnimFile* data)
     }
 
     void* raw = *data->RawData;
-    _xQuat quat;
-    float k0[4];
     float k1[4];
     float k2[4];
+    float k0[4];
     float d0[4];
     float d1[4];
+    _xQuat quat;
 
     iAnimEval(raw, 0.0f, 1, (_xVec3*)k0, &quat);
     k0[3] = xAnimQuatYaw(&quat);
@@ -949,7 +949,7 @@ void xAnimFileEval(xAnimFile* data, float time, float* bilinear, unsigned int fl
                 }
                 else
                 {
-                    root[i] = t * data->PhysDelta[i] + data->PhysBase[i] + root[i + 3];
+                    root[i] = t * data->PhysDelta[i] + data->PhysBase[i] + root[(unsigned int)i + 3];
                 }
             }
 
@@ -2106,7 +2106,7 @@ void xAnimPlayEval(xAnimPlay* play)
             unsigned short* blendO = NULL;
             SingleEval(si, tranblend, quatblend);
 
-            if ((si->Blend == NULL || si->Blend->State == NULL) && si->BlendFactor != 0.0f)
+            if ((si->Blend == NULL || si->Blend->State == NULL) && si->BlendFactor)
             {
                 if (si->Tran != NULL)
                 {

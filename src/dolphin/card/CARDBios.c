@@ -1,10 +1,24 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDBios.c"
+#include "dolphin/card/card_dbg.h"
 
+#if !defined(VERSION_GIHE78)
 const char* __CARDVersion = "<< Dolphin SDK - CARD\trelease build: Sep  5 2002 05:35:20 (0x2301) >>";
+#endif
 
 CARDControl __CARDBlock[2];
 
+#if !defined(VERSION_GIHE78)
 static u16 __CARDEncode;
+#endif
+
+#if defined(VERSION_GIHE78)
+// The older SDK reads the EXI clock from a variable.
+u32 __CARDFreq = 4;
+#define CARD_EXI_FREQ __CARDFreq
+#else
+#define CARD_EXI_FREQ 4
+#endif
 
 DVDDiskID __CARDDiskNone;
 
@@ -35,11 +49,11 @@ void __CARDExtHandler(s32 chan, OSContext* context) {
     CARDControl* card;
     CARDCallback callback;
 
-    ASSERTLINE(232, 0 <= chan && chan < 2);
+    ASSERTLINE(209, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
     if (card->attached) {
-        ASSERTLINE(239, card->txCallback == 0);
+        ASSERTLINE(216, card->txCallback == 0);
         card->attached = FALSE;
         EXISetExiCallback(chan, 0);
         OSCancelAlarm(&card->alarm);
@@ -68,7 +82,7 @@ void __CARDExiHandler(s32 chan, OSContext* context) {
     u8 status;
     s32 result;
 
-    ASSERTLINE(283, 0 <= chan && chan < 2);
+    ASSERTLINE(260, 0 <= chan && chan < 2);
     card = &__CARDBlock[chan];
 
     OSCancelAlarm(&card->alarm);
@@ -113,7 +127,7 @@ void __CARDTxHandler(s32 chan, OSContext* context) {
     CARDCallback callback;
     int err;
 
-    ASSERTLINE(365, 0 <= chan && chan < 2);
+    ASSERTLINE(342, 0 <= chan && chan < 2);
     
     card = &__CARDBlock[chan];
     err = !EXIDeselect(chan);
@@ -129,7 +143,7 @@ void __CARDUnlockedHandler(s32 chan, OSContext* context) {
     CARDControl* card;
     CARDCallback callback;
 
-    ASSERTLINE(412, 0 <= chan && chan < 2);
+    ASSERTLINE(389, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
     callback = card->unlockCallback;
@@ -143,9 +157,9 @@ s32 __CARDEnableInterrupt(s32 chan, BOOL enable) {
     BOOL err;
     u32 cmd;
 
-    ASSERTLINE(431, 0 <= chan && chan < 2);
+    ASSERTLINE(408, 0 <= chan && chan < 2);
 
-    if (!EXISelect(chan, 0, 4)) {
+    if (!EXISelect(chan, 0, CARD_EXI_FREQ)) {
         return CARD_RESULT_NOCARD;
     }
 
@@ -161,9 +175,9 @@ s32 __CARDReadStatus(s32 chan, u8* status) {
     BOOL err;
     u32 cmd;
 
-    ASSERTLINE(450, 0 <= chan && chan < 2);
+    ASSERTLINE(427, 0 <= chan && chan < 2);
 
-    if (!EXISelect(chan, 0, 4)) {
+    if (!EXISelect(chan, 0, CARD_EXI_FREQ)) {
         return CARD_RESULT_NOCARD;
     }
 
@@ -181,9 +195,9 @@ s32 __CARDClearStatus(s32 chan) {
     BOOL err;
     u32 cmd;
 
-    ASSERTLINE(492, 0 <= chan && chan < 2);
+    ASSERTLINE(448, 0 <= chan && chan < 2);
 
-    if (!EXISelect(chan, 0, 4)) {
+    if (!EXISelect(chan, 0, CARD_EXI_FREQ)) {
         return CARD_RESULT_NOCARD;
     }
 
@@ -207,7 +221,7 @@ static void TimeoutHandler(OSAlarm* alarm, OSContext* context) {
         }
     }
 
-    ASSERTLINE(578, 0 <= chan && chan < 2);
+    ASSERTLINE(534, 0 <= chan && chan < 2);
 
     if (!card->attached) {
         return;
@@ -241,10 +255,10 @@ static void SetupTimeoutAlarm(CARDControl* card) {
 static s32 Retry(s32 chan) {
     CARDControl* card;
 
-    ASSERTLINE(654, 0 <= chan && chan < 2);
+    ASSERTLINE(602, 0 <= chan && chan < 2);
     
     card = &__CARDBlock[chan];
-    if (!EXISelect(chan, 0, 4)) {
+    if (!EXISelect(chan, 0, CARD_EXI_FREQ)) {
         EXIUnlock(chan);
         return CARD_RESULT_NOCARD;
     }
@@ -286,7 +300,7 @@ static void UnlockedCallback(s32 chan, s32 result) {
     CARDCallback callback;
     CARDControl* card;
 
-    ASSERTLINE(718, 0 <= chan && chan < 2);
+    ASSERTLINE(666, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
     if (result >= 0) {
@@ -328,7 +342,7 @@ static s32 __CARDStart(s32 chan, CARDCallback txCallback, CARDCallback exiCallba
 
     enabled = OSDisableInterrupts();
 
-    ASSERTLINE(784, 0 <= chan && chan < 2);
+    ASSERTLINE(732, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
     if (!card->attached) {
@@ -349,7 +363,7 @@ static s32 __CARDStart(s32 chan, CARDCallback txCallback, CARDCallback exiCallba
         } else {
             card->unlockCallback = 0;
 
-            if (!EXISelect(chan, 0, 4)) {
+            if (!EXISelect(chan, 0, CARD_EXI_FREQ)) {
                 EXIUnlock(chan);
                 result = CARD_RESULT_NOCARD;
             } else {
@@ -373,11 +387,11 @@ s32 __CARDReadSegment(s32 chan, CARDCallback callback) {
     CARDControl* card;
     s32 result;
 
-    ASSERTLINE(846, 0 <= chan && chan < 2);
+    ASSERTLINE(794, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
-    ASSERTLINE(848, card->addr % CARD_SEG_SIZE == 0);
-    ASSERTLINE(849, card->addr < (u32) card->size * 1024 * 1024 / 8);
+    ASSERTLINE(796, card->addr % CARD_SEG_SIZE == 0);
+    ASSERTLINE(797, card->addr < (u32) card->size * 1024 * 1024 / 8);
 
     card->cmd[0] = 0x52;
     card->cmd[1] = AD1(card->addr);
@@ -413,11 +427,15 @@ s32 __CARDWritePage(s32 chan, CARDCallback callback) {
     CARDControl* card;
     s32 result;
 
-    ASSERTLINE(903, 0 <= chan && chan < 2);
+    ASSERTLINE(851, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
-    ASSERTLINE(905, card->addr % card->pageSize == 0);
-    ASSERTLINE(906, card->addr < (u32) card->size * 1024 * 1024 / 8);
+#if defined(VERSION_GIHE78)
+    ASSERTLINE(853, card->addr % CARD_PAGE_SIZE == 0);
+#else
+    ASSERTLINE(853, card->addr % card->pageSize == 0);
+#endif
+    ASSERTLINE(854, card->addr < (u32) card->size * 1024 * 1024 / 8);
     card->cmd[0] = 0xF2;
     card->cmd[1] = AD1(card->addr);
     card->cmd[2] = AD2(card->addr);
@@ -450,11 +468,11 @@ s32 __CARDEraseSector(s32 chan, u32 addr, CARDCallback callback) {
     CARDControl* card;
     s32 result;
 
-    ASSERTLINE(1010, 0 <= chan && chan < 2);
+    ASSERTLINE(951, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
-    ASSERTLINE(1012, addr % card->sectorSize == 0);
-    ASSERTLINE(1013, addr < (u32) card->size * 1024 * 1024 / 8);
+    ASSERTLINE(953, addr % card->sectorSize == 0);
+    ASSERTLINE(954, addr < (u32) card->size * 1024 * 1024 / 8);
 
     card->cmd[0] = 0xF1;
     card->cmd[1] = AD1(addr);
@@ -488,9 +506,10 @@ void CARDInit(void) {
         return;
     }
 
+#if !defined(VERSION_GIHE78)
     __CARDEncode = OSGetFontEncode();
-
     OSRegisterVersion(__CARDVersion);
+#endif
 
     DSPInit();
     OSInitAlarm();
@@ -507,9 +526,11 @@ void CARDInit(void) {
     OSRegisterResetFunction(&ResetFunctionInfo);
 }
 
+#if !defined(VERSION_GIHE78)
 u16 __CARDGetFontEncode(void) {
     return __CARDEncode;
 }
+#endif
 
 void __CARDSetDiskID(const DVDDiskID* id) {
     __CARDBlock[0].diskID = id ? id : &__CARDDiskNone;
@@ -547,7 +568,7 @@ s32 __CARDGetControlBlock(s32 chan, CARDControl** pcard) {
 s32 __CARDPutControlBlock(CARDControl* card, s32 result) {
     BOOL enabled;
 
-    ASSERTLINE(1259, result != CARD_RESULT_BUSY);
+    ASSERTLINE(1147, result != CARD_RESULT_BUSY);
 
     enabled = OSDisableInterrupts();
     if (card->attached) {
@@ -563,7 +584,7 @@ s32 __CARDPutControlBlock(CARDControl* card, s32 result) {
 s32 CARDGetResultCode(s32 chan) {
     CARDControl* card;
     
-    ASSERTLINE(1292, 0 <= chan && chan < 2);
+    ASSERTLINE(1180, 0 <= chan && chan < 2);
 
     if (chan < 0 || chan >= 2) {
         return CARD_RESULT_FATAL_ERROR;
@@ -607,6 +628,34 @@ s32 CARDFreeBlocks(s32 chan, s32* byteNotUsed, s32* filesNotUsed) {
 
     return __CARDPutControlBlock(card, CARD_RESULT_READY);
 }
+
+#if defined(VERSION_GIHE78)
+s32 CARDGetEncoding(s32 chan, u16* encode) {
+    CARDControl* card;
+    CARDID* id;
+    s32 result;
+
+    result = __CARDGetControlBlock(chan, &card);
+    if (result < 0) {
+        return result;
+    }
+    id = card->workArea;
+    *encode = id->encode;
+    return __CARDPutControlBlock(card, CARD_RESULT_READY);
+}
+
+s32 CARDGetSectorSize(s32 chan, u32* size) {
+    CARDControl* card;
+    s32 result;
+
+    result = __CARDGetControlBlock(chan, &card);
+    if (result < 0) {
+        return result;
+    }
+    *size = card->sectorSize;
+    return __CARDPutControlBlock(card, CARD_RESULT_READY);
+}
+#endif
 
 s32 __CARDSync(s32 chan) {
     CARDControl* block;

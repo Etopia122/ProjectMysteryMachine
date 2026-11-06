@@ -554,7 +554,7 @@ void zPlatform_Tremble(_zPlatform* plat, float ampl, float freq, float dur)
     }
 }
 
-void zPlatform_Dismount()
+void zPlatform_Dismount(_zPlatform*)
 {
 }
 

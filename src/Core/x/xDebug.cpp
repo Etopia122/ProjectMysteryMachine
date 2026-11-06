@@ -70,3 +70,11 @@ void xDebugInit()
         }
     }
 }
+
+void xDebugUpdate()
+{
+}
+
+void xDebugExit()
+{
+}

@@ -120,9 +120,11 @@ char* xStrTokBuffer(char* string, char* control, void* buffer)
 
 signed int xStricmp(char* string1, char* string2)
 {
-    // TODO: nearly matching; the loop compare and final comparison use the
-    // operands in a different register order than the original.
+    // TODO: 99%. The loop compare has its operands swapped and the inlined
+    // xToUpper flag does not reuse the 1 in r.
     signed int done = 0;
+    signed int r;
+    signed int u2;
 
     while (xToUpper(*string2) == xToUpper(*string1) && !done)
     {
@@ -137,11 +139,17 @@ signed int xStricmp(char* string1, char* string2)
         }
     }
 
-    if (*string1 == *string2)
+    r = 0;
+    if (*string1 != *string2)
     {
-        return 0;
+        r = 1;
+        u2 = xToUpper(*string2);
+        if (xToUpper(*string1) < u2)
+        {
+            r = -1;
+        }
     }
-    return (xToUpper(*string2) > xToUpper(*string1)) ? -1 : 1;
+    return r;
 }
 
 char* xStrupr(char* string)

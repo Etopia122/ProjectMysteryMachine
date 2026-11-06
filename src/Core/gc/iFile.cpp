@@ -303,7 +303,7 @@ signed int iFileReadAsync(tag_xFile* file, void* buf, unsigned int aSize,
 
             ps->fileInfo.cb.userData = (void*)i;
             DVDReadAsyncPrio(&ps->fileInfo, buf, aSize, ps->offset, async_cb, 2);
-            return i + id;
+            return id + i;
         }
     }
 

@@ -282,6 +282,30 @@ RwInt32 RxRenderStateVectorSetDefaultRenderStateVector(RxRenderStateVector* r)
     return 1;
 }
 
+// The GameCube's RxRenderStateVectorLoadDriverState (p2/renderstate.c): reads the
+// states the driver has now. iFont and iShadow save the states around their own
+// draws with it and put them back afterwards.
+RxRenderStateVector* RxRenderStateVectorLoadDriverState(RxRenderStateVector* r)
+{
+    if (r == NULL)
+    {
+        return NULL;
+    }
+    memset(r, 0, sizeof(*r));
+    // The flag bits are rxRENDERSTATEFLAG_* (p2renderstate.c).
+    r->Flags = (s_rs.zTest ? 0x02 : 0) | (s_rs.zWrite ? 0x04 : 0) | (s_rs.vertexAlpha ? 0x08 : 0);
+    r->ShadeMode = 2;
+    r->SrcBlend = s_rs.srcBlend;
+    r->DestBlend = s_rs.dstBlend;
+    r->TextureRaster = s_rs.raster;
+    r->AddressModeU = s_rs.addrU;
+    r->AddressModeV = s_rs.addrV;
+    r->FilterMode = s_rs.filter;
+    r->FogType = 1;
+    r->FogColor = s_rs.fogColor;
+    return r;
+}
+
 }
 
 // Debug: PC_TRACE_AT=<seconds> logs the next ~60 clears/camera begins/presents.
@@ -394,6 +418,16 @@ static void target_camera(RwCamera* c)
     {
         gpu_set_target(NULL);
     }
+}
+
+// GameCube RenderWare driver: copies the frame buffer into a raster
+// (driver/gcn/dlraster.c). Every camera here draws into its own raster (see
+// target_camera above), so a shadow camera's pass leaves the rest of the frame
+// untouched and there is nothing to save: xShadow's save and restore of the
+// frame's top-left 256x256 corner is a no-op copy.
+extern "C" void _rwDlRasterCopyEFB(RwRaster* raster)
+{
+    (void)raster;
 }
 
 void pc_render_begin_camera(RwCamera* c)

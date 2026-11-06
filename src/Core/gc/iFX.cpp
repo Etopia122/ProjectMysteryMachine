@@ -69,7 +69,6 @@ RxPipeline* iFXanimUVCreatePipe()
 
 void iFXWarbSetParams(unsigned int mode, float* val);
 
-// TODO (96.8%): the original still tests the coeffs address before the copy.
 void iFXWarbInit(void* vp_ent, unsigned int warb_mode)
 {
     _xEnt* ent = (_xEnt*)vp_ent;
@@ -90,7 +89,7 @@ void iFXWarbInit(void* vp_ent, unsigned int warb_mode)
         ent->asset->seeThruSpeed = 0.0f;
     }
     float coeffs[4] = { 0.5f, 2.0f, 0.9f, 1.0f };
-    iFXWarbSetParams(warb_mode, coeffs);
+    iFXWarbSetParams(warb_mode, (float*)&coeffs);
     warbEnt = ent;
     warbTime = 0.0f;
 }
@@ -175,7 +174,8 @@ static void iFXwarb(_xVec3* orig_verts, _xVec3* norms, RpGeometry* geom)
     case 5:
     {
         float ooy;
-        miny = maxy = orig_verts->y;
+        miny = orig_verts->y;
+        maxy = orig_verts->y;
         for (i = 0; i < geom->numVertices; i++, ov++)
         {
             miny = miny < ov->y ? miny : ov->y;
@@ -206,7 +206,8 @@ static void iFXwarb(_xVec3* orig_verts, _xVec3* norms, RpGeometry* geom)
     case 6:
     {
         float edge;
-        miny = maxy = orig_verts->y;
+        miny = orig_verts->y;
+        maxy = orig_verts->y;
         for (i = 0; i < geom->numVertices; i++, ov++)
         {
             miny = miny < ov->y ? miny : ov->y;
@@ -221,10 +222,9 @@ static void iFXwarb(_xVec3* orig_verts, _xVec3* norms, RpGeometry* geom)
             float mul;
             if (ov->y >= miny && ov->y <= maxy)
             {
-                mul = ov->y - miny;
-                mul = (mul < maxy - ov->y) ? mul : maxy - ov->y;
-                float a = fmod(warbc[1] * (-t + mul), WARB_2PI);
-                mul = mul * (warbc[0] * isin(a));
+                float m = (ov->y - miny < maxy - ov->y) ? ov->y - miny : maxy - ov->y;
+                float a = fmod(warbc[1] * (-t + m), WARB_2PI);
+                mul = m * (warbc[0] * isin(a));
             }
             else
             {

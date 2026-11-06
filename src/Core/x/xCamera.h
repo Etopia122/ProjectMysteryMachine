@@ -195,7 +195,7 @@ public:
 };
 
 _xMat4x3* xCameraGetCurMatrix(_tagxCamFrame* cam);
-void xCameraTargetOnGround(signed int on_ground);
+void xCameraTargetOnGround(signed int on_ground, float ground_height);
 void xCameraPickInitial(_tagxCamFrame* cam, _tagxCam* c);
 void xCameraPickInitial(_tagxCamFrame* cam, unsigned int init_id);
 void xCameraNext(_tagxCamFrame* cam, _tagxCam* trans_cam);

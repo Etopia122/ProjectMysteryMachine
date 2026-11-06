@@ -173,7 +173,7 @@ void fn_80014A34(signed int);
 void fn_800167F0();
 void fn_800443AC();
 unsigned int fn_800443F8();
-signed int fn_80164200();
+signed int RwResourcesGetArenaSize();
 extern RwModuleInfo lbl_8025F798; // resourcesModule
 extern unsigned char* RwEngineInstance;
 extern _tagxPad mPad;
@@ -267,9 +267,10 @@ signed int iFMVPlay(char* filename, unsigned int buttons, float time)
 
 static void DrawFrame(float x, float y, float sx, float sy)
 {
-    GXRenderModeObj* rm = lbl_8025F860;
-    float mtx[4][4];
     float idt[3][4];
+    float mtx[4][4];
+    GXRenderModeObj* rm;
+    rm = lbl_8025F860;
 
     GXSetViewport(0.0f, 0.0f, rm->fbWidth, rm->efbHeight, 0.0f, 1.0f);
     GXSetScissor(0, 0, rm->fbWidth, rm->efbHeight);
@@ -441,7 +442,7 @@ static void PlayFMV(char* fname, unsigned int buttons, float time)
         return;
     }
     sResEntry = entry;
-    OSReport("RW resource arena size:  %d bytes\n", fn_80164200());
+    OSReport("RW resource arena size:  %d bytes\n", RwResourcesGetArenaSize());
     OSReport("RW rep entry:        %08X-%08X\n", (unsigned char*)entry + 0x18,
              (unsigned char*)entry + 0x3E0017);
     sWorkBase = (unsigned char*)entry + 0x18;

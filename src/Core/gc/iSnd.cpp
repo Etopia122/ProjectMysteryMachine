@@ -439,11 +439,7 @@ static void arqcb(unsigned long pointerToARQRequest)
 {
     iSndStream* s = (iSndStream*)((ARQRequest*)pointerToARQRequest)->owner;
     unsigned int left = s->size - s->read;
-    if (((ARQRequest*)pointerToARQRequest)->length == 0)
-    {
-        return;
-    }
-    if (s->vinf.voice == NULL)
+    if (((ARQRequest*)pointerToARQRequest)->length == 0 || s->vinf.voice == NULL)
     {
         return;
     }
@@ -1178,11 +1174,11 @@ unsigned int iSndPlayStream(xSndVoiceInfo* vp)
         AXPBADDR addr;
         memcpy(&addr, &s->info.loop_flag, sizeof(AXPBADDR));
         PC_FIX_ADDR_HALVES(&addr);
-        unsigned int start = s->dest_a * 2;
+        unsigned int base = s->dest_a * 2;
         addr.loopFlag = 1;
         addr.format = 0;
-        unsigned int end = start + 0xBB7F;
-        start += 2;
+        unsigned int start = base + 2;
+        unsigned int end = base + 0xBB7F;
         addr.loopAddressHi = start >> 16;
         addr.loopAddressLo = start;
         addr.currentAddressHi = start >> 16;
@@ -1195,8 +1191,8 @@ unsigned int iSndPlayStream(xSndVoiceInfo* vp)
         AXSetVoiceType(s->vinf.voice, 1);
 
         float ratio = (float)s->info.sample_rate / 32000.0f;
-        s->vinf.voice->pb.ratioHi = (signed int)ratio;
-        s->vinf.voice->pb.ratioLo = (signed int)(65536.0f * ratio);
+        s->vinf.voice->pb.ratioHi = ratio;
+        s->vinf.voice->pb.ratioLo = 65536.0f * ratio;
         s->vinf.voice->sync |= 0x80000000;
         streams[idx].vinf.x14 = 0x7FFFFFFF;
         streams[idx].vinf.x1c = 0x7FFFFFFF;
@@ -1238,8 +1234,10 @@ unsigned int iSndPlaySound(xSndVoiceInfo* vp)
         lookupFromScene = 0;
     }
 
-    unsigned int priority = vp->priority;
-    signed int idx = vp - gSnd.voice;
+    signed int idx;
+    unsigned int priority;
+    priority = vp->priority;
+    idx = vp - gSnd.voice;
     if (priority >= 0xFF)
     {
         priority = 0xFF;

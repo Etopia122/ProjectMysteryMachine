@@ -7,7 +7,7 @@ char* strncpy(char* dst, const char* src, unsigned int n);
 void exit(int status);
 
 void fn_800167F0();
-void fn_80164200();
+void RwResourcesGetArenaSize();
 }
 
 enum en_READ_ASYNC_STATUS
@@ -300,8 +300,8 @@ static void* PKR_getmem(signed int amount, signed int isTemp)
         }
         else
         {
-            memptr =
-                (void*)(((unsigned int)xMemAlloc(gActiveHeap, amount + 0x3F) + 0x3F) & ~0x3F);
+            memptr = xMemAlloc(gActiveHeap, amount + 0x3F);
+            memptr = (void*)(((unsigned int)memptr + 0x3F) & ~0x3F);
         }
         if (memptr)
         {
@@ -416,6 +416,7 @@ static inline signed int PKR_layerTypeNeedsXForm(en_LAYER_TYPE layer)
 
 static inline void PKR_xformLayerAssets(st_PACKER_LTOC_NODE* laynode)
 {
+    signed int i;
     signed int will_be_dumped = 0;
 
     if (PKR_layerLoadDest(laynode->laytyp) == PKR_LDDEST_RWHANDOFF)
@@ -423,7 +424,7 @@ static inline void PKR_xformLayerAssets(st_PACKER_LTOC_NODE* laynode)
         will_be_dumped = 1;
     }
 
-    for (signed int i = 0; i < laynode->assref.cnt; i++)
+    for (i = 0; i < laynode->assref.cnt; i++)
     {
         st_PACKER_ATOC_NODE* tmpass = (st_PACKER_ATOC_NODE*)laynode->assref.list[i];
         if (!(tmpass->loadflag & 0x100000))
@@ -439,9 +440,8 @@ static inline void PKR_xformLayerAssets(st_PACKER_LTOC_NODE* laynode)
 
 static st_PACKER_ATOC_NODE* PKR_newassnode(st_PACKER_READ_DATA* pr, unsigned int aid)
 {
-    signed int idx = pr->pool_nextaidx;
-    st_PACKER_ATOC_NODE* newnode = &pr->pool_anode[idx];
-    pr->pool_nextaidx = idx + 1;
+    st_PACKER_ATOC_NODE* newnode = &pr->pool_anode[pr->pool_nextaidx];
+    pr->pool_nextaidx++;
 
     memset(newnode, 0, sizeof(st_PACKER_ATOC_NODE));
     newnode->aid = aid;
@@ -1096,7 +1096,7 @@ static char* PKR_RWarenaAlloc(st_PACKER_READ_DATA* pr, signed int size)
     char* mem;
 
     fn_800167F0();
-    fn_80164200();
+    RwResourcesGetArenaSize();
     g_RWarena_resEntry =
         RwResourcesAllocateResEntry(pr, &g_RWarena_resOwner, size + 0x80, PKR_special_loadbuf_killed);
     if (g_RWarena_resEntry == 0)
@@ -1245,14 +1245,7 @@ void PKR_xform_asset(st_PACKER_ATOC_NODE* assnode)
 #endif
     if (!(assnode->infoflag & 4))
     {
-        if (assnode->typeref == 0)
-        {
-            return;
-        }
-        if (assnode->typeref->readXForm != 0)
-        {
-        }
-        else
+        if (assnode->typeref == 0 || assnode->typeref->readXForm == 0)
         {
             return;
         }
@@ -1666,6 +1659,7 @@ void PKR_bld_typecnt(st_PACKER_READ_DATA* pr)
     st_PACKER_ATOC_NODE* assnode;
     signed int j;
     signed int i;
+    signed int idx;
     signed int typcnt[129] = {};
     unsigned int lasttype = 0;
     signed int lastidx = 0;
@@ -1678,7 +1672,6 @@ void PKR_bld_typecnt(st_PACKER_READ_DATA* pr)
             assnode = (st_PACKER_ATOC_NODE*)laynode->assref.list[j];
             if (!(assnode->loadflag & 0x100000) && !(assnode->loadflag & 0x200000))
             {
-                signed int idx;
                 if (lasttype != 0 && assnode->asstype == lasttype)
                 {
                     idx = lastidx;
@@ -1718,7 +1711,6 @@ void PKR_bld_typecnt(st_PACKER_READ_DATA* pr)
             assnode = (st_PACKER_ATOC_NODE*)laynode->assref.list[j];
             if (!(assnode->loadflag & 0x100000) && !(assnode->loadflag & 0x200000))
             {
-                signed int idx;
                 if (lasttype != 0 && assnode->asstype == lasttype)
                 {
                     idx = lastidx;

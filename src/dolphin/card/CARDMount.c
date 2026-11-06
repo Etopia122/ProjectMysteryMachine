@@ -1,6 +1,12 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDMount.c"
+#include "dolphin/card/card_dbg.h"
 
+#if defined(VERSION_GIHE78)
+u16 __CARDVendorID = 0xFFFF;
+#else
 extern u16 __CARDVendorID;
+#endif
 
 static u32 SectorSizeTable[8] = {
     8 * 1024, 16 * 1024, 32 * 1024, 64 * 1024, 128 * 1024, 256 * 1024, 0, 0,
@@ -130,7 +136,7 @@ static s32 DoMount(s32 chan) {
     u8 checkSum;
     int step;
 
-    ASSERTLINE(399, 0 <= chan && chan < 2);
+    ASSERTLINE(389, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
     if (card->mountStep == 0) {
@@ -147,13 +153,13 @@ static s32 DoMount(s32 chan) {
 
         card->cid = id;
         card->size = (u16)(id & 0xFC);
-        ASSERTLINE(424, card->size);
+        ASSERTLINE(414, card->size);
         
         card->sectorSize = SectorSizeTable[(id & 0x00003800) >> 11];
-        ASSERTLINE(426, card->sectorSize);
+        ASSERTLINE(416, card->sectorSize);
 
         card->cBlock = (u16)((card->size * 1024 * 1024 / 8) / card->sectorSize);
-        ASSERTLINE(428, 8 <= card->cBlock);
+        ASSERTLINE(418, 8 <= card->cBlock);
 
         card->latency = LatencyTable[(id & 0x00000700) >> 8];
 
@@ -243,7 +249,7 @@ void __CARDMountCallback(s32 chan, s32 result) {
     CARDControl* card;
     CARDCallback callback;
 
-    ASSERTLINE(570, 0 <= chan && chan < 2);
+    ASSERTLINE(546, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
     switch (result) {
@@ -256,11 +262,13 @@ void __CARDMountCallback(s32 chan, s32 result) {
             result = __CARDVerify(card);
         break;
     case CARD_RESULT_UNLOCKED:
+#if !defined(VERSION_GIHE78)
         card->unlockCallback = __CARDMountCallback;
         if (!EXILock(chan, 0, __CARDUnlockedHandler)) {
             return;
         }
         card->unlockCallback = 0;
+#endif
 
         result = DoMount(chan);
         if (result >= 0)
@@ -275,7 +283,7 @@ void __CARDMountCallback(s32 chan, s32 result) {
     callback = card->apiCallback;
     card->apiCallback = NULL;
     __CARDPutControlBlock(card, result);
-    ASSERTLINE(620, callback);
+    ASSERTLINE(588, callback);
     callback(chan, result);
 }
 
@@ -283,8 +291,8 @@ s32 CARDMountAsync(s32 chan, void* workArea, CARDCallback detachCallback, CARDCa
     CARDControl* card;
     BOOL enabled;
 
-    ASSERTLINE(652, workArea && ((u32) workArea % 32 == 0));
-    ASSERTLINE(653, 0 <= chan && chan < 2);
+    ASSERTLINE(620, workArea && ((u32) workArea % 32 == 0));
+    ASSERTLINE(621, 0 <= chan && chan < 2);
 
     if (chan < 0 || 2 <= chan)
         return CARD_RESULT_FATAL_ERROR;
@@ -348,7 +356,7 @@ static void DoUnmount(s32 chan, s32 result) {
     CARDControl* card;
     BOOL enabled;
 
-    ASSERTLINE(758, 0 <= chan && chan < 2);
+    ASSERTLINE(726, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
     enabled = OSDisableInterrupts();
@@ -367,7 +375,7 @@ s32 CARDUnmount(s32 chan) {
     CARDControl* card;
     s32 result;
 
-    ASSERTLINE(793, 0 <= chan && chan < 2);
+    ASSERTLINE(761, 0 <= chan && chan < 2);
 
     result = __CARDGetControlBlock(chan, &card);
     if (result < 0)

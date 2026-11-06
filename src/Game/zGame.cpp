@@ -68,10 +68,20 @@ signed int RwIm2DRenderIndexedPrimitive(signed int primType, RwIm2DVertex* verti
                                         signed int numIndices);
 unsigned int VIGetRetraceCount();
 
-void fn_800056F8(_xVec3* pos);
+#ifndef PC_PORT
+void zVolume_OccludePrecalc(_xVec3* camPos);
+#endif
 void fn_80014A34(signed int mode);
-void fn_80021B20();
+#ifndef PC_PORT
+void xDebugUpdate();
+#endif
 }
+#ifdef PC_PORT
+// zVolume.cpp and xDebug.cpp define these as C++ functions; the port links them
+// by those names.
+void zVolume_OccludePrecalc(_xVec3* camPos);
+void xDebugUpdate();
+#endif
 void zEntPlayer_Init(_xEnt* ent, p2EntAsset* asset);
 void zEntShaggy_SceneStart(zScene* sc);
 void zScene_UpdateFlyToInterface(float dt);
@@ -429,10 +439,10 @@ void zGameLoop()
         xCameraUpdate(&globals.camera, sTimeElapsed);
         zScene_UpdateFlyToInterface(sTimeElapsed);
         xCameraBegin(&globals.camera, 1);
-        fn_800056F8(&globals.camera.hi_cam.mat.pos);
+        zVolume_OccludePrecalc(&globals.camera.hi_cam.mat.pos);
         zSceneRender();
         xTRCRender();
-        fn_80021B20();
+        xDebugUpdate();
         xDrawEnd();
         xCameraEnd(&globals.camera, sTimeElapsed, 1);
         iEnvEndRenderFX(0);
@@ -776,7 +786,7 @@ void zGameScreenTransitionUpdate(float percentComplete, char* msg, unsigned char
     loadMeter++;
     xTRCRender();
     xFontRender();
-    fn_80021B20();
+    xDebugUpdate();
     xDrawEnd();
     if (sGameScreenTransCam)
     {

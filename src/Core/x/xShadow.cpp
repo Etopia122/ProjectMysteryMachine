@@ -183,11 +183,11 @@ RpWorld* RpCollisionWorldForAllIntersections(
                                      void*),
     void* data);
 // TODO: unidentified RenderWare matrix functions (invert, scale, translate)
-RwMatrixTag* fn_8016274C(RwMatrixTag* dst, const RwMatrixTag* src);
-RwMatrixTag* fn_80162B60(RwMatrixTag* matrix, const RwV3d* scale, signed int combineOp);
-RwMatrixTag* fn_80162DA0(RwMatrixTag* matrix, const RwV3d* translation, signed int combineOp);
-// TODO: unidentified GameCube RenderWare function (copies the frame buffer into a raster)
-void fn_80178A3C(RwRaster* raster);
+RwMatrixTag* RwMatrixInvert(RwMatrixTag* dst, const RwMatrixTag* src);
+RwMatrixTag* RwMatrixScale(RwMatrixTag* matrix, const RwV3d* scale, signed int combineOp);
+RwMatrixTag* RwMatrixTranslate(RwMatrixTag* matrix, const RwV3d* translation, signed int combineOp);
+// GameCube RenderWare driver: copies the frame buffer into a raster (dlraster.c)
+void _rwDlRasterCopyEFB(RwRaster* raster);
 extern RwEngineInstanceType* RwEngineInstance;
 }
 
@@ -249,7 +249,7 @@ static inline void ShadowCameraUpdate(RwCamera* shadowCamera, void* model)
     {
         RwCameraEndUpdate(camera);
     }
-    fn_80178A3C(gc_saveraster);
+    _rwDlRasterCopyEFB(gc_saveraster);
     RwCameraClear(shadowCamera, &bgColor, 1);
     if (RwCameraBeginUpdate(shadowCamera))
     {
@@ -259,7 +259,7 @@ static inline void ShadowCameraUpdate(RwCamera* shadowCamera, void* model)
         modelRenderCB(model);
         InvertRaster(shadowCamera);
         RwCameraEndUpdate(shadowCamera);
-        fn_80178A3C(shadowCamera->frameBuffer);
+        _rwDlRasterCopyEFB(shadowCamera->frameBuffer);
     }
     if (camera != NULL)
     {
@@ -687,15 +687,15 @@ void xShadowReceiveShadow(_xEnt* ent)
         float aty = shadowMatrix->at.y;
         float atz = shadowMatrix->at.z;
         RwMatrixTag invMatrix;
-        fn_8016274C(&invMatrix, shadowMatrix);
+        RwMatrixInvert(&invMatrix, shadowMatrix);
         RwV3d scl;
         scl.x = scl.y = -0.5f / radius;
         scl.z = 1.0f / (fadeDist + radius);
-        fn_80162B60(&invMatrix, &scl, 2);
+        RwMatrixScale(&invMatrix, &scl, 2);
         RwV3d tr;
         tr.x = tr.y = 0.5f;
         tr.z = 0.0f;
-        fn_80162DA0(&invMatrix, &tr, 2);
+        RwMatrixTranslate(&invMatrix, &tr, 2);
 
         unsigned int max_verts = 0;
         unsigned char val = 255.0f * shadowFactor;
@@ -1024,11 +1024,11 @@ signed int ShadowRender(RwCamera* shadowCamera, RwRaster* shadow, RpWorld* world
     RwMatrixTag* shadowMatrix = &((RwFrame*)shadowCamera->object.parent)->modelling;
     param.dir = shadowMatrix->at;
     float radius = shadowCamera->viewWindow.x;
-    fn_8016274C(&param.invMatrix, shadowMatrix);
+    RwMatrixInvert(&param.invMatrix, shadowMatrix);
     RwV3d scl;
     scl.x = scl.y = -0.5f / radius;
     scl.z = 1.0f / (fadeDist + radius);
-    fn_80162B60(&param.invMatrix, &scl, 2);
+    RwMatrixScale(&param.invMatrix, &scl, 2);
 
     param.fade = fadeDist > 0.0f ? 1 : 0;
     param.numIm3DBatch = 0;
@@ -1046,7 +1046,7 @@ signed int ShadowRender(RwCamera* shadowCamera, RwRaster* shadow, RpWorld* world
     RwV3dTransformPoints(&tr, &vtmp, 1, &param.invMatrix);
     tr2.x = tr2.y = 0.5f;
     tr2.z = -1.5f * tr.z;
-    fn_80162DA0(&param.invMatrix, &tr2, 2);
+    RwMatrixTranslate(&param.invMatrix, &tr2, 2);
 
     RwRenderStateGet(14, &fogstate);
     RwRenderStateSet(14, (void*)0);

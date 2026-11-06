@@ -82,13 +82,15 @@ static inline void iAnimSKBSlerp(RtQuat* result, RtQuat* from, RtQuat* to, float
     }
     else
     {
-        float w0 = 1.0f - t;
         float w1 = t;
+        float w0 = 1.0f - t;
 
         if (!cache->nearlyEqual)
         {
-            w0 = iAnimSKBSin(w0 * cache->omega);
-            w1 = iAnimSKBSin(w1 * cache->omega);
+            w0 *= cache->omega;
+            w1 *= cache->omega;
+            w0 = iAnimSKBSin(w0);
+            w1 = iAnimSKBSin(w1);
         }
 
         result->imag.x = cache->raFrom.imag.x * w0;
@@ -457,13 +459,19 @@ void _iAnimSKBAdjustTranslate(iAnimSKBHeader* data, unsigned int bone, float* tr
 
 void _iAnimSKBFlip180(iAnimSKBHeader* data, unsigned int bone)
 {
+    unsigned int keylast;
     float quat[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
-    unsigned int tcount = data->TimeCount;
-    unsigned int kcount = data->KeyCount;
-    iAnimSKBKey* keys = (iAnimSKBKey*)(data + 1);
-    unsigned short* offsets = (unsigned short*)((float*)(keys + kcount) + tcount);
-    unsigned int keyfirst = offsets[bone];
-    unsigned int keylast = offsets[(tcount - 2) * data->BoneCount + bone] + 1;
+    unsigned int tcount;
+    unsigned int kcount;
+    iAnimSKBKey* keys;
+    unsigned short* offsets;
+    unsigned int keyfirst;
+    tcount = data->TimeCount;
+    kcount = data->KeyCount;
+    keys = (iAnimSKBKey*)(data + 1);
+    offsets = (unsigned short*)((float*)(keys + kcount) + tcount);
+    keyfirst = offsets[bone];
+    keylast = offsets[(tcount - 2) * data->BoneCount + bone] + 1;
 
     for (unsigned int i = 0; i < kcount; i++)
     {

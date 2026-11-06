@@ -903,3 +903,58 @@ unsigned int iRayHitsModel(const _xRay3* r, const xModelInstance* m, _xCollis* c
 
     return coll->flags & 1;
 }
+
+class RpMorphTarget
+{
+public:
+    unsigned char pad0[0x14];
+    _xVec3* verts; // 0x14
+};
+
+class RpGeometry
+{
+public:
+    unsigned char pad0[0x14];
+    signed int numVertices;     // 0x14
+    signed int numMorphTargets; // 0x18
+    unsigned char pad1C[0x68 - 0x1C];
+    RpMorphTarget* morphTarget; // 0x68
+};
+
+class RpAtomicGeometryView
+{
+public:
+    unsigned char pad0[0x18];
+    RpGeometry* geometry; // 0x18
+};
+
+void iBoxInitBoundVec(_xBox* b, const _xVec3* v);
+void iBoxBoundVec(_xBox* o, const _xBox* b, const _xVec3* v);
+
+void iBoxForModelLocal(_xBox* o, const xModelInstance* m);
+
+void iBoxForModel(_xBox* o, const xModelInstance* m)
+{
+    iBoxForModelLocal(o, m);
+    xVec3AddTo(&o->upper, (_xVec3*)&((_xMat4x3*)m->Mat)->pos);
+    xVec3AddTo(&o->lower, (_xVec3*)&((_xMat4x3*)m->Mat)->pos);
+}
+
+#pragma auto_inline on
+void iBoxForModelLocal(_xBox* o, const xModelInstance* m)
+{
+    RpGeometry* geom = ((RpAtomicGeometryView*)m->Data)->geometry;
+
+    if (geom->numMorphTargets > 1 || geom->numMorphTargets >= 1)
+    {
+        RpMorphTarget* mt = geom->morphTarget;
+        unsigned short i;
+
+        iBoxInitBoundVec(o, mt->verts);
+        for (i = 1; i < geom->numVertices; i++)
+        {
+            iBoxBoundVec(o, o, &mt->verts[i]);
+        }
+    }
+}
+#pragma auto_inline reset

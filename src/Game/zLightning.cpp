@@ -213,8 +213,10 @@ static void UpdateLightning(_tagLightning* l, float dt)
 
     if (l->type == eLightningLine)
     {
-        float full = l->rand_radius * dt;
-        float half = -(0.5f * full);
+        float half;
+        float full;
+        full = l->rand_radius * dt;
+        half = -(0.5f * full);
         for (signed int i = 1; i < l->total_points - 1; i++)
         {
             l->point[i].x = l->base_point[i].x + (full * iurand() + half);
@@ -238,8 +240,10 @@ static void UpdateLightning(_tagLightning* l, float dt)
         xMat3x3LookVec(&lookmat, &dir);
         xMat3x3GetEuler(&lookmat, &euler);
 
-        float full = l->rand_radius * dt;
-        float half = -(0.5f * full);
+        float half;
+        float full;
+        full = l->rand_radius * dt;
+        half = -(0.5f * full);
         for (signed int i = 1; i < l->total_points - 1; i++)
         {
             _xMat3x3 rotmat;

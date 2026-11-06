@@ -1,4 +1,6 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDBlock.c"
+#include "dolphin/card/card_dbg.h"
 
 // prototypes
 static void WriteCallback(s32 chan, s32 result);
@@ -117,6 +119,35 @@ s32 __CARDAllocBlock(s32 chan, u32 cBlock, CARDCallback callback) {
     card->startBlock = startBlock;
     return __CARDUpdateFatBlock(chan, fat, callback);
 }
+
+#if defined(VERSION_GIHE78)
+s32 __CARDFreeBlock(s32 chan, u16 nBlock, CARDCallback callback) {
+    CARDControl* card;
+    u16* fat;
+    u16 nextBlock;
+
+    ASSERTLINE(253, 0 <= chan && chan < 2);
+
+    card = &__CARDBlock[chan];
+    if (!card->attached) {
+        return CARD_RESULT_NOCARD;
+    }
+
+    fat = __CARDGetFatBlock(card);
+    while (nBlock != 0xFFFF) {
+        if (!CARDIsValidBlockNo(card, nBlock)) {
+            return CARD_RESULT_BROKEN;
+        }
+
+        nextBlock = fat[nBlock];
+        fat[nBlock] = 0;
+        nBlock = nextBlock;
+        ++fat[CARD_FAT_FREEBLOCKS];
+    }
+
+    return __CARDUpdateFatBlock(chan, fat, callback);
+}
+#endif
 
 s32 __CARDUpdateFatBlock(s32 chan, u16* fat, CARDCallback callback) {
     CARDControl* card;

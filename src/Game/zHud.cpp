@@ -1,10 +1,10 @@
-// TODO: 99.1% (NonMatching). The remaining differences are register allocation:
-// the inlined zHudInterp1d clamp evaluates fabs(step) and fabs(diff) into
-// swapped float registers in the element update loops, zHudInterp2d keeps the
-// squared length in a different register, zHud_Init does not reuse the loop
-// counter's zero for the colour bytes, and the Setup callbacks swap the globals
-// and item base registers. zHudAspectDeadStripped and zHudLayoutDeadStripped
-// must be stripped by the linker once this unit is Matching.
+// TODO: NonMatching. The remaining differences are register allocation: the
+// inlined zHudInterp1d clamp's negative branch picks swapped float registers
+// when the step is a hoisted dt multiple (SoapUpdate and friends),
+// zHudInterp2d keeps the squared length in a different register, and zHud_Init
+// does not reuse the loop counter's zero for the colour bytes.
+// zHudAspectDeadStripped and zHudLayoutDeadStripped must be stripped by the
+// linker once this unit is Matching.
 #include "zGlobals.h"
 #include "zScene.h"
 #include "xMath.h"
@@ -575,14 +575,22 @@ xAnimPlay* xAnimPoolAlloc(xMemPool* pool, void* object, xAnimTable* table,
 static inline void zHudInterp1d(float dt, float* src, float dst, float speed, signed int type)
 {
     float diff = dst - *src;
-    if (diff > 0.0f)
+    if (type == eHudInterpTypeDecel)
     {
-        *src += ((float)__fabs(speed * dt) > (float)__fabs(diff)) ? diff : speed * dt;
+        float step = dt * (diff * speed);
+        double ad = __fabs(diff);
+        *src += ((float)__fabs(step) > (float)ad) ? diff : step;
+    }
+    else if (diff > 0.0f)
+    {
+        double ad = __fabs(diff);
+        *src += ((float)__fabs(speed * dt) > (float)ad) ? diff : speed * dt;
     }
     else
     {
+        float as = __fabs(speed * dt);
         float ad = __fabs(diff);
-        *src -= ((float)__fabs(speed * dt) > ad) ? ad : speed * dt;
+        *src -= (as > ad) ? ad : speed * dt;
     }
 }
 
@@ -884,10 +892,11 @@ void zHudElementsCB_PlayerStatusSetup()
 
         if (item->model->Anim != NULL)
         {
-            item->model->Anim->Single->Time = 0.0f;
-            item->model->Anim->Single->CurrentSpeed = 1.0f;
-            xAnimPlaySetState(item->model->Anim->Single, item->model->Anim->Table->StateList,
-                              0.0f);
+            xAnimPlay* anim = item->model->Anim;
+            xAnimSingle* single = anim->Single;
+            single->Time = 0.0f;
+            single->CurrentSpeed = 1.0f;
+            xAnimPlaySetState(anim->Single, item->model->Anim->Table->StateList, 0.0f);
         }
     }
 }
@@ -896,8 +905,14 @@ void zHudElementsCB_PlayerStatusUpdate(float dt)
 {
     signed int i;
 
-    if ((signed int)globals.player.Health < 6 && (signed int)globals.player.Health >= 0)
+    switch ((signed int)globals.player.Health)
     {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
         for (unsigned int j = 0; j < 6; j++)
         {
             if (j == globals.player.Health)
@@ -909,6 +924,7 @@ void zHudElementsCB_PlayerStatusUpdate(float dt)
                 sHudPlayerStatusArray[j].statusSize = eHudStatusSizeZero;
             }
         }
+        break;
     }
 
     if (globals.player.Health != oldHealthCnt)
@@ -996,6 +1012,8 @@ void zHudElementsCB_PlayerStatusUpdate(float dt)
         case eHudStatusSizeZero:
             item->hframe.size.x = item->zHudStatusSizeTable[eHudStatusSizeZero].x;
             item->hframe.size.y = item->zHudStatusSizeTable[eHudStatusSizeZero].y;
+            break;
+        case eHudStatusSizeSmall:
             break;
         }
 
@@ -1232,16 +1250,9 @@ void zHudElementsCB_SnacksUpdate(float dt)
     }
     else
     {
-        if (globals.player.Inv_ScoobySnacks > 999)
-        {
-            sHudSnackArray[0].statusColor = eHudStatusColorSolid;
-            sHudSnackArray[0].statusPos = eHudStatusPosOnScreenAlt1;
-        }
-        else
-        {
-            sHudSnackArray[0].statusColor = eHudStatusColorSolid;
-            sHudSnackArray[0].statusPos = eHudStatusPosOnScreen;
-        }
+        sHudSnackArray[0].statusColor = eHudStatusColorSolid;
+        sHudSnackArray[0].statusPos =
+            (globals.player.Inv_ScoobySnacks > 999) ? eHudStatusPosOnScreenAlt1 : eHudStatusPosOnScreen;
         sHudDisplayTimer_snacks -= dt;
         if (sHudDisplayTimer_snacks < 0.0f)
         {
@@ -1295,6 +1306,8 @@ void zHudElementsCB_SnacksUpdate(float dt)
         zHudInterp1d(dt, &item->hframe.dang.z, item->zHudStatusAngTable[eHudStatusAngTest1].z,
                      1.0f, eHudInterpTypeLinear);
         break;
+    case eHudStatusAngTest2:
+        break;
     }
 
     switch (item->statusSize)
@@ -1304,6 +1317,9 @@ void zHudElementsCB_SnacksUpdate(float dt)
                      10.0f, eHudInterpTypeLinear);
         zHudInterp1d(dt, &item->hframe.size.y, item->zHudStatusSizeTable[eHudStatusSizeDefault].y,
                      10.0f, eHudInterpTypeLinear);
+        break;
+    case eHudStatusSizeZero:
+    case eHudStatusSizeSmall:
         break;
     }
 
@@ -1371,9 +1387,11 @@ void zHudElementsCB_SnacksRender()
     _xRect r = { 0.0f, 0.0f, 0.0f, 0.0f };
     _xMat4x3 frame;
 
-    r.x = -(0.5f * item->hframe.size.x - item->hframe.pos.x) + -45.0f;
+    float x = -(0.5f * item->hframe.size.x - item->hframe.pos.x);
+    float y = -(0.5f * item->hframe.size.y - item->hframe.pos.y);
+    r.x = x + -45.0f;
+    r.y = y + 22.0f;
     r.w = item->hframe.size.x * widthAspect;
-    r.y = -(0.5f * item->hframe.size.y - item->hframe.pos.y) + 22.0f;
     r.h = item->hframe.size.y;
     _xVec3 unused = { 0.0f, 0.0f, 0.0f };
     _xVec3 from = { 0.0f, 0.0f, 0.8f };
@@ -1469,10 +1487,11 @@ void zHudElementsCB_GumSetup()
 
         if (item->model->Anim != NULL)
         {
-            item->model->Anim->Single->Time = 0.0f;
-            item->model->Anim->Single->CurrentSpeed = 1.0f;
-            xAnimPlaySetState(item->model->Anim->Single, item->model->Anim->Table->StateList,
-                              0.0f);
+            xAnimPlay* anim = item->model->Anim;
+            xAnimSingle* single = anim->Single;
+            single->Time = 0.0f;
+            single->CurrentSpeed = 1.0f;
+            xAnimPlaySetState(anim->Single, item->model->Anim->Table->StateList, 0.0f);
         }
     }
 }
@@ -1516,7 +1535,7 @@ void zHudElementsCB_GumUpdate(float dt)
         case 4:
             for (i = 0; i < 5; i++)
             {
-                if (i == n)
+                if (n == i)
                 {
                     sHudGumArray[n].statusSize = eHudStatusSizeDefault;
                 }
@@ -1621,6 +1640,8 @@ void zHudElementsCB_GumUpdate(float dt)
         case eHudStatusSizeZero:
             item->hframe.size.x = item->zHudStatusSizeTable[eHudStatusSizeZero].x;
             item->hframe.size.y = item->zHudStatusSizeTable[eHudStatusSizeZero].y;
+            break;
+        case eHudStatusSizeSmall:
             break;
         }
 
@@ -1957,13 +1978,9 @@ void zHudElementsCB_SoapUpdate(float dt)
             break;
         case eHudStatusSizeZeroHoriz:
         {
-            float d = item->zHudStatusSizeTable[eHudStatusSizeZeroHoriz].y - item->hframe.size.y;
-            float s = dt * (d * 7.2f);
-            if ((float)__fabs(s) > (float)__fabs(d))
-            {
-                s = d;
-            }
-            item->hframe.size.y += s;
+            zHudInterp1d(dt, &item->hframe.size.y,
+                         item->zHudStatusSizeTable[eHudStatusSizeZeroHoriz].y, 7.2f,
+                         eHudInterpTypeDecel);
             break;
         }
         }
@@ -2160,10 +2177,11 @@ void zHudElementsCB_SoapboxSetup()
 
     if (item->model->Anim != NULL)
     {
-        item->model->Anim->Single->Time = 0.0f;
-        item->model->Anim->Single->CurrentSpeed = 1.0f;
-        xAnimPlaySetState(item->model->Anim->Single,
-                          item->model->Anim->Table->StateList, 0.0f);
+        xAnimPlay* anim = item->model->Anim;
+        xAnimSingle* single = anim->Single;
+        single->Time = 0.0f;
+        single->CurrentSpeed = 1.0f;
+        xAnimPlaySetState(anim->Single, item->model->Anim->Table->StateList, 0.0f);
     }
 }
 
@@ -2264,6 +2282,8 @@ void zHudElementsCB_SoapboxUpdate(float dt)
         item->hframe.size.x = item->zHudStatusSizeTable[eHudStatusSizeZero].x;
         item->hframe.size.y = item->zHudStatusSizeTable[eHudStatusSizeZero].y;
         break;
+    case eHudStatusSizeSmall:
+        break;
     }
 
     switch (item->statusColor)
@@ -2298,9 +2318,11 @@ void zHudElementsCB_SoapboxRender()
         _xRect r = { 0.0f, 0.0f, 0.0f, 0.0f };
         _xMat4x3 frame;
 
-        r.x = 23.0f + -(0.5f * item->hframe.size.x - item->hframe.pos.x);
+        float x = -(0.5f * item->hframe.size.x - item->hframe.pos.x);
+        float y = -(0.5f * item->hframe.size.y - item->hframe.pos.y);
+        r.y = 17.0f + y;
+        r.x = 23.0f + x;
         r.w = item->hframe.size.x * widthAspect;
-        r.y = 17.0f + -(0.5f * item->hframe.size.y - item->hframe.pos.y);
         r.h = item->hframe.size.y;
         _xVec3 unused = { 0.0f, 0.0f, 0.0f };
         _xVec3 from = { -1.3f, 0.3f, 2.0f };
@@ -2416,10 +2438,11 @@ void zHudElementsCB_GumpackSetup()
 
     if (item->model->Anim != NULL)
     {
-        item->model->Anim->Single->Time = 0.0f;
-        item->model->Anim->Single->CurrentSpeed = 1.0f;
-        xAnimPlaySetState(item->model->Anim->Single,
-                          item->model->Anim->Table->StateList, 0.0f);
+        xAnimPlay* anim = item->model->Anim;
+        xAnimSingle* single = anim->Single;
+        single->Time = 0.0f;
+        single->CurrentSpeed = 1.0f;
+        xAnimPlaySetState(anim->Single, item->model->Anim->Table->StateList, 0.0f);
     }
 }
 
@@ -2453,11 +2476,11 @@ void zHudElementsCB_GumpackUpdate(float dt)
 
     if (sHudDisplayTimer_gum == 0.0f)
     {
-        item->statusColor = eHudStatusColorTransparent;
+        sHudGumpackArray[0].statusColor = eHudStatusColorTransparent;
     }
     else
     {
-        item->statusColor = eHudStatusColorSolid;
+        sHudGumpackArray[0].statusColor = eHudStatusColorSolid;
         sHudDisplayTimer_gum -= dt;
         if (sHudDisplayTimer_gum < 0.0f)
         {
@@ -2521,6 +2544,8 @@ void zHudElementsCB_GumpackUpdate(float dt)
         item->hframe.size.x = item->zHudStatusSizeTable[eHudStatusSizeZero].x;
         item->hframe.size.y = item->zHudStatusSizeTable[eHudStatusSizeZero].y;
         break;
+    case eHudStatusSizeSmall:
+        break;
     }
 
     switch (item->statusColor)
@@ -2552,8 +2577,10 @@ void zHudElementsCB_GumpackRender()
     _xRect r = { 0.0f, 0.0f, 0.0f, 0.0f };
     _xMat4x3 frame;
 
-    r.x = -(0.5f * item->hframe.size.x - item->hframe.pos.x) + 33.0f;
-    r.y = -(0.5f * item->hframe.size.y - item->hframe.pos.y) + 21.0f;
+    float x = -(0.5f * item->hframe.size.x - item->hframe.pos.x);
+    float y = -(0.5f * item->hframe.size.y - item->hframe.pos.y);
+    r.x = x + 33.0f;
+    r.y = y + 21.0f;
     r.w = item->hframe.size.x * widthAspect;
     r.h = item->hframe.size.y;
     _xVec3 unused = { 0.0f, 0.0f, 0.0f };
@@ -2689,10 +2716,11 @@ void zHudElementsCB_HealthbarSetup()
 
         if (item->model->Anim != NULL)
         {
-            item->model->Anim->Single->Time = 0.0f;
-            item->model->Anim->Single->CurrentSpeed = 1.0f;
-            xAnimPlaySetState(item->model->Anim->Single, item->model->Anim->Table->StateList,
-                              0.0f);
+            xAnimPlay* anim = item->model->Anim;
+            xAnimSingle* single = anim->Single;
+            single->Time = 0.0f;
+            single->CurrentSpeed = 1.0f;
+            xAnimPlaySetState(anim->Single, item->model->Anim->Table->StateList, 0.0f);
         }
     }
 }
@@ -2835,6 +2863,8 @@ void zHudElementsCB_HealthbarUpdate(float dt)
                          50.0f, eHudInterpTypeLinear);
             zHudInterp1d(dt, &item->hframe.size.y, item->zHudStatusSizeTable[eHudStatusSizeZero].y,
                          50.0f, eHudInterpTypeLinear);
+            break;
+        case eHudStatusSizeSmall:
             break;
         }
 
@@ -3129,6 +3159,8 @@ void zHudElementsCB_GameStatsUpdate(float dt)
             zHudInterp1d(dt, &item->hframe.dang.z, item->zHudStatusAngTable[eHudStatusAngTest1].z,
                          1.0f, eHudInterpTypeLinear);
             break;
+        case eHudStatusAngTest2:
+            break;
         }
 
         switch (item->statusSize)
@@ -3146,6 +3178,8 @@ void zHudElementsCB_GameStatsUpdate(float dt)
                          90.0f, eHudInterpTypeLinear);
             zHudInterp1d(dt, &item->hframe.size.y, item->zHudStatusSizeTable[eHudStatusSizeZero].y,
                          90.0f, eHudInterpTypeLinear);
+            break;
+        case eHudStatusSizeSmall:
             break;
         }
 
@@ -3198,7 +3232,8 @@ void zHudElementsCB_GameStatsRender()
         for (signed int i = 0; i < 7; i++)
         {
             zHudItem* item = &sHudGameStatsArray[i];
-            if (item->hframe.color.a != 0.0f)
+            // Bug-compatible: the original only draws items whose alpha is zero.
+            if (item->hframe.color.a == 0.0f)
             {
                 if (i != 3)
                 {
@@ -3258,7 +3293,9 @@ void zHud_DrawText(float x, float y, float w, float h, char* s, signed int just,
 
     if (shadow == DROPSHADOW_NORMAL)
     {
-        fontBox = xFontBoxCreate(x + -3.0f, y + 3.0f, w, h, 0, clrDropShadow);
+        float dx = -3.0f;
+        float dy = 3.0f;
+        fontBox = xFontBoxCreate(x + dx, y + dy, w, h, 0, clrDropShadow);
         xFontBoxSetJustification(fontBox, just);
         xFontBoxSetDrawSize(fontBox, drawSizeX, drawSizeY);
         xFontBoxSetDrawSpacing(fontBox, drawSizeX, drawSizeY);

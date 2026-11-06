@@ -725,7 +725,7 @@ void zEntGetShadowParams(_xEnt* ent, _xVec3* center, float* radius)
 
     r = ent->bound.sph.r;
     mat = ent->model->Mat;
-    rad = (r < 0.01f) ? 2.0f : 2.4f * r;
+    rad = (ent->bound.sph.r < 0.01f) ? 2.0f : 2.4f * ent->bound.sph.r;
     cx = ent->bound.sph.center.x;
     cy = ent->bound.sph.center.y;
     cz = ent->bound.sph.center.z;

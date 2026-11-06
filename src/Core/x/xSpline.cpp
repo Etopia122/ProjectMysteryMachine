@@ -117,8 +117,8 @@ static inline void CoefToUnity3(xCoef3* dest, xCoef3* coef, float t1, float t2)
 
 static inline void BasisBspline(float (*N)[4], float* t)
 {
-    unsigned int i;
     unsigned int k;
+    unsigned int i;
     unsigned int c;
     float d1;
     float d2;
@@ -319,11 +319,11 @@ float ArcLength3(xCoef3* coef, double ustart, double uend)
 
 void EvalBspline3(xSpline3* spl, float u, unsigned int deriv, _xVec3* o)
 {
-    float N[7][4];
-    xCoef3 coef;
-    unsigned int min;
-    unsigned int max;
     unsigned int mid;
+    unsigned int max;
+    unsigned int min;
+    xCoef3 coef;
+    float N[7][4];
 
     if (u < 0.0f)
     {
@@ -532,8 +532,8 @@ float xSpline3_EvalArcApprox(xSpline3* spl, float s, unsigned int deriv, _xVec3*
 void xSpline3_ArcInit(xSpline3* spl, unsigned int sample)
 {
     xCoef3 tempCoef;
-    float arcsum;
     float len = 0.0f;
+    float arcsum;
     unsigned int seg;
     unsigned int i;
 

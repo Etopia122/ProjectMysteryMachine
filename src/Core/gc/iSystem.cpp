@@ -39,7 +39,7 @@ extern unsigned int _stack_end[];
 // TODO: unidentified (stops the movie player before a reset)
 void GXAbortFrame();
 // TODO: unidentified (size of the RenderWare resource arena)
-signed int fn_80164200();
+signed int RwResourcesGetArenaSize();
 
 // TODO: unidentified iSystem/xTRC globals
 extern signed int lbl_8025E96C;       // last reset-button state
@@ -103,7 +103,7 @@ extern "C" void fn_80016898()
 // Fills the free RenderWare resource arena with a marker.
 extern "C" void fn_800167F0()
 {
-    signed int size = fn_80164200();
+    signed int size = RwResourcesGetArenaSize();
     RwResEntry* entry = RwResourcesAllocateResEntry(0, 0, size, 0);
 
     while (!entry && size > 0)
@@ -367,8 +367,8 @@ extern unsigned char* RwEngineInstance;
 RwFileFunctions* RwOsGetFileInterface();
 unsigned int RwEngineRegisterPlugin(signed int size, unsigned int pluginID, void* (*initCB)(void*, int, int),
                                     void* (*termCB)(void*, int, int));
-void* fn_80163610(unsigned int entrySize, unsigned int entriesPerBlock, unsigned int alignment); // RwFreeListCreate
-void fn_8016356C(void* freelist); // RwFreeListDestroy
+void* RwFreeListCreate(unsigned int entrySize, unsigned int entriesPerBlock, unsigned int alignment); // RwFreeListCreate
+void RwFreeListDestroy(void* freelist); // RwFreeListDestroy
 signed int RwEngineInit(RwMemoryFunctions* memFuncs, unsigned int initFlags, unsigned int resArenaSize);
 signed int RwResourcesSetArenaSize(unsigned int size);
 signed int RwEngineOpen(RwEngineOpenParams* params);
@@ -383,12 +383,14 @@ signed int RwRenderStateSet(signed int state, void* value);
 signed int RpWorldPluginAttach();
 signed int RpCollisionPluginAttach();
 signed int RpSkinPluginAttach();
-signed int fn_8013D854(); // RpHAnimPluginAttach
+signed int RpHAnimPluginAttach();
 signed int RpMatFXPluginAttach();
 signed int RpUserDataPluginAttach();
 extern signed int lbl_8025F870; // _RwGameCubeRasterExtOffset
 
-void fn_80021B1C(); // xDebugExit
+#ifndef PC_PORT
+void xDebugExit();
+#endif
 signed int fn_80015EAC(const char* fmt, ...);
 void OSReport(const char* fmt, ...);
 void* malloc(unsigned int size);
@@ -414,6 +416,10 @@ extern signed int lbl_8025E984;      // allocate RenderWare memory from the xMem
 extern signed int lbl_8025E988;      // open file count
 extern RwModuleInfo lbl_8025E98C;    // file system module info
 }
+#ifdef PC_PORT
+// xDebug.cpp defines it as a C++ function; the port links it by that name.
+void xDebugExit();
+#endif
 
 extern unsigned int mem_top_alloc;
 extern unsigned int mem_base_alloc;
@@ -572,7 +578,7 @@ static signed int RenderWareExit();
 
 void iSystemExit()
 {
-    fn_80021B1C();
+    xDebugExit();
     xMathExit();
     RenderWareExit();
     xSndExit();
@@ -598,7 +604,7 @@ static unsigned int RWAttachPlugins()
     {
         return 1;
     }
-    if (!fn_8013D854())
+    if (!RpHAnimPluginAttach())
     {
         return 1;
     }
@@ -874,7 +880,7 @@ typedef void (*RwFreeListFreeFn)(void* freelist, void* mem);
 
 static void* dlFopen(const char* name, const char* access)
 {
-    signed int mode = fn_80015A70(access);
+    unsigned int mode = fn_80015A70(access);
     dlFile* fp;
 
     if (!mode)
@@ -1162,7 +1168,7 @@ static void* _rwDolphinFSOpen(void* instance, int offset, int size)
     RwFileFunctions* funcs;
 
     lbl_8025E98C.globalsOffset = offset;
-    FSGLOBALS()->fileFreeList = fn_80163610(sizeof(dlFile), 5, 0x20);
+    FSGLOBALS()->fileFreeList = RwFreeListCreate(sizeof(dlFile), 5, 0x20);
     if (!FSGLOBALS()->fileFreeList)
     {
         return NULL;
@@ -1187,7 +1193,7 @@ static void* _rwDolphinFSOpen(void* instance, int offset, int size)
 static void* _rwDolphinFSClose(void* instance, int offset, int size)
 {
     *RwOsGetFileInterface() = FSGLOBALS()->oldFuncs;
-    fn_8016356C(FSGLOBALS()->fileFreeList);
+    RwFreeListDestroy(FSGLOBALS()->fileFreeList);
     lbl_8025E98C.numInstances--;
     return instance;
 }

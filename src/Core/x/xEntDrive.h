@@ -25,6 +25,6 @@ public:
 void xEntDriveInit(_xEntDrive* drv, _xEnt* driven);
 void xEntDriveMount(_xEntDrive* drv, _xEnt* driver, float mt);
 void xEntDriveDismount(_xEntDrive* drv, float dmt);
-void xEntDriveUpdate(_xEntDrive* drv, float dt);
+void xEntDriveUpdate(_xEntDrive* drv, _xScene* s, float dt);
 
 #endif

@@ -449,7 +449,7 @@ enum _tagSDRumbleType
 
 xSurface* zSurfaceGetSurface(_xCollis* coll);
 void zRumbleStart(signed int idx, _tagSDRumbleType type);
-extern "C" signed short fn_800C751C(signed short old, float* pitch, signed int range, float scale);
+signed int zPitchChange(signed int angle, float* offset, signed int range, float max);
 void zLaughNotify(signed int laugh);
 void zFeetAddSkidMark(_xEnt* ent, _tagFeetSkidMark* mark, float dt);
 void zFeetUpdateSkidMark(_tagFeetSkidMark* mark, float dt);
@@ -518,7 +518,7 @@ void xEntApplyPhysics(_xEnt* ent, _xScene* sc, float dt);
 void xEntMove(_xEnt* ent, _xScene* sc, float dt);
 void xEntBeginUpdate(_xEnt* ent, _xScene* sc, float dt);
 void xEntEndUpdate(_xEnt* ent, _xScene* sc, float dt);
-void xEntDriveUpdate(_xEntDrive* drv, float dt);
+void xEntDriveUpdate(_xEntDrive* drv, _xScene* s, float dt);
 void zGustUpdateEnt(_xEnt* ent, _xScene* sc, float dt, void* fdata);
 unsigned int zSurfaceGetStep(xSurface* surf);
 void zSceneGameStatsTally_death();
@@ -566,7 +566,7 @@ void xMat3x3RotC(_xMat3x3* m, float _x, float _y, float _z, float t);
 signed int Shaggy2_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam, xBase* toParamWidget);
 signed int Shaggy2Plat_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
                                xBase* toParamWidget);
-void zPlatform_Dismount();
+void zPlatform_Dismount(_zPlatform* plat);
 void zPlatform_Shake(_zPlatform* plat, float, float ampl, float freq);
 void zPlatform_Tremble(_zPlatform* plat, float ampl, float freq, float dur);
 static float CalcJumpImpulse_Smooth(float g, float j, float h, float T, float s);
@@ -575,7 +575,7 @@ xAnimState* xAnimTableGetState(xAnimTable* table, char* name);
 signed int zGameModeGet();
 signed int zGameStateGet();
 void iModelTagSetup(iModelTag* tag, RpAtomic* model, float x, float y, float z);
-signed int iModelVertCount(RpAtomic* model);
+unsigned int iModelVertCount(RpAtomic* model);
 void iModelTagIndex(iModelTag* tag, RpAtomic* model, signed int index);
 void xScrFxFade(iColor_tag* base, iColor_tag* dest, float seconds, void (*callback)(), signed int hold,
                 signed int unk);
@@ -615,7 +615,7 @@ extern _xVec3 g_Y3;
 extern unsigned int gFrameCount;
 #endif
 signed int zEntPlayer_Damage(xBase* src, unsigned int damage);
-static void PlayerCollsSelectDepen(_xEnt* p);
+static void PlayerCollsSelectDepen(_xEnt* p, _xScene*, float);
 static _xEnt* PlayerCollCheckOneVillain(_xEnt* ent, _xScene* sc, void* data);
 static _xEnt* PlayerCollCheckOneEnt(_xEnt* ent, _xScene* sc, void* data);
 
@@ -633,7 +633,9 @@ extern "C" {
 signed int rand();
 char* strcpy(char* dst, const char* src);
 char* strcat(char* dst, const char* src);
-signed int fn_800394B4();
+#ifndef PC_PORT
+signed int xScrFxIsFading();
+#endif
 void* memset(void* dst, int c, unsigned int n);
 long labs(long x);
 void fn_8000A080(signed int);
@@ -642,6 +644,10 @@ void* memcpy(void* dst, const void* src, unsigned int n);
 double acos(double);
 signed int sprintf(char* s, const char* format, ...);
 }
+#ifdef PC_PORT
+// xScrFx.cpp defines it as a C++ function; the port links it by that name.
+signed int xScrFxIsFading();
+#endif
 void zEntVillain_HeroWasHurt();
 
 signed int sPlayerSurfaceType;
@@ -739,7 +745,7 @@ static void zEntPlayer_FXUpdate(_xEnt* ent, float seconds);
 void zEntPlayer_FXSetup(xAnimTable* table);
 void zEntPlayer_ButtonHBFX();
 void zEntPlayer_ButtonBBFX(_xEnt* ent);
-static void zEntPlayer_FXLostChance(_xEnt* ent);
+static void zEntPlayer_FXLostChance(_xEnt* ent, float);
 void zEntPlayer_Notify(signed int situation);
 void zEntPlayer_Notify(unsigned char characterSubType);
 void zEntPlayer_SituationDo();
@@ -757,8 +763,8 @@ void zEntPlayer_SNDInit();
 void zEntPlayer_LoadCheckPoint();
 void zEntPlayer_StoreCheckPoint(float* toParam);
 static void PlayerRotMatchUpdateEnt(_xEnt* ent, _xScene*, float dt, void* fdata);
-static void PlayerDigUpdate(float dt);
-static void PlayerTeeterCheck(float dt);
+static void PlayerDigUpdate(_xEnt*, float dt);
+static void PlayerTeeterCheck(_xEnt*, _xScene*, float dt);
 static void PlayerHangCheck(_xEnt* ent, _xScene* sc);
 static void PlayerHangUpdate(_xEnt* ent, float mag, float angle, float dt);
 signed int zEntPlayerEventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam, xBase* toParamWidget);
@@ -766,20 +772,20 @@ static _xVec3* GetPosVec(xBase* target);
 _xEnt* zEntPlayerCollTriggerCB(_xEnt* ent, _xScene*, void* data);
 void zEntPlayerCollTrigger(_xEnt* ent, _xScene* sc);
 void zEntPlayerCollide(_xEnt* ent, _xScene* sc, float dt);
-static void PlayerCollsSelectDepen(_xEnt* p);
+static void PlayerCollsSelectDepen(_xEnt* p, _xScene*, float);
 static void PlayerCollsSideTranslate(_xCollis* colls, float x, float y, float z);
 static _xEnt* PlayerCollCheckOneVillain(_xEnt* ent, _xScene*, void* data);
 static _xEnt* PlayerCollCheckOneEnt(_xEnt* ent, _xScene*, void* data);
 void zEntPlayerReset(_xEnt* ent);
 void zEntPlayerExit(_xEnt* ent);
-void zEntPlayerDriveUpdate(_xEnt* p, float dt);
-void zEntPlayerSurfDamageUpdate(_xEnt* p);
+void zEntPlayerDriveUpdate(_xEnt* p, _xScene*, float dt);
+void zEntPlayerSurfDamageUpdate(_xEnt* p, _xScene*, float);
 static void PlayerBoundUpdate(_xEnt* ent, _xVec3* pos);
 static unsigned int PlayerDepenQuery(_xEnt*, _xEnt*, _xScene*, float, _xCollis* coll);
-void zEntPlayerFloorUpdate(_xEnt* p, float dt);
-void zEntPlayerVelUpdate(_xEnt* ent, float dt);
+void zEntPlayerFloorUpdate(_xEnt* p, _xScene*, float dt);
+void zEntPlayerVelUpdate(_xEnt* ent, _xScene*, float dt);
 static void PlayerEGenCheck(_xEnt* ent, zScene* sc, float dt);
-void zEntPlayerJumpUpdate(_xEnt* ent, float dt);
+void zEntPlayerJumpUpdate(_xEnt* ent, _xScene*, float dt);
 void zEntPlayerJumpStart(_xEnt* ent, zJumpParam* jump);
 void CalcJumpImpulse(zJumpParam* param);
 static float CalcJumpImpulse_Smooth(float g, float j, float h, float Tgc, float Tgs);
@@ -930,9 +936,9 @@ static inline void zEntPlayer_SNDButtBounce(signed int hit_villain)
     float pitch;
     if (hit_villain)
     {
-        sPlayerSndfx.head_pitch = fn_800C751C(sPlayerSndfx.head_pitch, &pitch, 0x1E, 1.5f);
+        sPlayerSndfx.head_pitch = zPitchChange(sPlayerSndfx.head_pitch, &pitch, 0x1E, 1.5f);
         xSndPlay(sPlayerSndfx.head_id[sPlayerSndfx.head_snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
-        signed int newsnd = sPlayerSndfx.head_snd;
+        signed short newsnd = sPlayerSndfx.head_snd;
         while (newsnd == sPlayerSndfx.head_snd)
         {
             newsnd = rand() % 3;
@@ -941,9 +947,9 @@ static inline void zEntPlayer_SNDButtBounce(signed int hit_villain)
     }
     else
     {
-        sPlayerSndfx.butt_pitch = fn_800C751C(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
+        sPlayerSndfx.butt_pitch = zPitchChange(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
         xSndPlay(sPlayerSndfx.butt_id[sPlayerSndfx.butt_snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
-        signed int newsnd = sPlayerSndfx.butt_snd;
+        signed short newsnd = sPlayerSndfx.butt_snd;
         while (newsnd == sPlayerSndfx.butt_snd)
         {
             newsnd = rand() % 3;
@@ -968,8 +974,7 @@ static inline void PlayerCollisTranslate(_xCollis* c, float x, float y, float z)
         c->hdng.x = dx * s;
         c->hdng.y = dy * s;
         c->hdng.z = dz * s;
-        s = s * (dist - 0.7f);
-        s = (s > 0.0f) ? 0.0f : s;
+        s = (0.0f < s * (dist - 0.7f)) ? 0.0f : s * (dist - 0.7f);
         c->depen.x = dx * s;
         c->depen.y = dy * s;
         c->depen.z = dz * s;
@@ -1087,6 +1092,25 @@ static inline void PlayerHeadAddTransition(xAnimTable* table, char* dest, xAnimT
     }
 }
 
+// Same as PlayerHeadAddTransition with the declarations merged; only the first call site
+// (ScareA) allocates its registers this way.
+static inline void PlayerHeadAddTransitionFirst(xAnimTable* table, char* dest, xAnimTransitionConditionalCallback cond,
+                                           xAnimTransitionCallback cb, unsigned int flags, unsigned int userFlags,
+                                           unsigned short priority)
+{
+    xAnimTransition* tran =
+        xAnimTableNewTransition(table, "", dest, cond, cb, flags, userFlags, 0.0f, 0.0f, priority, 0, 0.0f, NULL);
+    xAnimState* state = table->StateList;
+    while (state != NULL)
+    {
+        if (xStricmp(state->Name, tran->Dest->Name) != 0)
+        {
+            xAnimTableAddTransition(table, tran, state->Name);
+        }
+        state = state->Next;
+    }
+}
+
 static inline unsigned char PlayerIsDigging()
 {
     return globals.player.DigTimer != 0.0f;
@@ -1131,7 +1155,7 @@ static inline void PlayerScareReset()
         globals.player.Jump_CanFloat = 0;
         globals.player.Jump_CanDouble = 0;
     }
-    zEntPlayer_FXLostChance(&globals.player.ent);
+    zEntPlayer_FXLostChance(&globals.player.ent, 0.03f);
     zRumbleStart(0, (_tagSDRumbleType)7);
 }
 
@@ -1224,18 +1248,14 @@ static void PlayerAbsControl(_xEnt* ent, float x, float z, float dt)
     }
 
     xMat3x3GetEuler((_xMat3x3*)ent->frame, &euler);
-    if (euler.x >= 0.0f)
-    {
-    }
-    else
-    {
-        euler.x += 6.2831855f;
-    }
-    ent->frame->rot.angle = euler.x;
+    float ex = euler.x;
+    ex = (ex >= 0.0f) ? ex : ex + 6.2831855f;
+    ent->frame->rot.angle = ex;
     surfMaxSpeed = 0.0f;
 
     xAnimSingle* single = ent->model->Anim->Single;
     unsigned int animUserFlag = (single->State != NULL) ? single->State->UserFlags : 0;
+    unsigned int moveFlag = animUserFlag;
     xAnimSingle* blend = single->Blend;
     unsigned char hasblend = 0;
     if (blend != NULL && blend->State != NULL)
@@ -1243,7 +1263,6 @@ static void PlayerAbsControl(_xEnt* ent, float x, float z, float dt)
         hasblend = 1;
     }
     unsigned int blendUserFlag = hasblend ? (blend->State->UserFlags | 0x80000000) : 0;
-    unsigned int moveFlag = animUserFlag;
     unsigned int blendFlag = blendUserFlag;
     if ((animUserFlag & 0x1E) == 0xE && !(animUserFlag & 0x800))
     {
@@ -2005,17 +2024,17 @@ static void HeadbuttTest(_xCollis* coll, _xCollis* endcoll, float angle_cosine,
                          signed int (*headbuttCB)(_zEnt*, _xCollis*))
 {
     _zEnt* ent = (_zEnt*)&globals.player.ent;
-    if ((globals.player.ent.model->Anim->Single->State->UserFlags & 0x1E) == 0xC)
+    if ((ent->model->Anim->Single->State->UserFlags & 0x1E) == 0xC)
     {
-        float dx2 = isin(globals.player.ent.frame->rot.angle);
-        float dz2 = icos(globals.player.ent.frame->rot.angle);
+        float dx2 = isin(ent->frame->rot.angle);
+        float dz2 = icos(ent->frame->rot.angle);
         for (; coll < endcoll; coll++)
         {
+            _zEnt* villent = (_zEnt*)coll->optr;
             if ((float)__fabs(coll->hdng.y) < 0.7071f)
             {
-                _zEnt* villent = (_zEnt*)coll->optr;
-                float dx = villent->frame->mat.pos.x - ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x;
-                float dz = villent->frame->mat.pos.z - ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z;
+                float dx = villent->frame->mat.pos.x - ((_xMat4x3*)ent->model->Mat)->pos.x;
+                float dz = villent->frame->mat.pos.z - ((_xMat4x3*)ent->model->Mat)->pos.z;
                 float mag = xsqrt(dx * dx + dz * dz);
                 if (mag > 1e-7f && dx2 * dx + dz2 * dz > angle_cosine * mag && headbuttCB(ent, coll))
                 {
@@ -2043,7 +2062,6 @@ static signed int VillHBCallback(_zEnt* ent, _xCollis* coll)
         globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         zEntPlayer_SNDButtBounce(1);
         zRumbleStart(0, (_tagSDRumbleType)1);
-        return 1;
     }
     return 0;
 }
@@ -2076,7 +2094,7 @@ static unsigned int TeeterCheck(xAnimTransition*, xAnimSingle*, void*)
 {
     unsigned char ret = 0;
     if (globals.player.Speed == 0 && globals.player.Teeter && globals.player.Slide != 2 &&
-        !(globals.player.SlideTimer > 0.0f) && surfSlickTimer == 0.0f)
+        !(globals.player.SlideTimer > 0.0f) && !surfSlickTimer)
     {
         ret = 1;
     }
@@ -2295,7 +2313,7 @@ static unsigned int NosneakPlunger(xAnimTransition* tran, xAnimSingle* anim, voi
 static unsigned int ScareCheck(xAnimTransition* tran, xAnimSingle* anim, void* data)
 {
     unsigned char ret = 0;
-    if (globals.player.ScareTimer != 0.0f && HealthCheck(tran, anim, data))
+    if (globals.player.ScareTimer && HealthCheck(tran, anim, data))
     {
         ret = 1;
     }
@@ -2350,8 +2368,8 @@ static unsigned int ScareKnockbackCB(xAnimTransition*, xAnimSingle*, void*)
     knock.z = mat->at.z;
     xVec3Normalize(&knock, &knock);
     knock.x *= -4.0f;
-    knock.z *= -4.0f;
     knock.y = 15.0f;
+    knock.z *= -4.0f;
     globals.player.ent.frame->vel = knock;
     PlayerScareReset();
     return 0;
@@ -2495,14 +2513,17 @@ static unsigned int ActiveCheck(xAnimTransition* tran, xAnimSingle* anim, void* 
     return ret;
 }
 
+// TODO: 99.3%. The globals base and collis registers are swapped.
 static unsigned int JumpCheck(xAnimTransition*, xAnimSingle*, void*)
 {
     unsigned char ret = 0;
     _xEnt* fent;
-    if ((globals.player.Slide != 1 || !(globals.player.SlideTimer < 0.5f) ||
-         ((fent = (_xEnt*)globals.player.ent.collis->colls[0].optr) != NULL && fent->baseType == 6 &&
+    _xEntCollis* collis = globals.player.ent.collis;
+    signed int slide = globals.player.Slide;
+    if ((slide != 1 || !(globals.player.SlideTimer < 0.5f) ||
+         ((fent = (_xEnt*)collis->colls[0].optr) != NULL && fent->baseType == 6 &&
           fent->subType == 0xB)) &&
-        globals.player.Slide != 3 && (!surfSticky || (globals.player.Inv_Specials & 4)) && globals.player.ControlOn &&
+        slide != 3 && (!surfSticky || (globals.player.Inv_Specials & 4)) && globals.player.ControlOn &&
         (globals.pad0->pressed & 0x10000))
     {
         ret = 1;
@@ -2586,13 +2607,13 @@ static unsigned int ButtSmashLandCB(xAnimTransition*, xAnimSingle*, void*)
         if (sEmitterStars != NULL)
         {
             g_info.custom_flags = 0x205E1;
-            _xMat4x3* mat = (_xMat4x3*)globals.player.ent.model->Mat;
             _xCollis* coll = &globals.player.ent.collis->colls[0];
+            _xMat4x3* mat = (_xMat4x3*)globals.player.ent.model->Mat;
             g_info.pos.x = coll->dist * coll->tohit.x + mat->pos.x;
             g_info.pos.y = 0.5f + (coll->dist * coll->tohit.y + mat->pos.y);
+            g_info.pos.z = coll->dist * coll->tohit.z + mat->pos.z;
             g_info.size_birth = 0.0f;
             g_info.size_death = 0.5f;
-            g_info.pos.z = coll->dist * coll->tohit.z + mat->pos.z;
             g_info.color_death[0] = 0x40;
             g_info.color_death[1] = 0x40;
             g_info.color_death[2] = 0x40;
@@ -2694,26 +2715,19 @@ static unsigned int ProjectileCheck(xAnimTransition*, xAnimSingle*, void*)
 
 static unsigned int ProjectileRepeatSync(xAnimTransition* tran, xAnimSingle* anim, void* data)
 {
-    if (anim->Time >= globals.player.s.FirePress && anim->Time < globals.player.s.FireRepeat)
+    if (anim->Time >= globals.player.s.FirePress && anim->Time < globals.player.s.FireRepeat &&
+        ProjectileCheck(tran, anim, data))
     {
-        if (ProjectileCheck(tran, anim, data))
-        {
-            return 1;
-        }
-        return 0;
+        return 1;
     }
     return 0;
 }
 
 static unsigned int ProjectileRepeat(xAnimTransition* tran, xAnimSingle* anim, void* data)
 {
-    if (anim->Time >= globals.player.s.FireRepeat)
+    if (anim->Time >= globals.player.s.FireRepeat && ProjectileCheck(tran, anim, data))
     {
-        if (ProjectileCheck(tran, anim, data))
-        {
-            return 1;
-        }
-        return 0;
+        return 1;
     }
     return 0;
 }
@@ -2960,7 +2974,7 @@ static unsigned int FallToDeathStart(xAnimTransition*, xAnimSingle*, void*)
 
 static unsigned int FallToDeathDrop(xAnimTransition* tran, xAnimSingle* anim, void* data)
 {
-    return !FallToDeathStart(tran, anim, data);
+    return !globals.player.FallDeathTimer;
 }
 
 static unsigned int FallToDeathDropCB(xAnimTransition*, xAnimSingle*, void*)
@@ -3023,7 +3037,9 @@ static inline signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll)
     {
         if (!(globals.player.Inv_Specials & 0x800))
         {
-            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.ent.frame->mat.pos.x = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x;
+            globals.player.ent.frame->mat.pos.y = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.y;
+            globals.player.ent.frame->mat.pos.z = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z;
             globals.player.HeadbuttHit = 1;
             globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         }
@@ -3031,7 +3047,9 @@ static inline signed int ButtonHBCallback(_zEnt* ent, _xCollis* coll)
         {
             zEntEvent((xBase*)coll->optr, 0x37);
             zEntPlayer_ButtonHBFX();
-            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.ent.frame->mat.pos.x = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x;
+            globals.player.ent.frame->mat.pos.y = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.y;
+            globals.player.ent.frame->mat.pos.z = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z;
             globals.player.HeadbuttHit = 1;
             globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         }
@@ -3046,10 +3064,13 @@ void ButtonBBCheck(_xEnt* ent)
         _xCollis* coll = &ent->collis->colls[ent->collis->dyn_sidx];
         if (coll->optr != NULL && ((xBase*)coll->optr)->baseType == 0x18)
         {
-            if ((globals.player.Inv_Specials & 0x800) && ((xBase*)coll->optr)->baseType == 0x18 &&
-                (globals.player.ent.model->Anim->Single->State->UserFlags & 0x1E) == 0xC)
+            if (globals.player.Inv_Specials & 0x800)
             {
-                HeadbuttTest(coll, &ent->collis->colls[ent->collis->dyn_eidx], 0.1f, ButtonHBCallback);
+                _xCollis* hbend = &ent->collis->colls[ent->collis->dyn_eidx];
+                if (((xBase*)coll->optr)->baseType == 0x18)
+                {
+                    HeadbuttTest(&ent->collis->colls[ent->collis->dyn_sidx], hbend, 0.1f, ButtonHBCallback);
+                }
             }
             coll = &ent->collis->colls[ent->collis->dyn_sidx];
             _xCollis* endcoll = &ent->collis->colls[ent->collis->dyn_eidx];
@@ -3097,7 +3118,7 @@ void DestructObjBBCheck(_xEnt* ent)
         _xCollis* coll = &ent->collis->colls[ent->collis->dyn_sidx];
         if (coll->optr != NULL && ((xBase*)coll->optr)->baseType == 0x1B)
         {
-            HeadbuttTest(coll, &ent->collis->colls[ent->collis->dyn_eidx], 0.1f, DestructObjHBCallback);
+            HeadbuttTest(&ent->collis->colls[ent->collis->dyn_sidx], &ent->collis->colls[ent->collis->dyn_eidx], 0.1f, DestructObjHBCallback);
             coll = &ent->collis->colls[ent->collis->dyn_sidx];
             _xCollis* endcoll = &ent->collis->colls[ent->collis->dyn_eidx];
             if (globals.player.Health && (ent->model->Anim->Single->State->UserFlags & 0x1E) == 0xE)
@@ -3111,7 +3132,9 @@ void DestructObjBBCheck(_xEnt* ent)
                         if (bounceResponse == 3 && buttonState != 2)
                         {
                             zEntEvent((xBase*)coll->optr, 0x3A);
-                            ent->frame->mat.pos = *(_xVec3*)&((_xMat4x3*)ent->model->Mat)->pos;
+                            ent->frame->mat.pos.x = ((_xMat4x3*)ent->model->Mat)->pos.x;
+                            ent->frame->mat.pos.y = ((_xMat4x3*)ent->model->Mat)->pos.y;
+                            ent->frame->mat.pos.z = ((_xMat4x3*)ent->model->Mat)->pos.z;
                             startBounce = ent->frame->mat.pos.y;
                             zEntPlayerJumpStart(ent, &globals.player.s.Bounce);
                             globals.player.Jump_CanDouble = 1;
@@ -3141,14 +3164,18 @@ static inline signed int DestructObjHBCallback(_zEnt* ent, _xCollis* coll)
     {
         if (!(globals.player.Inv_Specials & 0x800))
         {
-            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.ent.frame->mat.pos.x = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x;
+            globals.player.ent.frame->mat.pos.y = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.y;
+            globals.player.ent.frame->mat.pos.z = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z;
             globals.player.HeadbuttHit = 1;
             globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         }
         else
         {
             zEntEvent((xBase*)coll->optr, 0x3A);
-            globals.player.ent.frame->mat.pos = *(_xVec3*)&((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.ent.frame->mat.pos.x = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x;
+            globals.player.ent.frame->mat.pos.y = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.y;
+            globals.player.ent.frame->mat.pos.z = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z;
             if (dobjState != 1 || headResponse != 5)
             {
                 globals.player.HeadbuttHit = 1;
@@ -3782,7 +3809,7 @@ xAnimTable* zEntPlayer_HeadAnimTable()
     xAnimTableNewState(table, "LickFace", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
     xAnimTableNewState(table, "WinkGrin", 0x20, 0, 1.0f, NULL, NULL, 0.0f, NULL);
     xAnimTableNewTransition(table, "LickFace WinkGrin", "Idle", NULL, NULL, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.0f, NULL);
-    PlayerHeadAddTransition(table, "ScareA", FaceScare, NULL, 0, 0, 6);
+    PlayerHeadAddTransitionFirst(table, "ScareA", FaceScare, NULL, 0, 0, 6);
     PlayerHeadAddTransition(table, "ScareB", FaceScare, NULL, 0, 1, 6);
     PlayerHeadAddTransition(table, "ScareC", FaceScare, NULL, 0, 2, 6);
     PlayerHeadAddTransition(table, "ScareD", FaceScare, NULL, 0, 3, 6);
@@ -3977,6 +4004,12 @@ static void zEntPlayer_SnackDecrement(float dt)
     }
 }
 
+// The original runs out of inline budget in zEntPlayer_Update: HeadbuttTest
+// and zEntPlayerJumpStart are called there, not inlined. Our source is
+// smaller than the original, so lower the budget to stop at the same call.
+// Deferred inlining uses the value in effect at the end of the file, so this
+// applies to the whole unit (no other function here reaches it).
+#pragma inline_max_total_size(6400)
 void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
 {
     _xCollis* coll;
@@ -4001,7 +4034,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         }
         else if (globals.player.Inv_Specials & 0x10)
         {
-            globals.player.Sneak = ((globals.player.Inv_Specials >> 5) & 1) + 1;
+            globals.player.Sneak = ((globals.player.Inv_Specials & 0x20) >> 5) + 1;
             zLaughNotify(0);
         }
     }
@@ -4133,7 +4166,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
             globals.player.ControlOffTimer = 0.0f;
         }
     }
-    if (globals.player.DamageTimer != 0.0f && globals.player.Health)
+    if (globals.player.DamageTimer && globals.player.Health)
     {
 #ifdef PC_PORT
         if (pc_game_fps() == 60 && (gFrameCount & 1))
@@ -4183,11 +4216,11 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
     iColor_tag black = { 0 };
     if (globals.player.Health == 0)
     {
-        if (globals.player.DamageTimer <= 0.3f && fn_800394B4() == 0)
+        if (globals.player.DamageTimer <= 0.3f && xScrFxIsFading() == 0)
         {
             xScrFxFade(&black, &clear, 0.3f, NULL, 1, 1);
         }
-        if (globals.player.DamageTimer == 0.0f)
+        if (!globals.player.DamageTimer)
         {
             zSceneGameStatsTally_death();
             zGameStateSwitch(2);
@@ -4209,8 +4242,10 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         {
             globals.player.ShockRadius = 4.0f;
         }
-        float rad2 = globals.player.ShockRadius * globals.player.ShockRadius;
-        float radold2 = globals.player.ShockRadiusOld * globals.player.ShockRadiusOld;
+        float radold2;
+        float rad2;
+        rad2 = globals.player.ShockRadius * globals.player.ShockRadius;
+        radold2 = globals.player.ShockRadiusOld * globals.player.ShockRadiusOld;
         for (i = 0; i < sc->num_npcs; i++)
         {
             _xEnt* vill = sc->npcs[i];
@@ -4218,8 +4253,12 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
             float dz = vill->frame->mat.pos.z - ent->frame->mat.pos.z;
             float dxo = vill->frame->oldpos.x - ent->frame->mat.pos.x;
             float dzo = vill->frame->oldpos.z - ent->frame->mat.pos.z;
-            float sdist2 = dx * dx + dz * dz;
-            float sdistold2 = dxo * dxo + dzo * dzo;
+            float dx2 = dx * dx;
+            float dz2 = dz * dz;
+            float sdist2 = dx2 + dz2;
+            float dxo2 = dxo * dxo;
+            float dzo2 = dzo * dzo;
+            float sdistold2 = dxo2 + dzo2;
             float ydist = (float)__fabs(vill->frame->mat.pos.y - ent->frame->mat.pos.y);
             if (((rad2 > sdist2 && radold2 <= sdist2) || (rad2 > sdistold2 && radold2 <= sdistold2)) &&
                 ydist < 0.5f)
@@ -4273,7 +4312,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         xEntApplyPhysics(ent, sc, sdt);
         xEntMove(ent, sc, sdt);
         req_motion = ent->frame->dpos;
-        xEntDriveUpdate(&globals.player.drv, sdt);
+        xEntDriveUpdate(&globals.player.drv, sc, sdt);
         if (globals.player.MountChimney != NULL && globals.player.MountChimney->eventFunc == Shaggy2Plat_EventCB)
         {
             globals.player.ent.frame->mat.pos.y +=
@@ -4310,7 +4349,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         float dy = ent->frame->mat.pos.y - suboldpos.y;
         float dz = ent->frame->mat.pos.z - suboldpos.z;
         if (globals.player.cheat_mode == 0 && (globals.player.JumpState == 0 || globals.player.JumpState == 1) &&
-            globals.player.FallDeathTimer == 0.0f)
+            !globals.player.FallDeathTimer)
         {
             ent->frame->mat.pos.y -= fg;
             float ndotm = globals.player.floor_norm.x * dx + globals.player.floor_norm.z * dz;
@@ -4322,9 +4361,15 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                 ent->frame->mat.pos.y -= m;
                 float s = xsqrt((dz * dz + (dy * dy + dx * dx)) / (dz * dz + (sdy * sdy + dx * dx)));
                 s = 0.25f * (s - 1.0f);
-                ent->frame->mat.pos.x += s * dx;
-                ent->frame->mat.pos.y += s * sdy;
-                ent->frame->mat.pos.z += s * dz;
+                {
+                    float ax = s * dx;
+                    float ay = s * sdy;
+                    float az = s * dz;
+                    _xVec3* pos = &ent->frame->mat.pos;
+                    pos->x += ax;
+                    pos->y += ay;
+                    pos->z += az;
+                }
             }
             else if (ndotm < 0.0f)
             {
@@ -4338,7 +4383,8 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
 
         if (lastFloorEnt != NULL)
         {
-            if (surfSlickRatio != 0.0f)
+            float slip = globals.player.SlipFadeTimer;
+            if (surfSlickRatio)
             {
                 float mag = globals.player.floor_norm.x * globals.player.floor_norm.x +
                             globals.player.floor_norm.z * globals.player.floor_norm.z;
@@ -4346,9 +4392,9 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                 ent->frame->mat.pos.y = ent->frame->mat.pos.y - sett2 * xsqrt(mag);
                 ent->frame->mat.pos.z = sett2 * globals.player.floor_norm.z + ent->frame->mat.pos.z;
             }
-            else if (globals.player.SlipFadeTimer > 0.0f)
+            else if (slip > 0.0f)
             {
-                float lerpspeed = 30.0f * ((globals.player.SlipFadeTimer / 0.8f) * sdt);
+                float lerpspeed = 30.0f * ((slip / 0.8f) * sdt);
                 ent->frame->mat.pos.x = lerpspeed * lastFloorNorm.x + ent->frame->mat.pos.x;
                 ent->frame->mat.pos.z = lerpspeed * lastFloorNorm.z + ent->frame->mat.pos.z;
             }
@@ -4391,8 +4437,9 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         }
         else
         {
+            _xCollis* c = &ent->collis->colls[6];
             _xCollis* cend = &ent->collis->colls[ent->collis->idx];
-            for (_xCollis* c = &ent->collis->colls[6]; c < cend; c++)
+            for (; c < cend; c++)
             {
                 _xEnt* cent = (_xEnt*)c->optr;
                 if (cent != NULL &&
@@ -4407,7 +4454,9 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         }
     }
 
-    for (_xCollis* wcoll = &ent->collis->colls[2]; wcoll < &ent->collis->colls[6]; wcoll++)
+    _xCollis* wcoll = &ent->collis->colls[2];
+    _xCollis* wend = &ent->collis->colls[6];
+    for (; wcoll < wend; wcoll++)
     {
         if (wcoll->flags & 1)
         {
@@ -4454,8 +4503,9 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         globals.player.Shaggy1.GrabOn && !zEntShaggy_GetSwap(globals.player.Shaggy1.Grab) &&
         globals.player.Shaggy1.Grab->subType == 0x1C)
     {
+        coll = &ent->collis->colls[ent->collis->npc_sidx];
         endcoll = &ent->collis->colls[ent->collis->npc_eidx];
-        for (coll = &ent->collis->colls[ent->collis->npc_sidx]; coll < endcoll; coll++)
+        for (; coll < endcoll; coll++)
         {
             _zEnt* shagent = (_zEnt*)coll->optr;
             if (shagent == globals.player.Shaggy1.Grab && coll->hdng.y < -0.7071f)
@@ -4502,21 +4552,15 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                     {
                         bounceResponse = zEntVillain_Bounce((st_zEntVillain*)coll->optr);
                     }
-                    switch (bounceResponse)
+                    if (bounceResponse == 1 || bounceResponse == 2)
                     {
-                    case 1:
-                    case 2:
-                    {
-                        zJumpParam* jump = &globals.player.s.Spring;
-                        ent->frame->mat.pos = *(_xVec3*)&((_xMat4x3*)ent->model->Mat)->pos;
+                        ent->frame->mat.pos.x = ((_xMat4x3*)ent->model->Mat)->pos.x;
+                        ent->frame->mat.pos.y = ((_xMat4x3*)ent->model->Mat)->pos.y;
+                        ent->frame->mat.pos.z = ((_xMat4x3*)ent->model->Mat)->pos.z;
                         startBounce = ent->frame->mat.pos.y;
-                        if (bounceResponse == 1)
-                        {
-                            jump = &globals.player.s.Bounce;
-                        }
-                        zEntPlayerJumpStart(ent, jump);
-                        unsigned char st = ((_xEnt*)coll->optr)->subType;
-                        if (st == 0x16 || st == 0x18 || st == 0x15 || st == 0)
+                        zEntPlayerJumpStart(ent, (bounceResponse == 1) ? &globals.player.s.Bounce : &globals.player.s.Spring);
+                        if (((_xEnt*)coll->optr)->subType == 0x16 || ((_xEnt*)coll->optr)->subType == 0x18 ||
+                            ((_xEnt*)coll->optr)->subType == 0x15 || ((_xEnt*)coll->optr)->subType == 0)
                         {
                             globals.player.Bounced = 1;
                         }
@@ -4527,16 +4571,25 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                         globals.player.Jump_CanDouble = 1;
                         globals.player.Jump_CanFloat = 1;
                         zRumbleStart(0, (_tagSDRumbleType)2);
-                        zEntPlayer_SNDButtBounce(0);
-                    }
-                    case 4:
-                        if (coll->hdng.x == 0.0f && coll->hdng.z == 0.0f)
                         {
-                            ent->frame->vel.y = 0.0f;
+                            // zEntPlayer_SNDButtBounce(0), written out: the
+                            // inline budget is spent by this point.
+                            float pitch;
+                            sPlayerSndfx.butt_pitch = zPitchChange(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
+                            xSndPlay(sPlayerSndfx.butt_id[sPlayerSndfx.butt_snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
+                            signed short newsnd = sPlayerSndfx.butt_snd;
+                            while (newsnd == sPlayerSndfx.butt_snd)
+                            {
+                                newsnd = rand() % 3;
+                            }
+                            sPlayerSndfx.butt_snd = newsnd;
                         }
                         break;
                     }
-                    break;
+                    if (bounceResponse == 4 && coll->hdng.x == 0.0f && coll->hdng.z == 0.0f)
+                    {
+                        ent->frame->vel.y = 0.0f;
+                    }
                 }
             }
         }
@@ -4559,16 +4612,22 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                     }
                     break;
                 case 3:
-                    if (zEntPlayer_Damage((xBase*)coll->optr, 1) != 0)
                     {
-                        zRumbleStart(0, (_tagSDRumbleType)4);
+                        signed int hurt = zEntPlayer_Damage((xBase*)coll->optr, 1) ? 1 : 0;
+                        if (hurt)
+                        {
+                            zRumbleStart(0, (_tagSDRumbleType)4);
+                        }
                     }
                     took_damage = 1;
                     break;
                 case 4:
-                    if (zEntPlayer_Damage((xBase*)coll->optr, 1) != 0)
                     {
-                        zRumbleStart(0, (_tagSDRumbleType)4);
+                        signed int hurt = zEntPlayer_Damage((xBase*)coll->optr, 1) ? 1 : 0;
+                        if (hurt)
+                        {
+                            zRumbleStart(0, (_tagSDRumbleType)4);
+                        }
                     }
                     took_damage = 1;
                     break;
@@ -4585,12 +4644,14 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
     {
         if (ent->collis->dyn_eidx > ent->collis->dyn_sidx)
         {
+            coll = &ent->collis->colls[ent->collis->dyn_sidx];
             endcoll = &ent->collis->colls[ent->collis->dyn_eidx];
-            for (coll = &ent->collis->colls[ent->collis->dyn_sidx]; coll < endcoll; coll++)
+            while (coll < endcoll)
             {
                 _zEntBubble* bub = (_zEntBubble*)coll->optr;
                 if (bub == NULL)
                 {
+                    coll++;
                     continue;
                 }
                 if (bub->baseType == 0xF)
@@ -4612,6 +4673,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                                 zEntVillain_Bounce(vill);
                             }
                         }
+                        break;
                     }
                     else if (bub->subType == 1)
                     {
@@ -4621,17 +4683,17 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                             zEntVillain_Headbutt(vill, &coll->hdng);
                         }
                     }
-                    break;
                 }
+                coll++;
             }
         }
     }
 
-    zEntPlayerFloorUpdate(ent, dt);
-    PlayerTeeterCheck(dt);
-    zEntPlayerSurfDamageUpdate(ent);
-    zEntPlayerDriveUpdate(ent, dt);
-    zEntPlayerJumpUpdate(ent, dt);
+    zEntPlayerFloorUpdate(ent, sc, dt);
+    PlayerTeeterCheck(ent, sc, dt);
+    zEntPlayerSurfDamageUpdate(ent, sc, dt);
+    zEntPlayerDriveUpdate(ent, sc, dt);
+    zEntPlayerJumpUpdate(ent, sc, dt);
     zEntPlayerCollTrigger(ent, sc);
 
     if (globals.player.RootUp.y != globals.player.RootUpTarget.y || globals.player.RootUp.y != 1.0f)
@@ -4659,10 +4721,14 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         }
         else
         {
-            float s = (1.0f / xsqrt(mag)) * lerpspeed;
-            globals.player.RootUp.x += dx * s;
-            globals.player.RootUp.y += dy * s;
-            globals.player.RootUp.z += dz * s;
+            mag = xsqrt(mag);
+            float s = (1.0f / mag) * lerpspeed;
+            dx *= s;
+            dy *= s;
+            dz *= s;
+            globals.player.RootUp.x += dx;
+            globals.player.RootUp.y += dy;
+            globals.player.RootUp.z += dz;
             xVec3Normalize(&globals.player.RootUp, &globals.player.RootUp);
         }
         if (PlayerFpClassify(globals.player.RootUp.y) == 1 || PlayerFpClassify(globals.player.RootUpTarget.y) == 1)
@@ -4677,7 +4743,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
         }
     }
 
-    zEntPlayerVelUpdate(ent, dt);
+    zEntPlayerVelUpdate(ent, sc, dt);
     xEntEndUpdate(ent, sc, dt);
 
     if (globals.player.HangEnt != NULL && globals.player.HangEnt != globals.player.HangEntLast)
@@ -4725,7 +4791,7 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
 
     if (globals.player.DigTimer != 0.0f)
     {
-        PlayerDigUpdate(dt);
+        PlayerDigUpdate(ent, dt);
     }
     else
     {
@@ -4743,7 +4809,10 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
                     float dy = globals.player.ent.bound.sph.center.y - mat->pos.y;
                     float dz = globals.player.ent.bound.sph.center.z - mat->pos.z;
                     float r = 1.25f * globals.player.ent.bound.sph.r;
-                    if (dx * dx + dy * dy + dz * dz < r * r)
+                    float dx2 = dx * dx;
+                    float dy2 = dy * dy;
+                    float dz2 = dz * dz;
+                    if (dx2 + dy2 + dz2 < r * r)
                     {
                         globals.player.Diggable = simpent;
                         if (!(sflags & 2))
@@ -4775,11 +4844,11 @@ void zEntPlayer_Update(_xEnt* ent, _xScene* sc, float dt)
     }
     if (globals.player.JumpState == 0)
     {
-        xCameraTargetOnGround(1);
+        xCameraTargetOnGround(1, ent->frame->mat.pos.y);
     }
     else
     {
-        xCameraTargetOnGround(0);
+        xCameraTargetOnGround(0, 0.0f);
     }
     zEntPlayer_FXUpdate(ent, dt);
     if (!globals.player.ControlOn && globals.player.ControlOnEvent)
@@ -4816,7 +4885,7 @@ void zEntPlayer_Render(_zEnt* ent)
             rootZadjust = -0.6f * (1.0f - asingle->BlendFactor * asingle->Tran->BlendRecip);
         }
 
-        if (rootZadjust != 0.0f)
+        if (rootZadjust)
         {
             _xVec3 rootZvec = { 0.0f, 0.0f, 0.0f };
             rootZvec.z = rootZadjust;
@@ -4873,7 +4942,7 @@ void zEntPlayer_Render(_zEnt* ent)
             rendermat = *(_xMat4x3*)ent->model->Mat;
         }
 
-        if (globals.player.RootUp.y != 1.0f || rootZadjust != 0.0f)
+        if (globals.player.RootUp.y != 1.0f || rootZadjust)
         {
             for (minst = ent->model->Next; minst != NULL; minst = minst->Next)
             {
@@ -5217,13 +5286,16 @@ signed int zEntPlayer_Damage(xBase* src, unsigned int damage)
 
 unsigned int zEntPlayer_MoveInfo()
 {
+    unsigned int type;
+    unsigned int flags;
+    xAnimState* state;
     unsigned int retval = 0;
-    xAnimState* state = globals.player.ent.model->Anim->Single->State;
-    unsigned int flags = state->UserFlags;
-    unsigned int type = flags & 0x1E;
+    state = globals.player.ent.model->Anim->Single->State;
+    flags = state->UserFlags;
+    type = flags & 0x1E;
     if (type == 0 || (flags & 1))
     {
-        retval = 1;
+        retval |= 1;
     }
     if (type == 4)
     {
@@ -5413,7 +5485,7 @@ void zEntPlayerJumpStart(_xEnt* ent, zJumpParam* jump)
 }
 #pragma auto_inline reset
 
-void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
+void zEntPlayerJumpUpdate(_xEnt* ent, _xScene*, float dt)
 {
     globals.player.LastJumpState = globals.player.JumpState;
     if (globals.player.JumpState == 4)
@@ -5425,7 +5497,7 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
         ent->frame->vel.y = -globals.player.s.ButtsmashSpeed;
     }
 
-    if (globals.player.Jump_HoldTimer != 0.0f)
+    if (globals.player.Jump_HoldTimer)
     {
         globals.player.Jump_HoldTimer -= dt;
         if (globals.player.Jump_HoldTimer <= 0.0f)
@@ -5440,7 +5512,7 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
         }
     }
 
-    if (globals.player.Jump_ChangeTimer != 0.0f)
+    if (globals.player.Jump_ChangeTimer)
     {
         globals.player.Jump_ChangeTimer -= dt;
         if (globals.player.Jump_ChangeTimer == 0.0f)
@@ -5484,7 +5556,7 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
                 }
                 zRumbleStart(0, (_tagSDRumbleType)3);
                 float pitch;
-                sPlayerSndfx.butt_pitch = fn_800C751C(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
+                sPlayerSndfx.butt_pitch = zPitchChange(sPlayerSndfx.butt_pitch, &pitch, 0x1E, 1.5f);
                 xSndPlay(sPlayerSndfx.buttmiss_id, 0.5f, 0.5f, 0.0f, 0x80, 2, 0);
             }
             globals.player.JumpState = 0;
@@ -5496,27 +5568,29 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
     }
     else
     {
-        switch (globals.player.JumpState)
+        if (globals.player.JumpState == 0)
         {
-        case 0:
             globals.player.JumpState = 1;
             globals.player.JumpTimer = 0.0f;
-            break;
-        case 1:
+        }
+        else if (globals.player.JumpState == 1)
+        {
             globals.player.JumpTimer += dt;
             if (globals.player.JumpTimer >= 0.25f)
             {
                 globals.player.JumpState = 2;
             }
-            break;
-        case 2:
+        }
+        else if (globals.player.JumpState == 2)
+        {
             if (ent->frame->vel.y < 16.0f && globals.player.Jump_SpringboardStart)
             {
+                _zPlatform* spring = globals.player.Jump_Springboard;
                 if (sEmitterSpringBoard != NULL)
                 {
                     _zParEmitterCustomSettings info;
                     info.custom_flags = 0x20;
-                    info.pos = *xBoundCenter(&globals.player.Jump_Springboard->bound);
+                    info.pos = *xBoundCenter(&spring->bound);
                     for (signed int i = 0; i < 25; i++)
                     {
                         zParEmitterEmitCustom(sEmitterSpringBoard, 1.0f / 30.0f, &info);
@@ -5529,7 +5603,6 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
                     globals.player.Jump_CanDouble = 1;
                 }
             }
-            break;
         }
         if (globals.player.JumpState == 3)
         {
@@ -5543,7 +5616,7 @@ void zEntPlayerJumpUpdate(_xEnt* ent, float dt)
         }
     }
 
-    if (globals.player.Jump_CurrGravity != 0.0f)
+    if (globals.player.Jump_CurrGravity)
     {
         if (globals.player.JumpState == 2 || globals.player.JumpState == 1)
         {
@@ -5597,7 +5670,7 @@ static void PlayerEGenCheck(_xEnt* ent, zScene* sc, float dt)
             if (isect.dist < r * r + 0.1f * (2.0f * r) + 0.1f * 0.1f)
             {
                 globals.player.earc_coll.flags |= 1;
-                if (zEntPlayer_Damage(egen, 1) != 0)
+                if (zEntPlayer_Damage(egen, 1) ? 1 : 0)
                 {
                     globals.player.DamageTimer = 5.0f;
                 }
@@ -5606,7 +5679,7 @@ static void PlayerEGenCheck(_xEnt* ent, zScene* sc, float dt)
     }
 }
 
-void zEntPlayerVelUpdate(_xEnt* ent, float dt)
+void zEntPlayerVelUpdate(_xEnt* ent, _xScene*, float dt)
 {
     if (!(ent->model->Anim->Single->State->UserFlags & 0x100))
     {
@@ -5738,7 +5811,7 @@ void zEntPlayerVelUpdate(_xEnt* ent, float dt)
     }
 }
 
-void zEntPlayerFloorUpdate(_xEnt* p, float dt)
+void zEntPlayerFloorUpdate(_xEnt* p, _xScene*, float dt)
 {
     static _xVec3 lorigins[6] = {
         { -0.3f, 0.0f, 0.3f },  { 0.3f, 0.0f, 0.3f }, { 0.3f, 0.0f, -0.3f },
@@ -5777,7 +5850,7 @@ void zEntPlayerFloorUpdate(_xEnt* p, float dt)
             {
                 surfSlipTimer = 0.0f;
             }
-            if (surfSlipTimer != 0.0f)
+            if (surfSlipTimer)
             {
                 surfSlipTimer += dt;
                 if (surfSlipTimer >= 0.75f)
@@ -5824,10 +5897,10 @@ void zEntPlayerFloorUpdate(_xEnt* p, float dt)
             }
         }
 
-        if (surfSlickRatio != 0.0f)
+        if (surfSlickRatio)
         {
             float velmag = vel->x * vel->x + vel->z * vel->z;
-            if (surfMaxSpeed != 0.0f)
+            if (surfMaxSpeed)
             {
                 if (velmag > surfMaxSpeed * surfMaxSpeed)
                 {
@@ -5903,8 +5976,9 @@ void zEntPlayerFloorUpdate(_xEnt* p, float dt)
     ray.min_t = -0.7f;
     ray.max_t = 1.0f;
     ray.flags = 0xC00;
-    _xEnt* fent = (_xEnt*)fcoll->optr;
     signed int i;
+    _xEnt* fent;
+    fent = (_xEnt*)fcoll->optr;
     for (i = 0; i < 4; i++)
     {
         xMat3x3RMulVec(&ray.origin, (_xMat3x3*)p->frame, &lorigins[i]);
@@ -5946,15 +6020,24 @@ void zEntPlayerFloorUpdate(_xEnt* p, float dt)
         floor_supp[i].y -= d;
     }
 
-    float ax = floor_supp[1].x - floor_supp[0].x;
-    float bx = floor_supp[2].x - floor_supp[0].x;
-    float cx = floor_supp[3].x - floor_supp[0].x;
-    float ay = floor_supp[1].y - floor_supp[0].y;
-    float by = floor_supp[2].y - floor_supp[0].y;
-    float cy = floor_supp[3].y - floor_supp[0].y;
-    float az = floor_supp[1].z - floor_supp[0].z;
-    float bz = floor_supp[2].z - floor_supp[0].z;
-    float cz = floor_supp[3].z - floor_supp[0].z;
+    float cz;
+    float bz;
+    float az;
+    float cy;
+    float by;
+    float ay;
+    float cx;
+    float bx;
+    float ax;
+    ax = floor_supp[1].x - floor_supp[0].x;
+    bx = floor_supp[2].x - floor_supp[0].x;
+    cx = floor_supp[3].x - floor_supp[0].x;
+    ay = floor_supp[1].y - floor_supp[0].y;
+    by = floor_supp[2].y - floor_supp[0].y;
+    cy = floor_supp[3].y - floor_supp[0].y;
+    az = floor_supp[1].z - floor_supp[0].z;
+    bz = floor_supp[2].z - floor_supp[0].z;
+    cz = floor_supp[3].z - floor_supp[0].z;
     globals.player.floor_norm.x = (ay * bz - by * az) + (by * cz - cy * bz);
     globals.player.floor_norm.y = (az * bx - bz * ax) + (bz * cx - cz * bx);
     globals.player.floor_norm.z = (ax * by - bx * ay) + (bx * cy - cx * by);
@@ -6127,7 +6210,7 @@ static void PlayerBoundUpdate(_xEnt* ent, _xVec3* pos)
     _xVec3 dpos;
 
     xEntDefaultBoundUpdate(ent, pos);
-    if ((headcoll_anim >= 4 && headcoll_anim <= 7) || headcoll_anim == 8)
+    if ((unsigned int)(headcoll_anim - 4) <= 3 || headcoll_anim == 8)
     {
         dpos.x = pos->x - ((_xMat4x3*)ent->model->Mat)->pos.x;
         dpos.y = pos->y - ((_xMat4x3*)ent->model->Mat)->pos.y;
@@ -6166,12 +6249,12 @@ static void PlayerBoundUpdate(_xEnt* ent, _xVec3* pos)
         _xVec3* c = xBoundCenter(&ent->bound);
         globals.player.head_sph.center.x = c->x + dpos.x;
         globals.player.head_sph.center.y = c->y + dpos.y;
-        globals.player.head_sph.r = 0.7f;
         globals.player.head_sph.center.z = c->z + dpos.z;
+        globals.player.head_sph.r = 0.7f;
     }
 }
 
-void zEntPlayerSurfDamageUpdate(_xEnt* p)
+void zEntPlayerSurfDamageUpdate(_xEnt* p, _xScene*, float)
 {
     if (!(globals.player.DamageTimer > 0.0f))
     {
@@ -6200,7 +6283,7 @@ void zEntPlayerSurfDamageUpdate(_xEnt* p)
             {
             case 4:
             case 6:
-                if (zEntPlayer_Damage(surf, 1) != 0)
+                if (zEntPlayer_Damage(surf, 1) ? 1 : 0)
                 {
                     globals.player.DamageTimer = 5.0f;
                 }
@@ -6215,6 +6298,8 @@ void zEntPlayerSurfDamageUpdate(_xEnt* p)
                     break;
                 }
             }
+            case 2:
+            case 3:
             case 5:
                 if (globals.player.Health)
                 {
@@ -6236,10 +6321,11 @@ void zEntPlayerSurfDamageUpdate(_xEnt* p)
     }
 }
 
-void zEntPlayerDriveUpdate(_xEnt* p, float dt)
+void zEntPlayerDriveUpdate(_xEnt* p, _xScene*, float dt)
 {
-    _xEntDrive* drv = &globals.player.drv;
     _zPlatform* plat;
+    _xEntDrive* drv;
+    drv = &globals.player.drv;
 
     if (globals.player.drv.odriver != NULL)
     {
@@ -6251,7 +6337,7 @@ void zEntPlayerDriveUpdate(_xEnt* p, float dt)
             drv->otm = 0.0f;
             if (oplat->subType == 9)
             {
-                zPlatform_Dismount();
+                zPlatform_Dismount(oplat);
             }
             if (oplat->passet->flags & 1)
             {
@@ -6556,7 +6642,7 @@ void zEntPlayerReset(_xEnt* ent)
                 iModelTagIndex(&tmpTag, tongue->Data, numV);
                 for (unsigned int wnum = 0; wnum < 4; wnum++)
                 {
-                    if (tmpTag.wt[wnum] != 0.0f)
+                    if (tmpTag.wt[wnum])
                     {
                         unsigned char widx = tmpTag.matidx >> (wnum * 8);
                         globals.player.TongueFlags[widx >> 5] |= 1 << (widx & 0x1F);
@@ -6631,9 +6717,10 @@ void zEntPlayerReset(_xEnt* ent)
 
 static _xEnt* PlayerCollCheckOneEnt(_xEnt* ent, _xScene*, void* data)
 {
-    _xEnt* p = (_xEnt*)data;
-    unsigned int modl_coll = 0;
     unsigned int head_hit = 0;
+    unsigned int modl_coll = 0;
+    _xEnt* p;
+    p = (_xEnt*)data;
 
     if (p->collis->idx >= 15)
     {
@@ -6810,7 +6897,7 @@ static _xEnt* PlayerCollCheckOneVillain(_xEnt* ent, _xScene*, void* data)
     xBoundHitsBound(&p->bound, &ent->bound, coll);
 
     st_zEntVillain* vill = (st_zEntVillain*)ent;
-    if (vill->bound2.sph.r != 0.0f)
+    if (vill->bound2.sph.r)
     {
         _xCollis coll2;
         coll2.flags = 0x1F00;
@@ -6880,12 +6967,14 @@ static void PlayerCollsSideTranslate(_xCollis* colls, float x, float y, float z)
     PlayerCollisTranslate(&colls[5], x, y, z);
 }
 
-static void PlayerCollsSelectDepen(_xEnt* p)
+static void PlayerCollsSelectDepen(_xEnt* p, _xScene*, float)
 {
-    _xCollis* colls = &p->collis->colls[0];
-    _xMat4x3* mat = (_xMat4x3*)p->frame;
-    _xCollis* c;
     _xCollis* cend;
+    _xCollis* c;
+    _xCollis* colls;
+    _xMat4x3* mat;
+    colls = &p->collis->colls[0];
+    mat = (_xMat4x3*)p->frame;
 
     for (c = colls + 6, cend = colls + p->collis->idx; c < cend; c++)
     {
@@ -7214,7 +7303,7 @@ void zEntPlayerCollide(_xEnt* ent, _xScene* sc, float dt)
     }
     if (ent->collis->chk & 0x2E)
     {
-        PlayerCollsSelectDepen(ent);
+        PlayerCollsSelectDepen(ent, sc, dt);
         _xCollis* colls = &ent->collis->colls[0];
         for (c = colls + 2, cend = colls + ent->collis->idx; c < cend; c++)
         {
@@ -7724,7 +7813,7 @@ static void PlayerHangCheck(_xEnt* ent, _xScene* sc)
     }
 }
 
-static void PlayerTeeterCheck(float dt)
+static void PlayerTeeterCheck(_xEnt*, _xScene*, float dt)
 {
     signed int i;
 
@@ -7760,7 +7849,7 @@ static void PlayerTeeterCheck(float dt)
     }
 }
 
-static void PlayerDigUpdate(float dt)
+static void PlayerDigUpdate(_xEnt*, float dt)
 {
     unsigned int i;
     p2LinkAsset* curlink;
@@ -7847,10 +7936,10 @@ static void PlayerRotMatchUpdateEnt(_xEnt* ent, _xScene*, float dt, void* fdata)
                 xVec3Cross(&raxis, eup, fup);
                 xVec3Normalize(&raxis, &raxis);
                 float dang = acos(nfup.x * neup.x + nfup.y * neup.y + nfup.z * neup.z);
-                if (dang != 0.0f)
+                if (dang)
                 {
                     float s = dt / rms->tmatch;
-                    s = (s > 1.0f) ? 1.0f : s;
+                    s = (1.0f < s) ? 1.0f : s;
                     if (fdecl >= rms->max_decl)
                     {
                         float rang = (rms->max_decl - edecl) / (fdecl - edecl);
@@ -7912,9 +8001,16 @@ void zEntPlayer_StoreCheckPoint(float* toParam)
     _xVec3 p = globals.player.ent.frame->mat.pos;
     float r = globals.player.ent.frame->rot.angle;
     globals.player.cp.pos = p;
-    if (toParam != NULL && *toParam != 0.0f)
+    if (toParam != NULL)
     {
-        globals.player.cp.rot = *toParam;
+        if (*toParam)
+        {
+            globals.player.cp.rot = *toParam;
+        }
+        else
+        {
+            globals.player.cp.rot = r;
+        }
     }
     else
     {
@@ -8006,12 +8102,13 @@ void zEntPlayer_SNDInit()
     sPlayerSndfx.leap_id[i++] = xStrHash("scooby_bounce_18");
     sPlayerSndfx.leap_id[i++] = xStrHash("scooby_bounce_19");
     sPlayerSndfx.leap_id[i++] = xStrHash("scooby_bounce_20");
-    for (signed int n = 0; n < 13; n++)
+    for (i = 0; i < 13; i++)
     {
-        sprintf(name, "scooby_excite_%02d", n + 1);
-        sPlayerSndfx.excite_id[n] = xStrHash(name);
+        sprintf(name, "scooby_excite_%02d", i + 1);
+        sPlayerSndfx.excite_id[i] = xStrHash(name);
     }
-    sPlayerSndfx.see_geronimo_id[0] = xStrHash("scooby_one_42b");
+    i = 0;
+    sPlayerSndfx.see_geronimo_id[i++] = xStrHash("scooby_one_42b");
     i = 0;
     sPlayerSndfx.see_shaggy_id[i++] = xStrHash("scooby_one_19a");
     sPlayerSndfx.see_shaggy_id[i++] = xStrHash("scooby_one_19b");
@@ -8028,13 +8125,16 @@ void zEntPlayer_SNDInit()
     sPlayerSndfx.see_holly_id[i++] = xStrHash("scooby_holly1a");
     sPlayerSndfx.see_holly_id[i++] = xStrHash("scooby_holly1b");
     sPlayerSndfx.see_holly_id[i++] = xStrHash("scooby_holly2");
-    sPlayerSndfx.see_groundskeeper_id[0] = xStrHash("scooby_holly1a");
-    sPlayerSndfx.see_warpgate_id[0] = xStrHash("scooby_one_25");
+    i = 0;
+    sPlayerSndfx.see_groundskeeper_id[i++] = xStrHash("scooby_holly1a");
+    i = 0;
+    sPlayerSndfx.see_warpgate_id[i++] = xStrHash("scooby_one_25");
     i = 0;
     sPlayerSndfx.need_more_snacks_id[i++] = xStrHash("scooby_one_23a");
     sPlayerSndfx.need_more_snacks_id[i++] = xStrHash("scooby_one_23b");
     sPlayerSndfx.need_more_snacks_id[i++] = xStrHash("scooby_one_23c");
-    sPlayerSndfx.success_id[0] = xStrHash("scooby_one_07");
+    i = 0;
+    sPlayerSndfx.success_id[i++] = xStrHash("scooby_one_07");
     i = 0;
     sPlayerSndfx.see_token_id[i++] = xStrHash("scooby_one_24a");
     sPlayerSndfx.see_token_id[i++] = xStrHash("scooby_one_24b");
@@ -8096,7 +8196,8 @@ void zEntPlayer_SNDInit()
     sPlayerSndfx.sorry_id[i++] = xStrHash("scooby_one_14b");
     sPlayerSndfx.sorry_id[i++] = xStrHash("scooby_one_15a");
     sPlayerSndfx.sorry_id[i++] = xStrHash("scooby_one_14b");
-    sPlayerSndfx.collect_all_snacks_id[0] = xStrHash("scooby_one_07");
+    i = 0;
+    sPlayerSndfx.collect_all_snacks_id[i++] = xStrHash("scooby_one_07");
     i = 0;
     sPlayerSndfx.eat_sandwich_id[i++] = xStrHash("scooby_one_09");
     sPlayerSndfx.eat_sandwich_id[i++] = xStrHash("scooby_one_06b");
@@ -8115,56 +8216,56 @@ void zEntPlayer_SNDInit()
 void zEntPlayer_SNDBitePickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.bite_pitch = fn_800C751C(sPlayerSndfx.bite_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.bite_pitch = zPitchChange(sPlayerSndfx.bite_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.bite_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDAmmoPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.ammo_pitch = fn_800C751C(sPlayerSndfx.ammo_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.ammo_pitch = zPitchChange(sPlayerSndfx.ammo_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.ammo_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDSpecialPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.special_pitch = fn_800C751C(sPlayerSndfx.special_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.special_pitch = zPitchChange(sPlayerSndfx.special_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.special_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDTokenPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.token_pitch = fn_800C751C(sPlayerSndfx.token_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.token_pitch = zPitchChange(sPlayerSndfx.token_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.token_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDSavePickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.save_pitch = fn_800C751C(sPlayerSndfx.save_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.save_pitch = zPitchChange(sPlayerSndfx.save_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.save_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDInfoPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.info_pitch = fn_800C751C(sPlayerSndfx.info_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.info_pitch = zPitchChange(sPlayerSndfx.info_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.info_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDErrorPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.error_pitch = fn_800C751C(sPlayerSndfx.error_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.error_pitch = zPitchChange(sPlayerSndfx.error_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.error_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
 void zEntPlayer_SNDKeyPickup(_xEnt*)
 {
     float pitch;
-    sPlayerSndfx.key_pitch = fn_800C751C(sPlayerSndfx.key_pitch, &pitch, 0x1E, 0.25f);
+    sPlayerSndfx.key_pitch = zPitchChange(sPlayerSndfx.key_pitch, &pitch, 0x1E, 0.25f);
     xSndPlay(sPlayerSndfx.key_id, 0.5f, 0.5f, pitch, 0x80, 2, 0);
 }
 
@@ -8422,10 +8523,11 @@ void zEntPlayer_Notify(signed int situation)
 }
 #pragma auto_inline reset
 
-static void zEntPlayer_FXLostChance(_xEnt* ent)
+static void zEntPlayer_FXLostChance(_xEnt* ent, float)
 {
-    _LostChanceFX fx_to_play = LCFX_StdShock;
     signed int sd_surface = -1;
+    _LostChanceFX fx_to_play;
+    fx_to_play = LCFX_StdShock;
 
     xSurface* fsurf = zSurfaceGetSurface(&ent->collis->colls[0]);
     if (fsurf != NULL && fsurf->state == 0)
@@ -8672,7 +8774,7 @@ static unsigned int zEntPlayer_SNDSkidCB(unsigned int, xAnimActiveEffect*, xAnim
     float pitch;
     signed int newsnd;
 
-    pitch_angle = fn_800C751C(pitch_angle, &pitch, 0x1E, 1.5f);
+    pitch_angle = zPitchChange(pitch_angle, &pitch, 0x1E, 1.5f);
     xSndPlay(sPlayerSndfx.skid_id[snd], 0.5f, 0.5f, pitch, 0x80, 2, 0);
     newsnd = snd;
     while (newsnd == snd)

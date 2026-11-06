@@ -1,4 +1,6 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDRdwr.c"
+#include "dolphin/card/card_dbg.h"
 
 // prototypes
 static void BlockReadCallback(s32 chan, s32 result);
@@ -37,8 +39,8 @@ static void BlockReadCallback(s32 chan, s32 result) {
 s32 __CARDRead(s32 chan, u32 addr, s32 length, void* dst, CARDCallback callback) {
     CARDControl* card;
 
-    ASSERTLINE(91, 0 < length && length % CARD_SEG_SIZE == 0);
-    ASSERTLINE(92, 0 <= chan && chan < 2);
+    ASSERTLINE(88, 0 < length && length % CARD_SEG_SIZE == 0);
+    ASSERTLINE(89, 0 <= chan && chan < 2);
 
     card = &__CARDBlock[chan];
     if (card->attached == 0) {
@@ -82,11 +84,18 @@ static void BlockWriteCallback(s32 chan, s32 result) {
 
 s32 __CARDWrite(s32 chan, u32 addr, s32 length, void* dst, CARDCallback callback) {
     CARDControl* card;
+
+#if defined(VERSION_GIHE78)
+    ASSERTLINE(149, 0 < length && length % CARD_PAGE_SIZE == 0);
+    ASSERTLINE(150, 0 <= chan && chan < 2);
+    card = &__CARDBlock[chan];
+#else
     card = &__CARDBlock[chan];
 
-    ASSERTLINE(153, 0 < length && length % card->pageSize == 0);
-    ASSERTLINE(154, 0 <= chan && chan < 2);
-    
+    ASSERTLINE(149, 0 < length && length % card->pageSize == 0);
+    ASSERTLINE(150, 0 <= chan && chan < 2);
+#endif
+
     if (card->attached == 0) {
         return CARD_RESULT_NOCARD;
     }
@@ -96,3 +105,10 @@ s32 __CARDWrite(s32 chan, u32 addr, s32 length, void* dst, CARDCallback callback
     card->buffer = dst;
     return __CARDWritePage(chan, BlockWriteCallback);
 }
+
+#if defined(VERSION_GIHE78)
+s32 CARDGetXferredBytes(s32 chan) {
+    ASSERTLINE(180, 0 <= chan && chan < 2);
+    return __CARDBlock[chan].xferred;
+}
+#endif

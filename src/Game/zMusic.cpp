@@ -640,7 +640,7 @@ void zMusicNotify(signed int situation)
     }
 }
 
-void zMusicNotifyEvent(float* toParam)
+void zMusicNotifyEvent(float* toParam, xBase*)
 {
     zMusicSituation* s;
 

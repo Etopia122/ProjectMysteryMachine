@@ -163,7 +163,7 @@ static inline void XST_unlock(st_STRAN_SCENE* sdata)
     {
         if (g_xstdata.loadlock & (1 << sdata->lockid))
         {
-            g_xstdata.loadlock &= ~(1 << sdata->lockid);
+            g_xstdata.loadlock &= ~(unsigned int)(1 << sdata->lockid);
             memset(sdata, 0, sizeof(st_STRAN_SCENE));
         }
     }
@@ -450,8 +450,8 @@ void* xSTFindAssetByType(unsigned int type, signed int idx, unsigned int* size)
 
 signed int xSTGetAssetInfo(unsigned int aid, st_xST_XASSETINFO* ainfo)
 {
-    st_PKR_ASSET_TOCINFO tocinfo = { 0 };
     signed int rc = 0;
+    st_PKR_ASSET_TOCINFO tocinfo = { 0 };
 
     memset(ainfo, 0, sizeof(st_xST_XASSETINFO));
     signed int scncnt = XST_cnt_locked();
@@ -478,8 +478,8 @@ signed int xSTGetAssetInfo(unsigned int aid, st_xST_XASSETINFO* ainfo)
 
 signed int xSTGetAssetInfoByType(unsigned int type, signed int idx, st_xST_XASSETINFO* ainfo)
 {
-    st_PKR_ASSET_TOCINFO tocinfo = { 0 };
     signed int rc = 0;
+    st_PKR_ASSET_TOCINFO tocinfo = { 0 };
     signed int sum = 0;
 
     memset(ainfo, 0, sizeof(st_xST_XASSETINFO));

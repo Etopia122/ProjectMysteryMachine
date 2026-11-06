@@ -17,6 +17,8 @@
 class _xEnt;
 void zEntPlayer_SNDVan(_xEnt* ent);
 
+void xDebugUpdate();
+
 extern "C" {
 int sprintf(char* s, const char* format, ...);
 char* strcpy(char* dst, const char* src);
@@ -24,8 +26,6 @@ char* strncpy(char* dst, const char* src, unsigned int n);
 int strcmp(const char* a, const char* b);
 unsigned int strlen(const char* s);
 unsigned int fn_800D8C14();
-// TODO: unidentified (xDebug: per-frame debug update)
-void fn_80021B20();
 // iSystem: ask for a reset to the IPL menu
 void fn_80016698(signed int toMenu);
 // xTRC: memory card message state for the save/load screens
@@ -335,7 +335,7 @@ void zSaveLoad_Tick()
     xCameraUpdate(&globals.camera, time_elapsed);
     xCameraBegin(&globals.camera, 1);
     zSceneRender();
-    fn_80021B20();
+    xDebugUpdate();
     xTRCRender();
     xDrawEnd();
     if (gScreenDump)
@@ -1635,13 +1635,17 @@ signed int zSaveLoad_SaveGame()
 
 signed int zSaveLoad_LoadGame()
 {
-    signed int success = 0;
+    st_XSAVEGAME_DATA* ldinst;
+    en_XSG_WHYFAIL whyFail;
+    signed int use_tgt;
+    en_XSGASYNC_STATUS asstat;
     signed int teststat = 1;
-    en_XSGASYNC_STATUS asstat = XSG_ASTAT_NOOP;
-    signed int use_tgt = currentCard;
-    en_XSG_WHYFAIL whyFail = XSG_WHYERR_NONE;
-    st_XSAVEGAME_DATA* ldinst = xSGInit(XSG_MODE_LOAD);
+    signed int success = 0;
     signed int tgtmax;
+    asstat = XSG_ASTAT_NOOP;
+    use_tgt = currentCard;
+    whyFail = XSG_WHYERR_NONE;
+    ldinst = xSGInit(XSG_MODE_LOAD);
 
     switch (xSGTgtCount(ldinst, &tgtmax))
     {

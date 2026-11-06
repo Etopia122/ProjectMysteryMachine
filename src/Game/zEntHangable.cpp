@@ -454,8 +454,10 @@ void zEntHangable_SetMatrix(_zEntHangable* ent, float dt)
         *(_xMat3x3*)shaggy->model->Mat = *(_xMat3x3*)&spinMat;
     }
 
-    _xEntFrame* frame = ent->frame;
-    RwMatrixTag* mat = ent->model->Mat;
+    RwMatrixTag* mat;
+    _xEntFrame* frame;
+    frame = ent->frame;
+    mat = ent->model->Mat;
     xMat3x3GetEuler((_xMat3x3*)mat, &rot);
     opos = &frame->oldpos;
     orot = &frame->oldrot.axis;

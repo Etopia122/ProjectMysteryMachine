@@ -26,6 +26,12 @@ double cos(double x);
 double fabs(double x);
 signed int RwRenderStateSet(signed int state, void* value);
 // TODO: unidentified iBound helpers (set an OBB/box bound from a model)
+static inline void xRotCopy(_xRot* o, const _xRot* r)
+{
+    xVec3Copy(&o->axis, &r->axis);
+    o->angle = r->angle;
+}
+
 void fn_80007738(void* bound, xModelInstance* model);
 void fn_800077C0(void* bound, xModelInstance* model);
 }
@@ -544,8 +550,7 @@ void xEntReset(_xEnt* ent)
         xVec3Copy(&ent->frame->oldvel, &g_O3);
         xVec3Copy(&ent->frame->rot.axis, &ent->asset->ang);
         ent->frame->rot.angle = 0.0f;
-        xVec3Copy(&ent->frame->oldrot.axis, &ent->frame->rot.axis);
-        ent->frame->oldrot.angle = ent->frame->rot.angle;
+        xRotCopy(&ent->frame->oldrot, &ent->frame->rot);
     }
 
     switch (ent->bound.type)
@@ -553,7 +558,9 @@ void xEntReset(_xEnt* ent)
     case 0:
         break;
     case 1:
-        xVec3Copy(&ent->bound.sph.center, &ent->asset->pos);
+        ent->bound.sph.center.x = ent->asset->pos.x;
+        ent->bound.sph.center.y = ent->asset->pos.y;
+        ent->bound.sph.center.z = ent->asset->pos.z;
         break;
     }
 
@@ -629,8 +636,7 @@ void xEntBeginUpdate(_xEnt* ent, _xScene* sc, float dt)
         {
             xVec3Copy(&ent->frame->oldvel, &ent->frame->vel);
             xVec3Copy(&ent->frame->oldpos, &ent->frame->mat.pos);
-            xVec3Copy(&ent->frame->oldrot.axis, &ent->frame->rot.axis);
-            ent->frame->oldrot.angle = ent->frame->rot.angle;
+            xRotCopy(&ent->frame->oldrot, &ent->frame->rot);
             memcpy(&ent->frame->mat, ent->model->Mat, sizeof(_xMat4x3));
             ent->frame->mode = 0;
         }
@@ -796,8 +802,8 @@ void xEntApplyPhysics(_xEnt* ent, _xScene* sc, float dt)
 
     _xVec3 dposvel;
     float half = 0.5f * dt;
-    dposvel.y = (ent->frame->vel.y + ent->frame->oldvel.y) * half;
-    dposvel.x = (ent->frame->vel.x + ent->frame->oldvel.x) * half;
+    dposvel.y = (ent->frame->oldvel.y + ent->frame->vel.y) * half;
+    dposvel.x = (ent->frame->oldvel.x + ent->frame->vel.x) * half;
     dposvel.z = (ent->frame->vel.z + ent->frame->oldvel.z) * half;
 
     if (dposvel.y < 0.0f)
@@ -1073,11 +1079,16 @@ _xEnt* xEntCollCheckOneEntNoDepen(_xEnt* ent, _xScene* sc, void* data)
         if ((ent->pflags & 0x20) && ent->bound.type == 1 && p->bound.type == 1 &&
             coll->hdng.y < -0.866025f)
         {
-            float dz = p->bound.sph.center.z - ent->bound.sph.center.z;
-            float dx = p->bound.sph.center.x - ent->bound.sph.center.x;
-            float rsum = p->bound.sph.r + ent->bound.sph.r;
-            float dy = p->bound.sph.center.y - ent->bound.sph.center.y;
-            float hsqr = rsum * rsum - (dz * dz + dx * dx);
+            float hsqr;
+            float dy;
+            float rsum;
+            float dx;
+            float dz;
+            dx = p->bound.sph.center.x - ent->bound.sph.center.x;
+            dz = p->bound.sph.center.z - ent->bound.sph.center.z;
+            rsum = p->bound.sph.r + ent->bound.sph.r;
+            dy = p->bound.sph.center.y - ent->bound.sph.center.y;
+            hsqr = rsum * rsum - (dx * dx + dz * dz);
             if (hsqr >= 0.0f)
             {
                 coll->depen.x = 0.0f;
@@ -1337,11 +1348,7 @@ static inline signed int xEntFadeMode()
 
 void xEntRender(_xEnt* ent)
 {
-    if (ent->model == NULL)
-    {
-        return;
-    }
-    if (!xEntIsVisible(ent))
+    if (ent->model == NULL || !xEntIsVisible(ent))
     {
         return;
     }
@@ -1372,10 +1379,9 @@ void xEntRender(_xEnt* ent)
             }
             else
             {
-                float min = 255.0f * ent->asset->seeThru;
-                if (ent->material_alpha <= min)
+                if (ent->material_alpha <= 255.0f * ent->asset->seeThru)
                 {
-                    ent->material_alpha = min;
+                    ent->material_alpha = 255.0f * ent->asset->seeThru;
                 }
             }
         }
@@ -1398,10 +1404,9 @@ void xEntRender(_xEnt* ent)
         else
         {
             ent->material_alpha -= ent->asset->seeThruSpeed * sEntityTimePassed;
-            float min = 255.0f * ent->asset->seeThru;
-            if (ent->material_alpha <= min)
+            if (ent->material_alpha <= 255.0f * ent->asset->seeThru)
             {
-                ent->material_alpha = min;
+                ent->material_alpha = 255.0f * ent->asset->seeThru;
             }
         }
 

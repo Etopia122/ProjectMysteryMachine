@@ -188,14 +188,14 @@ signed int fn_80015EAC(char* fmt, ...);
 
 unsigned int irand();
 float iurand();
-signed int iModelVertCount(RpAtomic* model);
+unsigned int iModelVertCount(RpAtomic* model);
 void iModelTagIndex(iModelTag* tag, RpAtomic* model, signed int index);
 xModelInstance* xModelInstanceAlloc(RpAtomic* data, void* object, unsigned short flags,
                                     unsigned char boneIndex, unsigned char* boneRemap);
 void xModelInstanceFree(xModelInstance* model);
 void xModelInstanceAttach(xModelInstance* inst, xModelInstance* parent);
 void xAnimPlaySetState(xAnimSingle* single, xAnimState* state, float startTime);
-extern "C" signed short fn_800C751C(signed short old, float* pitch, signed int range, float scale);
+signed int zPitchChange(signed int angle, float* offset, signed int range, float max);
 void xModelRender(xModelInstance* model);
 void zEntHangable_SetShaggy(_zEntHangable* hang, _zEnt* shaggy);
 unsigned int xMathSolveQuadratic(float a, float b, float c, float* x1, float* x2);
@@ -471,8 +471,8 @@ static inline unsigned int Shaggy3FrameMoving(_xEntFrame* frame)
 static inline float Shaggy1_CalcThrowAccel(float peak, float* timepeak)
 {
     float sol[2];
-    float Vthrow = globals.player.Shaggy1.ThrowVel.y;
     float Ta = gACCEL_END - gACCEL_START;
+    float Vthrow = globals.player.Shaggy1.ThrowVel.y;
     unsigned int solcnt = xMathSolveQuadratic(
         Ta * Ta, 20.0f * (Ta * Ta) + 2.0f * Vthrow * Ta,
         40.0f * ((globals.player.Shaggy1.ThrowPos.y - globals.player.Shaggy1.ReleaseTrans.y) -
@@ -619,10 +619,10 @@ _zEnt* zEntShaggy_GetSwap(_zEnt* ent)
 unsigned int Shaggy1_Grab(xAnimTransition* tran, xAnimSingle*, _zEnt* ent)
 {
     unsigned char ret = 0;
-    if (globals.player.Shaggy1.GrabTry != NULL &&
-        (ent == &globals.player.ent || ent == globals.player.Shaggy1.GrabTry) &&
-        globals.player.Shaggy1.GrabTry->subType == tran->UserFlags + 0x1C &&
-        globals.player.ScareTimer == 0.0f)
+    _zEnt* grab = globals.player.Shaggy1.GrabTry;
+    if (grab != NULL && (ent == &globals.player.ent || ent == grab) &&
+        grab->subType == tran->UserFlags + 0x1C &&
+        !globals.player.ScareTimer)
     {
         ret = 1;
     }
@@ -631,8 +631,8 @@ unsigned int Shaggy1_Grab(xAnimTransition* tran, xAnimSingle*, _zEnt* ent)
 
 unsigned int Shaggy1_GrabCB(xAnimTransition*, xAnimSingle*, _zEnt* ent)
 {
-    globals.player.Shaggy1.SetDown = 0;
     globals.player.Shaggy1.Grab = globals.player.Shaggy1.GrabTry;
+    globals.player.Shaggy1.SetDown = 0;
     globals.player.Shaggy1.ThrowState = 0;
     zEntEvent(ent, 0xE8);
     return 0;
@@ -821,16 +821,15 @@ unsigned int Shaggy1_Scare(xAnimTransition*, xAnimSingle*, _zEnt*)
 
 unsigned int Shaggy1_ScareCB(xAnimTransition*, xAnimSingle*, _zEnt* ent)
 {
-    zShaggy1Globals* s1 = &globals.player.Shaggy1;
-    s1->ThrowAccel = Shaggy1_CalcThrowAccel(THROW_MINHEIGHT, NULL);
-    s1->ThrowTgtSpeed = 0.0f;
-    s1->HangTarget = NULL;
-    s1->ThrowState = 0;
+    globals.player.Shaggy1.ThrowAccel = Shaggy1_CalcThrowAccel(THROW_MINHEIGHT, NULL);
+    globals.player.Shaggy1.ThrowTgtSpeed = 0.0f;
+    globals.player.Shaggy1.HangTarget = NULL;
+    globals.player.Shaggy1.ThrowState = 0;
     if (ent->subType == 0x1D)
     {
-        s1->ThrowTimer = 0.0f;
+        globals.player.Shaggy1.ThrowTimer = 0.0f;
     }
-    s1->CatchYou = 0;
+    globals.player.Shaggy1.CatchYou = 0;
     zEntEvent(ent, 0xE9);
     return 0;
 }
@@ -968,8 +967,8 @@ unsigned int Shaggy1_TalkFlag(xAnimTransition* tran, xAnimSingle*, _zEnt* ent)
     unsigned char ret = 0;
     if (guts->talkTimer != 0.0f && guts->talkSwitch <= 0.0f)
     {
-        unsigned char mod = tran->UserFlags;
-        if (guts->talkRand % mod == 0 && guts->talkFlag == (unsigned int)(mod >> 8))
+        unsigned int mod = (unsigned char)tran->UserFlags;
+        if (guts->talkRand % mod == 0 && guts->talkFlag == mod >> 8)
         {
             ret = 1;
         }
@@ -1507,7 +1506,7 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
         guts->idleTimer += dt;
     }
 
-    if (guts->talkTimer != 0.0f)
+    if (guts->talkTimer)
     {
         guts->talkTimer -= dt;
         if (guts->talkTimer < 0.0f)
@@ -1525,6 +1524,9 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
             xStricmp(ent->model->Anim->Single->State->Name, "Apex") == 0)
         {
             zScene* zsc = (zScene*)sc;
+            float cx = ent->bound.sph.center.x;
+            float cy = ent->bound.sph.center.y;
+            float cz = ent->bound.sph.center.z;
             for (unsigned int i = 0; i < zsc->num_ents; i++)
             {
                 _zEnt* other = zsc->ents[i];
@@ -1534,10 +1536,13 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
                     if ((flags & 0x3F) == 1)
                     {
                         _xMat4x3* m = (_xMat4x3*)other->model->Mat;
-                        float dx = ent->bound.sph.center.x - m->pos.x;
-                        float dy = ent->bound.sph.center.y - m->pos.y;
-                        float dz = ent->bound.sph.center.z - m->pos.z;
-                        if (dx * dx + dy * dy + dz * dz < 4.0f)
+                        float dx = cx - m->pos.x;
+                        float dy = cy - m->pos.y;
+                        float dz = cz - m->pos.z;
+                        float x2 = dx * dx;
+                        float y2 = dy * dy;
+                        float z2 = dz * dz;
+                        if (x2 + y2 + z2 < 4.0f)
                         {
                             *(unsigned int*)((char*)other + 0xEC) = (flags & ~0x3F) | 2;
                         }
@@ -1564,10 +1569,14 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
                 }
                 else
                 {
-                    float s = 0.07f * (1.0f / xsqrt(len));
-                    mat->up.x += dx * s;
-                    mat->up.y += dy * s;
-                    mat->up.z += dz * s;
+                    len = xsqrt(len);
+                    float s = 0.07f * (1.0f / len);
+                    dx *= s;
+                    dy *= s;
+                    dz *= s;
+                    mat->up.x += dx;
+                    mat->up.y += dy;
+                    mat->up.z += dz;
                     xVec3Normalize(&mat->up, &mat->up);
                     xVec3Cross(&mat->right, &mat->up, &mat->at);
                     xVec3Normalize(&mat->right, &mat->right);
@@ -1577,8 +1586,7 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
         }
     }
 
-    zShaggy1Globals* s1 = &globals.player.Shaggy1;
-    if (ent == s1->Grab)
+    if (ent == globals.player.Shaggy1.Grab)
     {
         if (ent->subType == 0x1C && globals.player.JumpState != 0 &&
             globals.player.ent.frame->vel.y < 0.0f &&
@@ -1589,16 +1597,16 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
         }
         else
         {
-            ent->penby &= ~0x10;
-            ent->chkby &= ~0x10;
+            ent->penby &= 0xEF;
+            ent->chkby &= 0xEF;
         }
         return;
     }
 
     if (guts->hangme != NULL)
     {
-        ent->penby &= ~0x10;
-        ent->chkby &= ~0x10;
+        ent->penby &= 0xEF;
+        ent->chkby &= 0xEF;
         xEntBeginUpdate(ent, sc, dt);
         xEntEndUpdate(ent, sc, dt);
         return;
@@ -1610,19 +1618,19 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
     Shaggy1_MiddleUpdate(ent, sc, dt);
     xEntEndUpdate(ent, sc, dt);
 
-    if (ent == s1->GrabTry && ent != s1->Grab)
+    if (ent == globals.player.Shaggy1.GrabTry && ent != globals.player.Shaggy1.Grab)
     {
-        s1->Grab = NULL;
-        s1->GrabTry = NULL;
+        globals.player.Shaggy1.Grab = NULL;
+        globals.player.Shaggy1.GrabTry = NULL;
     }
 
-    if (ent == s1->Grab)
+    if (ent == globals.player.Shaggy1.Grab)
     {
         float dx = ent->bound.sph.center.x - globals.player.ent.bound.sph.center.x;
         float dz = ent->bound.sph.center.z - globals.player.ent.bound.sph.center.z;
-        s1->GrabTimer = 0.000001f;
-        s1->GrabRot = xAngleClamp(atan2(dx, dz));
-        s1->GrabOffset = xsqrt(dx * dx + dz * dz) - ent->model->Anim->Translate[1].z;
+        globals.player.Shaggy1.GrabTimer = 0.000001f;
+        globals.player.Shaggy1.GrabRot = xAngleClamp(atan2(dx, dz));
+        globals.player.Shaggy1.GrabOffset = xsqrt(dx * dx + dz * dz) - ent->model->Anim->Translate[1].z;
     }
 
     if (guts->swap != NULL)
@@ -1633,11 +1641,13 @@ void Shaggy1_Update(_zEnt* ent, _xScene* sc, float dt)
 
 void Shaggy1_Move(_xEnt* ent, _xScene* s, float dt, _xEntFrame* frame)
 {
-    zShaggy1Globals* s1;
-    xAnimPlay* play = ent->model->Anim;
-    xAnimState* state = play->Single->State;
-    ShaggyGuts* guts = ShaggyGetGuts((_zEnt*)ent);
-    unsigned int thrown;
+    signed int thrown;
+    ShaggyGuts* guts;
+    xAnimPlay* play;
+    xAnimState* state;
+    play = ent->model->Anim;
+    state = play->Single->State;
+    guts = ShaggyGetGuts((_zEnt*)ent);
 
     frame->mode = 0;
     frame->dpos.x = 0.0f;
@@ -1665,204 +1675,213 @@ void Shaggy1_Move(_xEnt* ent, _xScene* s, float dt, _xEntFrame* frame)
             frame->drot.angle = -1.5707964f * dt;
             guts->facerot += step;
         }
+        return;
     }
-
-    s1 = &globals.player.Shaggy1;
 
     if (xStricmp(state->Name, "SetDown") == 0)
     {
         _xVec3 d;
-        d.x = play->Translate[1].x - s1->ReleaseTrans.x;
-        d.y = play->Translate[1].y - s1->ReleaseTrans.y;
-        d.z = play->Translate[1].z - s1->ReleaseTrans.z;
-        play->Translate[1].x = s1->ReleaseTrans.x;
-        play->Translate[1].y = s1->ReleaseTrans.y;
-        play->Translate[1].z = s1->ReleaseTrans.z;
+        d.x = play->Translate[1].x - globals.player.Shaggy1.ReleaseTrans.x;
+        d.y = play->Translate[1].y - globals.player.Shaggy1.ReleaseTrans.y;
+        d.z = play->Translate[1].z - globals.player.Shaggy1.ReleaseTrans.z;
+        play->Translate[1].x = globals.player.Shaggy1.ReleaseTrans.x;
+        play->Translate[1].y = globals.player.Shaggy1.ReleaseTrans.y;
+        play->Translate[1].z = globals.player.Shaggy1.ReleaseTrans.z;
         xMat3x3RMulVec(&d, (_xMat3x3*)ent->model->Mat, &d);
+        _xEntFrame* pframe = globals.player.ent.frame;
         _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
-        d.x += globals.player.ent.frame->mat.pos.x - mat->pos.x;
-        d.y += globals.player.ent.frame->mat.pos.y - mat->pos.y;
-        d.z += globals.player.ent.frame->mat.pos.z - mat->pos.z;
+        d.x += pframe->mat.pos.x - mat->pos.x;
+        d.y += pframe->mat.pos.y - mat->pos.y;
+        d.z += pframe->mat.pos.z - mat->pos.z;
         frame->dpos.x = d.x;
         frame->dpos.y = d.y;
         frame->dpos.z = d.z;
         frame->mode |= 2;
+        return;
     }
 
-    if (s1->ThrowTgtAdjust == 2 && frame->vel.y <= 0.0f)
+    if (globals.player.Shaggy1.ThrowTgtAdjust == 2 && frame->vel.y <= 0.0f)
     {
-        float dy = frame->mat.pos.y - s1->ThrowTgtVec.y;
+        float dy = frame->mat.pos.y - globals.player.Shaggy1.ThrowTgtVec.y;
         if (dy > 0.5f)
         {
             float t = xsqrt(0.1f * dy);
             fn_80015EAC("Vel  %f %f (%f)  -->  ", frame->vel.x, frame->vel.z,
                         xsqrt(frame->vel.x * frame->vel.x + frame->vel.z * frame->vel.z));
-            frame->vel.x = (s1->ThrowTgtVec.x - frame->mat.pos.x) / t;
-            frame->vel.z = (s1->ThrowTgtVec.z - frame->mat.pos.z) / t;
+            frame->vel.x = (globals.player.Shaggy1.ThrowTgtVec.x - frame->mat.pos.x) / t;
+            frame->vel.z = (globals.player.Shaggy1.ThrowTgtVec.z - frame->mat.pos.z) / t;
             fn_80015EAC("%f %f (%f)\n", frame->vel.x, frame->vel.z,
                         xsqrt(frame->vel.x * frame->vel.x + frame->vel.z * frame->vel.z));
         }
-        s1->ThrowTgtAdjust = 0;
+        globals.player.Shaggy1.ThrowTgtAdjust = 0;
     }
 
-    if (ent == s1->Grab && ent->subType == 0x1D && s1->ThrowTimer >= 0.0f)
+    if (ent == globals.player.Shaggy1.Grab && ent->subType == 0x1D && globals.player.Shaggy1.ThrowTimer >= 0.0f)
     {
-        s1->ThrowTimer += dt;
-        if (s1->ThrowTimer < gACCEL_START)
+        globals.player.Shaggy1.ThrowTimer += dt;
+        if (globals.player.Shaggy1.ThrowTimer < gACCEL_START)
         {
             thrown = 1;
-            ent->pflags &= ~4;
+            ent->pflags &= 0xFB;
             frame->vel.y = 0.0f;
             _xMat4x3* pmat = (_xMat4x3*)globals.player.ent.model->Mat;
             frame->mat.pos.x = pmat->pos.x;
             frame->mat.pos.y = pmat->pos.y;
             frame->mat.pos.z = pmat->pos.z;
             frame->mode |= 1;
-            s1->ExtraTransY = 0.0f;
+            globals.player.Shaggy1.ExtraTransY = 0.0f;
         }
         else if (xStricmp(state->Name, "Throw") == 0)
         {
-            ((_xMat4x3*)ent->model->Mat)->pos.y -= s1->ExtraTransY;
+            ((_xMat4x3*)ent->model->Mat)->pos.y -= globals.player.Shaggy1.ExtraTransY;
             _xVec3 d;
-            d.x = play->Translate[1].x - s1->ReleaseTrans.x;
-            d.y = play->Translate[1].y - s1->ReleaseTrans.y;
-            d.z = play->Translate[1].z - s1->ReleaseTrans.z;
-            play->Translate[1].x = s1->ReleaseTrans.x;
-            play->Translate[1].y = s1->ReleaseTrans.y;
-            play->Translate[1].z = s1->ReleaseTrans.z;
+            d.x = play->Translate[1].x - globals.player.Shaggy1.ReleaseTrans.x;
+            d.y = play->Translate[1].y - globals.player.Shaggy1.ReleaseTrans.y;
+            d.z = play->Translate[1].z - globals.player.Shaggy1.ReleaseTrans.z;
+            play->Translate[1].x = globals.player.Shaggy1.ReleaseTrans.x;
+            play->Translate[1].y = globals.player.Shaggy1.ReleaseTrans.y;
+            play->Translate[1].z = globals.player.Shaggy1.ReleaseTrans.z;
             xMat3x3RMulVec(&d, (_xMat3x3*)ent->model->Mat, &d);
             thrown = 1;
+            _xEntFrame* pframe = globals.player.ent.frame;
             _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
-            d.x += globals.player.ent.frame->mat.pos.x - mat->pos.x;
-            d.y += globals.player.ent.frame->mat.pos.y - mat->pos.y;
-            d.z += globals.player.ent.frame->mat.pos.z - mat->pos.z;
+            d.x += pframe->mat.pos.x - mat->pos.x;
+            d.y += pframe->mat.pos.y - mat->pos.y;
+            d.z += pframe->mat.pos.z - mat->pos.z;
             frame->dpos.x = d.x;
             frame->dpos.y = d.y;
             frame->dpos.z = d.z;
-            ((_xMat4x3*)ent->model->Mat)->pos.y += s1->ExtraTransY;
-            float t = s1->ThrowTimer - gACCEL_START;
-            float extra = 0.5f * s1->ThrowAccel * (t * t);
-            frame->dpos.y += extra - s1->ExtraTransY;
-            s1->ExtraTransY = extra;
+            ((_xMat4x3*)ent->model->Mat)->pos.y += globals.player.Shaggy1.ExtraTransY;
+            float t = globals.player.Shaggy1.ThrowTimer - gACCEL_START;
+            float extra = 0.5f * globals.player.Shaggy1.ThrowAccel * (t * t);
+            frame->dpos.y += extra - globals.player.Shaggy1.ExtraTransY;
+            globals.player.Shaggy1.ExtraTransY = extra;
             frame->mode |= 2;
         }
-        else if (s1->ThrowEnded != 0)
+        else if (globals.player.Shaggy1.ThrowEnded != 0)
         {
             ent->pflags |= 4;
-            if (s1->ThrowTgtSpeed == 0.0f && s1->ThrowTgt != NULL)
+            if (globals.player.Shaggy1.ThrowTgtSpeed == 0.0f && globals.player.Shaggy1.ThrowTgt != NULL)
             {
-                frame->vel.x = (s1->ThrowTgtVec.x - frame->mat.pos.x) / sDefHangTime;
-                frame->vel.z = (s1->ThrowTgtVec.z - frame->mat.pos.z) / sDefHangTime;
+                frame->vel.x = (globals.player.Shaggy1.ThrowTgtVec.x - frame->mat.pos.x) / sDefHangTime;
+                frame->vel.z = (globals.player.Shaggy1.ThrowTgtVec.z - frame->mat.pos.z) / sDefHangTime;
             }
             else
             {
                 frame->vel.x = 0.0f;
-                frame->vel.z = s1->ThrowTgtSpeed != 0.0f ? s1->ThrowTgtSpeed : s1->ThrowVel.z;
+                frame->vel.z = globals.player.Shaggy1.ThrowTgtSpeed != 0.0f ? globals.player.Shaggy1.ThrowTgtSpeed : globals.player.Shaggy1.ThrowVel.z;
                 xMat3x3RMulVec(&frame->vel, (_xMat3x3*)ent->model->Mat, &frame->vel);
             }
-            frame->vel.y = s1->ThrowAccel * (gACCEL_END - gACCEL_START) + s1->ThrowVel.y;
+            frame->vel.y = globals.player.Shaggy1.ThrowAccel * (gACCEL_END - gACCEL_START) + globals.player.Shaggy1.ThrowVel.y;
             frame->mode |= 4;
             _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
             frame->mat.pos.x = mat->pos.x;
             frame->mat.pos.y = mat->pos.y;
             frame->mat.pos.z = mat->pos.z;
             frame->mat.pos.y += frame->vel.y * dt;
-            if (s1->ThrowTgtAdjust != 0)
+            if (globals.player.Shaggy1.ThrowTgtAdjust != 0)
             {
-                s1->ThrowTgtAdjust = 2;
+                globals.player.Shaggy1.ThrowTgtAdjust = 2;
             }
             thrown = 1;
         }
 
-        if (s1->HangTarget != NULL)
+        if (globals.player.Shaggy1.HangTarget != NULL)
         {
-            if (s1->ThrowTimer >= 0.365f)
+            if (globals.player.Shaggy1.ThrowTimer >= 0.365f)
             {
-                if (s1->HangStart.y == 0.0f && s1->HangRelative.y == 0.0f)
+                if (globals.player.Shaggy1.HangStart.y == 0.0f && globals.player.Shaggy1.HangRelative.y == 0.0f)
                 {
                     _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
-                    s1->HangStart.x = mat->pos.x;
-                    s1->HangStart.y = mat->pos.y;
-                    s1->HangStart.z = mat->pos.z;
-                    _xVec3* pivot = (_xVec3*)((char*)s1->HangTarget + 0xFC);
-                    s1->HangRelative.x = pivot->x - mat->pos.x;
+                    xVec3Copy(&globals.player.Shaggy1.HangStart, &mat->pos);
+                    _xVec3* pivot = (_xVec3*)((char*)globals.player.Shaggy1.HangTarget + 0xFC);
+                    globals.player.Shaggy1.HangRelative.x = pivot->x - mat->pos.x;
                     float ry = (pivot->y - mat->pos.y) - 2.2f;
-                    s1->HangRelative.y = ry;
-                    s1->HangRelative.y = ry + ((s1->HangTrans.y - s1->ReleaseTrans.y) -
+                    globals.player.Shaggy1.HangRelative.y = ry;
+                    globals.player.Shaggy1.HangRelative.y = ry + ((globals.player.Shaggy1.HangTrans.y - globals.player.Shaggy1.ReleaseTrans.y) -
                                                globals.player.ent.bound.sph.r);
-                    s1->HangRelative.z = pivot->z - mat->pos.z;
+                    globals.player.Shaggy1.HangRelative.z = pivot->z - mat->pos.z;
                 }
+            }
+            else
+            {
+                return;
+            }
 
-                float rely = s1->HangRelative.y;
-                float dy = ((_xMat4x3*)ent->model->Mat)->pos.y - s1->HangStart.y;
-                if (dy >= rely)
+            float rely = globals.player.Shaggy1.HangRelative.y;
+            float dy = ((_xMat4x3*)ent->model->Mat)->pos.y - globals.player.Shaggy1.HangStart.y;
+            if (dy >= rely)
+            {
+                guts->hangme = (_zEntHangable*)globals.player.Shaggy1.HangTarget;
+                zEntHangable_SetShaggy(guts->hangme, (_zEnt*)ent);
+                globals.player.Shaggy1.Grab = NULL;
+                globals.player.Shaggy1.HangTarget = NULL;
+                zEntEvent((xBase*)guts->hangme, 0xCF);
+                xBase* link = *(xBase**)((char*)guts->hangme + 0x134);
+                if (link != NULL)
                 {
-                    guts->hangme = (_zEntHangable*)s1->HangTarget;
-                    zEntHangable_SetShaggy(guts->hangme, (_zEnt*)ent);
-                    s1->Grab = NULL;
-                    s1->HangTarget = NULL;
-                    zEntEvent((xBase*)guts->hangme, 0xCF);
-                    xBase* link = *(xBase**)((char*)guts->hangme + 0x134);
-                    if (link != NULL)
-                    {
-                        zEntEvent(link, 0xCF);
-                    }
-                    s1->ThrowTimer = -1.0f;
+                    zEntEvent(link, 0xCF);
                 }
+                globals.player.Shaggy1.ThrowTimer = -1.0f;
+                return;
+            }
 
-                float sol[2];
-                float a;
-                float b;
-                unsigned int n = xMathSolveQuadratic(1.0f, -4.0f * sHangVirtualPeak,
-                                                     4.0f * sHangVirtualPeak * rely, &sol[0],
-                                                     &sol[1]);
-                if (n != 0)
+            float sol[2];
+            float a;
+            float b;
+            unsigned int n = xMathSolveQuadratic(1.0f, -4.0f * sHangVirtualPeak,
+                                                 4.0f * sHangVirtualPeak * rely, &sol[0],
+                                                 &sol[1]);
+            if (n != 0)
+            {
+                if (n == 2 && sol[1] < sol[0])
                 {
-                    if (n == 2 && sol[1] < sol[0])
-                    {
-                        a = sol[1];
-                    }
-                    else
-                    {
-                        a = sol[0];
-                    }
-                    b = rely - a;
-                    if (b > 0.0f)
-                    {
-                        n = 0;
-                    }
-                }
-                if (n != 0)
-                {
-                    n = xMathSolveQuadratic(b, a, -dy, &sol[0], &sol[1]);
-                    if (n != 0 && n == 2 && sol[1] < sol[0])
-                    {
-                        sol[0] = sol[1];
-                    }
-                }
-                if (n != 0)
-                {
-                    ent->frame->mat.pos.y += frame->dpos.y;
-                    ent->frame->mat.pos.x = sol[0] * s1->HangRelative.x + s1->HangStart.x;
-                    ent->frame->mat.pos.z = sol[0] * s1->HangRelative.z + s1->HangStart.z;
-                    frame->mode = 1;
+                    a = sol[1];
                 }
                 else
                 {
-                    s1->HangTarget = NULL;
+                    a = sol[0];
                 }
-
-                if (xStricmp(state->Name, "ThrowIdle") == 0 && frame->vel.y < 1.5f)
+                b = rely - a;
+                if (b > 0.0f)
                 {
-                    frame->vel.y = 1.5f;
+                    n = 0;
                 }
             }
+            if (n != 0)
+            {
+                n = xMathSolveQuadratic(b, a, -dy, &sol[0], &sol[1]);
+                if (n != 0 && n == 2 && sol[1] < sol[0])
+                {
+                    sol[0] = sol[1];
+                }
+            }
+            if (n != 0)
+            {
+                float py = ent->frame->mat.pos.y + frame->dpos.y;
+                float px = sol[0] * globals.player.Shaggy1.HangRelative.x + globals.player.Shaggy1.HangStart.x;
+                float pz = sol[0] * globals.player.Shaggy1.HangRelative.z + globals.player.Shaggy1.HangStart.z;
+                ent->frame->mat.pos.y = py;
+                ent->frame->mat.pos.x = px;
+                ent->frame->mat.pos.z = pz;
+                frame->mode = 1;
+            }
+            else
+            {
+                globals.player.Shaggy1.HangTarget = NULL;
+            }
+
+            if (xStricmp(state->Name, "ThrowIdle") == 0 && frame->vel.y < 1.5f)
+            {
+                frame->vel.y = 1.5f;
+            }
+            return;
         }
-        else if (thrown == 0)
+        else if (thrown != 0)
         {
-            s1->ThrowTimer = -1.0f;
+            return;
         }
-        return;
+        globals.player.Shaggy1.ThrowTimer = -1.0f;
     }
 
     sVilMoveFunc(ent, s, dt, frame);
@@ -1870,10 +1889,9 @@ void Shaggy1_Move(_xEnt* ent, _xScene* s, float dt, _xEntFrame* frame)
 
 void Shaggy1_PlayerUpdate(_zEnt* shag, _xScene* sc, float dt)
 {
-    zShaggy1Globals* s1 = &globals.player.Shaggy1;
 
-    s1->ThrowEnded = 0;
-    if (s1->GrabTry == NULL)
+    globals.player.Shaggy1.ThrowEnded = 0;
+    if (globals.player.Shaggy1.GrabTry == NULL)
     {
         xEntBeginUpdate(shag, sc, dt);
     }
@@ -1881,30 +1899,27 @@ void Shaggy1_PlayerUpdate(_zEnt* shag, _xScene* sc, float dt)
     xAnimState* state = shag->model->Anim->Single->State;
     if (state->UserFlags & 0x1000)
     {
-        if (s1->GrabTimer != 0.0f)
+        if (globals.player.Shaggy1.GrabTimer)
         {
-            s1->GrabTimer += dt;
-            if (s1->GrabTimer > 0.75f)
+            globals.player.Shaggy1.GrabTimer += dt;
+            if (globals.player.Shaggy1.GrabTimer > 0.75f)
             {
-                s1->GrabTimer = 0.0f;
+                globals.player.Shaggy1.GrabTimer = 0.0f;
             }
-            xMat3x3RotY((_xMat3x3*)shag->frame, s1->GrabRot);
-            _xEntFrame* frame = shag->frame;
-            frame->mat.pos.x = globals.player.ent.frame->mat.pos.x;
-            frame->mat.pos.y = globals.player.ent.frame->mat.pos.y;
-            frame->mat.pos.z = globals.player.ent.frame->mat.pos.z;
+            xMat3x3RotY((_xMat3x3*)shag->frame, globals.player.Shaggy1.GrabRot);
+            shag->frame->mat.pos = globals.player.ent.frame->mat.pos;
         }
         else
         {
             shag->frame->mat = globals.player.ent.frame->mat;
             if (shag->subType == 0x1D && xStricmp(state->Name, "CatchThrow") == 0)
             {
-                s1->CatchHeight = s1->CatchVel * dt + s1->CatchHeight;
-                if (s1->CatchHeight < 0.0f)
+                globals.player.Shaggy1.CatchHeight = globals.player.Shaggy1.CatchVel * dt + globals.player.Shaggy1.CatchHeight;
+                if (globals.player.Shaggy1.CatchHeight < 0.0f)
                 {
-                    s1->CatchHeight = 0.0f;
+                    globals.player.Shaggy1.CatchHeight = 0.0f;
                 }
-                shag->frame->mat.pos.y += s1->CatchHeight;
+                shag->frame->mat.pos.y += globals.player.Shaggy1.CatchHeight;
             }
         }
         *(_xMat4x3*)shag->model->Mat = shag->frame->mat;
@@ -1915,11 +1930,11 @@ void Shaggy1_PlayerUpdate(_zEnt* shag, _xScene* sc, float dt)
         Shaggy1_MiddleUpdate(shag, sc, dt);
     }
 
-    if (s1->GrabTry == NULL)
+    if (globals.player.Shaggy1.GrabTry == NULL)
     {
         xEntEndUpdate(shag, sc, dt);
     }
-    s1->GrabTry = NULL;
+    globals.player.Shaggy1.GrabTry = NULL;
 }
 
 void NearestPointObb2D(_xVec3* near, _xVec3* vec, _xBox* b, _xMat4x3* m)
@@ -1942,22 +1957,21 @@ void NearestPointObb2D(_xVec3* near, _xVec3* vec, _xBox* b, _xMat4x3* m)
     }
     corner[3].y = corner[2].y = corner[1].y = corner[0].y = b->lower.y;
 
-    for (signed int i = 0; i < 4; i++)
-    {
-        xMat3x3RMulVec(&corner[i], (_xMat3x3*)m, &corner[i]);
-        corner[i].x += m->pos.x;
-        corner[i].y += m->pos.y;
-        corner[i].z += m->pos.z;
-    }
+    xMat3x3RMulVec(&corner[0], (_xMat3x3*)m, &corner[0]);
+    xVec3AddTo(&corner[0], &m->pos);
+    xMat3x3RMulVec(&corner[1], (_xMat3x3*)m, &corner[1]);
+    xVec3AddTo(&corner[1], &m->pos);
+    xMat3x3RMulVec(&corner[2], (_xMat3x3*)m, &corner[2]);
+    xVec3AddTo(&corner[2], &m->pos);
+    xMat3x3RMulVec(&corner[3], (_xMat3x3*)m, &corner[3]);
+    xVec3AddTo(&corner[3], &m->pos);
 
     if ((float)__fabs(m->up.y) > 0.0001f && PointInQuadXZ(corner, vec))
     {
+        float d = xVec3Dot(&corner[0], &m->up);
         near->x = vec->x;
         near->z = vec->z;
-        near->y = -(m->up.z * vec->z -
-                    -(m->up.x * vec->x -
-                      (corner[0].z * m->up.z + (corner[0].x * m->up.x + corner[0].y * m->up.y)))) /
-                  m->up.y;
+        near->y = (d - m->up.x * vec->x - m->up.z * vec->z) / m->up.y;
         return;
     }
 
@@ -1994,7 +2008,10 @@ void NearestPointObb2D(_xVec3* near, _xVec3* vec, _xBox* b, _xMat4x3* m)
         }
         float tx = px - vec->x;
         float tz = pz - vec->z;
-        if (i == 0 || tx * tx + tz * tz < 1e20f)
+        float tx2 = tx * tx;
+        float tz2 = tz * tz;
+        float d2 = tx2 + tz2;
+        if (i == 0 || d2 < 1e20f)
         {
             near->x = px;
             near->y = py;
@@ -2025,20 +2042,19 @@ void NearestPointBound2D(_xVec3* near, _xVec3* vec, _xBound* b)
 
 void Shaggy1_ChooseThrowTarget(_zEnt* ent)
 {
-    zShaggy1Globals* s1 = &globals.player.Shaggy1;
     float timepeak;
     _xVec3 nearpt;
 
-    s1->ThrowState = 3;
-    s1->HangTarget = NULL;
-    s1->ThrowAccel = Shaggy1_CalcThrowAccel(THROW_DEFHEIGHT, &timepeak);
-    s1->ThrowTgtSpeed = 0.0f;
-    s1->ThrowTgtAdjust = 0;
+    globals.player.Shaggy1.ThrowState = 3;
+    globals.player.Shaggy1.HangTarget = NULL;
+    globals.player.Shaggy1.ThrowAccel = Shaggy1_CalcThrowAccel(THROW_DEFHEIGHT, &timepeak);
+    globals.player.Shaggy1.ThrowTgtSpeed = 0.0f;
+    globals.player.Shaggy1.ThrowTgtAdjust = 0;
     sHangVirtualPeak = 0.75f + THROW_DEFHEIGHT;
 
-    if (s1->ThrowTgt != NULL)
+    if (globals.player.Shaggy1.ThrowTgt != NULL)
     {
-        xBase* tgt = s1->ThrowTgt;
+        xBase* tgt = globals.player.Shaggy1.ThrowTgt;
         switch (tgt->baseType)
         {
         case 1:
@@ -2093,29 +2109,29 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
         float mag = dx * dx + dz * dz;
         float dot = dx * frame->mat.at.x + dz * frame->mat.at.z;
         mag = xsqrt(mag);
-        if (mag < 0.00001f || dot < mag * (float)cos(3.1415927f * s1->ThrowTgtAngle / 180.0f))
+        if (mag < 0.00001f || dot < mag * (float)cos(3.1415927f * globals.player.Shaggy1.ThrowTgtAngle / 180.0f))
         {
-            s1->ThrowTgtVec = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
+            globals.player.Shaggy1.ThrowTgtVec = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
             sDefHangTime = timepeak + xsqrt(2.0f * THROW_DEFHEIGHT / 20.0f);
             return;
         }
 
-        s1->ThrowState = 1;
-        nearpt.y += s1->ThrowTgtOffset;
-        s1->ThrowTgtVec = nearpt;
-        s1->ThrowAccel = Shaggy1_CalcThrowAccel(s1->ThrowTgtPeak, &timepeak);
+        globals.player.Shaggy1.ThrowState = 1;
+        nearpt.y += globals.player.Shaggy1.ThrowTgtOffset;
+        globals.player.Shaggy1.ThrowTgtVec = nearpt;
+        globals.player.Shaggy1.ThrowAccel = Shaggy1_CalcThrowAccel(globals.player.Shaggy1.ThrowTgtPeak, &timepeak);
 
-        if (s1->ThrowTgt->baseType == 0x17)
+        if (globals.player.Shaggy1.ThrowTgt->baseType == 0x17)
         {
-            s1->HangTarget = (_zEnt*)s1->ThrowTgt;
-            s1->HangStart.y = 0.0f;
-            sHangVirtualPeak = 0.75f + s1->ThrowTgtPeak;
-            s1->HangRelative.y = 0.0f;
+            globals.player.Shaggy1.HangTarget = (_zEnt*)globals.player.Shaggy1.ThrowTgt;
+            globals.player.Shaggy1.HangStart.y = 0.0f;
+            sHangVirtualPeak = 0.75f + globals.player.Shaggy1.ThrowTgtPeak;
+            globals.player.Shaggy1.HangRelative.y = 0.0f;
             return;
         }
 
         float time = timepeak;
-        float drop = (((_xMat4x3*)globals.player.ent.model->Mat)->pos.y + s1->ThrowTgtPeak) -
+        float drop = (((_xMat4x3*)globals.player.ent.model->Mat)->pos.y + globals.player.Shaggy1.ThrowTgtPeak) -
                      nearpt.y;
         if (drop > 0.0f)
         {
@@ -2124,18 +2140,22 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
         _xMat4x3* pmat = (_xMat4x3*)globals.player.ent.model->Mat;
         float tx = nearpt.x - pmat->pos.x;
         float tz = nearpt.z - pmat->pos.z;
-        float dist = xsqrt(tx * tx + tz * tz);
-        s1->ThrowTgtAdjust = 1;
-        s1->ThrowTgtSpeed = dist / time;
+        float tx2 = tx * tx;
+        float tz2 = tz * tz;
+        float dist = xsqrt(tx2 + tz2);
+        globals.player.Shaggy1.ThrowTgtAdjust = 1;
+        globals.player.Shaggy1.ThrowTgtSpeed = dist / time;
         return;
     }
 
     _xEntFrame* frame = ent->frame;
     float atx = frame->mat.at.x;
     float atz = frame->mat.at.z;
+    float bx = -2.0f * atx + frame->mat.pos.x;
+    float bz = -2.0f * atz + frame->mat.pos.z;
     for (signed int i = 0; i < 10; i++)
     {
-        _zEnt* hang = s1->Hangable[i];
+        _zEnt* hang = globals.player.Shaggy1.Hangable[i];
         if (hang == NULL)
         {
             return;
@@ -2143,26 +2163,27 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
         if (*(signed int*)((char*)hang + 0x130) > 0)
         {
             _xMat4x3* hmat = (_xMat4x3*)hang->model->Mat;
-            float dz = hmat->pos.z - (-2.0f * atz + frame->mat.pos.z);
-            float dx = hmat->pos.x - (-2.0f * atx + frame->mat.pos.x);
+            float dz = hmat->pos.z - bz;
+            float dx = hmat->pos.x - bx;
+            float dot = dx * atx + dz * atz;
             float mag = xsqrt(dx * dx + dz * dz);
-            if (!(mag < 0.00001f) && !(dx * atx + dz * atz < 0.7071f * mag))
+            if (!(mag < 0.00001f) && !(dot < 0.7071f * mag))
             {
                 _xMat4x3* emat = (_xMat4x3*)ent->model->Mat;
                 float ddz = ((_xMat4x3*)hang->model->Mat)->pos.z - emat->pos.z;
                 float ddx = ((_xMat4x3*)hang->model->Mat)->pos.x - emat->pos.x;
                 if (!(ddx * ddx + ddz * ddz > 25.0f))
                 {
-                    s1->HangTarget = hang;
-                    s1->HangStart.y = 0.0f;
-                    s1->HangRelative.y = 0.0f;
+                    globals.player.Shaggy1.HangTarget = hang;
+                    globals.player.Shaggy1.HangStart.y = 0.0f;
+                    globals.player.Shaggy1.HangRelative.y = 0.0f;
                     xBase* link = *(xBase**)((char*)hang + 0x134);
                     if (link != NULL)
                     {
                         zEntEvent(link, 0x13);
                     }
-                    s1->ThrowState = 1;
-                    s1->ThrowTgtVec = ((_xMat4x3*)hang->model->Mat)->pos;
+                    globals.player.Shaggy1.ThrowState = 1;
+                    globals.player.Shaggy1.ThrowTgtVec = ((_xMat4x3*)hang->model->Mat)->pos;
                     return;
                 }
             }
@@ -2173,8 +2194,8 @@ void Shaggy1_ChooseThrowTarget(_zEnt* ent)
 signed int Shaggy1_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
                            xBase* toParamWidget)
 {
-    _zEnt* ent = (_zEnt*)to;
     signed int ret = 0;
+    _zEnt* ent = (_zEnt*)to;
 
     switch (toEvent)
     {
@@ -2197,14 +2218,15 @@ signed int Shaggy1_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
     case 0xCF:
         if (toParamWidget != NULL)
         {
-            xAnimPlay* play = ent->model->Anim;
             if (toParam != NULL && *toParam == 1.0f)
             {
-                xAnimPlaySetState(play->Single, xAnimTableGetState(play->Table, "SharkHang"), 0.0f);
+                xAnimPlaySetState(ent->model->Anim->Single,
+                                  xAnimTableGetState(ent->model->Anim->Table, "SharkHang"), 0.0f);
             }
             else
             {
-                xAnimPlaySetState(play->Single, xAnimTableGetState(play->Table, "Hang"), 0.0f);
+                xAnimPlaySetState(ent->model->Anim->Single,
+                                  xAnimTableGetState(ent->model->Anim->Table, "Hang"), 0.0f);
             }
             zEntHangable_SetShaggy((_zEntHangable*)toParamWidget, ent);
             ShaggyGetGuts(ent)->hangme = (_zEntHangable*)toParamWidget;
@@ -2233,7 +2255,7 @@ signed int Shaggy1_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
         break;
     case 0xD0:
     default:
-        ret = sVilEventFunc(from, to, toEvent, toParam, toParamWidget);
+        ret = sVilEventFunc(from, ent, toEvent, toParam, toParamWidget);
         break;
     }
     return ret;
@@ -2389,7 +2411,7 @@ restart:
         }
         break;
     case 3:
-        if (guts->chimneyTimer >= guts->timeTop || guts->chimneyVel != 0.0f)
+        if (guts->chimneyTimer >= guts->timeTop || guts->chimneyVel)
         {
             float vel = guts->chimneyVel;
             pos->y = vel * dt + pos->y;
@@ -2476,6 +2498,8 @@ signed int Shaggy2_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
     default:
         ret = zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
         break;
+    case 0x13:
+        break;
     }
     return ret;
 }
@@ -2520,21 +2544,28 @@ unsigned int Shaggy3_MoveDead(xAnimTransition*, xAnimSingle*, _zPlatform* ent)
     {
         return 0;
     }
+    unsigned char ret = 0;
     unsigned char moving = globals.player.Health == 0 && (frame->mode & 2);
-    return moving && frame->dpos.x * frame->dpos.x + frame->dpos.y * frame->dpos.y +
-                             frame->dpos.z * frame->dpos.z >=
-                         0.0005f;
+    if (moving && frame->dpos.x * frame->dpos.x + frame->dpos.y * frame->dpos.y +
+                      frame->dpos.z * frame->dpos.z >=
+                  0.0005f)
+    {
+        ret = 1;
+    }
+    return ret;
 }
 
 unsigned int Shaggy3_Stop(xAnimTransition*, xAnimSingle*, _zPlatform* ent)
 {
+    unsigned char stopped;
+    unsigned char ret;
     _xEntFrame* frame = ent->frame;
     if (frame == NULL)
     {
         return 0;
     }
-    unsigned char ret = 0;
-    unsigned char stopped = 1;
+    ret = 0;
+    stopped = 1;
     if (frame->mode & 2)
     {
         if (!(frame->dpos.x * frame->dpos.x + frame->dpos.y * frame->dpos.y +
@@ -2616,9 +2647,9 @@ void Shaggy3_Update(_zEnt* ent, _xScene* sc, float dt)
         _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
         info.pos.x = -1.45f * mat->at.x + mat->pos.x;
         info.pos.y = -1.45f * mat->at.y + mat->pos.y;
+        info.pos.z = -1.45f * mat->at.z + mat->pos.z;
         info.vel.x = -1.25f * mat->at.x;
         info.vel.y = 1.0f;
-        info.pos.z = -1.45f * mat->at.z + mat->pos.z;
         info.vel.z = -1.25f * mat->at.z;
         zParEmitterEmitCustom(gTractorEmitter, dt, &info);
     }
@@ -2630,17 +2661,15 @@ void Shaggy3_Update(_zEnt* ent, _xScene* sc, float dt)
     float oldAng = atan2(guts->oldAt2.x, guts->oldAt2.z);
     float newAng = atan2(guts->oldAt.x, guts->oldAt.z);
     oldAng = xAngleClamp(oldAng);
-    float diff = xAngleClamp(newAng) - oldAng;
-    gShaggy3TurnAngle = diff;
-    while (diff > 3.1415927f)
+    gShaggy3TurnAngle = xAngleClamp(newAng) - oldAng;
+    while (gShaggy3TurnAngle > 3.1415927f)
     {
-        diff -= 6.2831855f;
+        gShaggy3TurnAngle -= 6.2831855f;
     }
-    while (diff < -3.1415927f)
+    while (gShaggy3TurnAngle < -3.1415927f)
     {
-        diff += 6.2831855f;
+        gShaggy3TurnAngle += 6.2831855f;
     }
-    gShaggy3TurnAngle = diff;
 
     if (globals.player.Health != 0)
     {
@@ -2657,10 +2686,8 @@ void Shaggy3_Update(_zEnt* ent, _xScene* sc, float dt)
         }
     }
 
-    _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
-    _xMat4x3* pmat = (_xMat4x3*)globals.player.ent.model->Mat;
-    float dx = pmat->pos.x - mat->pos.x;
-    float dz = pmat->pos.z - mat->pos.z;
+    float dx = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.x - ((_xMat4x3*)ent->model->Mat)->pos.x;
+    float dz = ((_xMat4x3*)globals.player.ent.model->Mat)->pos.z - ((_xMat4x3*)ent->model->Mat)->pos.z;
     if (guts->stopMode == 3)
     {
         if (dx * dx + dz * dz > guts->stopParam * guts->stopParam)
@@ -2693,12 +2720,20 @@ signed int Shaggy3_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
             guts->runEvent = 1;
             guts->stopEvent = 0;
         }
+        else
+        {
+            return zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
+        }
         break;
     case 0x12:
         guts->stopEvent = 0;
         if (xStricmp(state->Name, "Talk") == 0 || xStricmp(state->Name, "StopReact") == 0)
         {
             guts->runEvent = 1;
+        }
+        else
+        {
+            return zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
         }
         break;
     case 0x13:
@@ -2708,6 +2743,10 @@ signed int Shaggy3_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
             if (guts->stopMode == 2 || guts->stopMode == 3)
             {
                 guts->stopEvent = 1;
+            }
+            else
+            {
+                return zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
             }
         }
         break;
@@ -2729,8 +2768,10 @@ signed int Shaggy3_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
             guts->stopMode = 1;
         }
         break;
+    default:
+        return zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
     }
-    return zPlatformEventCB(from, to, toEvent, toParam, toParamWidget);
+    return 1;
 }
 
 unsigned int Shaggy5_MoveTran(xAnimTransition* tran, xAnimSingle*, _zEnt* ent)
@@ -2828,7 +2869,7 @@ unsigned int Witch_DropShaggyIdle(xAnimTransition*, xAnimSingle*, _zEnt* ent)
 
 unsigned int Witch_GrabShaggyCB(xAnimTransition*, xAnimSingle*, _zEnt* ent)
 {
-    ent->collis->chk &= ~0x20;
+    ent->collis->chk &= 0xDF;
     return 0;
 }
 
@@ -2972,8 +3013,8 @@ void Shaggy5_Update(_zEnt* ent, _xScene* sc, float dt)
             _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
             info.pos.x = -0.15f * mat->at.x + mat->pos.x;
             info.pos.y = -0.15f * mat->at.y + mat->pos.y;
-            info.pos.y = info.pos.y + 0.9f;
             info.pos.z = -0.15f * mat->at.z + mat->pos.z;
+            info.pos.y += 0.9f;
             zParEmitterEmitCustom(gBurningManEmitter, dt, &info);
         }
     }
@@ -2992,7 +3033,7 @@ void Shaggy5_Update(_zEnt* ent, _xScene* sc, float dt)
         guts->idleTimer += dt;
     }
 
-    if (guts->talkTimer != 0.0f)
+    if (guts->talkTimer)
     {
         guts->talkTimer -= dt;
         guts->talkSwitch -= dt;
@@ -3005,7 +3046,7 @@ void Shaggy5_Update(_zEnt* ent, _xScene* sc, float dt)
     if (guts->witchDrop != NULL)
     {
         _xMat4x3* mat = (_xMat4x3*)ent->model->Mat;
-        mat->pos.y = ent->frame->vel.y * dt + mat->pos.y;
+        mat->pos.y += ent->frame->vel.y * dt;
         ent->frame->vel.y = -(10.0f * dt - ent->frame->vel.y);
         if (((_xMat4x3*)ent->model->Mat)->pos.y <
             -2.0f + ((_xMat4x3*)guts->witchDrop->model->Mat)->pos.y)
@@ -3034,9 +3075,8 @@ void Shaggy5_Update(_zEnt* ent, _xScene* sc, float dt)
         float* spd_chase = (float*)((char*)ent + 0x158);
         if (d2 < 16.0f)
         {
-            float d = 0.5f * dt;
-            *spd_move += d;
-            *spd_chase += d;
+            *spd_move += 0.5f * dt;
+            *spd_chase += 0.5f * dt;
             if (*spd_move > 4.1f)
             {
                 *spd_move = 4.1f;
@@ -3156,9 +3196,9 @@ void ShaggySwap(_zEnt* src, _zEnt* dest)
 signed int Shaggy5_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
                            xBase* toParamWidget)
 {
+    signed int ret = 0;
     _zEnt* ent = (_zEnt*)to;
     ShaggyGuts* guts = ShaggyGetGuts(ent);
-    signed int ret = 0;
 
     switch (toEvent)
     {
@@ -3216,11 +3256,11 @@ signed int Shaggy5_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
         if (guts->actionIndex == 1 && toParamWidget != NULL)
         {
             float param[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-            ret = sVilEventFunc(from, to, 0xCD, param, toParamWidget);
+            ret = sVilEventFunc(from, ent, 0xCD, param, toParamWidget);
         }
         break;
     default:
-        ret = sVilEventFunc(from, to, toEvent, toParam, toParamWidget);
+        ret = sVilEventFunc(from, ent, toEvent, toParam, toParamWidget);
         break;
     }
     return ret;
@@ -3346,7 +3386,9 @@ signed int Shaggy8_HBCallback(_zEnt* plyr, _xCollis* coll)
             return 0;
         }
         guts->barrelButted = 1;
-        plyr->frame->mat.pos = ((_xMat4x3*)plyr->model->Mat)->pos;
+        plyr->frame->mat.pos.x = ((_xMat4x3*)plyr->model->Mat)->pos.x;
+        plyr->frame->mat.pos.y = ((_xMat4x3*)plyr->model->Mat)->pos.y;
+        plyr->frame->mat.pos.z = ((_xMat4x3*)plyr->model->Mat)->pos.z;
         globals.player.HeadbuttHit = 1;
         globals.player.DecelRunSpeed = 0.25f * globals.player.DecelRunSpeed;
         zRumbleStart(0, (_tagSDRumbleType)1);
@@ -3360,9 +3402,9 @@ signed int Shaggy8_BBCallback(_xEnt*, _xCollis* coll)
     _zEnt* ent = (_zEnt*)coll->optr;
     if (ent->baseType == 2 && ent->subType == 0x24)
     {
-        char* name = ent->model->Anim->Single->State->Name;
-        if (strcmp(name, "Stand_idle") == 0 || strcmp(name, "Stand_walk") == 0 ||
-            strcmp(name, "Stand_run") == 0)
+        if (strcmp(ent->model->Anim->Single->State->Name, "Stand_idle") == 0 ||
+            strcmp(ent->model->Anim->Single->State->Name, "Stand_walk") == 0 ||
+            strcmp(ent->model->Anim->Single->State->Name, "Stand_run") == 0)
         {
             ShaggyGuts* guts = ShaggyGetGuts(ent);
             if (guts == NULL)
@@ -3386,7 +3428,9 @@ void Shaggy8_Update(_zEnt* ent, _xScene* sc, float dt)
     if (xEntIsVisible(ent))
     {
         xAnimSingle* single = ent->model->Anim->Single;
-        xAnimState* blendState = single->Blend != NULL ? single->Blend->State : NULL;
+        xAnimState* state = single->State;
+        xAnimSingle* blend = single->Blend;
+        xAnimState* blendState = blend != NULL ? blend->State : NULL;
         ShaggyGuts* guts = ShaggyGetGuts(ent);
 
         if (guts->swap == NULL)
@@ -3398,10 +3442,11 @@ void Shaggy8_Update(_zEnt* ent, _xScene* sc, float dt)
             guts->swapTimer += dt;
         }
 
-        if (single->State->UserFlags == 0 || (blendState != NULL && blendState->UserFlags == 0))
+        if (state->UserFlags == 0 || (blendState != NULL && blendState->UserFlags == 0))
         {
             xEntBeginUpdate(ent, sc, dt);
             xEntEndUpdate(ent, sc, dt);
+            return;
         }
 
         sVilUpdateFunc(ent, sc, dt);
@@ -3410,13 +3455,16 @@ void Shaggy8_Update(_zEnt* ent, _xScene* sc, float dt)
         {
             if (!(ent->frame->mode & 0x20) || (float)__fabs(ent->frame->drot.angle) < 0.01308997f)
             {
-                _xCollis* coll = &ent->collis->colls[i];
-                if ((coll->flags & 1) && !(coll->flags & 0xC) && coll->optr == NULL)
+                if ((ent->collis->colls[i].flags & 1) && !(ent->collis->colls[i].flags & 0xC) &&
+                    ent->collis->colls[i].optr == NULL)
                 {
-                    if (coll->depen.x * coll->depen.x + coll->depen.z * coll->depen.z > 0.001f)
+                    float x2 = ent->collis->colls[i].depen.x * ent->collis->colls[i].depen.x;
+                    float z2 = ent->collis->colls[i].depen.z * ent->collis->colls[i].depen.z;
+                    if (x2 + z2 > 0.001f)
                     {
                         guts->barrelFellOver = 1;
                         zEntEvent(ent, 0x29);
+                        break;
                     }
                 }
             }
@@ -3427,9 +3475,11 @@ void Shaggy8_Update(_zEnt* ent, _xScene* sc, float dt)
 signed int Shaggy8_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* toParam,
                            xBase* toParamWidget)
 {
-    _zEnt* ent = (_zEnt*)to;
-    ShaggyGuts* guts = ShaggyGetGuts(ent);
     signed int ret = 0;
+    ShaggyGuts* guts;
+    _zEnt* ent;
+    ent = (_zEnt*)to;
+    guts = ShaggyGetGuts(ent);
 
     switch (toEvent)
     {
@@ -3495,8 +3545,8 @@ signed int Shaggy8_EventCB(xBase* from, xBase* to, unsigned int toEvent, float* 
             {
                 if (sMagnetList[i].shaggy == ent && sMagnetList[i].target == toParamWidget)
                 {
+                    sMagnetList[i] = sMagnetList[sMagnetCount - 1];
                     sMagnetCount--;
-                    sMagnetList[i] = sMagnetList[sMagnetCount];
                     break;
                 }
             }
@@ -3526,9 +3576,9 @@ signed int Shaggy8_CallToPlayer()
         return 0;
     }
 
-    zPlayerGlobals* p = &globals.player;
+    zGlobals* p = &globals;
     _xMat4x3* smat = (_xMat4x3*)minst->Mat;
-    _xMat4x3* pmat = (_xMat4x3*)globals.player.ent.model->Mat;
+    _xMat4x3* pmat = (_xMat4x3*)p->player.ent.model->Mat;
     float dz = pmat->pos.z - smat->pos.z;
     float dx = pmat->pos.x - smat->pos.x;
     float dist = xsqrt(dx * dx + dz * dz);
@@ -3541,9 +3591,9 @@ signed int Shaggy8_CallToPlayer()
     dz *= inv;
 
     float pitch;
-    sSndCallPitch = fn_800C751C(sSndCallPitch, &pitch, 30, 0.15f);
-    unsigned int snd = 0x0176632D - ((irand() >> 16) & 1);
-    if (xEntIsVisible(shaggy))
+    sSndCallPitch = zPitchChange(sSndCallPitch, &pitch, 30, 0.15f);
+    unsigned int snd = -((irand() >> 16) & 1) + 0x0176632D;
+    if (xEntIsVisible(p->player.Shaggy8Call))
     {
         xSndPlay(snd, 0.5f, 0.5f, pitch, 0x80, 2, 0);
     }
@@ -3583,7 +3633,8 @@ signed int Shaggy8_CallToPlayer()
             if (!(tx * tx + tz * tz < r * r))
             {
                 float along = tx * dx + tz * dz;
-                if (along >= r && along < best && (float)__fabs(tx * dz - tz * dx) < mag->radius)
+                float side = tx * dz - tz * dx;
+                if (along >= r && along < best && (float)__fabs(side) < mag->radius)
                 {
                     bestIdx = i;
                     best = along;
@@ -3600,13 +3651,13 @@ signed int Shaggy8_CallToPlayer()
     }
     else
     {
-        float oldx = ((_xMat4x3*)p->ent.model->Mat)->pos.x;
-        float oldz = ((_xMat4x3*)p->ent.model->Mat)->pos.z;
-        ((_xMat4x3*)p->ent.model->Mat)->pos.x = 20.0f * dx + oldx;
-        ((_xMat4x3*)p->ent.model->Mat)->pos.z = 20.0f * dz + ((_xMat4x3*)p->ent.model->Mat)->pos.z;
-        zEntEvent(NULL, 0, shaggy, 0xCD, param, &p->ent, 0);
-        ((_xMat4x3*)p->ent.model->Mat)->pos.x = oldx;
-        ((_xMat4x3*)p->ent.model->Mat)->pos.z = oldz;
+        float oldx = ((_xMat4x3*)p->player.ent.model->Mat)->pos.x;
+        float oldz = ((_xMat4x3*)p->player.ent.model->Mat)->pos.z;
+        ((_xMat4x3*)p->player.ent.model->Mat)->pos.x = 20.0f * dx + oldx;
+        ((_xMat4x3*)p->player.ent.model->Mat)->pos.z = 20.0f * dz + ((_xMat4x3*)p->player.ent.model->Mat)->pos.z;
+        zEntEvent(NULL, 0, shaggy, 0xCD, param, &p->player.ent, 0);
+        ((_xMat4x3*)p->player.ent.model->Mat)->pos.x = oldx;
+        ((_xMat4x3*)p->player.ent.model->Mat)->pos.z = oldz;
     }
     return 1;
 }
@@ -3699,6 +3750,9 @@ void zEntShaggy_SceneStart(zScene* sc)
             case 0x1C:
             case 0x1D:
                 Shaggy1_BonusAnims(ent);
+                break;
+            case 0x1E:
+            case 0x1F:
                 break;
             case 0x24:
             {

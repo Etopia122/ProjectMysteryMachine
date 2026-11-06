@@ -38,11 +38,8 @@ signed long CARDProbeEx(signed long chan, signed long* memSize, signed long* sec
 signed long CARDMount(signed long chan, void* workArea, CARDCallback detachCallback);
 signed long CARDUnmount(signed long chan);
 signed long CARDFormat(signed long chan);
-// The older SDK's CARDOpen/CARDClose; the TWW CARDOpen.o object already defines those names.
-signed long fn_80135484(signed long chan, const char* fileName, CARDFileInfo* fileInfo);
-signed long fn_8013558C(CARDFileInfo* fileInfo);
-#define CARDOpen fn_80135484
-#define CARDClose fn_8013558C
+signed long CARDOpen(signed long chan, const char* fileName, CARDFileInfo* fileInfo);
+signed long CARDClose(CARDFileInfo* fileInfo);
 signed long CARDCreate(signed long chan, const char* fileName, unsigned long size,
                        CARDFileInfo* fileInfo);
 signed long CARDReadAsync(CARDFileInfo* fileInfo, void* addr, signed long length,
@@ -388,7 +385,9 @@ static signed int iSG_mc_fdel(st_ISG_MEMCARD_DATA* mcdata, const char* fname)
         case CARD_RESULT_NOPERM:
         case CARD_RESULT_FATAL_ERROR:
         case CARD_RESULT_WRONGDEVICE:
-        case CARD_RESULT_NOCARD:
+            break;
+        case CARD_RESULT_NOFILE:
+            ret = 0;
             break;
         }
     }
@@ -635,8 +634,8 @@ signed int iSGTgtFormat(st_ISGSESSION* isgdata, signed int tgtidx, signed int as
 
 unsigned int iSGTgtState(st_ISGSESSION* isgdata, signed int tgtidx, const char* dpath)
 {
-    signed int isSectSizeValid = 0;
     unsigned int state = 0;
+    signed int isSectSizeValid = 0;
     signed int slot = 0;
     signed int x = 0;
     signed int y = 0;
@@ -844,13 +843,13 @@ signed int iSGFileSize(st_ISGSESSION* isgdata, const char* fname)
 
 char* iSGFileModDate(st_ISGSESSION* isgdata, const char* fname)
 {
-    static char datestr[64] = { 0 };
-    int sec = 0;
-    int min = 0;
-    int hr = 0;
-    int mon = 0;
-    int day = 0;
     int yr = 0;
+    int day = 0;
+    int mon = 0;
+    int hr = 0;
+    int min = 0;
+    int sec = 0;
+    static char datestr[64] = { 0 };
 
     if (iSG_get_fmoddate(&isgdata->mcdata[isgdata->slot], fname, &sec, &min, &hr, &mon, &day,
                          &yr))
@@ -992,7 +991,7 @@ static void iSG_upd_icostat(CARDStat*, CARDStat* stat)
     stat->iconAddr = 0x40;
     stat->bannerFormat = stat->bannerFormat & ~4;
 
-    for (signed int i = 0; i < 8; i++)
+    for (signed int i = 0; i < 4; i++)
     {
         stat->iconFormat = (stat->iconFormat & ~(3 << (2 * i))) | (2 << (2 * i));
         stat->iconSpeed = (stat->iconSpeed & ~(3 << (2 * i))) | (2 << (2 * i));
@@ -1004,6 +1003,7 @@ static void iSG_upd_icostat(CARDStat*, CARDStat* stat)
 signed int iSGSaveFile(st_ISGSESSION* isgdata, const char* fname, char* data, signed int n,
                        signed int async, char* label)
 {
+    char* icondata;
     signed int writeret = 0;
     en_ASYNC_OPERR operr = ISG_OPERR_NONE;
     CARDStat statA = { 0 };
@@ -1032,7 +1032,7 @@ signed int iSGSaveFile(st_ISGSESSION* isgdata, const char* fname, char* data, si
     signed int allocsize = iconsize + 0x1F;
     void* alloc = xMemPushTemp(allocsize);
     memset(alloc, 0, allocsize);
-    char* icondata = (char*)((unsigned int)alloc + 0x1F & 0xFFFFFFE0);
+    icondata = (char*)((unsigned int)alloc + 0x1F & 0xFFFFFFE0);
 
     memcpy(iSG_bfr_icondata(icondata, &statA, label, mcdata->sectorSize), data, n);
     fn_80016768();
@@ -1161,7 +1161,14 @@ signed int iSGReadLeader(st_ISGSESSION* isgdata, const char* fname, char* databu
 
     if (iSG_mc_fopen(data, fname, -1, ISG_IOMODE_READ, &operr) != 0)
     {
-        readret = iSG_mcqa_fread(data, readbuf, bufsize, iconsize) ? 1 : 0;
+        if (iSG_mcqa_fread(data, readbuf, bufsize, iconsize))
+        {
+            readret = 1;
+        }
+        else
+        {
+            readret = 0;
+        }
         iSG_mc_fclose(data);
     }
 

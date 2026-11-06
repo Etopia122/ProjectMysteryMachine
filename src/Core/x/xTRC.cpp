@@ -124,7 +124,7 @@ public:
 
 _tagTRCPadInfo gTrcPad[4];
 _tagTRCState gTrcDisk[2];
-signed int sCardCheckActive;
+unsigned int sCardCheckActive;
 static xFontBox* sTrcFontBox;
 static unsigned int sOwnCamera;
 

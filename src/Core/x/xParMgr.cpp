@@ -36,3 +36,10 @@ void xParMgrUpdate(float elapsedTime)
         sFrameCount--;
     }
 }
+
+void iParMgrRender();
+
+void xParMgrRender()
+{
+    iParMgrRender();
+}

@@ -1,4 +1,6 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDRead.c"
+#include "dolphin/card/card_dbg.h"
 
 #define TRUNC(n, a) (((u32)(n)) & ~((a)-1))
 #define OFFSET(addr, align) (((u32)(addr) & ((align)-1)))
@@ -18,15 +20,15 @@ s32 __CARDSeek(CARDFileInfo* fileInfo, s32 length, s32 offset, CARDControl** pca
     s32 result;
     u16* fat;
 
-    ASSERTLINE(98, 0 <= fileInfo->chan && fileInfo->chan < 2);
-    ASSERTLINE(99, 0 <= fileInfo->fileNo && fileInfo->fileNo < CARD_MAX_FILE);
+    ASSERTLINE(95, 0 <= fileInfo->chan && fileInfo->chan < 2);
+    ASSERTLINE(96, 0 <= fileInfo->fileNo && fileInfo->fileNo < CARD_MAX_FILE);
 
     result = __CARDGetControlBlock(fileInfo->chan, &card);
     if (result < 0)
         return result;
 
-    ASSERTLINE(106, CARDIsValidBlockNo(card, fileInfo->iBlock));
-    ASSERTLINE(107, fileInfo->offset < card->cBlock * card->sectorSize);
+    ASSERTLINE(103, CARDIsValidBlockNo(card, fileInfo->iBlock));
+    ASSERTLINE(104, fileInfo->offset < card->cBlock * card->sectorSize);
 
     if (!CARDIsValidBlockNo(card, fileInfo->iBlock) || card->cBlock * card->sectorSize <= fileInfo->offset)
         return __CARDPutControlBlock(card, CARD_RESULT_FATAL_ERROR);
@@ -34,7 +36,7 @@ s32 __CARDSeek(CARDFileInfo* fileInfo, s32 length, s32 offset, CARDControl** pca
     dir = __CARDGetDirBlock(card);
     ent = &dir[fileInfo->fileNo];
 
-    ASSERTLINE(117, ent->gameName[0] != 0xff);
+    ASSERTLINE(114, ent->gameName[0] != 0xff);
 
     if (ent->length * card->sectorSize <= offset || ent->length * card->sectorSize < offset + length)
         return __CARDPutControlBlock(card, CARD_RESULT_LIMIT);
@@ -92,8 +94,8 @@ static void ReadCallback(s32 chan, s32 result) {
         goto error;
     }
 
-    ASSERTLINE(199, OFFSET(fileInfo->length, CARD_SEG_SIZE) == 0);
-    ASSERTLINE(200, OFFSET(fileInfo->offset, card->sectorSize) == 0);
+    ASSERTLINE(196, OFFSET(fileInfo->length, CARD_SEG_SIZE) == 0);
+    ASSERTLINE(197, OFFSET(fileInfo->offset, card->sectorSize) == 0);
 
     result = __CARDRead(chan, card->sectorSize * (u32)fileInfo->iBlock,
                         (fileInfo->length < card->sectorSize) ? fileInfo->length : card->sectorSize, card->buffer,
@@ -107,7 +109,7 @@ error:
     callback = card->apiCallback;
     card->apiCallback = NULL;
     __CARDPutControlBlock(card, result);
-    ASSERTLINE(217, callback);
+    ASSERTLINE(214, callback);
     callback(chan, result);
 }
 
@@ -117,9 +119,9 @@ s32 CARDReadAsync(CARDFileInfo* fileInfo, void* buf, s32 length, s32 offset, CAR
     CARDDir* dir;
     CARDDir* ent;
 
-    ASSERTLINE(250, buf && OFFSET(buf, 32) == 0);
-    ASSERTLINE(251, OFFSET(offset, CARD_SEG_SIZE) == 0);
-    ASSERTLINE(252, 0 < length && OFFSET(length, CARD_SEG_SIZE) == 0);
+    ASSERTLINE(247, buf && OFFSET(buf, 32) == 0);
+    ASSERTLINE(248, OFFSET(offset, CARD_SEG_SIZE) == 0);
+    ASSERTLINE(249, 0 < length && OFFSET(length, CARD_SEG_SIZE) == 0);
 
     if (OFFSET(offset, CARD_SEG_SIZE) != 0 || OFFSET(length, CARD_SEG_SIZE) != 0)
         return CARD_RESULT_FATAL_ERROR;

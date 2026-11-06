@@ -1450,7 +1450,7 @@ void xEntMove(_xEnt* ent, _xScene* sc, float dt);
 void xEntCollide(_xEnt* ent, _xScene* sc, float dt);
 void xEntMotionToMatrix(_xEnt* ent, _xEntFrame* frame);
 _xVec3* zMovePointGetPos(_zMovePoint* m);
-unsigned char zMovePointIsOn(_zMovePoint* m);
+signed int zMovePointIsOn(_zMovePoint* m);
 float zMovePointGetDelay(_zMovePoint* m);
 _zMovePoint* zMovePoint_From_xAssetID(unsigned int aid);
 float zMovePointGetNext(_zMovePoint* current, _zMovePoint* prev, _zMovePoint** next, _xVec3* hdng);
@@ -3419,6 +3419,13 @@ static st_ZVMM_FLASK_DATA g_mmflask[10] = { 0 };
 #define VIL_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define VIL_MAX(a, b) ((a) > (b) ? (a) : (b))
 
+static inline void xVec3Init(_xVec3* v, float x, float y, float z)
+{
+    v->x = x;
+    v->y = y;
+    v->z = z;
+}
+
 static inline void VEFX_place_gumBlob(xModelInstance* blob, _xMat4x3* mat);
 static inline void VSUP_cheap_reflect(_xVec3* out, _xVec3* alter);
 static signed int VSUP_accum_collide(st_zEntVillain* vil, _xVec3* vec_accum);
@@ -3518,6 +3525,7 @@ static signed int VPRJ_BRB_logix(zEntProjectile* prj, float dt);
 static void VPRJ_BRB_detach(zEntProjectile* prj);
 static signed int VPRJ_BRB_attach(zEntProjectile* prj);
 static inline void VPRJ_emitat(_zParEmitter* emitter, zEntProjectile* prj, float dt, float yoff);
+static inline void VPRJ_emitat(_zParEmitter* emitter, zEntProjectile* prj, float dt);
 static inline void VPRJ_BGG_shockpos(zEntProjectile* prj, float dt);
 static signed int VPRJ_BGG_shockwave(zEntProjectile* prj, float dt);
 static signed int VPRJ_BGG_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event);
@@ -3538,27 +3546,27 @@ static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xV
 static signed int VWEP_lobInitBKAxe(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off);
-static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos);
+static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos, _xVec3* vec_tmp);
 static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT event, void* ctxt);
 static signed int VWEP_lobActivatePRJ(zEntProjectile* prj, st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin, float arcness, float heavy);
 static zEntProjectile* VWEP_lobReservePRJ(st_zEntVillain* vil);
 static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* pos_tgt);
-static signed int VWEP_swipe(st_zEntVillain* vil);
+static signed int VWEP_swipe(st_zEntVillain* vil, float);
 static en_BEHAVIOUR_GOAL VGOL_set(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal);
 static signed int VCFG_getParm(st_ZVIL_CONFIG_REFERENCE* vilcfg, en_NPC_INI_PARAMETERS pid, void* val);
 static void VCFG_readAsset(st_ZVIL_CONFIG_REFERENCE* vilcfg);
 static void VCFG_readParms(st_ZVIL_CONFIG_REFERENCE* vilcfg);
 static void VIRM_initVilDflt(st_zEntVillain* vil);
-static inline signed int VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe);
+static inline unsigned char VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe);
 static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float chance);
-static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame);
+static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame* frame);
 static void zVIL_precalc(st_zEntVillain* vil, signed int flags);
 static inline void VTMR_tick(st_zEntVillain* vil, signed int idx, float dt);
 static void zVIL_upd_timers(st_zEntVillain* vil, float dt);
 static void zVIL_apply_vilcfg(st_zEntVillain* vil, st_ZVIL_CONFIG_REFERENCE* vilcfg);
 static _zMovePoint* VNAV_find_telepoint(st_zEntVillain* vil, signed int force);
 static inline xAnimSingle* VANM_single(st_zEntVillain* vil);
-static inline unsigned int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int mask);
+static inline signed int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int mask);
 static inline void VNAV_animspeed(st_zEntVillain* vil, float spd, _xVec3* sanim);
 static float VNAV_get_movespeed(st_zEntVillain* vil, float rnd);
 static signed int VNAV_chklos_timz(void* usrdata, _xVec3* pos, _zMovePoint* mvpt);
@@ -3595,7 +3603,8 @@ static inline void VILN_BMM_enterGoal(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goa
 static inline void VILN_BMM_tymrRand(st_zEntVillain* vil, signed int idx);
 static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt);
 static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, st_STIMULUS_CONTEXT_DATA* resp);
-static inline signed int VILN_BMM_teleport(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp, signed int hurt);
+static inline signed int VILN_BMM_teleport(st_zEntVillain* vil);
+static inline void VILN_BMM_teleTran(st_STIMULUS_CONTEXT_DATA* resp, signed int hurt);
 static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st_STIMULUS_CONTEXT_DATA* resp);
 static signed int VILN_BMM_notice(st_zEntVillain* vil, en_ZVIL_NOTICE note, st_STIMULUS_CONTEXT_DATA* resp);
 static signed int VILN_BMM_sysevent(st_zEntVillain* vil, xBase* from, unsigned int toEvent, float* toParam, xBase* toParamWidget, st_STIMULUS_CONTEXT_DATA* resp);
@@ -3731,8 +3740,6 @@ static inline void VILN_std_stunTimer(st_zEntVillain* vil, signed int idx);
 static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt);
 static inline signed int VUTIL_hitSide(st_zEntVillain* vil);
 static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, st_STIMULUS_CONTEXT_DATA* resp);
-static inline signed int VILN_std_awareAlert(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
-static inline signed int VILN_std_awareRoam(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp, signed int patrolmode);
 static inline void VILN_std_awareGuardOrIdle(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp);
 static inline void VILN_std_awareTymr(st_zEntVillain* vil, signed int idx);
 static inline void VILN_std_awarePick(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal, signed int spot);
@@ -3791,13 +3798,16 @@ signed int zEntVillain_Startup()
     memset(g_datablock, 0, 0x20000);
 
     // Count the tables (the counts are not used).
-    for (i = 0; g_npcTable[i].enabled; i++)
+    i = 0;
+    while (g_npcTable[i++].enabled)
     {
     }
-    for (i = 0; g_npcFuncs[i].flg_funcs & 1; i++)
+    i = 0;
+    while (g_npcFuncs[i++].flg_funcs & 1)
     {
     }
-    for (i = 0; g_animname[i]; i++)
+    i = 0;
+    while (g_animname[i++])
     {
     }
 
@@ -3928,7 +3938,6 @@ st_zEntVillain* zEntVillain_NPCInst(unsigned int npcidx)
 
 void zEntVillain_Init(st_zEntVillain* vil, p2EntAsset* asset)
 {
-    st_ZVIL_NPCTYPE_LOOKUP* npcinfo;
     _xMat4x3* mat;
 
     zEntInit(vil, asset, 0x4E504320);
@@ -3946,18 +3955,18 @@ void zEntVillain_Init(st_zEntVillain* vil, p2EntAsset* asset)
         vil->link = NULL;
     }
     vil->vhf = &g_npcFuncs[vil->asset->subtype];
-    vil->vilcfg.asset = vil->asset;
-    vil->vilcfg.vilp2ass = (p2EntVillainAsset*)((char*)vil->asset + sizeof(p2EntAsset));
+    p2EntAsset* ent_asset = vil->asset;
+    vil->vilcfg.asset = ent_asset;
+    vil->vilcfg.vilp2ass = (p2EntVillainAsset*)((char*)ent_asset + sizeof(p2EntAsset));
     VCFG_readParms(&vil->vilcfg);
     VCFG_readAsset(&vil->vilcfg);
 
-    npcinfo = &g_npcTable[vil->asset->subtype];
-    vil->ability = npcinfo->ability;
-    vil->abl_atak = npcinfo->abl_atak;
-    vil->abl_dtct = npcinfo->abl_dtct;
-    vil->abl_move = npcinfo->abl_move;
-    vil->abl_spyk = npcinfo->abl_spyk;
-    vil->abl_vuln = npcinfo->abl_vuln;
+    vil->ability = g_npcTable[vil->asset->subtype].ability;
+    vil->abl_atak = g_npcTable[vil->asset->subtype].abl_atak;
+    vil->abl_dtct = g_npcTable[vil->asset->subtype].abl_dtct;
+    vil->abl_move = g_npcTable[vil->asset->subtype].abl_move;
+    vil->abl_spyk = g_npcTable[vil->asset->subtype].abl_spyk;
+    vil->abl_vuln = g_npcTable[vil->asset->subtype].abl_vuln;
     vil->chkby = vil->vhf->flags(vil, ZVIL_FGRP_CHKBY, ZVIL_GOAL_NONE);
     vil->penby = vil->vhf->flags(vil, ZVIL_FGRP_PENBY, ZVIL_GOAL_NONE);
     vil->collis->chk = vil->vhf->flags(vil, ZVIL_FGRP_CHK, ZVIL_GOAL_NONE);
@@ -4341,88 +4350,129 @@ signed int zEntVillain_PlayAFXSound(st_zEntVillain* vil, zAnimFxSound* snd, unsi
 {
     st_NPC_SOUND_ENTRY* entry;
     st_NPC_SOUND_PROPERTIES* props;
-    signed int found = -1;
+    signed int found;
     unsigned int sndID;
     signed int subtype;
     unsigned int sid;
+    signed int rc;
+#ifdef PC_PORT
+    // Declared up here: the early goal check jumps to done over their
+    // initialisation, which GCC rejects.
+    unsigned int flg_vsnd;
+    float dst_noisy;
+#endif
 
-    if (vil->goal >= 0 && vil->goal < 3 && vil->goaldflt != ZVIL_GOAL_AMBUSH)
+    switch (vil->goal)
     {
-        // The original still reports success here.
-        return 1;
+    case 0:
+    case 1:
+    case 2:
+        if (vil->goaldflt != ZVIL_GOAL_AMBUSH)
+        {
+            // Converted to a boolean on the way out, so this still reads as success.
+            rc = -1;
+            goto done;
+        }
+        break;
     }
 
     sndID = snd->ID;
+    found = -1;
     subtype = vil->asset->subtype;
-    for (entry = g_npcJukeBox; entry->sndList; entry++)
+    st_NPC_SOUND_RECORDS* rec;
+    entry = g_npcJukeBox;
+    while ((rec = entry->sndList) != NULL)
     {
-        if (entry->viltyp == subtype || entry->viltyp != -1)
+        if (entry->viltyp == subtype)
         {
-            st_NPC_SOUND_RECORDS* rec;
-            for (rec = entry->sndList; rec->typ_sound != 0x8000; rec++)
+        }
+        else if (entry->viltyp != -1)
+        {
+        }
+        else
+        {
+            entry++;
+            continue;
+        }
+
+        for (; rec->typ_sound != 0x8000; rec++)
+        {
+            if (rec->aid_sound == sndID)
             {
-                if (rec->aid_sound == sndID)
-                {
-                    found = rec->typ_sound;
-                    break;
-                }
-            }
-            if (entry->viltyp == subtype || found != -1)
-            {
+                found = rec->typ_sound;
                 break;
             }
         }
+        if (entry->viltyp == subtype || found != -1)
+        {
+            break;
+        }
+        entry++;
     }
 
-    for (props = g_sndProps; props->sndEvent != 0x8000 && props->sndEvent != found; props++)
+    for (props = g_sndProps; props->sndEvent != 0x8000; props++)
     {
+        if (props->sndEvent == found)
+        {
+            break;
+        }
     }
 
+#ifdef PC_PORT
+    flg_vsnd = props->flg_vsnd;
+    dst_noisy = g_npcTable[subtype].dst_noisy;
+#else
+    unsigned int flg_vsnd = props->flg_vsnd;
+    float dst_noisy = g_npcTable[subtype].dst_noisy;
+#endif
     if (found != -1)
     {
-        sid = VSND_goPlay(vil, (en_NPC_SOUND)found, 0, props->flg_vsnd, g_npcTable[subtype].dst_noisy);
+        sid = VSND_goPlay(vil, (en_NPC_SOUND)found, 0, flg_vsnd, dst_noisy);
     }
     else
     {
-        sid = VSND_goPlay(vil, (en_NPC_SOUND)0x8000, sndID, props->flg_vsnd, g_npcTable[subtype].dst_noisy);
+        sid = VSND_goPlay(vil, (en_NPC_SOUND)0x8000, sndID, flg_vsnd, dst_noisy);
     }
     if (sid_played)
     {
         *sid_played = sid;
     }
-    return 1;
+    rc = 1;
+
+done:
+    return rc != 0;
 }
 
 static void zVIL_setup_npcTable()
 {
     signed int i;
+    signed int dtct;
+    signed int spyk;
+    signed int vuln;
+    unsigned char chk;
+    unsigned char pen;
+    unsigned char penby;
+    unsigned char physics;
+    signed int ability;
+    signed int atak;
+    signed int move;
+    signed int person = 0;
+    unsigned char chkby;
 
+    // Behaviour flags per villain type (the original builds them from named
+    // flag constants; the values are what it compiles to). The personality is
+    // only cleared once, before the loop.
     for (i = 0; i < 50; i++)
     {
-        // Behaviour flags per villain type (the original builds them from
-        // named flag constants; the values are what it compiles to).
-        unsigned int person;
-        unsigned char physics;
-        unsigned char chk;
-        unsigned char pen;
-        unsigned char chkby;
-        unsigned char penby;
-        signed int ability;
-        signed int atak;
-        signed int dtct;
-        signed int move;
-        signed int spyk;
-        signed int vuln;
-
         switch (i)
         {
         case 0:
             person = 0x1;
-            physics = 0x1B;
-            chk = 0x10;
-            pen = 0x10;
             chkby = 0x10;
             penby = 0x10;
+            chk = 0x10;
+            pen = 0x10;
+            physics = 0x1B;
             ability = 0x22804A;
             atak = 0x10003;
             dtct = 0x80;
@@ -4432,11 +4482,11 @@ static void zVIL_setup_npcTable()
             break;
         case 5:
             person = 0x0;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1B;
             ability = 0x2A1F4A;
             atak = 0x40001;
             dtct = 0x800000B1;
@@ -4446,11 +4496,11 @@ static void zVIL_setup_npcTable()
             break;
         case 2:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4460,11 +4510,11 @@ static void zVIL_setup_npcTable()
             break;
         case 3:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281FCA;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4474,11 +4524,11 @@ static void zVIL_setup_npcTable()
             break;
         case 4:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281FCA;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4488,11 +4538,11 @@ static void zVIL_setup_npcTable()
             break;
         case 6:
             person = 0x0;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x0;
             chkby = 0x1C;
             penby = 0x0;
+            chk = 0x2E;
+            pen = 0x0;
+            physics = 0x1B;
             ability = 0x281F4A;
             atak = 0x10003;
             dtct = 0x80;
@@ -4502,25 +4552,26 @@ static void zVIL_setup_npcTable()
             break;
         case 7:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x20001;
             dtct = 0x80;
-            move = 0x213F;
+            move = 0x21BF;
+            move &= ~0x80;
             spyk = 0x0;
             vuln = 0x5F9E7;
             break;
         case 9:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x299F4A;
             atak = 0x20001;
             dtct = 0x80;
@@ -4530,11 +4581,11 @@ static void zVIL_setup_npcTable()
             break;
         case 12:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281FCA;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4544,25 +4595,26 @@ static void zVIL_setup_npcTable()
             break;
         case 13:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x20001;
             dtct = 0x80;
             move = 0x213F;
+            move &= ~0x80;
             spyk = 0x0;
             vuln = 0x5F9E7;
             break;
         case 15:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x80001;
             dtct = 0xB1;
@@ -4572,11 +4624,11 @@ static void zVIL_setup_npcTable()
             break;
         case 16:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x40001;
             dtct = 0xB1;
@@ -4586,11 +4638,11 @@ static void zVIL_setup_npcTable()
             break;
         case 17:
             person = 0x0;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1B;
             ability = 0x2A1F4A;
             atak = 0x80001;
             dtct = 0x800000B1;
@@ -4600,11 +4652,11 @@ static void zVIL_setup_npcTable()
             break;
         case 18:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x40001;
             dtct = 0xB1;
@@ -4614,25 +4666,26 @@ static void zVIL_setup_npcTable()
             break;
         case 19:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x20014A;
             atak = 0x20001;
             dtct = 0x80;
             move = 0x213F;
+            move &= ~0x80;
             spyk = 0x0;
             vuln = 0x5F9E7;
             break;
         case 20:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4642,11 +4695,11 @@ static void zVIL_setup_npcTable()
             break;
         case 45:
             person = 0x0;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x8;
             chkby = 0x1C;
             penby = 0x8;
+            chk = 0x2E;
+            pen = 0x8;
+            physics = 0x1B;
             ability = 0x281F4A;
             atak = 0x10001;
             dtct = 0xB1;
@@ -4656,11 +4709,11 @@ static void zVIL_setup_npcTable()
             break;
         case 46:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281FCA;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4670,11 +4723,11 @@ static void zVIL_setup_npcTable()
             break;
         case 21:
             person = 0x1;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x2080CA;
             atak = 0x0;
             dtct = 0x80;
@@ -4684,11 +4737,11 @@ static void zVIL_setup_npcTable()
             break;
         case 14:
             person = 0x1;
-            physics = 0x0;
-            chk = 0x20;
-            pen = 0x20;
             chkby = 0x0;
             penby = 0x0;
+            chk = 0x20;
+            pen = 0x20;
+            physics = 0x0;
             ability = 0x20000A;
             atak = 0x0;
             dtct = 0x0;
@@ -4698,11 +4751,11 @@ static void zVIL_setup_npcTable()
             break;
         case 22:
             person = 0x1;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x20804A;
             atak = 0x0;
             dtct = 0x80;
@@ -4712,11 +4765,11 @@ static void zVIL_setup_npcTable()
             break;
         case 23:
             person = 0x1;
-            physics = 0x1B;
-            chk = 0x10;
-            pen = 0x10;
             chkby = 0x10;
             penby = 0x10;
+            chk = 0x10;
+            pen = 0x10;
+            physics = 0x1B;
             ability = 0x20804A;
             atak = 0x0;
             dtct = 0x80;
@@ -4726,11 +4779,11 @@ static void zVIL_setup_npcTable()
             break;
         case 24:
             person = 0x1;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x22804A;
             atak = 0x0;
             dtct = 0x80;
@@ -4740,11 +4793,11 @@ static void zVIL_setup_npcTable()
             break;
         case 25:
             person = 0x1;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x0;
             chkby = 0x1C;
             penby = 0x0;
+            chk = 0x2E;
+            pen = 0x0;
+            physics = 0x1B;
             ability = 0x281F4A;
             atak = 0x20001;
             dtct = 0xB1;
@@ -4754,11 +4807,11 @@ static void zVIL_setup_npcTable()
             break;
         case 26:
             person = 0x1;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x281F4A;
             atak = 0x80001;
             dtct = 0x81;
@@ -4768,11 +4821,11 @@ static void zVIL_setup_npcTable()
             break;
         case 27:
             person = 0x1;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1B;
             ability = 0x22804A;
             atak = 0x10003;
             dtct = 0x80;
@@ -4782,25 +4835,16 @@ static void zVIL_setup_npcTable()
             break;
         case 1:
             person = 0x5;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
-            chkby = 0x1C;
-            penby = 0x1C;
-            ability = 0x20014B;
-            atak = 0x40001;
-            dtct = 0x1;
-            move = 0x2137;
-            spyk = 0x0;
-            vuln = 0x9;
-            break;
         case 41:
-            person = 0x7;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
+            if (!person)
+            {
+                person = 0x6;
+            }
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x20014B;
             atak = 0x40001;
             dtct = 0x1;
@@ -4810,25 +4854,16 @@ static void zVIL_setup_npcTable()
             break;
         case 10:
             person = 0x5;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
-            chkby = 0x1C;
-            penby = 0x1C;
-            ability = 0x2001C3;
-            atak = 0x40001;
-            dtct = 0x1;
-            move = 0x137;
-            spyk = 0x0;
-            vuln = 0x109;
-            break;
         case 44:
-            person = 0x7;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
+            if (!person)
+            {
+                person = 0x6;
+            }
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x2001C3;
             atak = 0x40001;
             dtct = 0x1;
@@ -4838,25 +4873,16 @@ static void zVIL_setup_npcTable()
             break;
         case 11:
             person = 0x5;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
-            chkby = 0x1C;
-            penby = 0x1C;
-            ability = 0x20014B;
-            atak = 0x80001;
-            dtct = 0x1;
-            move = 0x2137;
-            spyk = 0x0;
-            vuln = 0x9;
-            break;
         case 43:
-            person = 0x7;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
+            if (!person)
+            {
+                person = 0x6;
+            }
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x20014B;
             atak = 0x80001;
             dtct = 0x1;
@@ -4866,25 +4892,16 @@ static void zVIL_setup_npcTable()
             break;
         case 8:
             person = 0x5;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x0;
-            chkby = 0x1C;
-            penby = 0x0;
-            ability = 0x20014B;
-            atak = 0x40001;
-            dtct = 0x1;
-            move = 0x43137;
-            spyk = 0x0;
-            vuln = 0x9;
-            break;
         case 42:
-            person = 0x7;
-            physics = 0x1B;
-            chk = 0x2E;
-            pen = 0x0;
+            if (!person)
+            {
+                person = 0x6;
+            }
             chkby = 0x1C;
             penby = 0x0;
+            chk = 0x2E;
+            pen = 0x0;
+            physics = 0x1B;
             ability = 0x20014B;
             atak = 0x40001;
             dtct = 0x1;
@@ -4909,11 +4926,11 @@ static void zVIL_setup_npcTable()
         case 48:
         case 49:
             person = 0x7;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x48004;
             atak = 0x0;
             dtct = 0x1;
@@ -4923,11 +4940,11 @@ static void zVIL_setup_npcTable()
             break;
         default:
             person = 0x0;
-            physics = 0x1F;
-            chk = 0x2E;
-            pen = 0x6E;
             chkby = 0x1C;
             penby = 0x1C;
+            chk = 0x2E;
+            pen = 0x6E;
+            physics = 0x1F;
             ability = 0x81F40;
             atak = 0x0;
             dtct = 0x80;
@@ -4939,11 +4956,11 @@ static void zVIL_setup_npcTable()
 
         if (move & 0x40000)
         {
-            pen &= ~0x40;
+            pen &= 0xBF;
         }
         if (move & 0x400)
         {
-            pen &= ~0x20;
+            pen &= 0xDF;
         }
         g_npcTable[i].typ_person = (en_NPC_PERSONALITIES)person;
         g_npcTable[i].flg_physics = physics;
@@ -4983,157 +5000,232 @@ static signed int VILN_std_flag(st_zEntVillain* vil, en_ZVIL_FLAG_GROUPS flaggro
 static signed int VILN_std_query(st_zEntVillain* vil, en_ZVIL_QUERY query)
 {
     st_ZVIL_PRECALC* pc = &vil->precalc;
+    signed int ret;
 
     switch (query)
     {
     case ZVIL_Q_DOUPDATE:
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_ALIVE:
-        return vil->mode >= ZVIL_MODE_NORMAL;
+        if (vil->mode < ZVIL_MODE_NORMAL)
+        {
+            ret = 0;
+            break;
+        }
+        ret = 1;
+        break;
     case ZVIL_Q_ASLEEP:
-        return vil->goal == ZVIL_GOAL_BORED && (vil->ability & 0x20000);
+        if (vil->goal == ZVIL_GOAL_BORED && (vil->ability & 0x20000))
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_PITFALL:
-        return 0;
-    case ZVIL_Q_HAVEANCHOR:
-        if (vil->ability & 1)
-        {
-            return 0;
-        }
-        if (!(vil->allow & 0x80))
-        {
-            return 0;
-        }
-        if (!(vil->allow & 0x40))
-        {
-            return 0;
-        }
-        return (vil->flg_misc & 0x80000000) ? 1 : 0;
-    case ZVIL_Q_HAVEGUARDPOS:
-        if (vil->ability & 1)
-        {
-            return 0;
-        }
-        return (vil->flg_misc & 0x40000000) ? 1 : 0;
+        ret = 0;
+        break;
     case ZVIL_Q_DOFOLLOW:
         if (vil->ability & 1)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 0x100))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (vil->flg_misc & 0x10000000)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (vil->flg_misc & 0x20000000)
         {
-            return 1;
+            ret = 1;
+            break;
         }
-        return 0;
+        ret = 0;
+        break;
+    case ZVIL_Q_HAVEANCHOR:
+        if (vil->ability & 1)
+        {
+            ret = 0;
+            break;
+        }
+        if (!(vil->allow & 0x80))
+        {
+            ret = 0;
+            break;
+        }
+        if (!(vil->allow & 0x40))
+        {
+            ret = 0;
+            break;
+        }
+        if (vil->flg_misc & 0x80000000)
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
+    case ZVIL_Q_HAVEGUARDPOS:
+        if (vil->ability & 1)
+        {
+            ret = 0;
+            break;
+        }
+        if (vil->flg_misc & 0x40000000)
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_NEEDNAV:
         if (!vil->vhf->query(vil, ZVIL_Q_CANPATROL))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!vil->need_navpt)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (vil->nav_next && !(vil->tmr_list[3] <= 0.0f))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_HAVENAV:
         if (!vil->need_navpt && vil->nav_next && zMovePointIsOn(vil->nav_next))
         {
-            return 1;
+            ret = 1;
+            break;
         }
-        return 0;
+        ret = 0;
+        break;
     case ZVIL_Q_CANGUARD:
-        return (vil->abl_move & 0x10) && (vil->allow & 2);
+        if ((vil->abl_move & 0x10) && (vil->allow & 2))
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_CANPATROL:
         if (!(vil->allow & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 0x20))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 4))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->tmr_list[ZVIL_TDUR_NAVDELAY] <= 0.0f))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return vil->nav_mvptlist != NULL;
+        if (vil->nav_mvptlist == NULL)
+        {
+            ret = 0;
+            break;
+        }
+        ret = 1;
+        break;
     case ZVIL_Q_CANCHASE:
         if (!vil->vhf->query(vil, ZVIL_Q_CANDETECT))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_move & 0x80))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->allow & 0x10))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_RUNAWAY:
-        return 0;
+        ret = 0;
+        break;
     case ZVIL_Q_CANPURSUE:
         if (vil->ability & 1)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (g_scene_is_a_boss_battle > 2)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_CANCHASE))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_PLYRSEEN))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if ((pc->flg_xtra & 1) && !(vil->abl_move & 0x1000) && !(vil->abl_move & 0x400))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (vil->vhf->query(vil, ZVIL_Q_HAVEANCHOR))
         {
             if (pc->ds2_anchor < vil->ds2_pursue)
             {
-                return 1;
+                ret = 1;
+                break;
             }
             if (pc->ds2_plyrToAnchor < vil->ds2_pursue)
             {
-                return 1;
+                ret = 1;
+                break;
             }
             if (pc->flg_plyr & 0x400)
             {
-                return 1;
+                ret = 1;
+                break;
             }
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_CANATTACK:
     {
         float ang_face;
@@ -5141,218 +5233,284 @@ static signed int VILN_std_query(st_zEntVillain* vil, en_ZVIL_QUERY query)
 
         if ((vil->ability & 1) && (vil->allow & 8))
         {
-            return 1;
+            ret = 1;
+            break;
         }
         ang_plyr = pc->ang_VtoP;
         ang_face = vil->frame->rot.angle;
         if (!(vil->allow & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_CANSEEPLYR))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if ((vil->abl_move & 0x80) && !(pc->flg_plyr & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 4))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_CANDETECT))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (vil->asset->subtype == 0xF)
         {
-            float da = ang_face - ang_plyr;
-            if (da < 0.0f)
+            if (!((float)__fabs(ang_face - ang_plyr) <= 0.34f))
             {
-                da = -da;
-            }
-            if (!(da <= 0.34f))
-            {
-                return 0;
+                ret = 0;
+                break;
             }
         }
-        return 1;
+        ret = 1;
+        break;
     }
     case ZVIL_Q_CANDETECT:
         if (!(vil->abl_dtct & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->allow & 4))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_PLYRTOOCLOSE:
-        return 0;
+        ret = 0;
+        break;
     case ZVIL_Q_PLYRNEAR:
         if (vil->ability & 1)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (!(pc->plyr_mvinf & 0x100) && (pc->flg_plyr & 1))
         {
-            return 1;
+            ret = 1;
+            break;
         }
-        return (pc->flg_plyr & 1) ? 1 : 0;
+        if (pc->flg_plyr & 1)
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_PLYRINFOV:
-        return (pc->flg_plyr & 4) ? 1 : 0;
+        if (pc->flg_plyr & 4)
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_PLYRINLOS:
-        return (pc->flg_plyr & 8) ? 1 : 0;
+        if (pc->flg_plyr & 8)
+        {
+            ret = 1;
+            break;
+        }
+        ret = 0;
+        break;
     case ZVIL_Q_CANSEEPLYR:
         if (vil->ability & 1)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_CANDETECT))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (g_scene_is_a_boss_battle > 2 && (pc->flg_plyr & 8))
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (!(vil->abl_dtct & 0x10))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 4))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (vil->vhf->query(vil, ZVIL_Q_ASLEEP))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x800)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x1000)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if ((pc->plyr_mvinf & 0x400) && !(pc->flg_plyr & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_CANHEARPLYR:
         if (vil->ability & 1)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (!vil->vhf->query(vil, ZVIL_Q_CANDETECT))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (g_scene_is_a_boss_battle > 2)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->abl_dtct & 0x20))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x400)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x800)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x1000)
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     case ZVIL_Q_PLYRSEEN:
     {
         signed int near;
 
         if (vil->ability & 1)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (g_scene_is_a_boss_battle > 2)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         near = pc->flg_plyr & 1;
         if (!near)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->tgt_stat & 0x20))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(pc->flg_plyr & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->tgt_stat & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x800)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (pc->plyr_mvinf & 0x1000)
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if ((pc->plyr_mvinf & 0x400) && !near)
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     }
     case ZVIL_Q_PLYRHEARD:
         if (vil->ability & 1)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (g_scene_is_a_boss_battle > 2)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (vil->tgt_stat & 0x20)
         {
-            return 1;
+            ret = 1;
+            break;
         }
         if (vil->tgt_stat & 4)
         {
-            return 1;
+            ret = 1;
+            break;
         }
-        return 0;
+        ret = 0;
+        break;
     default:
-        return 1;
+        ret = 1;
+        break;
     }
+    return ret;
 }
 
 static signed int VILN_std_sysevent(st_zEntVillain* vil, xBase* from, unsigned int toEvent, float* toParam,
@@ -5625,8 +5783,43 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         VILN_tran(resp, vil->goaldflt, 3);
         break;
     case 4:
-        if (VILN_std_awareAlert(vil, resp) || VILN_std_awareRoam(vil, resp, 3))
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
         {
+            VILN_tran(resp, 0x11, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
+        {
+            VILN_tran(resp, 0xF, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
+        {
+            VILN_tran(resp, 0xE, 4);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)6))
+        {
+            VILN_tran(resp, 8, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)4))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)5))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)7))
+        {
+            VNAV_get_nav(vil);
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)8))
+        {
+            VILN_tran(resp, 6, 3);
             break;
         }
         if (vil->tmr_list[1] <= 0.0f && !(vil->ability & 0x20000))
@@ -5641,8 +5834,43 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         break;
     case 5:
         VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)0xE, dt);
-        if (VILN_std_awareAlert(vil, resp) || VILN_std_awareRoam(vil, resp, 3))
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
         {
+            VILN_tran(resp, 0x11, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
+        {
+            VILN_tran(resp, 0xF, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
+        {
+            VILN_tran(resp, 0xE, 4);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)6))
+        {
+            VILN_tran(resp, 8, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)4))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)5))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)7))
+        {
+            VNAV_get_nav(vil);
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)8))
+        {
+            VILN_tran(resp, 6, 3);
             break;
         }
         if (vil->tmr_list[0] <= 0.0f && !(vil->ability & 0x20000))
@@ -5669,8 +5897,19 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         }
         break;
     case 6:
-        if (VILN_std_awareAlert(vil, resp))
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
         {
+            VILN_tran(resp, 0x11, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
+        {
+            VILN_tran(resp, 0xF, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
+        {
+            VILN_tran(resp, 0xE, 4);
             break;
         }
         if (vil->vhf->query(vil, (en_ZVIL_QUERY)7) && VNAV_get_nav(vil))
@@ -5689,12 +5928,20 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         }
         else if (!vil->vhf->query(vil, (en_ZVIL_QUERY)4))
         {
-            if (vil->mode >= 4)
+            vil->mode = (en_NPC_MODE)VIL_MIN(vil->mode, 4);
+            if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
             {
-                vil->mode = (en_NPC_MODE)4;
+                VILN_tran(resp, 0x11, 5);
+                break;
             }
-            if (VILN_std_awareAlert(vil, resp))
+            if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
             {
+                VILN_tran(resp, 0xF, 5);
+                break;
+            }
+            if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
+            {
+                VILN_tran(resp, 0xE, 4);
                 break;
             }
             if (!vil->vhf->query(vil, (en_ZVIL_QUERY)5))
@@ -5708,8 +5955,43 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         {
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)0xF, dt);
         }
-        if (VILN_std_awareAlert(vil, resp) || VILN_std_awareRoam(vil, resp, 0))
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
         {
+            VILN_tran(resp, 0x11, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
+        {
+            VILN_tran(resp, 0xF, 5);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
+        {
+            VILN_tran(resp, 0xE, 4);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)6))
+        {
+            VILN_tran(resp, 8, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)4))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)5))
+        {
+            VILN_tran(resp, 7, 3);
+            break;
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)7))
+        {
+            VNAV_get_nav(vil);
+        }
+        if (vil->vhf->query(vil, (en_ZVIL_QUERY)8))
+        {
+            VILN_tran(resp, 6, 0);
             break;
         }
         if (vil->anim_playnext == 0x14 && vil->anim_playing)
@@ -5827,7 +6109,7 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         if (!(vil->abl_move & 0x4000) && vil->tmr_list[28] < 0.3f)
         {
             ang = vil->frame->rot.angle;
-            if ((float)__fabs(ang - vil->precalc.ang_VtoP) <= 0.1f)
+            if ((float)__fabs(vil->frame->rot.angle - vil->precalc.ang_VtoP) <= 0.1f)
             {
                 VILN_std_awarePick(vil, (en_BEHAVIOUR_GOAL)0x11, 0);
             }
@@ -5839,12 +6121,8 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         if (vil->anim_playing == 9)
         {
             // Still turning to face the player.
-            float fov = vil->fov_detect;
             float diff = __fabs(ang - vil->precalc.ang_VtoP);
-            if (!(fov > 0.2f))
-            {
-                fov = 0.2f;
-            }
+            float fov = VIL_MAX(vil->fov_detect, 0.2f);
             if (diff <= 0.5 * fov)
             {
                 break;
@@ -5937,7 +6215,7 @@ static signed int VILN_std_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
     case 20:
         if (VANM_inDmgWindow(vil) && !vil->goodattack)
         {
-            vil->goodattack = VWEP_swipe(vil);
+            vil->goodattack = VWEP_swipe(vil, dt);
             if (vil->goodattack)
             {
                 if (vil->precalc.plyr_mvinf & 1)
@@ -6227,56 +6505,6 @@ static inline void VILN_std_awareGuardOrIdle(st_zEntVillain* vil, st_STIMULUS_CO
 }
 
 // Follow / mini patrol / patrol checks shared by the idle-type goals.
-static inline signed int VILN_std_awareRoam(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp, signed int patrolmode)
-{
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)6))
-    {
-        VILN_tran(resp, 8, 3);
-        return 1;
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)4))
-    {
-        VILN_tran(resp, 7, 3);
-        return 1;
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)5))
-    {
-        VILN_tran(resp, 7, 3);
-        return 1;
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)7))
-    {
-        VNAV_get_nav(vil);
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)8))
-    {
-        VILN_tran(resp, 6, patrolmode);
-        return 1;
-    }
-    return 0;
-}
-
-// Alerted by the player: attack, surprise or listen. Returns 1 if a transition was requested.
-static inline signed int VILN_std_awareAlert(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp)
-{
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
-    {
-        VILN_tran(resp, 0x11, 5);
-        return 1;
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x16))
-    {
-        VILN_tran(resp, 0xF, 5);
-        return 1;
-    }
-    if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x17))
-    {
-        VILN_tran(resp, 0xE, 4);
-        return 1;
-    }
-    return 0;
-}
-
 static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, st_STIMULUS_CONTEXT_DATA* resp)
 {
     _xVec3 vecC;
@@ -6360,6 +6588,8 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     temp_r30 = stimctxt->stim;
     g_pgol = (en_BEHAVIOUR_GOAL)temp_r3;
     switch (temp_r3) {                              /* switch 1 */
+    case -1:
+        break;
     case 0:                                         /* switch 1 */
     case 1:                                         /* switch 1 */
     case 2:                                         /* switch 1 */
@@ -6382,6 +6612,9 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     case 26:                                        /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r30;
         switch (temp_r30) {                         /* switch 3; irregular */
+        case 5:
+        case 0:
+            break;
         case 36:                                    /* switch 3 */
             temp_f0_2 = stimctxt->off_goto;
             vil->tgt_protect = (_zEnt*)stimctxt->widge;
@@ -6431,255 +6664,257 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     case 22:                                        /* switch 1 */
     case 23:                                        /* switch 1 */
         g_pstm = (en_NPC_STIMULUS)temp_r30;
-        if ((unsigned int)temp_r30 <= 0x25U) {
-            switch (temp_r30) {                     /* switch 4 */
-            case 34:                                /* switch 4 */
-                vil->hitpts = 0;
-                VILN_tran(resp, 0x20, 7);
-                break;
-            case 35:                                /* switch 4 */
-                VILN_tran(resp, 0, 1);
-                break;
-            case 24:                                /* switch 4 */
-                VILN_tran(resp, 0x1F, 0);
-                break;
-            case 37:                                /* switch 4 */
-                VILN_tran(resp, 0x1F, 0);
-                break;
-            case 32:                                /* switch 4 */
-                if (vil->abl_vuln & 0x40) {
-                    stimctxt->res_gods = 1;
-                    VILN_tran(resp, 0x19, 4);
-                    temp_r5 = &g_stattally[vil->asset->subtype];
-                    temp_r5->cnt_hitsoap += 1;
-                    g_stattally[0x32].cnt_hitsoap += 1;
-                } else {
+        switch (temp_r30) {                     /* switch 4 */
+        case 0:
+            break;
+        case 34:                                /* switch 4 */
+            vil->hitpts = 0;
+            VILN_tran(resp, 0x20, 7);
+            break;
+        case 35:                                /* switch 4 */
+            VILN_tran(resp, 0, 1);
+            break;
+        case 24:                                /* switch 4 */
+            VILN_tran(resp, 0x1F, 0);
+            break;
+        case 37:                                /* switch 4 */
+            VILN_tran(resp, 0x1F, 0);
+            break;
+        case 32:                                /* switch 4 */
+            if (vil->abl_vuln & 0x40) {
+                stimctxt->res_gods = 1;
+                VILN_tran(resp, 0x19, 4);
+                temp_r5 = &g_stattally[vil->asset->subtype];
+                temp_r5->cnt_hitsoap += 1;
+                g_stattally[0x32].cnt_hitsoap += 1;
+            } else {
+                stimctxt->res_gods = 2;
+            }
+            break;
+        case 33:                                /* switch 4 */
+            if (vil->abl_vuln & 0x20) {
+                stimctxt->res_gods = 1;
+                VILN_tran(resp, 0x1A, 4);
+                temp_r0 = vil->asset->subtype;
+                g_stattally[temp_r0].cnt_hitgum += 1;
+                g_stattally[0x32].cnt_hitgum += 1;
+            } else {
+                stimctxt->res_gods = 2;
+            }
+            break;
+        case 27:                                /* switch 4 */
+            if (vil->ability & 4) {
+                stimctxt->res_gods = 3;
+            } else if (VOUT_spikey_header(vil) == 4) {
+                stimctxt->res_gods = 4;
+            } else if (vil->abl_vuln & 0x80) {
+                temp_r3_2 = vil->ability;
+                if ((temp_r3_2 & 0x80000) && !(temp_r3_2 & 0x80)) {
                     stimctxt->res_gods = 2;
-                }
-                break;
-            case 33:                                /* switch 4 */
-                if (vil->abl_vuln & 0x20) {
+                    temp_f1 = stimctxt->off_goto;
+                    vil->dir_bowling.x = stimctxt->gotopos.x * temp_f1;
+                    vil->dir_bowling.y = stimctxt->gotopos.y * temp_f1;
+                    vil->dir_bowling.z = stimctxt->gotopos.z * temp_f1;
+                } else {
                     stimctxt->res_gods = 1;
-                    VILN_tran(resp, 0x1A, 4);
-                    temp_r0 = vil->asset->subtype;
-                    g_stattally[temp_r0].cnt_hitgum += 1;
-                    g_stattally[0x32].cnt_hitgum += 1;
-                } else {
-                    stimctxt->res_gods = 2;
                 }
-                break;
-            case 27:                                /* switch 4 */
-                if (vil->ability & 4) {
+                if ((vil->ability & 0x80) || !(globals.player.Inv_Specials & 0x800)) {
+                    VILN_tran(resp, 0x18, 5);
+                } else {
+                    temp_r0_2 = vil->hitpts - 1;
+                    vil->hitpts = temp_r0_2;
+                    if (temp_r0_2 < 1) {
+                        VILN_tran(resp, 0x20, 7);
+                    } else {
+                        VILN_tran(resp, 0x11, 5);
+                    }
+                }
+            } else {
+                stimctxt->res_gods = 0;
+            }
+            break;
+        case 28:                                /* switch 4 */
+            temp_r3_3 = vil->abl_spyk;
+            if ((temp_r3_3 & 1) && (temp_r3_3 & 0x20)) {
+                stimctxt->res_gods = 3;
+            } else if (vil->abl_vuln & 0x100) {
+                stimctxt->res_gods = 1;
+                if (vil->ability & 0x80) {
+                    VILN_tran(resp, 0x18, 5);
+                } else {
+                    temp_r0_3 = vil->hitpts - 1;
+                    vil->hitpts = temp_r0_3;
+                    if (temp_r0_3 < 1) {
+                        VILN_tran(resp, 0x20, 7);
+                    } else {
+                        VILN_tran(resp, 0x11, 5);
+                    }
+                }
+            } else {
+                stimctxt->res_gods = 0;
+            }
+            break;
+        case 29:                                /* switch 4 */
+            if (!(vil->ability & 0x40)) {
+                stimctxt->res_gods = 0;
+            } else {
+                temp_r3_4 = vil->abl_atak;
+                if (!(temp_r3_4 & 1)) {
                     stimctxt->res_gods = 3;
-                } else if (VOUT_spikey_header(vil) == 4) {
-                    stimctxt->res_gods = 4;
-                } else if (vil->abl_vuln & 0x80) {
-                    temp_r3_2 = vil->ability;
-                    if ((temp_r3_2 & 0x80000) && !(temp_r3_2 & 0x80)) {
-                        stimctxt->res_gods = 2;
-                        temp_f1 = stimctxt->off_goto;
-                        vil->dir_bowling.x = stimctxt->gotopos.x * temp_f1;
-                        vil->dir_bowling.y = stimctxt->gotopos.y * temp_f1;
-                        vil->dir_bowling.z = stimctxt->gotopos.z * temp_f1;
-                    } else {
-                        stimctxt->res_gods = 1;
-                    }
-                    if ((vil->ability & 0x80) || !(globals.player.Inv_Specials & 0x800)) {
-                        VILN_tran(resp, 0x18, 5);
-                    } else {
-                        temp_r0_2 = vil->hitpts - 1;
-                        vil->hitpts = temp_r0_2;
-                        if (temp_r0_2 < 1) {
-                            VILN_tran(resp, 0x20, 7);
-                        } else {
-                            VILN_tran(resp, 0x11, 5);
-                        }
-                    }
-                } else {
-                    stimctxt->res_gods = 0;
-                }
-                break;
-            case 28:                                /* switch 4 */
-                temp_r3_3 = vil->abl_spyk;
-                if ((temp_r3_3 & 1) && (temp_r3_3 & 0x20)) {
+                } else if (temp_r3_4 & 0x10000) {
                     stimctxt->res_gods = 3;
-                } else if (vil->abl_vuln & 0x100) {
-                    stimctxt->res_gods = 1;
-                    if (vil->ability & 0x80) {
-                        VILN_tran(resp, 0x18, 5);
-                    } else {
-                        temp_r0_3 = vil->hitpts - 1;
-                        vil->hitpts = temp_r0_3;
-                        if (temp_r0_3 < 1) {
-                            VILN_tran(resp, 0x20, 7);
-                        } else {
-                            VILN_tran(resp, 0x11, 5);
-                        }
+                } else if (temp_r3_4 & 0xFF0000) {
+                    stimctxt->res_gods = 3;
+                } else {
+                    stimctxt->res_gods = 3;
+                }
+            }
+            if ((vil->goal == 5) && (vil->abl_move & 0x8000)) {
+                VILN_tran(resp, 0x1F, 3);
+                resp->use_alt_action = 1;
+            }
+            if ((vil->allow & 8) && (temp_r3_5 = vil->abl_atak, (((temp_r3_5 & 1) == 0) == 0)) && (temp_r3_5 & 0x20000)) {
+                VILN_tran(resp, 0x14, 4);
+                vil->ang_moveto = vil->precalc.ang_VtoP;
+                vil->domove |= 0x80000000;
+                vil->domove = vil->domove | 0x20000000 | 0x40;
+            } else if (vil->ability & 0x100) {
+                VILN_tran(resp, 0x17, 4);
+            } else {
+                if (vil->vhf->query(vil, (en_ZVIL_QUERY)0xC) != 0) {
+                    if (vil->precalc.ds2_grdpos < 9.0f) {
+                        vil->pos_guard_home.x = vil->precalc.dir_VtoP.x;
+                        vil->pos_guard_home.y = vil->precalc.dir_VtoP.y;
+                        vil->pos_guard_home.z = vil->precalc.dir_VtoP.z;
+                        vil->pos_guard_home.x *= -3.0f;
+                        vil->pos_guard_home.y *= -3.0f;
+                        vil->pos_guard_home.z *= -3.0f;
                     }
-                } else {
-                    stimctxt->res_gods = 0;
+                    vil->flg_misc |= 0x40000000;
+                    VILN_tran(resp, 7, 6);
                 }
-                break;
-            case 29:                                /* switch 4 */
-                if (!(vil->ability & 0x40)) {
-                    stimctxt->res_gods = 0;
-                } else {
-                    temp_r3_4 = vil->abl_atak;
-                    if (!(temp_r3_4 & 1)) {
-                        stimctxt->res_gods = 3;
-                    } else if (temp_r3_4 & 0x10000) {
-                        stimctxt->res_gods = 3;
-                    } else if (temp_r3_4 & 0xFF0000) {
-                        stimctxt->res_gods = 3;
-                    } else {
-                        stimctxt->res_gods = 3;
-                    }
-                }
-                if ((vil->goal == 5) && (vil->abl_move & 0x8000)) {
-                    VILN_tran(resp, 0x1F, 3);
-                    resp->use_alt_action = 1;
-                }
-                if ((vil->allow & 8) && (temp_r3_5 = vil->abl_atak, (((temp_r3_5 & 1) == 0) == 0)) && (temp_r3_5 & 0x20000)) {
-                    VILN_tran(resp, 0x14, 4);
-                    vil->ang_moveto = vil->precalc.ang_VtoP;
-                    vil->domove |= 0x80000000;
-                    vil->domove = vil->domove | 0x20000000 | 0x40;
-                } else if (vil->ability & 0x100) {
-                    VILN_tran(resp, 0x17, 4);
-                } else {
-                    if (vil->vhf->query(vil, (en_ZVIL_QUERY)0xC) != 0) {
-                        if (vil->precalc.ds2_grdpos < 9.0f) {
-                            vil->pos_guard_home.x = vil->precalc.dir_VtoP.x;
-                            vil->pos_guard_home.y = vil->precalc.dir_VtoP.y;
-                            vil->pos_guard_home.z = vil->precalc.dir_VtoP.z;
-                            vil->pos_guard_home.x *= -3.0f;
-                            vil->pos_guard_home.y *= -3.0f;
-                            vil->pos_guard_home.z *= -3.0f;
-                        }
-                        vil->flg_misc |= 0x40000000;
-                        VILN_tran(resp, 7, 6);
-                    }
-                }
-                break;
-            case 30:                                /* switch 4 */
-                if (vil->abl_vuln & 0x40000) {
-                    VILN_tran(resp, 0x18, 0);
-                }
-                break;
-            case 19:                                /* switch 4 */
-                VILN_tran(resp, 0xD, 4);
-                break;
-            case 21:                                /* switch 4 */
-                VILN_tran(resp, 0xE, 4);
-                break;
-            case 20:                                /* switch 4 */
-                VILN_tran(resp, 0xF, 4);
-                break;
-            case 22:                                /* switch 4 */
-                VILN_tran(resp, 0xF, 4);
-                break;
-            case 23:                                /* switch 4 */
-                if (vil->vhf->query(vil, (en_ZVIL_QUERY)0xE) != 0) {
-                    VILN_tran(resp, 0x11, 5);
-                } else {
-                    xSceneID2Name(globals.sceneCur, vil->id);
-                }
-                break;
-            case 6:                                 /* switch 4 */
-                temp_r3_6 = vil->goal;
-                if ((temp_r3_6 == 5) && (vil->abl_move & 0x8000)) {
-                    VILN_tran(resp, 0x1F, 3);
-                    resp->use_alt_action = 1;
-                } else if (temp_r3_6 == 5) {
-                    VILN_tran(resp, 4, 3);
-                }
-                break;
-            case 7:                                 /* switch 4 */
-                if (vil->mode < 4) {
-                    VILN_tran(resp, 5, 3);
-                }
-                break;
-            case 36:                                /* switch 4 */
-                temp_f0_3 = stimctxt->off_goto;
-                vil->tgt_protect = (_zEnt*)stimctxt->widge;
-                vil->ds2_goto_keepaway = temp_f0_3 * temp_f0_3;
-                break;
-            case 8:                                 /* switch 4 */
-                VILN_stimGotoPos(vil, stimctxt);
+            }
+            break;
+        case 30:                                /* switch 4 */
+            if (vil->abl_vuln & 0x40000) {
+                VILN_tran(resp, 0x18, 0);
+            }
+            break;
+        case 19:                                /* switch 4 */
+            VILN_tran(resp, 0xD, 4);
+            break;
+        case 21:                                /* switch 4 */
+            VILN_tran(resp, 0xE, 4);
+            break;
+        case 20:                                /* switch 4 */
+            VILN_tran(resp, 0xF, 4);
+            break;
+        case 22:                                /* switch 4 */
+            VILN_tran(resp, 0xF, 4);
+            break;
+        case 23:                                /* switch 4 */
+            if (vil->vhf->query(vil, (en_ZVIL_QUERY)0xE) != 0) {
+                VILN_tran(resp, 0x11, 5);
+            } else {
+                xSceneID2Name(globals.sceneCur, vil->id);
+            }
+            break;
+        case 6:                                 /* switch 4 */
+            temp_r3_6 = vil->goal;
+            if ((temp_r3_6 == 5) && (vil->abl_move & 0x8000)) {
+                VILN_tran(resp, 0x1F, 3);
+                resp->use_alt_action = 1;
+            } else if (temp_r3_6 == 5) {
+                VILN_tran(resp, 4, 3);
+            }
+            break;
+        case 7:                                 /* switch 4 */
+            if (vil->mode < 4) {
+                VILN_tran(resp, 5, 3);
+            }
+            break;
+        case 36:                                /* switch 4 */
+            temp_f0_3 = stimctxt->off_goto;
+            vil->tgt_protect = (_zEnt*)stimctxt->widge;
+            vil->ds2_goto_keepaway = temp_f0_3 * temp_f0_3;
+            break;
+        case 8:                                 /* switch 4 */
+            VILN_stimGotoPos(vil, stimctxt);
+            VILN_tran(resp, 8, 3);
+            break;
+        case 9:                                 /* switch 4 */
+            if ((stimctxt->widge != NULL) && (vil->abl_move & 0x100)) {
+                VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 0);
+                vil->tmr_list[24] = -1.0f;
                 VILN_tran(resp, 8, 3);
-                break;
-            case 9:                                 /* switch 4 */
-                if ((stimctxt->widge != NULL) && (vil->abl_move & 0x100)) {
-                    VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 0);
-                    vil->tmr_list[24] = -1.0f;
+            }
+            break;
+        case 10:                                /* switch 4 */
+            if ((stimctxt->widge != NULL) && (vil->abl_move & 0x100)) {
+                temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1);
+                vil->tmr_list[24] = -1.0f;
+                if (temp_cr0_eq) {
+                    VILN_tran(resp, 6, 3);
+                } else {
                     VILN_tran(resp, 8, 3);
                 }
-                break;
-            case 10:                                /* switch 4 */
-                if ((stimctxt->widge != NULL) && (vil->abl_move & 0x100)) {
-                    temp_cr0_eq = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1);
-                    vil->tmr_list[24] = -1.0f;
-                    if (temp_cr0_eq) {
-                        VILN_tran(resp, 6, 3);
-                    } else {
-                        VILN_tran(resp, 8, 3);
-                    }
+            }
+            break;
+        case 11:                                /* switch 4 */
+            if ((vil->goal == 5) && (vil->abl_move & 0x8000)) {
+                VILN_tran(resp, 0x1F, 3);
+                resp->use_alt_action = 1;
+            } else {
+                vil->tmr_list[24] = -1.0f;
+                if (vil->vhf->query(vil, (en_ZVIL_QUERY)7) != 0) {
+                    VNAV_get_nav(vil);
                 }
-                break;
-            case 11:                                /* switch 4 */
-                if ((vil->goal == 5) && (vil->abl_move & 0x8000)) {
-                    VILN_tran(resp, 0x1F, 3);
-                    resp->use_alt_action = 1;
+                if (vil->vhf->query(vil, (en_ZVIL_QUERY)8) != 0) {
+                    VILN_tran(resp, 6, 3);
                 } else {
-                    vil->tmr_list[24] = -1.0f;
-                    if (vil->vhf->query(vil, (en_ZVIL_QUERY)7) != 0) {
-                        VNAV_get_nav(vil);
-                    }
-                    if (vil->vhf->query(vil, (en_ZVIL_QUERY)8) != 0) {
-                        VILN_tran(resp, 6, 3);
-                    } else {
-                        VILN_tran(resp, 4, 3);
-                    }
-                }
-                break;
-            case 12:                                /* switch 4 */
-                if (vil->mode < 4) {
-                    if ((vil->allow & 2) && (vil->abl_move & 0x10)) {
-                        temp_r5_6 = (_xMat4x3*)vil->model->Mat;
-                        resp->gotopos.x = temp_r5_6->pos.x;
-                        resp->gotopos.y = temp_r5_6->pos.y;
-                        resp->gotopos.z = temp_r5_6->pos.z;
-                        VILN_tran(resp, 9, 3);
-                    } else {
-                        VILN_tran(resp, 4, 3);
-                    }
-                }
-                break;
-            case 13:                                /* switch 4 */
-                if (vil->mode < 4) {
-                    if ((vil->allow & 2) && (vil->abl_move & 0x10)) {
-                        temp_r5_7 = (_xMat4x3*)vil->model->Mat;
-                        resp->gotopos.x = temp_r5_7->pos.x;
-                        resp->gotopos.y = temp_r5_7->pos.y;
-                        resp->gotopos.z = temp_r5_7->pos.z;
-                        VILN_tran(resp, 9, 3);
-                    } else {
-                        VILN_tran(resp, 4, 3);
-                    }
-                }
-                break;
-            case 14:                                /* switch 4 */
-                if (vil->mode < 4) {
                     VILN_tran(resp, 4, 3);
                 }
-                break;
             }
+            break;
+        case 12:                                /* switch 4 */
+            if (vil->mode < 4) {
+                if ((vil->allow & 2) && (vil->abl_move & 0x10)) {
+                    temp_r5_6 = (_xMat4x3*)vil->model->Mat;
+                    resp->gotopos.x = temp_r5_6->pos.x;
+                    resp->gotopos.y = temp_r5_6->pos.y;
+                    resp->gotopos.z = temp_r5_6->pos.z;
+                    VILN_tran(resp, 9, 3);
+                } else {
+                    VILN_tran(resp, 4, 3);
+                }
+            }
+            break;
+        case 13:                                /* switch 4 */
+            if (vil->mode < 4) {
+                if ((vil->allow & 2) && (vil->abl_move & 0x10)) {
+                    temp_r5_7 = (_xMat4x3*)vil->model->Mat;
+                    resp->gotopos.x = temp_r5_7->pos.x;
+                    resp->gotopos.y = temp_r5_7->pos.y;
+                    resp->gotopos.z = temp_r5_7->pos.z;
+                    VILN_tran(resp, 9, 3);
+                } else {
+                    VILN_tran(resp, 4, 3);
+                }
+            }
+            break;
+        case 14:                                /* switch 4 */
+            if (vil->mode < 4) {
+                VILN_tran(resp, 4, 3);
+            }
+            break;
         }
         break;
     }
     temp_r3_7 = vil->goal;
     g_pgol = (en_BEHAVIOUR_GOAL)temp_r3_7;
     switch (temp_r3_7) {                            /* switch 5 */
+    case -1:
+        break;
     case 0:                                         /* switch 5 */
         g_pstm = (en_NPC_STIMULUS)temp_r30;
         switch (temp_r30) {                         /* switch 6; irregular */
@@ -6767,110 +7002,92 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         break;
     case 24:                                        /* switch 5 */
         g_pstm = (en_NPC_STIMULUS)temp_r30;
-        if ((unsigned int)temp_r30 <= 0x23U) {
-            switch (temp_r30) {                     /* switch 11 */
-            case 27:                                /* switch 11 */
-                if (vil->abl_vuln & 0x80) {
-                    if (vil->ability & 0x80000) {
-                        stimctxt->res_gods = 2;
-                    } else {
-                        stimctxt->res_gods = 1;
-                    }
-                    if (!(globals.player.Inv_Specials & 0x800)) {
-                        temp_f31_4 = vil->vilcfg.tymref_list[12];
-                        vil->tmr_list[12] = VUTIL_jitter(temp_f31_4);
-                    } else {
-                        temp_r0_4 = vil->hitpts - 1;
-                        vil->hitpts = temp_r0_4;
-                        if (temp_r0_4 < 1) {
-                            VILN_tran(resp, 0x20, 7);
-                        } else {
-                            temp_f31_5 = vil->vilcfg.tymref_list[12];
-                            vil->tmr_list[12] = VUTIL_jitter(temp_f31_5);
-                        }
-                    }
-                }
-                break;
-            case 28:                                /* switch 11 */
-                if (vil->abl_vuln & 0x100) {
-                    stimctxt->res_gods = 1;
-                    temp_r0_5 = vil->hitpts - 1;
-                    vil->hitpts = temp_r0_5;
-                    if (temp_r0_5 < 1) {
-                        VILN_tran(resp, 0x20, 7);
-                    } else {
-                        vil->anim_loopmult = 0.97f;
-                        vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x18, (en_ZVIL_GOAL_SPOT)1);
-                        temp_f31_6 = vil->vilcfg.tymref_list[12];
-                        var_f2 = -1.0f;
-                        vil->tmr_list[12] = VUTIL_jitter(temp_f31_6);
-                        vil->tmr_list[4] = vil->tmr_list[12];
-                        temp_f0_5 = -1.0f + vil->tmr_list[4];
-                        if (temp_f0_5 < -1.0f) {
-
-                        } else {
-                            var_f2 = temp_f0_5;
-                        }
-                        vil->tmr_list[4] = var_f2;
-                    }
+        switch (temp_r30) {                     /* switch 11 */
+        case 0:
+            break;
+        case 27:                                /* switch 11 */
+            if (vil->abl_vuln & 0x80) {
+                if (vil->ability & 0x80000) {
+                    stimctxt->res_gods = 2;
                 } else {
                     stimctxt->res_gods = 1;
                 }
-                break;
-            case 30:                                /* switch 11 */
-                if (vil->abl_vuln & 0x40000) {
-                    temp_f31_7 = vil->vilcfg.tymref_list[12];
-                    vil->tmr_list[12] = VUTIL_jitter(temp_f31_7);
-                    temp_f1_3 = stimctxt->off_goto;
-                    if (temp_f1_3 > 0.0f) {
-                        var_f0 = 1.5f;
-                        temp_f2 = vil->tmr_list[12] * temp_f1_3;
-                        if (temp_f2 < 1.5f) {
-
-                        } else {
-                            var_f0 = temp_f2;
-                        }
-                        vil->tmr_list[12] = var_f0;
-                    }
-                    var_f1 = -1.0f;
-                    vil->tmr_list[4] = vil->tmr_list[12];
-                    temp_f0_6 = -1.0f + vil->tmr_list[4];
-                    if (temp_f0_6 < -1.0f) {
-
+                if (!(globals.player.Inv_Specials & 0x800)) {
+                    temp_f31_4 = vil->vilcfg.tymref_list[12];
+                    vil->tmr_list[12] = VUTIL_jitter(temp_f31_4);
+                } else {
+                    temp_r0_4 = vil->hitpts - 1;
+                    vil->hitpts = temp_r0_4;
+                    if (temp_r0_4 < 1) {
+                        VILN_tran(resp, 0x20, 7);
                     } else {
-                        var_f1 = temp_f0_6;
+                        temp_f31_5 = vil->vilcfg.tymref_list[12];
+                        vil->tmr_list[12] = VUTIL_jitter(temp_f31_5);
                     }
-                    vil->tmr_list[4] = var_f1;
+                }
+            }
+            break;
+        case 28:                                /* switch 11 */
+            if (vil->abl_vuln & 0x100) {
+                stimctxt->res_gods = 1;
+                temp_r0_5 = vil->hitpts - 1;
+                vil->hitpts = temp_r0_5;
+                if (temp_r0_5 < 1) {
+                    VILN_tran(resp, 0x20, 7);
+                } else {
                     vil->anim_loopmult = 0.97f;
                     vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x18, (en_ZVIL_GOAL_SPOT)1);
+                    temp_f31_6 = vil->vilcfg.tymref_list[12];
+                    vil->tmr_list[12] = VUTIL_jitter(temp_f31_6);
+                    vil->tmr_list[4] = vil->tmr_list[12];
+                    temp_f0_5 = -1.0f + vil->tmr_list[4];
+                    vil->tmr_list[4] = (temp_f0_5 < -1.0f) ? -1.0f : temp_f0_5;
                 }
-                break;
-            case 34:                                /* switch 11 */
-                vil->hitpts = 0;
-                VILN_tran(resp, 0x20, 7);
-                break;
-            case 35:                                /* switch 11 */
-                VILN_tran(resp, 0, 1);
-                break;
-            case 32:                                /* switch 11 */
-                if (vil->abl_vuln & 0x40) {
-                    stimctxt->res_gods = 1;
-                    VILN_tran(resp, 0x19, 0);
-                    temp_r5_9 = &g_stattally[vil->asset->subtype];
-                    temp_r5_9->cnt_hitsoap += 1;
-                    g_stattally[0x32].cnt_hitsoap += 1;
-                }
-                break;
-            case 33:                                /* switch 11 */
-                if (vil->abl_vuln & 0x20) {
-                    stimctxt->res_gods = 1;
-                    VILN_tran(resp, 0x1A, 0);
-                    temp_r0_6 = vil->asset->subtype;
-                    g_stattally[temp_r0_6].cnt_hitgum += 1;
-                    g_stattally[0x32].cnt_hitgum += 1;
-                }
-                break;
+            } else {
+                stimctxt->res_gods = 1;
             }
+            break;
+        case 30:                                /* switch 11 */
+            if (vil->abl_vuln & 0x40000) {
+                temp_f31_7 = vil->vilcfg.tymref_list[12];
+                vil->tmr_list[12] = VUTIL_jitter(temp_f31_7);
+                temp_f1_3 = stimctxt->off_goto;
+                if (temp_f1_3 > 0.0f) {
+                    temp_f2 = vil->tmr_list[12] * temp_f1_3;
+                    vil->tmr_list[12] = (1.5f > temp_f2) ? 1.5f : temp_f2;
+                }
+                vil->tmr_list[4] = vil->tmr_list[12];
+                temp_f0_6 = -1.0f + vil->tmr_list[4];
+                vil->tmr_list[4] = (temp_f0_6 < -1.0f) ? -1.0f : temp_f0_6;
+                vil->anim_loopmult = 0.97f;
+                vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x18, (en_ZVIL_GOAL_SPOT)1);
+            }
+            break;
+        case 34:                                /* switch 11 */
+            vil->hitpts = 0;
+            VILN_tran(resp, 0x20, 7);
+            break;
+        case 35:                                /* switch 11 */
+            VILN_tran(resp, 0, 1);
+            break;
+        case 32:                                /* switch 11 */
+            if (vil->abl_vuln & 0x40) {
+                stimctxt->res_gods = 1;
+                VILN_tran(resp, 0x19, 0);
+                temp_r5_9 = &g_stattally[vil->asset->subtype];
+                temp_r5_9->cnt_hitsoap += 1;
+                g_stattally[0x32].cnt_hitsoap += 1;
+            }
+            break;
+        case 33:                                /* switch 11 */
+            if (vil->abl_vuln & 0x20) {
+                stimctxt->res_gods = 1;
+                VILN_tran(resp, 0x1A, 0);
+                temp_r0_6 = vil->asset->subtype;
+                g_stattally[temp_r0_6].cnt_hitgum += 1;
+                g_stattally[0x32].cnt_hitgum += 1;
+            }
+            break;
         }
         break;
     case 25:                                        /* switch 5 */
@@ -6959,9 +7176,10 @@ static signed int VILN_std_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
 
 static inline signed int VUTIL_hitSide(st_zEntVillain* vil)
 {
-    signed int side = 0;
+    // Type-punned through a cast so it stays in memory, as in the original.
+    long side = 0;
 
-    VSUP_ent_AOI(vil, &globals.player.ent, &side);
+    VSUP_ent_AOI(vil, &globals.player.ent, (signed int*)&side);
     return side;
 }
 
@@ -7039,13 +7257,12 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->frame->mode |= 0xC;
 
             // Re-run the dependent init.
-            npcinfo = &g_npcTable[vil->asset->subtype];
-            vil->ability = npcinfo->ability;
-            vil->abl_atak = npcinfo->abl_atak;
-            vil->abl_dtct = npcinfo->abl_dtct;
-            vil->abl_move = npcinfo->abl_move;
-            vil->abl_spyk = npcinfo->abl_spyk;
-            vil->abl_vuln = npcinfo->abl_vuln;
+            vil->ability = g_npcTable[vil->asset->subtype].ability;
+            vil->abl_atak = g_npcTable[vil->asset->subtype].abl_atak;
+            vil->abl_dtct = g_npcTable[vil->asset->subtype].abl_dtct;
+            vil->abl_move = g_npcTable[vil->asset->subtype].abl_move;
+            vil->abl_spyk = g_npcTable[vil->asset->subtype].abl_spyk;
+            vil->abl_vuln = g_npcTable[vil->asset->subtype].abl_vuln;
             VILN_std_flagsAll(vil);
             vil->typ_person = g_npcTable[vil->asset->subtype].typ_person;
             if (vil->flg_misc & 8)
@@ -7123,7 +7340,7 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             {
             case 0:
             case 24:
-                vil->pflags &= ~4;
+                vil->pflags &= 0xFB;
                 break;
             case 5:
             case 17:
@@ -7161,7 +7378,7 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             }
             if (vil->abl_move & 0x8000)
             {
-                vil->pflags &= ~4;
+                vil->pflags &= 0xFB;
             }
             break;
         case ZVIL_STIM_EXITGOAL:
@@ -7181,7 +7398,7 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             break;
         case ZVIL_STIM_ENTERGOAL:
             VILN_std_enterGoal(vil, ZVIL_GOAL_AMBUSH);
-            vil->pflags &= ~4;
+            vil->pflags &= 0xFB;
             vil->collis->chk = 0;
             vil->collis->pen = 0;
             vil->chkby = 0;
@@ -7202,21 +7419,13 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
                 d.y = pos->y - mat->pos.y;
                 d.z = pos->z - mat->pos.z;
                 len = d.z * d.z + (d.x * d.x + d.y * d.y);
-                if (len > 0.0f)
-                {
-                    len = xsqrt(len);
-                }
-                vil->dst_navTween = len;
+                vil->dst_navTween = xsqrt(len);
                 vil->tmr_list[ZVIL_TYMR_GENERIC] = vil->dst_navTween / 6.0f;
             }
             else
             {
                 float d = 0.8f * vil->precalc.dst_VtoP;
-                if (!(d < 2.5f))
-                {
-                    d = 2.5f;
-                }
-                vil->dst_navTween = d;
+                vil->dst_navTween = (d < 2.5f) ? d : 2.5f;
                 vil->tmr_list[ZVIL_TYMR_GENERIC] = vil->dst_navTween / 6.0f;
             }
             }
@@ -7581,12 +7790,12 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             VILN_std_stunTimer(vil, 14);
             vil->pflags |= 0x20;
             vil->bubble = stimctxt->bubble;
-            vil->pflags &= ~4;
+            vil->pflags &= 0xFB;
             vil->collis->pen |= 0x62;
             vil->pos_moveto = ((_xMat4x3*)vil->model->Mat)->pos;
             break;
         case ZVIL_STIM_EXITGOAL:
-            vil->pflags &= ~0x20;
+            vil->pflags &= 0xDF;
             VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)3, dt);
             if (vil->bubble)
             {
@@ -7602,12 +7811,8 @@ static signed int VILN_std_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->vec_knocked.x = 0.0f;
             vil->vec_knocked.y = 0.0f;
             vil->vec_knocked.z = 0.0f;
-            vil->frame->vel.x = 0.0f;
-            vil->frame->vel.y = 0.0f;
-            vil->frame->vel.z = 0.0f;
-            vil->frame->dvel.x = 0.0f;
-            vil->frame->dvel.y = 0.0f;
-            vil->frame->dvel.z = 0.0f;
+            xVec3Init(&vil->frame->vel, 0.0f, 0.0f, 0.0f);
+            xVec3Init(&vil->frame->dvel, 0.0f, 0.0f, 0.0f);
             break;
         }
         break;
@@ -8142,21 +8347,28 @@ static void VILN_KookRender(_xEnt* ent)
 
 static signed int VILN_kp_query(st_zEntVillain* vil, en_ZVIL_QUERY query)
 {
+    signed int ret;
+
     switch (query)
     {
     case ZVIL_Q_CANATTACK:
         if (!(vil->allow & 8))
         {
-            return 0;
+            ret = 0;
+            break;
         }
         if (!(vil->precalc.flg_plyr & 1))
         {
-            return 0;
+            ret = 0;
+            break;
         }
-        return 1;
+        ret = 1;
+        break;
     default:
-        return VILN_std_query(vil, query);
+        ret = VILN_std_query(vil, query);
+        break;
     }
+    return ret;
 }
 
 static signed int VILN_kp_aware(st_zEntVillain* vil, _xScene* scn, float dt, st_STIMULUS_CONTEXT_DATA* resp)
@@ -8225,7 +8437,7 @@ static signed int VILN_kp_aware(st_zEntVillain* vil, _xScene* scn, float dt, st_
     case 20:
         if (!vil->goodattack && (vil->precalc.plyr_mvinf & 1))
         {
-            vil->goodattack = VWEP_swipe(vil);
+            vil->goodattack = VWEP_swipe(vil, dt);
             if (vil->goodattack)
             {
                 VIRM_initVilDflt(vil);
@@ -8329,8 +8541,8 @@ static inline signed int VANM_inDmgWindow(st_zEntVillain* vil)
 {
     xAnimSingle* single = VANM_single(vil);
     float tym = single ? single->Time : 0.0f;
-    float end = -2.0f;
     float beg = -1.0f;
+    float end = -2.0f;
 
     VCFG_getParm(&vil->vilcfg, ZVIL_PARM_DMG_BEGTIME, &beg);
     VCFG_getParm(&vil->vilcfg, ZVIL_PARM_DMG_ENDTIME, &end);
@@ -8427,6 +8639,8 @@ static signed int VILN_shark_aware(st_zEntVillain* vil, _xScene* scn, float dt, 
     switch (vil->goal)
     {
     case 0:
+        VILN_nocollide(vil);
+        break;
     case 1:
         VILN_nocollide(vil);
         break;
@@ -8461,22 +8675,50 @@ static signed int VILN_shark_aware(st_zEntVillain* vil, _xScene* scn, float dt, 
 static signed int VILN_shark_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt,
                                       st_STIMULUS_CONTEXT_DATA* resp)
 {
-    en_NPC_STIMULUS stim = stimctxt->stim;
+    signed int goal;
+    signed int stim;
 
-    g_pgol = vil->goal;
-    g_pstm = stim;
-    switch (vil->goal)
+    goal = vil->goal;
+    stim = stimctxt->stim;
+    g_pgol = (en_BEHAVIOUR_GOAL)goal;
+    switch (goal)
     {
-    case 0:
-    case 1:
-        if (stim == 2)
-        {
-            VILN_settran(resp, 2, 1);
-        }
+    case -1:
         break;
-    case 4:
+    case 0:
+        g_pstm = (en_NPC_STIMULUS)stim;
         switch (stim)
         {
+        case 5:
+        case 0:
+            break;
+        case 2:
+            VILN_settran(resp, 2, 1);
+            break;
+        }
+        break;
+    case 1:
+        g_pstm = (en_NPC_STIMULUS)stim;
+        switch (stim)
+        {
+        case 5:
+        case 0:
+            break;
+        case 2:
+            VILN_settran(resp, 2, 1);
+            break;
+        }
+        break;
+    case 2:
+    case 3:
+        g_pstm = (en_NPC_STIMULUS)stim;
+        break;
+    case 4:
+        g_pstm = (en_NPC_STIMULUS)stim;
+        switch (stim)
+        {
+        case 0:
+            break;
         case 34:
             vil->hitpts = 0;
             VILN_settran(resp, 0x20, 7);
@@ -8485,10 +8727,14 @@ static signed int VILN_shark_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_D
             VILN_settran(resp, 0, 1);
             break;
         case 32:
+            stimctxt->res_gods = 2;
+            break;
         case 33:
             stimctxt->res_gods = 2;
             break;
         case 27:
+            stimctxt->res_gods = 0;
+            break;
         case 28:
             stimctxt->res_gods = 0;
             break;
@@ -8496,6 +8742,9 @@ static signed int VILN_shark_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_D
             stimctxt->res_gods = 3;
             break;
         }
+        break;
+    case 32:
+        g_pstm = (en_NPC_STIMULUS)stim;
         break;
     }
     return 1;
@@ -9054,10 +9303,17 @@ static signed int VILN_gang_aware(st_zEntVillain* vil, _xScene* scn, float dt, s
         {
             xSceneID2Name(globals.sceneCur, vil->id);
         }
-        if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && vil->sfx_curTalk &&
-            !iSndIsPlaying(0, (unsigned int)vil + 2))
+        if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && vil->sfx_curTalk && !VSND_isPlaying(vil, 2))
         {
-            xSceneID2Name(globals.sceneCur, vil->id);
+            if (vil->sfx_curTalk != (zSFX*)-1)
+            {
+                xSceneID2Name(globals.sceneCur, vil->id);
+                xSceneID2Name(globals.sceneCur, **(unsigned int**)((char*)vil->sfx_curTalk + 0x10));
+            }
+            else
+            {
+                xSceneID2Name(globals.sceneCur, vil->id);
+            }
             vil->sfx_curTalk = NULL;
             VILN_tran(resp, 4, 3);
         }
@@ -9126,19 +9382,21 @@ static inline void VILN_gangIdle(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* 
     {
         signed int anim = vil->anim_playnext;
 
-        vil->anim_loopmult = 0.97f;
         if (anim == 0x7D || (unsigned int)(anim - 0x7E) <= 1 || anim == 0x80)
         {
+            vil->anim_loopmult = 0.97f;
             vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)1);
             vil->tmr_list[0] = 5.0f * (0.25f * (iurand() - 0.5f)) + 5.0f;
         }
         else if (xUtil_yesno(0.35f))
         {
+            vil->anim_loopmult = 0.97f;
             vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)2);
             vil->tmr_list[0] = 2.0f * (0.25f * (iurand() - 0.5f)) + 2.0f;
         }
         else
         {
+            vil->anim_loopmult = 0.97f;
             vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)1);
             vil->tmr_list[0] = 5.0f * (0.25f * (iurand() - 0.5f)) + 5.0f;
         }
@@ -9387,27 +9645,27 @@ static signed int VILN_gang_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
             vil->tmr_list[0] = VUTIL_jitter(tym);
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 0.5f;
             sfx = stimctxt->talkSFX;
-            if (sfx == (zSFX*)-1)
+            if ((signed int)sfx == -1)
             {
                 // No scripted line: play a greeting, or a hint for the hint giver.
                 signed int snd = 0x30;
-                unsigned int specials = globals.player.Inv_Specials;
 
                 if (vil->asset->subtype == 0x30 && xUtil_yesno(0.1f))
                 {
-                    if (!(specials & 4) && VSND_select_sound(vil, (en_NPC_SOUND)0x32))
+                    if (!(globals.player.Inv_Specials & 4) && VSND_select_sound(vil, (en_NPC_SOUND)0x32))
                     {
                         snd = 0x32;
                     }
-                    else if ((specials & 0x200) && !(specials & 0x20) && VSND_select_sound(vil, (en_NPC_SOUND)0x33))
+                    else if ((globals.player.Inv_Specials & 0x200) && !(globals.player.Inv_Specials & 0x20) &&
+                             VSND_select_sound(vil, (en_NPC_SOUND)0x33))
                     {
                         snd = 0x33;
                     }
-                    else if (!(specials & 0x1000) && VSND_select_sound(vil, (en_NPC_SOUND)0x34))
+                    else if (!(globals.player.Inv_Specials & 0x1000) && VSND_select_sound(vil, (en_NPC_SOUND)0x34))
                     {
                         snd = 0x34;
                     }
-                    else if ((specials & 0x1000) && VSND_select_sound(vil, (en_NPC_SOUND)0x35))
+                    else if ((globals.player.Inv_Specials & 0x1000) && VSND_select_sound(vil, (en_NPC_SOUND)0x35))
                     {
                         snd = 0x35;
                     }
@@ -9438,8 +9696,16 @@ static signed int VILN_gang_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DA
         case ZVIL_STIM_TRANGOAL:
             break;
         case ZVIL_STIM_ENTERGOAL:
-            vil->anim_loopmult = 0.97f;
-            vil->vhf->pickanim(vil, goal, (en_ZVIL_GOAL_SPOT)(stimctxt->use_alt_action ? 0xA : 0));
+            if (stimctxt->use_alt_action)
+            {
+                vil->anim_loopmult = 0.97f;
+                vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x1F, (en_ZVIL_GOAL_SPOT)0xA);
+            }
+            else
+            {
+                vil->anim_loopmult = 0.97f;
+                vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x1F, (en_ZVIL_GOAL_SPOT)0);
+            }
             break;
         }
         break;
@@ -9626,8 +9892,9 @@ static signed int VILN_gang_pickanim(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal
 
 static signed int VILN_gang_animtran(st_zEntVillain* vil, xAnimTransition* tran, xAnimSingle* single)
 {
+    xModelInstance* minst;
     signed int idx = 0;
-    xModelInstance* minst = vil->model;
+    minst = vil->model;
 
     if (vil->asset->subtype != 0x26)
     {
@@ -10124,6 +10391,7 @@ static signed int VILN_BBK_sysevent(st_zEntVillain* vil, xBase* from, unsigned i
             case 4:
                 vil->cnt_lobSalvo += 1;
                 break;
+            case 0:
             default:
                 vil->cnt_lobSalvo = 4;
                 break;
@@ -10791,7 +11059,8 @@ static signed int VILN_BGG_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
     case 4:
         if (vil->tmr_list[ZVIL_TDUR_LOBRELOAD] <= 0.0f)
         {
-            if (vil->vhf->query(vil, ZVIL_Q_CANATTACK) && (vil->prj_reserved = VWEP_lobReservePRJ(vil)) != NULL)
+            if (vil->vhf->query(vil, ZVIL_Q_CANATTACK) &&
+                (vil->prj_reserved = VWEP_lobReservePRJ(vil), vil->prj_reserved != NULL))
             {
                 VILN_tran(resp, 0x15, 5);
             }
@@ -10939,15 +11208,15 @@ static inline void VILN_BGG_quakeSalvo(st_zEntVillain* vil)
 
         if (!(vil->cnt_lobSalvo & 1))
         {
-            off.x = vil->precalc.vec_VtoP.x * 0.6f;
+            off = vil->precalc.vec_VtoP;
+            off.x *= 0.6f;
             off.y = 0.0f;
-            off.z = vil->precalc.vec_VtoP.z * 0.6f;
+            off.z *= 0.6f;
         }
         ctr = xBoundCenter(&globals.player.ent.bound);
         quake = (st_BGG_QUAKEBALL*)vil->prj_reserved->xtradata;
-        quake->pos_tgt.x = off.x + ctr->x;
-        quake->pos_tgt.y = off.y + ctr->y;
-        quake->pos_tgt.z = off.z + ctr->z;
+        xVec3AddTo(&off, ctr);
+        quake->pos_tgt = off;
         quake->phase = BGG_PHAZ_FLY;
         quake->flg_stat |= 2;
         vil->prj_reserved = NULL;
@@ -11305,7 +11574,8 @@ static signed int VILN_BGG_calcmove(st_zEntVillain* vil, _xScene* scn, float dt,
         // Spiral in towards the vortex.
         _xVec3 off = {};
 
-        VSUP_ang_toXZDir(vil->ang_spiral, &off);
+        off.x = sin(vil->ang_spiral);
+        off.z = cos(vil->ang_spiral);
         xVec3SMulBy(&off, vil->rad_spiral);
         xVec3Add(&vil->pos_moveto, &vil->pos_vortex, &off);
         vil->domove |= 0x800;
@@ -11331,8 +11601,10 @@ static signed int VILN_BGG_calcmove(st_zEntVillain* vil, _xScene* scn, float dt,
 // The Green Ghost faces left or right of where it was standing.
 static inline void VILN_BGG_face(st_zEntVillain* vil, _xVec3* pos)
 {
+    float dx = vil->pos_moveto.x - pos->x;
+
     vil->domove &= ~0xC0000;
-    if (vil->pos_moveto.x - pos->x > 0.0f)
+    if (dx > 0.0f)
     {
         vil->domove |= 0x80000;
     }
@@ -11533,13 +11805,14 @@ static signed int VILN_BRB_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         if (vil->tmr_list[ZVIL_TYMR_MINANIMPLAY] < 0.3f)
         {
             float da = vil->frame->rot.angle - vil->precalc.ang_VtoP;
-            vil->anim_loopmult = 0.97f;
             if ((float)__fabs(da) <= 0.2f)
             {
+                vil->anim_loopmult = 0.97f;
                 vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)0);
             }
             else
             {
+                vil->anim_loopmult = 0.97f;
                 vil->vhf->pickanim(vil, ZVIL_GOAL_IDLE, (en_ZVIL_GOAL_SPOT)0xC);
             }
         }
@@ -12082,15 +12355,35 @@ static signed int VILN_BMM_flag(st_zEntVillain* vil, en_ZVIL_FLAG_GROUPS flaggro
 
 static signed int VILN_BMM_query(st_zEntVillain* vil, en_ZVIL_QUERY query)
 {
+    signed int ret;
+
     switch (query)
     {
     case ZVIL_Q_PLYRTOOCLOSE:
-        return vil->precalc.ds2_VtoP < 9.0f;
+        if (vil->precalc.ds2_VtoP < 9.0f)
+        {
+            ret = 1;
+        }
+        else
+        {
+            ret = 0;
+        }
+        break;
     case ZVIL_Q_CANATTACK:
-        return (vil->allow & 8) ? 1 : 0;
+        if (vil->allow & 8)
+        {
+            ret = 1;
+        }
+        else
+        {
+            ret = 0;
+        }
+        break;
     default:
-        return VILN_std_query(vil, query);
+        ret = VILN_std_query(vil, query);
+        break;
     }
+    return ret;
 }
 
 static signed int VILN_BMM_sysevent(st_zEntVillain* vil, xBase* from, unsigned int toEvent, float* toParam,
@@ -12111,6 +12404,8 @@ static signed int VILN_BMM_sysevent(st_zEntVillain* vil, xBase* from, unsigned i
             resp->stim = (en_NPC_STIMULUS)0x27;
         }
         return 1;
+    case 0x2E:
+    case 0x2F:
     default:
         return VILN_std_sysevent(vil, from, toEvent, toParam, toParamWidget, resp);
     }
@@ -12193,7 +12488,11 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         {
             VILN_tran(resp, 0x11, 0);
         }
-        else if (!((vil->allow & 4) && VILN_BMM_teleport(vil, resp, 0)))
+        else if ((vil->allow & 4) && VILN_BMM_teleport(vil))
+        {
+            VILN_BMM_teleTran(resp, 0);
+        }
+        else
         {
             if (vil->vhf->query(vil, (en_ZVIL_QUERY)0xA))
             {
@@ -12215,7 +12514,11 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
             {
                 VILN_tran(resp, 0x11, 0);
             }
-            else if (!((vil->allow & 4) && VILN_BMM_teleport(vil, resp, 0)))
+            else if ((vil->allow & 4) && VILN_BMM_teleport(vil))
+            {
+                VILN_BMM_teleTran(resp, 0);
+            }
+            else
             {
                 VILN_tran(resp, 4, 0);
             }
@@ -12226,7 +12529,11 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         {
             VILN_tran(resp, 0x11, 0);
         }
-        else if (!((vil->allow & 4) && VILN_BMM_teleport(vil, resp, 0)))
+        else if ((vil->allow & 4) && VILN_BMM_teleport(vil))
+        {
+            VILN_BMM_teleTran(resp, 0);
+        }
+        else
         {
             if (!vil->vhf->query(vil, (en_ZVIL_QUERY)6))
             {
@@ -12239,7 +12546,11 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         {
             VILN_tran(resp, 0x11, 0);
         }
-        else if (!((vil->allow & 4) && VILN_BMM_teleport(vil, resp, 0)))
+        else if ((vil->allow & 4) && VILN_BMM_teleport(vil))
+        {
+            VILN_BMM_teleTran(resp, 0);
+        }
+        else
         {
             if (vil->vhf->query(vil, (en_ZVIL_QUERY)7))
             {
@@ -12258,7 +12569,7 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         }
         if (vil->allow & 0x10)
         {
-            if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && !iSndIsPlaying(0, (unsigned int)vil + 1))
+            if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && !VSND_isPlaying(vil, 1))
             {
                 VILN_tran(resp, 0x11, 0);
             }
@@ -12296,13 +12607,14 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         {
             if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f)
             {
-                vil->anim_loopmult = 0.97f;
                 if ((float)__fabs(vil->frame->rot.angle - vil->precalc.ang_VtoP) <= 0.2f)
                 {
+                    vil->anim_loopmult = 0.97f;
                     vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x11, (en_ZVIL_GOAL_SPOT)0);
                 }
                 else
                 {
+                    vil->anim_loopmult = 0.97f;
                     vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x11, (en_ZVIL_GOAL_SPOT)0xC);
                 }
                 vil->tmr_list[ZVIL_TYMR_GENERIC] = 0.2f;
@@ -12330,7 +12642,7 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
             }
             else if (an == 0x6D)
             {
-                if (vil->tmr_list[21] <= 0.0f && !iSndIsPlaying(0, (unsigned int)vil + 1))
+                if (vil->tmr_list[21] <= 0.0f && !VSND_isPlaying(vil, 1))
                 {
                     vil->anim_loopmult = 0.97f;
                     vil->vhf->pickanim(vil, (en_BEHAVIOUR_GOAL)0x15, (en_ZVIL_GOAL_SPOT)4);
@@ -12348,25 +12660,28 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
 
                     if (!(vil->cnt_lobSalvo & 1))
                     {
-                        off.x = vil->precalc.vec_VtoP.x * 0.6f;
+                        off = vil->precalc.vec_VtoP;
+                        off.x *= 0.6f;
                         off.y = 0.0f;
-                        off.z = vil->precalc.vec_VtoP.z * 0.6f;
+                        off.z *= 0.6f;
                     }
                     ctr = xBoundCenter(&globals.player.ent.bound);
                     flask = (st_ZVMM_FLASK_DATA*)vil->prj_reserved->xtradata;
-                    flask->pos_tgt.x = off.x + ctr->x;
-                    flask->pos_tgt.y = off.y + ctr->y;
-                    flask->pos_tgt.z = off.z + ctr->z;
+                    xVec3AddTo(&off, ctr);
+                    flask->pos_tgt = off;
                     flask->stage = MAST_STAGE_TOSS;
                     flask->flg_stat |= 2;
                     vil->prj_reserved = NULL;
                     vil->cnt_lobSalvo--;
                     if (vil->cnt_lobSalvo > 0 && !vil->prj_reserved)
                     {
+                        zEntProjectile* prj;
+
                         vil->prj_reserved = VWEP_lobReservePRJ(vil);
-                        if (vil->prj_reserved)
+                        prj = vil->prj_reserved;
+                        if (prj)
                         {
-                            VWEP_lobActivatePRJ(vil->prj_reserved, vil, xBoundCenter(&globals.player.ent.bound), NULL,
+                            VWEP_lobActivatePRJ(prj, vil, xBoundCenter(&globals.player.ent.bound), NULL,
                                                 &vil->vec_lobSpin, vil->fac_lobarc, vil->fac_lobheavy);
                         }
                     }
@@ -12374,13 +12689,16 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
             }
             else if (vil->tmr_list[28] <= 0.0f)
             {
-                VILN_BMM_teleport(vil, resp, 0);
+                if (VILN_BMM_teleport(vil))
+                {
+                    VILN_BMM_teleTran(resp, 0);
+                }
             }
         }
         break;
     case 24:
         VPAR_emit_partype(vil, (en_VPAR_EMITTER_ROLE)8, dt);
-        if (vil->tmr_list[28] <= 0.0f && !iSndIsPlaying(0, (unsigned int)vil + 1))
+        if (vil->tmr_list[28] <= 0.0f && !VSND_isPlaying(vil, 1))
         {
             if (vil->tmr_list[4] <= 0.0f)
             {
@@ -12395,14 +12713,15 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
         }
         break;
     case 28:
-        if (iSndIsPlaying(0, (unsigned int)vil + 1))
+        if (VSND_isPlaying(vil, 1))
         {
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 3.0f * (0.25f * (iurand() - 0.5f)) + 3.0f;
         }
         else if (vil->tmr_list[28] <= 0.0f)
         {
-            if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && VILN_BMM_teleport(vil, resp, 1))
+            if (vil->tmr_list[ZVIL_TYMR_GENERIC] <= 0.0f && VILN_BMM_teleport(vil))
             {
+                VILN_BMM_teleTran(resp, 1);
                 break;
             }
             if (vil->vhf->query(vil, (en_ZVIL_QUERY)0x12))
@@ -12446,9 +12765,16 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
             }
             else if (an == 0x77 && vil->anim_playing)
             {
-                if (!iSndIsPlaying(0, (unsigned int)vil + 1) && !VILN_BMM_teleport(vil, resp, 0))
+                if (!VSND_isPlaying(vil, 1))
                 {
-                    VILN_tran(resp, 0x11, 0);
+                    if (VILN_BMM_teleport(vil))
+                    {
+                        VILN_BMM_teleTran(resp, 0);
+                    }
+                    else
+                    {
+                        VILN_tran(resp, 0x11, 0);
+                    }
                 }
             }
             else
@@ -12485,7 +12811,7 @@ static signed int VILN_BMM_aware(st_zEntVillain* vil, _xScene* scn, float dt, st
 }
 
 // Pick another teleport point and request the teleport goal. Returns 1 if one was found.
-static inline signed int VILN_BMM_teleport(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* resp, signed int hurt)
+static inline signed int VILN_BMM_teleport(st_zEntVillain* vil)
 {
     signed int found = 0;
     _zMovePoint* mvpt;
@@ -12511,28 +12837,51 @@ static inline signed int VILN_BMM_teleport(st_zEntVillain* vil, st_STIMULUS_CONT
         tym = vil->vilcfg.tymref_list[3];
         vil->tmr_list[3] = VUTIL_jitter(tym);
     }
-    if (found)
-    {
-        VILN_tran(resp, 0x1D, 0);
-        resp->mm_teleport_hurtz_doggie = hurt;
-    }
     return found;
+}
+
+// The callers start the teleport themselves once a point was found.
+static inline void VILN_BMM_teleTran(st_STIMULUS_CONTEXT_DATA* resp, signed int hurt)
+{
+    VILN_tran(resp, 0x1D, 0);
+    resp->mm_teleport_hurtz_doggie = hurt;
 }
 
 static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt,
                                     st_STIMULUS_CONTEXT_DATA* resp)
 {
-    en_NPC_STIMULUS stim = stimctxt->stim;
+    signed int goal;
+    signed int stim;
 
-    g_pgol = vil->goal;
-    switch (vil->goal)
+    goal = vil->goal;
+    stim = stimctxt->stim;
+    g_pgol = (en_BEHAVIOUR_GOAL)goal;
+    switch (goal)
     {
+    case -1:
+        break;
     case 0:
-    case 1:
-        g_pstm = stim;
-        if (stim == ZVIL_STIM_MAKEREADY)
+        g_pstm = (en_NPC_STIMULUS)stim;
+        switch (stim)
         {
+        case 5:
+        case 0:
+            break;
+        case 2:
             VILN_tran(resp, 2, 1);
+            break;
+        }
+        break;
+    case 1:
+        g_pstm = (en_NPC_STIMULUS)stim;
+        switch (stim)
+        {
+        case 5:
+        case 0:
+            break;
+        case 2:
+            VILN_tran(resp, 2, 1);
+            break;
         }
         break;
     case 2:
@@ -12542,7 +12891,7 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     case 27:
     case 29:
     case 32:
-        g_pstm = stim;
+        g_pstm = (en_NPC_STIMULUS)stim;
         break;
     case 4:
     case 6:
@@ -12552,9 +12901,11 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     case 28:
     case 30:
     case 31:
-        g_pstm = stim;
+        g_pstm = (en_NPC_STIMULUS)stim;
         switch (stim)
         {
+        case ZVIL_STIM_NONE:
+            break;
         case ZVIL_STIM_KILLSELF:
             vil->hitpts = 0;
             VILN_tran(resp, 0x20, 7);
@@ -12569,6 +12920,9 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             VILN_tran(resp, 0x1B, 0);
             break;
         case ZVIL_STIM_SOAPED:
+            stimctxt->res_gods = 2;
+            VSND_cue(vil, (en_NPC_SOUND)0x17);
+            break;
         case ZVIL_STIM_GUMMED:
             stimctxt->res_gods = 2;
             VSND_cue(vil, (en_NPC_SOUND)0x17);
@@ -12616,7 +12970,14 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             {
                 signed int follow = VOUT_dogoto_widget(vil, stimctxt->widge, stimctxt->off_goto, 1);
                 vil->tmr_list[ZVIL_TDUR_NAVDELAY] = -1.0f;
-                VILN_tran(resp, follow ? 6 : 8, 0);
+                if (follow)
+                {
+                    VILN_tran(resp, 6, 0);
+                }
+                else
+                {
+                    VILN_tran(resp, 8, 0);
+                }
             }
             break;
         case ZVIL_STIM_STARTPATROL:
@@ -12625,10 +12986,21 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             {
                 VNAV_get_nav(vil);
             }
-            VILN_tran(resp, vil->vhf->query(vil, ZVIL_Q_HAVENAV) ? 6 : 4, 0);
+            if (vil->vhf->query(vil, ZVIL_Q_HAVENAV))
+            {
+                VILN_tran(resp, 6, 0);
+            }
+            else
+            {
+                VILN_tran(resp, 4, 0);
+            }
             break;
         case ZVIL_STIM_STOPPATROL:
+            VILN_tran(resp, 4, 0);
+            break;
         case ZVIL_STIM_STARTGUARD:
+            VILN_tran(resp, 4, 0);
+            break;
         case ZVIL_STIM_STOPGUARD:
             VILN_tran(resp, 4, 0);
             break;
@@ -12636,9 +13008,12 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         break;
     }
 
-    g_pgol = vil->goal;
-    switch (vil->goal)
+    goal = vil->goal;
+    g_pgol = (en_BEHAVIOUR_GOAL)goal;
+    switch (goal)
     {
+    case -1:
+        break;
     case 0:
     case 1:
     case 2:
@@ -12652,12 +13027,14 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
     case 29:
     case 30:
     case 31:
-        g_pstm = stim;
+        g_pstm = (en_NPC_STIMULUS)stim;
         break;
     case 24:
-        g_pstm = stim;
+        g_pstm = (en_NPC_STIMULUS)stim;
         switch (stim)
         {
+        case ZVIL_STIM_NONE:
+            break;
         case ZVIL_STIM_KILLSELF:
             vil->hitpts = 0;
             VILN_tran(resp, 0x20, 7);
@@ -12669,6 +13046,8 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             VILN_tran(resp, 0x1B, 0);
             break;
         case ZVIL_STIM_SOAPED:
+            stimctxt->res_gods = 2;
+            break;
         case ZVIL_STIM_GUMMED:
             stimctxt->res_gods = 2;
             break;
@@ -12696,9 +13075,10 @@ static signed int VILN_BMM_stimulus(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
 
 static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt)
 {
-    en_NPC_STIMULUS stim = stimctxt->stim;
-    signed int rc = 1;
     en_BEHAVIOUR_GOAL goal;
+    signed int rc = 1;
+    en_NPC_STIMULUS stim;
+    stim = stimctxt->stim;
 
     if (stim == ZVIL_STIM_ENTERGOAL || stim == ZVIL_STIM_EXITGOAL)
     {
@@ -12809,10 +13189,10 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
         case ZVIL_STIM_ENTERGOAL:
             VILN_BMM_enterGoal(vil, (en_BEHAVIOUR_GOAL)ZVIL_GOAL_TELEPORT, 0);
             vil->flags &= ~1;
-            vil->chkby &= ~0x10;
-            vil->penby &= ~0x10;
-            vil->collis->chk &= ~0x10;
-            vil->collis->pen &= ~0x10;
+            vil->chkby &= 0xEF;
+            vil->penby &= 0xEF;
+            vil->collis->chk &= 0xEF;
+            vil->collis->pen &= 0xEF;
             if (stimctxt->mm_teleport_hurtz_doggie > 0)
             {
                 VEFX_mm_zapper(vil, 0);
@@ -12922,7 +13302,7 @@ static signed int VILN_BMM_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DAT
             vil->dst_navTween = 7.5f;
             vil->tmr_list[ZVIL_TYMR_GENERIC] = 1.5f;
             vil->pos_bowling = ((_xMat4x3*)globals.player.ent.model->Mat)->pos;
-            vil->pflags &= ~4;
+            vil->pflags &= 0xFB;
             break;
         case ZVIL_STIM_EXITGOAL:
             vil->frame->dvel.x = 0.0f;
@@ -13549,7 +13929,7 @@ static void zVIL_elcb_move(_xEnt* xe, _xScene* scn, float dt, _xEntFrame* frame)
     vil->vhf->calcmove(vil, scn, dt, frame);
     if (vil->domove)
     {
-        zVIL_apply_move(vil, dt, frame);
+        zVIL_apply_move(vil, scn, dt, frame);
     }
 }
 
@@ -13580,6 +13960,8 @@ static inline void zVIL_input_stim(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA
 static signed int zVIL_trangoal(st_zEntVillain* vil, st_STIMULUS_CONTEXT_DATA* stimctxt, float dt)
 {
     signed int rc = 1;
+    // Unreferenced in the original as well; only its guarded init remains.
+    static signed int unused_static = 0;
     st_STIMULUS_CONTEXT_DATA exitctxt = {};
     signed int i;
 
@@ -13926,14 +14308,15 @@ static signed int VOUT_apply_anchor(st_zEntVillain* vil)
 static en_ZVILLAIN_HEADBUTT_RESPONSE VOUT_spikey_header(st_zEntVillain* vil)
 {
     signed int resp = 0;
-    signed int side = 0;
+    // Type-punned through a cast so it stays in memory, as in the original.
+    long side = 0;
 
     if (!(vil->abl_spyk & 1))
     {
         return (en_ZVILLAIN_HEADBUTT_RESPONSE)0;
     }
 
-    VSUP_ent_AOI(vil, &globals.player.ent, &side);
+    VSUP_ent_AOI(vil, &globals.player.ent, (signed int*)&side);
 
     // The original has no breaks here, so each side also checks the later ones.
     switch (side)
@@ -13984,11 +14367,11 @@ static signed int VNAV_get_nav(st_zEntVillain* vil)
             nxt = NULL;
         }
     }
-    else if (vil->nav_next)
+    else if (vil->nav_prev && vil->nav_next)
     {
         zMovePointGetNext(vil->nav_next, vil->nav_prev, &nxt, NULL);
     }
-    else
+    else if (vil->nav_prev)
     {
         zMovePointGetNext(vil->nav_prev, NULL, &nxt, NULL);
     }
@@ -14021,11 +14404,7 @@ static inline float VNAV_dist(_xVec3* d, _xVec3* a, _xVec3* b)
 
     xVec3Sub(d, a, b);
     d2 = xVec3Dot(d, d);
-    if (d2 > 0.0f)
-    {
-        d2 = xsqrt(d2);
-    }
-    return d2;
+    return xsqrt(d2);
 }
 
 static signed int VNAV_chklos_timz(void* usrdata, _xVec3* pos, _zMovePoint* mvpt)
@@ -14033,16 +14412,14 @@ static signed int VNAV_chklos_timz(void* usrdata, _xVec3* pos, _zMovePoint* mvpt
     st_zEntVillain* vil = (st_zEntVillain*)usrdata;
     _xRay3 ray;
     _xVec3* pos_mp;
-    float len;
 
     ray.min_t = 0.001f + vil->bound.sph.r;
     pos_mp = zMovePointGetPos(mvpt);
     xVec3Sub(&ray.dir, pos_mp, pos);
-    len = xVec3Normalize(&ray.dir, &ray.dir);
-    ray.origin.x = ray.dir.x * ray.min_t + pos->x;
-    ray.origin.y = ray.dir.y * ray.min_t + pos->y;
-    ray.origin.z = ray.dir.z * ray.min_t + pos->z;
-    ray.max_t = len - ray.min_t;
+    ray.max_t = xVec3Normalize(&ray.dir, &ray.dir);
+    xVec3SMul(&ray.origin, &ray.dir, ray.min_t);
+    xVec3AddTo(&ray.origin, pos);
+    ray.max_t -= ray.min_t;
     ray.flags = 0x800;
     return (unsigned char)(xRayHitsSceneFast(&ray, globals.sceneCur) == 0);
 }
@@ -14068,7 +14445,8 @@ static float VNAV_get_movespeed(st_zEntVillain* vil, float rnd)
 
     if (VANM_stateUserFlags(vil, 0x1E) == 0xA)
     {
-        return spd * 5.0f;
+        spd *= 5.0f;
+        return spd;
     }
 
     if (VANM_stateUserFlags(vil, 0x1E) == 6)
@@ -14085,11 +14463,8 @@ static float VNAV_get_movespeed(st_zEntVillain* vil, float rnd)
     {
         if (vil->asset->subtype == eEntVillainBossBlackKnight)
         {
-            float ext = vil->spd_chase - vil->spd_move;
-            if (ext < 0.0f)
-            {
-                ext = -ext;
-            }
+            double dext = __fabs(vil->spd_chase - vil->spd_move);
+            float ext = dext;
             switch (vil->hitpts)
             {
             case 4:
@@ -14147,19 +14522,15 @@ static inline void VNAV_animspeed(st_zEntVillain* vil, float spd, _xVec3* sanim)
         return;
     }
     fac = spd / sa.x;
-    lim = (fac < sa.z) ? fac : sa.z;
-    if (!(sa.y > lim))
-    {
-        sa.y = (fac < sa.z) ? fac : sa.z;
-    }
+    lim = (sa.y > ((fac < sa.z) ? fac : sa.z)) ? sa.y : ((fac < sa.z) ? fac : sa.z);
     single = VANM_single(vil);
     if (single)
     {
-        single->CurrentSpeed = sa.y;
+        single->CurrentSpeed = lim;
     }
 }
 
-static inline unsigned int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int mask)
+static inline signed int VANM_stateUserFlags(st_zEntVillain* vil, unsigned int mask)
 {
     xAnimSingle* single = VANM_single(vil);
     xAnimState* state = single ? single->State : NULL;
@@ -14378,6 +14749,8 @@ static void zVIL_upd_timers(st_zEntVillain* vil, float dt)
 
     switch (vil->goal)
     {
+    case 0:
+        break;
     case 9:
         VTMR_tick(vil, 15, dt);
     case 4:
@@ -14452,8 +14825,7 @@ static void zVIL_upd_timers(st_zEntVillain* vil, float dt)
 
 static inline void VTMR_tick(st_zEntVillain* vil, signed int idx, float dt)
 {
-    float t = vil->tmr_list[idx] - dt;
-    vil->tmr_list[idx] = (t < -1.0f) ? -1.0f : t;
+    vil->tmr_list[idx] = (vil->tmr_list[idx] - dt < -1.0f) ? -1.0f : vil->tmr_list[idx] - dt;
 }
 
 static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
@@ -14670,16 +15042,33 @@ static void zVIL_precalc(st_zEntVillain* vil, signed int flags)
     pc->flg_status |= 0x80000000;
 }
 
-static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
+static void zVIL_apply_move(st_zEntVillain* vil, _xScene*, float dt, _xEntFrame* frame)
 {
-    _xVec3 pos_cur = {};
-    signed int doturn = 0;
     signed int dotran = 0;
+    float z2;
     signed int dovel = 0;
+    float ds2_step;
+    float spd;
     signed int bigturn = 0;
-    float dang = 0.0f;
+    signed int doturn = 0;
     float yaw;
+    _xVec3 pos_cur = {};
     _xMat4x3* mdlmat = (_xMat4x3*)vil->model->Mat;
+    float trnd;
+    float rate;
+    float frac;
+    float dst;
+    float dang = 0.0f;
+    float ds2;
+    float lim_rand;
+    float lim_snap;
+    float dx;
+    float dz;
+    float x2;
+    float cs;
+    float sn;
+    float dy;
+    float rnd;
 
     pos_cur = mdlmat->pos;
     if (!vil->domove)
@@ -14706,13 +15095,13 @@ static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
 
     if (vil->domove & 0x40)
     {
-        doturn = 1;
         dang = vil->ang_moveto - frame->rot.angle;
+        doturn = 1;
     }
     else if (vil->domove & 0x80)
     {
-        doturn = 1;
         dang = xAngleClamp(atan2(vil->dir_moveto.x, vil->dir_moveto.z)) - frame->rot.angle;
+        doturn = 1;
     }
     else if (vil->domove & 0x100)
     {
@@ -14721,14 +15110,14 @@ static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
     }
     else if (vil->domove & 0x800)
     {
-        doturn = 1;
         dang = xAngleClamp(atan2(vil->pos_moveto.x - pos_cur.x, vil->pos_moveto.z - pos_cur.z)) -
                frame->rot.angle;
+        doturn = 1;
     }
     else if (vil->domove & 0x400)
     {
-        doturn = 1;
         dang = xAngleClamp(atan2(vil->dlt_moveto.x, vil->dlt_moveto.z)) - frame->rot.angle;
+        doturn = 1;
     }
 
     if (!(vil->domove & 1))
@@ -14768,8 +15157,7 @@ static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
     if (doturn &&
         ((vil->abl_move & 0x1000) || (vil->abl_move & 0x400) || (VANM_stateUserFlags(vil, 0x1E000000) & 0x02000000)))
     {
-        float rnd = 0.15f * iurand() + 0.85f;
-        float rate;
+        trnd = 0.15f * iurand() + 0.85f;
 
         if (vil->domove & 0x10000)
         {
@@ -14777,7 +15165,7 @@ static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
         }
         else
         {
-            rate = rnd * (dt * vil->spd_turn);
+            rate = trnd * (dt * vil->spd_turn);
         }
         if (dang > 3.1415927f)
         {
@@ -14802,7 +15190,7 @@ static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
         frame->drot.angle = rate * dang;
         frame->mode |= 0x20;
         yaw += frame->drot.angle;
-        if (((dang < 0.0f) ? -dang : dang) > 0.5f * vil->fov_detect)
+        if ((float)__fabs(dang) > 0.5f * vil->fov_detect)
         {
             bigturn = 1;
         }
@@ -14820,15 +15208,6 @@ static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
 
     if (dotran)
     {
-        float rnd;
-        float spd;
-        float dst;
-        float ds2;
-        float ds2_step;
-        float lim_rand;
-        float lim_snap;
-        float dx;
-        float dz;
 
         if (bigturn)
         {
@@ -14851,7 +15230,11 @@ static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
         dx = vil->pos_moveto.x - pos_cur.x;
         dz = vil->pos_moveto.z - pos_cur.z;
         ds2_step = spd * spd;
-        ds2 = dx * dx + dz * dz;
+        {
+            x2 = dx * dx;
+            z2 = dz * dz;
+            ds2 = x2 + z2;
+        }
         if (ds2 < ds2_step)
         {
             dst = xsqrt(ds2);
@@ -14884,8 +15267,8 @@ static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
         }
         else
         {
-            float cs = cos(yaw);
-            float sn = sin(yaw);
+            cs = cos(yaw);
+            sn = sin(yaw);
 
             if (vil->domove & 2)
             {
@@ -14921,7 +15304,7 @@ static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
 
         if (vil->domove & 4)
         {
-            float dy = vil->pos_moveto.y - pos_cur.y;
+            dy = vil->pos_moveto.y - pos_cur.y;
 
             if (dy * dy < ds2_step)
             {
@@ -14929,20 +15312,19 @@ static void zVIL_apply_move(st_zEntVillain* vil, float dt, _xEntFrame* frame)
             }
             else if (ds2 < 0.0625f)
             {
-                frame->dpos.y = (dy < 0.0f) ? -1.0f * spd : spd;
+                if (dy < 0.0f)
+                {
+                    frame->dpos.y = -1.0f * spd;
+                }
+                else
+                {
+                    frame->dpos.y = spd;
+                }
             }
             else
             {
-                float frac = dy / xsqrt(ds2);
-                if (frac > 1.0f)
-                {
-                    frac = 1.0f;
-                }
-                if (frac < -1.0f)
-                {
-                    frac = -1.0f;
-                }
-                frame->dpos.y = spd * frac;
+                frac = dy / xsqrt(ds2);
+                frame->dpos.y = spd * VIL_MAX(-1.0f, VIL_MIN(frac, 1.0f));
             }
         }
         frame->mode |= 2;
@@ -14982,7 +15364,7 @@ static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float ch
     _xVec3 pos_eye = {};
     _xVec3 pos_probe = {};
     _xVec3 vec_side = {};
-    signed int pitfall;
+    unsigned char pitfall;
     float rad;
     _xMat4x3* mat;
 
@@ -15003,10 +15385,10 @@ static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float ch
     pos_probe.y -= 3.5f * rad;
     xVec3AddTo(&pos_probe, &mat->pos);
     xVec3SMul(&vec_side, &mat->right, 0.3f);
-    xVec3AddTo(&pos_probe, &vec_side);
-
     ray.min_t = 0.001f;
     ray.flags = 0x800;
+    xVec3AddTo(&pos_probe, &vec_side);
+
     pitfall = VUTIL_rayhole(&ray, &pos_eye, &pos_probe);
     if (!pitfall)
     {
@@ -15019,13 +15401,12 @@ static signed int zVIL_chk_pitfall(st_zEntVillain* vil, signed int def, float ch
     return pitfall;
 }
 
-static inline signed int VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe)
+static inline unsigned char VUTIL_rayhole(_xRay3* ray, _xVec3* pos_eye, _xVec3* pos_probe)
 {
     xVec3Sub(&ray->dir, pos_probe, pos_eye);
     ray->max_t = xVec3Normalize(&ray->dir, &ray->dir);
-    ray->origin.x = ray->dir.x * ray->min_t + pos_eye->x;
-    ray->origin.y = ray->dir.y * ray->min_t + pos_eye->y;
-    ray->origin.z = ray->dir.z * ray->min_t + pos_eye->z;
+    xVec3SMul(&ray->origin, &ray->dir, ray->min_t);
+    xVec3AddTo(&ray->origin, pos_eye);
     return xRayHitsSceneFast(ray, globals.sceneCur) == 0;
 }
 
@@ -15400,34 +15781,38 @@ static signed int VCFG_getParm(st_ZVIL_CONFIG_REFERENCE* vilcfg, en_NPC_INI_PARA
         *ival = vilcfg->cnt_lobSalvo;
         break;
     case ZVIL_PARM_LOB_PRJTYPE:
+    {
+        unsigned int prjtype;
         switch (vilcfg->asset->subtype)
         {
         case 5:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_GARGOYLE");
+            prjtype = xStrHash("_PRJ_VWEP_GARGOYLE");
             break;
         case 0x10:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_TARMONSTER");
+            prjtype = xStrHash("_PRJ_VWEP_TARMONSTER");
             break;
         case 0x12:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_WITCHDOCTOR");
+            prjtype = xStrHash("_PRJ_VWEP_WITCHDOCTOR");
             break;
         case eEntVillainBossBlackKnight:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_BLACKKNIGHT");
+            prjtype = xStrHash("_PRJ_VWEP_BLACKKNIGHT");
             break;
         case eEntVillainBossGreenGhost:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_GREENGHOST");
+            prjtype = xStrHash("_PRJ_VWEP_GREENGHOST");
             break;
         case eEntVillainBossRedbeard:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_REDBEARD");
+            prjtype = xStrHash("_PRJ_VWEP_REDBEARD");
             break;
         case eEntVillainBossMastermind:
-            *(unsigned int*)val = xStrHash("_PRJ_VWEP_MASTERMIND");
+            prjtype = xStrHash("_PRJ_VWEP_MASTERMIND");
             break;
         default:
-            *(unsigned int*)val = 0;
+            prjtype = 0;
             break;
         }
+        *(unsigned int*)val = prjtype;
         break;
+    }
     case ZVIL_PARM_LOB_ARC:
         *fval = vilcfg->fac_lobarc;
         break;
@@ -15524,12 +15909,11 @@ static en_BEHAVIOUR_GOAL VGOL_set(st_zEntVillain* vil, en_BEHAVIOUR_GOAL goal)
     return vil->goal;
 }
 
-static signed int VWEP_swipe(st_zEntVillain* vil)
+static signed int VWEP_swipe(st_zEntVillain* vil, float)
 {
     static const iColor_tag clr_swipe = { 0x80, 0x00, 0x00, 0xFF };
     signed int hit = 0;
     _xCollis colrec = {};
-    iColor_tag clr = {};
     _xBound bound = {};
 
     if (vil->precalc.ds2_VtoP > 2.2f)
@@ -15541,9 +15925,8 @@ static signed int VWEP_swipe(st_zEntVillain* vil)
     colrec.oid = globals.player.ent.id;
     colrec.optr = &globals.player.ent;
     bound.type = 1;
-    bound.qcd = globals.player.ent.bound.qcd;
-    clr = clr_swipe;
-    xDrawSetColor(clr);
+    memcpy(&bound.qcd, &globals.player.ent.bound.qcd, sizeof(bound.qcd));
+    xDrawSetColor(clr_swipe);
 
     if (VUTIL_tagpos(vil, 6, &bound.sph.center))
     {
@@ -15618,21 +16001,20 @@ static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* p
     {
         xSceneID2Name(globals.sceneCur, vil->id);
         pos_emit = *xBoundCenter(&vil->bound);
-        pos_emit.y += 0.4f;
         pos_emit.x += 1.5f * vil->precalc.sin_faceang;
+        pos_emit.y += 0.4f;
         pos_emit.z += 1.5f * vil->precalc.cos_faceang;
     }
 
-    spd = vil->tmr_list[ZVIL_TDUR_EXTEND];
-    if (!(spd < vil->tmr_list[ZVIL_TYMR_CURGOAL]))
+    float tym = vil->tmr_list[ZVIL_TYMR_CURGOAL];
+    float ext = vil->tmr_list[ZVIL_TDUR_EXTEND];
+    spd = vil->spd_extend;
+    if (ext < tym)
     {
-        spd = vil->tmr_list[ZVIL_TYMR_CURGOAL];
+        tym = ext;
     }
-    spd = vil->spd_extend * spd;
-    if (!(spd < vil->dst_extend))
-    {
-        spd = vil->dst_extend;
-    }
+    spd = tym * spd;
+    spd = (spd < vil->dst_extend) ? spd : vil->dst_extend;
     rad = (0.01f > spd) ? 0.01f : spd;
     fac_wid = vil->wid_extend / vil->dst_extend;
 
@@ -15653,15 +16035,7 @@ static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* p
         }
         else
         {
-            float hi = (pitch < 0.25f) ? pitch : 0.25f;
-            if (-0.25f > hi)
-            {
-                pitch = -0.25f;
-            }
-            else if (!(pitch < 0.25f))
-            {
-                pitch = 0.25f;
-            }
+            pitch = VIL_MAX(-0.25f, VIL_MIN(pitch, 0.25f));
         }
         xMat3x3Euler(&mat_rot, 0.0f, pitch, 0.0f);
         xMat3x3LMulVec(&dir_ext, &mat_rot, (_xVec3*)&g_Z3);
@@ -15679,8 +16053,8 @@ static signed int VWEP_extend_particles(st_zEntVillain* vil, float dt, _xVec3* p
             float spd_vel;
 
             pecust.pos = mat->pos;
-            pecust.pos.y += 1.6f;
             pecust.pos.x += 0.25f * mat->at.x;
+            pecust.pos.y += 1.6f;
             pecust.pos.z += 0.25f * mat->at.z;
             xVec3Normalize(&dir_vel, &dir_ext);
             pecust.custom_flags = 0x60;
@@ -15814,7 +16188,7 @@ static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT e
 {
     signed int rc = 0;
     st_zEntVillain* vil = (st_zEntVillain*)prj->owner;
-    signed int dosnd = !(vil->ability & 1);
+    signed int dosnd = (vil->ability & 1) ^ 1;
 
     switch (event)
     {
@@ -15869,37 +16243,39 @@ static signed int VWEP_prjOwnerNotify(zEntProjectile* prj, en_PROJECTILE_EVENT e
     return rc;
 }
 
-static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos)
+// The scratch vector belongs to the caller: the original reuses the caller's
+// temp here. The unused local only emits its (dead) initializer data, which
+// keeps the rodata layout.
+static inline void VWEP_lobLaunchPos(st_zEntVillain* vil, _xVec3* pos, _xVec3* vec_tmp)
 {
-    _xVec3 vec_tmp = {};
+    _xVec3 vec_unused = {};
 
     if (!VUTIL_tagpos(vil, 6, pos))
     {
         xSceneID2Name(globals.sceneCur, vil->id);
         *pos = *xBoundCenter(&vil->bound);
-        xVec3SMul(&vec_tmp, &((_xMat4x3*)vil->model->Mat)->at, 0.5f);
-        vec_tmp.y += 0.5f;
-        xVec3AddTo(pos, &vec_tmp);
+        xVec3SMul(vec_tmp, &((_xMat4x3*)vil->model->Mat)->at, 0.5f);
+        vec_tmp->y += 0.5f;
+        xVec3AddTo(pos, vec_tmp);
     }
 }
 
 static inline signed int VWEP_lobInitArrow(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off)
 {
+    zEntProjectile* prj = vil->prj_reserved;
     _xVec3 pos = {};
     ST_CAT_AIMDATA aiminf = {};
     _xVec3 tmp_vec = {};
-    zEntProjectile* prj = vil->prj_reserved;
 
     prj->ColDelaySet(0.4f, 1);
-    VWEP_lobLaunchPos(vil, &pos);
+    VWEP_lobLaunchPos(vil, &pos, &tmp_vec);
 
     aiminf.spd_base = vil->spd_lob;
     aiminf.dir_base = ((_xMat4x3*)vil->model->Mat)->at;
     aiminf.arrow.pos_src = pos;
     if (vec_off)
     {
-        xVec3Add(&tmp_vec, pos_tgt, vec_off);
-        aiminf.arrow.pos_tgt = tmp_vec;
+        xVec3Add(&aiminf.arrow.pos_tgt, pos_tgt, vec_off);
     }
     else
     {
@@ -15912,15 +16288,14 @@ static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec
                                      float arcness, float heavy)
 {
     signed int retval = 1;
+    _xMat4x3* mat;
+    zEntProjectile* prj = vil->prj_reserved;
     _xVec3 pos = {};
     ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
     _xVec3 vec_tmp = {};
-    zEntProjectile* prj = vil->prj_reserved;
-    _xMat4x3* mat;
 
-    aiminf.idx_caim = ZPRJ_CAIM_GRAVBALL;
     prj->ColDelaySet(0.4f, 1);
-    VWEP_lobLaunchPos(vil, &pos);
+    VWEP_lobLaunchPos(vil, &pos, &vec_tmp);
 
     if (vil->asset->subtype == eEntVillainBossBlackKnight)
     {
@@ -15942,8 +16317,22 @@ static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec
     {
         aiminf.grav.pos_tgt = *pos_tgt;
     }
-    aiminf.grav.fac_arcness = (arcness <= 0.0f) ? 1.0f : arcness;
-    aiminf.grav.acc_gravity = (heavy <= 0.0f) ? 1.5f : heavy;
+    if (arcness <= 0.0f)
+    {
+        aiminf.grav.fac_arcness = 1.0f;
+    }
+    else
+    {
+        aiminf.grav.fac_arcness = arcness;
+    }
+    if (heavy <= 0.0f)
+    {
+        aiminf.grav.acc_gravity = 1.5f;
+    }
+    else
+    {
+        aiminf.grav.acc_gravity = heavy;
+    }
 
     if (vec_spin)
     {
@@ -15965,11 +16354,11 @@ static signed int VWEP_lobInitArcing(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec
 static signed int VWEP_lobInitBKAxe(st_zEntVillain* vil, _xVec3* pos_tgt, _xVec3* vec_off, _xVec3* vec_spin,
                                     float arcness, float heavy)
 {
+    zEntProjectile* prj = vil->prj_reserved;
     _xVec3 ang_flip = { 0.0f, 0.0f, 1.5707964f };
     _xMat3x3 mat_rot = {};
     _xVec3 delta = {};
     _xVec3 ang_yaw = {};
-    zEntProjectile* prj = vil->prj_reserved;
     st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
     _xMat4x3* frame;
 
@@ -16016,7 +16405,14 @@ static signed int VWEP_lobInitGGQuaker(st_zEntVillain* vil, _xVec3* pos_tgt, _xV
     st_BGG_QUAKEBALL* quake = (st_BGG_QUAKEBALL*)prj->xtradata;
 
     VWEP_lobInitArrow(vil, pos_tgt, vec_off);
-    prj->cat_data.gravball.acc_gravity = (heavy <= 0.0f) ? 1.5f : heavy;
+    if (heavy <= 0.0f)
+    {
+        prj->cat_data.gravball.acc_gravity = 1.5f;
+    }
+    else
+    {
+        prj->cat_data.gravball.acc_gravity = heavy;
+    }
     quake->rad_build = vil->dst_lob;
     quake->spd_flight = (vil->spd_lob > 0.2f) ? vil->spd_lob : 0.2f;
     quake->hyt_shock = vil->wid_extend;
@@ -16029,8 +16425,8 @@ static signed int VWEP_lobInitRBSword(st_zEntVillain* vil, _xVec3* pos_tgt, _xVe
                                       float arcness, float heavy)
 {
     zEntProjectile* prj = vil->prj_reserved;
-    st_REDBEARD_SWORD* rbs = (st_REDBEARD_SWORD*)prj->xtradata;
     _xVec3 vec_pos = {};
+    st_REDBEARD_SWORD* rbs = (st_REDBEARD_SWORD*)prj->xtradata;
     signed int rc;
 
     rc = VUTIL_tagpos(vil, 10, &vec_pos);
@@ -16194,7 +16590,6 @@ static void VPRJ_BBK_detach(zEntProjectile* prj)
 
 static signed int VPRJ_BBK_logix(zEntProjectile* prj, float dt)
 {
-    _xVec3 pos_prj = {};
     st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
     st_ZPRJ_CAT_BOUNCEBALL* bounce = &prj->cat_data.bounce;
 
@@ -16207,6 +16602,7 @@ static signed int VPRJ_BBK_logix(zEntProjectile* prj, float dt)
         prj->SendEvent(ZPRJ_EVNT_INFLIGHT, dt);
     }
 
+    _xVec3 pos_prj = {};
     pos_prj = ((_xMat4x3*)prj->model->Mat)->pos;
     if (prj->tmr_alive >= prj->tym_maxlife)
     {
@@ -16338,10 +16734,10 @@ static signed int VPRJ_BBK_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event
 
 static void VPRJ_zapTheAxe(zEntProjectile* prj, signed int cleanup)
 {
-    _xVec3 from = {};
-    _xVec3 loca = {};
-    signed int i;
     st_BKAXE_DATA* axfx = (st_BKAXE_DATA*)prj->xtradata;
+    _xVec3 loca = {};
+    _xVec3 from = {};
+    signed int i;
     _xVec3* pos;
 
     for (i = 0; i < 8; i++)
@@ -16409,19 +16805,14 @@ static void VPRJ_BGG_detach(zEntProjectile* prj)
 
 static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
 {
+    st_BGG_QUAKEBALL* quake = (st_BGG_QUAKEBALL*)prj->xtradata;
+    st_zEntVillain* vil = (st_zEntVillain*)prj->owner;
+    _xVec3 vec_tmp = {};
+    _xVec3 pos_left = {};
+    _xVec3 pos_ryht = {};
     signed int start_fall;
     float dist;
-    _xVec3 dir_delt = {};
-    _xVec3 vec_delt = {};
-    _xVec3 pos_ryht = {};
-    _xVec3 pos_left = {};
-    _xVec3 vec_tmp = {};
-    st_zEntVillain* vil;
-    st_BGG_QUAKEBALL* quake;
     _xEntCollis* collis;
-
-    quake = (st_BGG_QUAKEBALL*)prj->xtradata;
-    vil = (st_zEntVillain*)prj->owner;
 
     if (prj->tmr_alive > prj->tym_maxlife)
     {
@@ -16437,6 +16828,8 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
 
     switch (quake->phase)
     {
+    case BGG_PHAZ_UNKNOWN:
+        break;
     case BGG_PHAZ_BUILDUP:
         VPRJ_emitat(sEmitGreenBall, prj, dt, 3.0f);
         prj->SendEvent((en_PROJECTILE_EVENT)0xF, dt);
@@ -16448,8 +16841,11 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
         prj->frame->mode |= 1;
         break;
     case BGG_PHAZ_FLY:
+    {
         prj->SendEvent(ZPRJ_EVNT_INFLIGHT, dt);
         VPRJ_emitat(sEmitGreenBall, prj, dt, 1.5f);
+        _xVec3 vec_delt = {};
+        _xVec3 dir_delt = {};
         start_fall = 0;
         xVec3Sub(&vec_delt, &quake->pos_tgt, &((_xMat4x3*)prj->model->Mat)->pos);
         if (quake->flg_stat & 2)
@@ -16461,7 +16857,6 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
             xVec3SMul(&prj->frame->vel, &dir_delt, quake->spd_flight);
             prj->frame->mode |= 4;
         }
-        collis = prj->collis;
         if (prj->tmr_curstate > quake->tym_flightMax)
         {
             start_fall = 1;
@@ -16470,7 +16865,7 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
         {
             start_fall = 1;
         }
-        else if (collis->env_sidx < collis->env_eidx || collis->npc_sidx < collis->npc_eidx ||
+        else if ((collis = prj->collis)->env_sidx < collis->env_eidx || collis->npc_sidx < collis->npc_eidx ||
                  collis->stat_sidx < collis->stat_eidx || collis->dyn_sidx < collis->dyn_eidx)
         {
             start_fall = 1;
@@ -16481,6 +16876,7 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
             quake->phase = BGG_PHAZ_FALL;
         }
         break;
+    }
     case BGG_PHAZ_FALL:
         prj->SendEvent(ZPRJ_EVNT_INFLIGHT, dt);
         VPRJ_emitat(sEmitGreenBall, prj, dt, 0.0f);
@@ -16517,9 +16913,9 @@ static signed int VPRJ_BGG_logix(zEntProjectile* prj, float dt)
             prj->frame->vel.y = 0.0f;
             prj->frame->vel.z = 0.0f;
             prj->frame->mode |= 0xC;
-            prj->flg_chk &= ~0x10;
-            prj->flg_pen &= ~0x10;
-            VPRJ_emitat(sEmitGreenBallSmack, prj, dt, 0.0f);
+            prj->flg_chk &= 0xEF;
+            prj->flg_pen &= 0xEF;
+            VPRJ_emitat(sEmitGreenBallSmack, prj, dt);
             VPRJ_BGG_shockpos(prj, dt);
             prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
         }
@@ -16582,13 +16978,13 @@ static signed int VPRJ_BGG_notify(zEntProjectile* prj, en_PROJECTILE_EVENT event
 
 static signed int VPRJ_BGG_shockwave(zEntProjectile* prj, float dt)
 {
-    float br;
-    float fb;
-    _xVec3 delta = {};
-    _xVec3 pos_plyr = {};
-    _xVec3 pos_prj = {};
-    float outer;
     float inner;
+    float outer;
+    _xVec3 pos_prj = {};
+    _xVec3 pos_plyr = {};
+    _xVec3 delta = {};
+    float fb;
+    float br;
     st_BGG_QUAKEBALL* quake = (st_BGG_QUAKEBALL*)prj->xtradata;
     _zParEmitterCustomSettings pecust;
     float d2;
@@ -16647,6 +17043,16 @@ static inline void VPRJ_BGG_shockpos(zEntProjectile* prj, float dt)
         pecust.pos = g_bgg_prj_pos;
         zParEmitterEmitCustom(sEmitGreenBallShockwave, dt, &pecust);
     }
+}
+
+// The smack burst emits at the projectile itself, with no height offset.
+static inline void VPRJ_emitat(_zParEmitter* emitter, zEntProjectile* prj, float dt)
+{
+    _zParEmitterCustomSettings pecust;
+
+    pecust.custom_flags = 0x20;
+    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
+    zParEmitterEmitCustom(emitter, dt, &pecust);
 }
 
 static inline void VPRJ_emitat(_zParEmitter* emitter, zEntProjectile* prj, float dt, float yoff)
@@ -16857,6 +17263,8 @@ static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, zScene* scn, _xE
 
     switch (flask->stage)
     {
+    case MAST_STAGE_UNKNOWN:
+        break;
     case MAST_STAGE_TEASE:
         prj->SendEvent((en_PROJECTILE_EVENT)0xF, dt);
         prj->ColDelaySet(0.4f, 0);
@@ -16874,12 +17282,12 @@ static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, zScene* scn, _xE
     case MAST_STAGE_TOSS:
         if (flask->flg_stat & 2)
         {
-            ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
             _xVec3* tgt;
             _xVec3* src;
 
             flask->flg_stat &= ~2;
             prj->tmr_curstate = 0.0f;
+            ST_CAT_AIMDATA aiminf = { ZPRJ_CAIM_GRAVBALL };
             aiminf.spd_base = flask->spd_flight;
             tgt = &((_xMat4x3*)globals.player.ent.model->Mat)->pos;
             src = &((_xMat4x3*)prj->model->Mat)->pos;
@@ -16922,8 +17330,8 @@ static signed int VPRJ_BMM_logix(zEntProjectile* prj, float dt, zScene* scn, _xE
             prj->frame->vel.y = 0.0f;
             prj->frame->vel.z = 0.0f;
             prj->frame->mode |= 0xC;
-            prj->flg_chk &= ~0x10;
-            prj->flg_pen &= ~0x10;
+            prj->flg_chk &= 0xEF;
+            prj->flg_pen &= 0xEF;
             prj->SendEvent(ZPRJ_EVNT_DETONATE, dt);
         }
         prj->SendEvent((en_PROJECTILE_EVENT)0x10, dt);
@@ -17047,17 +17455,17 @@ static inline void VPRJ_prjsound(st_zEntVillain* vil, zEntProjectile* prj, en_NP
 
 static inline void VPRJ_BMM_redflask(zEntProjectile* prj, float dt)
 {
-    _xCollis colrec = {};
-    float rad_oldbnd;
     st_ZVMM_FLASK_DATA* flask = (st_ZVMM_FLASK_DATA*)prj->xtradata;
-    _zParEmitterCustomSettings pecust;
+    float rad_oldbnd;
+    _xCollis colrec = {};
 
     if (flask->tym_aftermath < 0.1f)
     {
         return;
     }
     rad_oldbnd = prj->bound.sph.r;
-    prj->bound.sph.r = (prj->tmr_curstate / flask->tym_aftermath) * flask->rad_aftermath;
+    float frac = prj->tmr_curstate / flask->tym_aftermath;
+    prj->bound.sph.r = frac * flask->rad_aftermath;
     xBoundHitsBound(&prj->bound, &globals.player.ent.bound, &colrec);
     if (colrec.flags & 1)
     {
@@ -17065,24 +17473,22 @@ static inline void VPRJ_BMM_redflask(zEntProjectile* prj, float dt)
         prj->SendEvent(ZPRJ_EVNT_HITPLYR);
     }
     prj->bound.sph.r = rad_oldbnd;
-    pecust.custom_flags = 0x20;
-    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
-    zParEmitterEmitCustom(sEmitMMRedFlask, dt, &pecust);
+    VPRJ_emitat(sEmitMMRedFlask, prj, dt);
 }
 
 static inline void VPRJ_BMM_greenflask(zEntProjectile* prj, float dt)
 {
-    _xCollis colrec = {};
-    float rad_oldbnd;
     st_ZVMM_FLASK_DATA* flask = (st_ZVMM_FLASK_DATA*)prj->xtradata;
-    _zParEmitterCustomSettings pecust;
+    float rad_oldbnd;
+    _xCollis colrec = {};
 
     if (flask->tym_aftermath < 0.1f)
     {
         return;
     }
     rad_oldbnd = prj->bound.sph.r;
-    prj->bound.sph.r = (prj->tmr_curstate / flask->tym_aftermath) * flask->rad_aftermath;
+    float frac = prj->tmr_curstate / flask->tym_aftermath;
+    prj->bound.sph.r = frac * flask->rad_aftermath;
     xBoundHitsBound(&prj->bound, &globals.player.ent.bound, &colrec);
     if (colrec.flags & 1)
     {
@@ -17090,24 +17496,22 @@ static inline void VPRJ_BMM_greenflask(zEntProjectile* prj, float dt)
         prj->SendEvent(ZPRJ_EVNT_HITPLYR);
     }
     prj->bound.sph.r = rad_oldbnd;
-    pecust.custom_flags = 0x20;
-    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
-    zParEmitterEmitCustom(sEmitMMGreenFlask, dt, &pecust);
+    VPRJ_emitat(sEmitMMGreenFlask, prj, dt);
 }
 
 static inline void VPRJ_BMM_blackflask(zEntProjectile* prj, float dt)
 {
-    _xCollis colrec = {};
-    float rad_oldbnd;
     st_ZVMM_FLASK_DATA* flask = (st_ZVMM_FLASK_DATA*)prj->xtradata;
-    _zParEmitterCustomSettings pecust;
+    float rad_oldbnd;
+    _xCollis colrec = {};
 
     if (flask->tym_aftermath < 0.1f)
     {
         return;
     }
     rad_oldbnd = prj->bound.sph.r;
-    prj->bound.sph.r = (prj->tmr_curstate / flask->tym_aftermath) * flask->rad_aftermath;
+    float frac = prj->tmr_curstate / flask->tym_aftermath;
+    prj->bound.sph.r = frac * flask->rad_aftermath;
     xBoundHitsBound(&prj->bound, &globals.player.ent.bound, &colrec);
     if (colrec.flags & 1)
     {
@@ -17115,9 +17519,7 @@ static inline void VPRJ_BMM_blackflask(zEntProjectile* prj, float dt)
         prj->SendEvent(ZPRJ_EVNT_HITPLYR);
     }
     prj->bound.sph.r = rad_oldbnd;
-    pecust.custom_flags = 0x20;
-    pecust.pos = ((_xMat4x3*)prj->model->Mat)->pos;
-    zParEmitterEmitCustom(sEmitMMBlackFlask, dt, &pecust);
+    VPRJ_emitat(sEmitMMBlackFlask, prj, dt);
 }
 
 static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil)
@@ -17125,7 +17527,6 @@ static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil)
     unsigned int aid;
     signed int i;
     _xVec3 vec_pos = {};
-    _xMat4x3 mat = {};
 
     if (rbs->flg_stat & 1)
     {
@@ -17145,7 +17546,12 @@ static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil)
     rbs->collis = (_xEntCollis*)&rbs->raw_collis;
 
     vec_pos = ((_xMat4x3*)rbs->rbvil->model->Mat)->pos;
+    _xMat4x3 mat = {};
     xMat3x3Euler((_xMat3x3*)&mat, 0.0f, 0.0f, 0.0f);
+    // Unit scale, kept: the original multiplies the rotation rows by 1.0.
+    xVec3SMulBy(&mat.right, 1.0f);
+    xVec3SMulBy(&mat.up, 1.0f);
+    xVec3SMulBy(&mat.at, 1.0f);
     mat.flags = 0;
     mat.pos = vec_pos;
 
@@ -17174,15 +17580,19 @@ static void VWEP_rbs_setup(st_REDBEARD_SWORD* rbs, st_zEntVillain* rbvil)
 
 static inline xModelInstance* VWEP_rbs_animmodel(st_zEntVillain* vil)
 {
-    signed int idx = 0;
     xModelInstance* minst = vil->model;
     xModelInstance* da_minst = NULL;
+    signed int idx = 0;
 
     while (minst && !da_minst)
     {
-        if (idx == 1)
+        switch (idx)
         {
+        case 0:
+            break;
+        case 1:
             da_minst = minst;
+            break;
         }
         minst = minst->Next;
         idx++;
@@ -17201,7 +17611,6 @@ static void VWEP_rbs_bupdate(_xEnt* ent_rbs, _xVec3* pos)
 static void VWEP_rbs_throw(st_REDBEARD_SWORD* rbs)
 {
     signed int rc;
-    _xMat4x3* mat;
 
     rbs->tym_age = 0.0f;
     rbs->dst_far = rbs->rbvil->dst_extend;
@@ -17209,24 +17618,23 @@ static void VWEP_rbs_throw(st_REDBEARD_SWORD* rbs)
     rbs->dir_end = rbs->rbvil->precalc.dir_VtoP;
     xVec3SMul(&rbs->pos_end, &rbs->dir_end, rbs->dst_far);
 
-    mat = (_xMat4x3*)rbs->frame;
-    xMat3x3Euler((_xMat3x3*)mat, 0.0f, 0.0f, 0.0f);
-    rc = VUTIL_tagpos(rbs->rbvil, 10, &mat->pos);
+    xMat3x3Euler((_xMat3x3*)rbs->frame, 0.0f, 0.0f, 0.0f);
+    rc = VUTIL_tagpos(rbs->rbvil, 10, &((_xMat4x3*)rbs->frame)->pos);
     if (!rc)
     {
-        rc = VUTIL_tagpos(rbs->rbvil, 6, &mat->pos);
+        rc = VUTIL_tagpos(rbs->rbvil, 6, &((_xMat4x3*)rbs->frame)->pos);
     }
     if (!rc)
     {
-        rc = VUTIL_tagpos(rbs->rbvil, 5, &mat->pos);
+        rc = VUTIL_tagpos(rbs->rbvil, 5, &((_xMat4x3*)rbs->frame)->pos);
     }
     if (!rc)
     {
-        rc = VUTIL_tagpos(rbs->rbvil, 9, &mat->pos);
+        rc = VUTIL_tagpos(rbs->rbvil, 9, &((_xMat4x3*)rbs->frame)->pos);
     }
     if (!rc)
     {
-        mat->pos = *xBoundCenter(&rbs->rbvil->bound);
+        ((_xMat4x3*)rbs->frame)->pos = *xBoundCenter(&rbs->rbvil->bound);
     }
 
     memcpy(rbs->model->Mat, rbs->frame, 0x40);
@@ -17236,14 +17644,12 @@ static void VWEP_rbs_throw(st_REDBEARD_SWORD* rbs)
     rbs->flg_stat |= 4;
 }
 
+// Name invented: the original runs the age update before these locals are
+// initialized, so the spin/move half was its own inline.
+static inline void VWEP_rbs_spin(st_REDBEARD_SWORD* rbs, float dt);
+
 static inline void VWEP_rbs_flight(st_REDBEARD_SWORD* rbs, float dt)
 {
-    _xMat3x3 mat_rot = {};
-    _xVec3 ang = { 25.132741f, 0.0f, 0.0f };
-    _xVec3 dpos = {};
-    _xMat4x3* mat;
-    unsigned int snd;
-
     rbs->tym_age += dt;
     if (rbs->tym_age > 2.5f)
     {
@@ -17253,6 +17659,16 @@ static inline void VWEP_rbs_flight(st_REDBEARD_SWORD* rbs, float dt)
     {
         rbs->flg_stat &= ~8;
     }
+    VWEP_rbs_spin(rbs, dt);
+}
+
+static inline void VWEP_rbs_spin(st_REDBEARD_SWORD* rbs, float dt)
+{
+    _xMat3x3 mat_rot = {};
+    _xVec3 ang = { 25.132741f, 0.0f, 0.0f };
+    _xVec3 dpos = {};
+    _xMat4x3* mat;
+    unsigned int snd;
 
     ang.x *= dt;
     ang.y *= dt;
@@ -17390,12 +17806,12 @@ static void SuperVillainGumDraw(_xVec3* from, _xVec3* to, float top_radius, floa
 static void VEFX_plop_gum(st_zEntVillain* ent)
 {
     RwTexture* tex;
-    _xMat3x3 dir_shoot = {};
-    _xVec3 pos_vert = {};
-    _xVec3 npcpos = {};
-    signed int i;
     _xVec3 to = {};
     _xVec3 from = {};
+    signed int i;
+    _xVec3 npcpos = {};
+    _xVec3 pos_vert = {};
+    _xMat3x3 dir_shoot = {};
 
     tex = (RwTexture*)xSTFindAsset(xStrHash("GUM-FLOOR"), NULL);
     if (tex)
@@ -17410,7 +17826,9 @@ static void VEFX_plop_gum(st_zEntVillain* ent)
         {
             continue;
         }
-        from = pos_vert;
+        from.x = pos_vert.x;
+        from.y = pos_vert.y;
+        from.z = pos_vert.z;
         to.x = pos_vert.x;
         to.z = pos_vert.z;
         if (pos_vert.y > npcpos.y)
@@ -17420,8 +17838,8 @@ static void VEFX_plop_gum(st_zEntVillain* ent)
         else
         {
             to.y = pos_vert.y;
-            from.y = npcpos.y;
         }
+        from.y = npcpos.y;
         if (!(from.y - to.y < 0.002f))
         {
             _xVec3 dir;
@@ -17497,7 +17915,6 @@ static void VEFX_hologram(st_zEntVillain* vil, float dt)
 
 static void VEFX_mm_zapper(st_zEntVillain* vil, signed int cleanup)
 {
-    _tagLightningAdd add = {};
     signed int i;
 
     for (i = 0; i < 5; i++)
@@ -17514,6 +17931,7 @@ static void VEFX_mm_zapper(st_zEntVillain* vil, signed int cleanup)
         return;
     }
 
+    _tagLightningAdd add = {};
     add.type = eLT_Line;
     add.start = xBoundCenter(&vil->bound);
     add.end = xBoundCenter(&globals.player.ent.bound);
@@ -17547,9 +17965,10 @@ static void VEFX_mm_zapper(st_zEntVillain* vil, signed int cleanup)
 
 static void VEFX_zapTheKnight(st_zEntVillain* vil, signed int cleanup)
 {
-    _xVec3 loca = {};
-    signed int i;
+    _xBound* bnd;
     _tagLightningAdd add = {};
+    signed int i;
+    _xVec3 loca = {};
 
     for (i = 0; i < 5; i++)
     {
@@ -17565,9 +17984,10 @@ static void VEFX_zapTheKnight(st_zEntVillain* vil, signed int cleanup)
         return;
     }
 
-    loca = *xBoundCenter(&vil->bound);
+    bnd = &vil->bound;
+    loca = *xBoundCenter(bnd);
     loca.y += 20.0f;
-    add.start = xBoundCenter(&vil->bound);
+    add.start = xBoundCenter(bnd);
     add.end = &loca;
     add.time = (vil->tmr_list[ZVIL_TDUR_HURT] > vil->tmr_list[ZVIL_TYMR_MINANIMPLAY]) ?
                    vil->tmr_list[ZVIL_TDUR_HURT] :
@@ -17643,21 +18063,23 @@ static inline _tagLightning* VEFX_zapper_type_A(_xVec3* from, _xVec3* to, float 
 
 static void VPAR_readyize_emitters()
 {
-    en_zEntVillainSubTypeID viltype;
-    st_zEntVillain_ParEmitInfo* vinf;
-    xBase* pebase;
-    signed int flg_omit;
-    signed int flg_need;
-    unsigned int emitid;
     en_VPAR_EMITTER_ROLE emitrole;
+    signed int flg_need;
+    signed int flg_omit;
+    st_zEntVillain_ParEmitInfo* vinf;
+    en_zEntVillainSubTypeID viltype;
+    xBase* pebase;
+    unsigned int emitid;
 
-    for (vinf = g_emitinfo; vinf->emitname; vinf++)
+    vinf = g_emitinfo;
+    while (vinf->emitname)
     {
         emitid = xStrHash(vinf->emitname);
         emitrole = vinf->emitrole;
         viltype = vinf->viltype;
         flg_need = vinf->flg_need;
         flg_omit = vinf->flg_omit;
+        vinf++;
         pebase = zSceneFindObject(emitid);
         if (pebase && pebase->baseType == 0x26)
         {
@@ -17706,13 +18128,13 @@ static void VPAR_readyize_emitters()
 
 static void VPAR_emit_partype(st_zEntVillain* ent, en_VPAR_EMITTER_ROLE emittype, float dt)
 {
-    _xVec3 vilhed = {};
-    _xVec3 vilctr = {};
-    signed int idx;
-    signed int do_emit = 0;
-    signed int i;
-    st_zEntVillain_ParEmitRecord* vpar;
     _zParEmitterCustomSettings pecust = { 0 };
+    st_zEntVillain_ParEmitRecord* vpar;
+    signed int i;
+    signed int do_emit = 0;
+    signed int idx;
+    _xVec3 vilctr = {};
+    _xVec3 vilhed = {};
 
     vilctr = *xBoundCenter(&ent->bound);
     if (!VUTIL_tagpos(ent, 8, &vilhed))
@@ -17791,6 +18213,11 @@ static void VPAR_emit_partype(st_zEntVillain* ent, en_VPAR_EMITTER_ROLE emittype
             pecust.custom_flags = 0x20;
             pecust.pos = vilhed;
             break;
+        case VPAR_EMIT_WALLPRINT:
+            pecust.custom_flags = 0x20;
+            do_emit = 1;
+            pecust.pos = vilctr;
+            break;
         case VPAR_EMIT_POOF:
         case VPAR_EMIT_TELEPORT:
             do_emit = 0;
@@ -17829,8 +18256,8 @@ static inline signed int VPAR_emit_headbutt(float dt, st_zEntVillain_ParEmitReco
     mat = (_xMat4x3*)globals.player.ent.model->Mat;
     pecust->pos.x = mat->pos.x + mat->at.x;
     pecust->pos.y = 1.1f + mat->pos.y;
-    pecust->custom_flags = 0x20 | 0x10000;
     pecust->pos.z = mat->pos.z + mat->at.z;
+    pecust->custom_flags |= 0x10000;
     xMat3x3GetEuler((_xMat3x3*)mat, &angles);
     pecust->rot[1] = 0x40;
     pecust->rot[0] = 255.0f * (angles.x / 6.2831855f);
@@ -17850,12 +18277,12 @@ static inline signed int VPAR_emit_headbutt(float dt, st_zEntVillain_ParEmitReco
 static void VPAR_emit_extattack(st_zEntVillain* ent, _xVec3* origin, _xVec3* aimdir, float length, float slope,
                                 float dt)
 {
-    st_zEntVillain_ParEmitRecord* vpar;
-    _zParEmitterCustomSettings* pecust;
-    float delta;
-    float fv = 0.0f;
-    signed int j;
     signed int i;
+    signed int j;
+    float fv = 0.0f;
+    float delta;
+    _zParEmitterCustomSettings* pecust = &g_pecust;
+    st_zEntVillain_ParEmitRecord* vpar;
 
     for (i = 0; i < g_emitlist.cnt; i++)
     {
@@ -17881,10 +18308,9 @@ static void VPAR_emit_extattack(st_zEntVillain* ent, _xVec3* origin, _xVec3* aim
             continue;
         }
 
-        delta = length / 25.0f;
-        pecust = &g_pecust;
         pecust->custom_flags = 0x2FE1;
         pecust->life = 0.75f;
+        delta = length / 25.0f;
         pecust->count = 1;
         pecust->color_birth[0] = 0xAA;
         pecust->color_birth[1] = 0xAA;
@@ -17900,9 +18326,11 @@ static void VPAR_emit_extattack(st_zEntVillain* ent, _xVec3* origin, _xVec3* aim
             pecust->size_birth = slope * fv * (1.0f + (1.0f - iurand()));
             pecust->size_death = 0.25f * pecust->size_birth;
             pecust->size_birth_variation = pecust->size_death;
-            xVec3SMul(&pecust->pos, aimdir, fv);
+            pecust->pos = *aimdir;
+            xVec3SMulBy(&pecust->pos, fv);
             xVec3AddTo(&pecust->pos, origin);
-            xVec3SMul(&pecust->vel, aimdir, -ent->spd_extend);
+            pecust->vel = *aimdir;
+            xVec3SMulBy(&pecust->vel, -ent->spd_extend);
             zParEmitterEmitCustom(vpar->emitctxt, dt, pecust);
         }
     }
@@ -18525,12 +18953,18 @@ static xAnimTable* VANM_mktable_SIMP()
     xAnimTransition* tran;
     signed int i;
 
+    typedef unsigned int (*tranfn)(xAnimTransition*, xAnimSingle*, void*);
+
+    // The original keeps the transition callbacks in locals (held in saved
+    // registers across the table calls).
     table = xAnimTableNew("Villain_Simple", NULL);
     xAnimTableNewState(table, "Idle", 0x110, 1, 1.0f, NULL, NULL, 0.0f, NULL);
     xAnimTableNewState(table, "SIMP_Action", 0x20, 1, 1.0f, NULL, NULL, 0.0f, NULL);
-    xAnimTableNewTransition(table, g_animname[146], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dodflt, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
-    xAnimTableNewTransition(table, g_animname[146], "Idle", (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
-    xAnimTableNewTransition(table, "Idle", g_animname[146], (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_dotran, (unsigned int (*)(xAnimTransition*, xAnimSingle*, void*))VANM_didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
+    tranfn didtran = (tranfn)VANM_didtran;
+    tranfn dotran = (tranfn)VANM_dotran;
+    xAnimTableNewTransition(table, g_animname[146], "Idle", (tranfn)VANM_dodflt, (tranfn)VANM_diddflt, 0x10, 0, 0.0f, 0.0f, 0, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, g_animname[146], "Idle", dotran, didtran, 0, 0, 0.0f, 0.0f, 5, 0, 0.1f, NULL);
+    xAnimTableNewTransition(table, "Idle", g_animname[146], dotran, didtran, 0, 0, 0.0f, 0.0f, 0xA, 0, 0.1f, NULL);
     return table;
 }
 
@@ -19229,7 +19663,9 @@ static unsigned int VANM_didtran(xAnimTransition* tran, xAnimSingle* single, st_
 
     ent->anim_playing = 1;
     ent->anim_playnext = VANM_hashToAnim(single->State->ID);
-    ent->tmr_list[ZVIL_TYMR_MINANIMPLAY] = VANM_duration(single->State, ent, &tym) * ent->anim_loopmult;
+    float mult = ent->anim_loopmult;
+    float dur = VANM_duration(single->State, ent, &tym);
+    ent->tmr_list[ZVIL_TYMR_MINANIMPLAY] = dur * mult;
     if (single->State->Flags & 0x10)
     {
         ent->anim_loopmult = 0.97f;
@@ -19249,7 +19685,9 @@ static unsigned int VANM_diddflt(xAnimTransition* tran, xAnimSingle* single, st_
 
     ent->anim_playing = 1;
     ent->anim_playnext = VANM_hashToAnim(single->State->ID);
-    ent->tmr_list[ZVIL_TYMR_MINANIMPLAY] = VANM_duration(single->State, ent, &tym) * ent->anim_loopmult;
+    float mult = ent->anim_loopmult;
+    float dur = VANM_duration(single->State, ent, &tym);
+    ent->tmr_list[ZVIL_TYMR_MINANIMPLAY] = dur * mult;
     if (single->State->Flags & 0x10)
     {
         ent->anim_loopmult = 0.97f;
@@ -19260,8 +19698,8 @@ static unsigned int VANM_diddflt(xAnimTransition* tran, xAnimSingle* single, st_
 
 static inline en_NPC_ANIMSTATES VANM_hashToAnim(unsigned int id)
 {
-    signed int i;
     en_NPC_ANIMSTATES anim = ZVIL_ANIM_UNKNOWN;
+    signed int i;
 
     for (i = 0; i < 147; i++)
     {
@@ -19274,6 +19712,7 @@ static inline en_NPC_ANIMSTATES VANM_hashToAnim(unsigned int id)
     return anim;
 }
 
+// TODO: 99.9%. The duration multiply has its operands swapped.
 static en_NPC_ANIMSTATES VANM_set(st_zEntVillain* ent, en_NPC_ANIMSTATES* best, signed int cnt, signed int sync)
 {
     xAnimState* astate = NULL;
@@ -19303,6 +19742,10 @@ static en_NPC_ANIMSTATES VANM_set(st_zEntVillain* ent, en_NPC_ANIMSTATES* best, 
             astate = NULL;
             continue;
         }
+        if (!astate)
+        {
+            continue;
+        }
         if (ent->anim_playnext != best[i])
         {
             ent->anim_playnext = best[i];
@@ -19328,11 +19771,12 @@ static en_NPC_ANIMSTATES VANM_set(st_zEntVillain* ent, en_NPC_ANIMSTATES* best, 
 
 static inline void VANM_starttran(st_zEntVillain* ent, xAnimState* from, xAnimState* to)
 {
+    xAnimTable* table = ent->model->Anim->Table;
     xAnimTransition* tran = NULL;
 
     if (from && to && from->ID != to->ID)
     {
-        if (!VANM_findtran(ent, ent->model->Anim->Table, from, to, 1, &tran) && tran)
+        if (!VANM_findtran(ent, table, from, to, 1, &tran) && tran)
         {
             xAnimPlayStartTransition(ent->model->Anim, tran);
         }
@@ -19342,13 +19786,13 @@ static inline void VANM_starttran(st_zEntVillain* ent, xAnimState* from, xAnimSt
 static en_NPC_ANIMSTATES VANM_randset(st_zEntVillain* ent, float* wts, en_NPC_ANIMSTATES* choice_list,
                                       signed int cnt)
 {
-    signed int act_cnt = 0;
-    float* act_wts = NULL;
-    signed int use_anim;
-    signed int* act_list;
-    xAnimState* chk_ast;
-    signed int i;
     en_NPC_ANIMSTATES fnl_anim;
+    signed int i;
+    xAnimState* chk_ast;
+    signed int* act_list;
+    signed int use_anim;
+    float* act_wts = NULL;
+    signed int act_cnt = 0;
 
     if (!choice_list)
     {
@@ -19453,11 +19897,13 @@ static xAnimTransition* VANM_findtran(st_zEntVillain* ent, xAnimTable* table, xA
 
     if (!da_tran)
     {
-        for (tmp_tranlist = from->List; tmp_tranlist; tmp_tranlist = tmp_tranlist->Next)
+        tmp_tranlist = from->List;
+        while (tmp_tranlist)
         {
             tmp_tran = tmp_tranlist->T;
             if (!tmp_tran)
             {
+                tmp_tranlist = tmp_tranlist->Next;
                 continue;
             }
             if (to->ID == tmp_tran->Dest->ID)
@@ -19465,6 +19911,7 @@ static xAnimTransition* VANM_findtran(st_zEntVillain* ent, xAnimTable* table, xA
                 da_tran = tmp_tran;
                 break;
             }
+            tmp_tranlist = tmp_tranlist->Next;
         }
     }
 
@@ -19523,25 +19970,21 @@ static inline xAnimState* VANM_entState(_zEnt* ent)
 
 static inline xAnimSingle* VANM_entSingle(_zEnt* ent)
 {
-    xAnimPlay* play;
+    xAnimSingle* single;
 
     if (!ent->model)
     {
-        play = NULL;
+        single = NULL;
     }
     else if (!ent->model->Anim)
     {
-        play = NULL;
+        single = NULL;
     }
     else
     {
-        play = ent->model->Anim;
+        single = ent->model->Anim->Single;
     }
-    if (play)
-    {
-        return play->Single;
-    }
-    return NULL;
+    return single;
 }
 
 static inline void VSND_setup_soundTable()
@@ -19645,9 +20088,9 @@ static inline signed int VSND_addQueueEntry(st_zEntVillain* vil, en_NPC_SOUND sn
 
 static signed int VSND_procQueue(st_zEntVillain* vil, float dt)
 {
-    signed int cnt = 0;
-    signed int i;
     st_NPC_SOUND_QUEUE* que;
+    signed int i;
+    signed int cnt = 0;
 
     for (i = 0; i < 4; i++)
     {
@@ -19892,20 +20335,19 @@ static inline void VANM_playRand5(st_zEntVillain* vil, en_NPC_ANIMSTATES a, en_N
 
 static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent)
 {
+    en_zEntVillainSubTypeID viltyp = (en_zEntVillainSubTypeID)vil->asset->subtype;
+    unsigned int da_aid_of_sound = 0;
     float use_wt;
     signed int cnt;
-    float wts[32] = {};
     signed int list[32] = { 0x3F800000 };
-    st_NPC_SOUND_RECORDS* trax;
+    float wts[32] = {};
     st_NPC_SOUND_ENTRY* entry;
-    en_zEntVillainSubTypeID viltyp;
-    unsigned int da_aid_of_sound;
+    st_NPC_SOUND_RECORDS* trax;
 
-    viltyp = (en_zEntVillainSubTypeID)vil->asset->subtype;
-    da_aid_of_sound = 0;
     cnt = 0;
 
-    for (entry = g_npcJukeBox; entry->sndList; entry++)
+    entry = g_npcJukeBox;
+    while (entry->sndList)
     {
         if (entry->viltyp == viltyp)
         {
@@ -19917,6 +20359,7 @@ static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent
         }
         else
         {
+            entry++;
             continue;
         }
 
@@ -19941,6 +20384,7 @@ static unsigned int VSND_select_sound(st_zEntVillain* vil, en_NPC_SOUND sndEvent
         {
             break;
         }
+        entry++;
     }
 
     if (cnt > 0)
@@ -20074,14 +20518,14 @@ static void VBON_drop_bonusItem(st_zEntVillain* vil)
 
 static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp)
 {
-    signed int wt_ramp;
-    signed int soap_always;
-    float food_weight;
-    float gum_weight;
-    float soap_weight;
-    float rat;
-    signed int choice;
     signed int cnt;
+    signed int choice;
+    float rat;
+    float soap_weight;
+    float gum_weight;
+    float food_weight;
+    signed int soap_always;
+    signed int wt_ramp;
     float wts[11] = {};
     signed int list[11] = {};
     _xVec3 farfar = { -9999.0f, -8888.0f, -7777.0f };
@@ -20104,7 +20548,7 @@ static st_NPC_BONUS* VBON_choose_bonusItem(en_zEntVillainSubTypeID vtyp)
             return NULL;
         }
     }
-    else if (vtyp == eEntVillainType_Undefined && pfx == 'P\0\0\0')
+    else if (vtyp == eEntVillainTypeBat && pfx == 'P\0\0\0')
     {
         soap_always = 1;
     }
@@ -20412,11 +20856,10 @@ static inline signed int VSUP_ent_inLOS_timz(st_zEntVillain* vil, _zEnt* ent, si
     {
         r.max_t = VUTIL_sqrt(vil->ds2_detect);
     }
-    r.origin.x = r.dir.x * r.min_t + mypos.x;
-    r.origin.y = r.dir.y * r.min_t + mypos.y;
-    r.origin.z = r.dir.z * r.min_t + mypos.z;
+    xVec3SMul(&r.origin, &r.dir, r.min_t);
+    xVec3AddTo(&r.origin, &mypos);
     r.flags = 0x800;
-    return xRayHitsSceneFast(&r, globals.sceneCur) == 0;
+    return (unsigned char)(xRayHitsSceneFast(&r, globals.sceneCur) == 0);
 }
 
 static inline float VSUP_ent_facedot(st_zEntVillain* vil, _zEnt* ent)
@@ -20440,7 +20883,6 @@ static inline float VSUP_ent_AOI(st_zEntVillain* vil, _zEnt* ent, signed int* qd
     float dang = VSUP_dir_toPos(vil, VUTIL_ctrOf(ent), NULL) - vil->frame->rot.angle;
     float ang = xAngleClamp(dang + 0.7853982f);
 
-    *qdrant = 0;
     if (ang > 0.0f && ang <= 1.5707964f)
     {
         *qdrant = 1;
@@ -20464,8 +20906,8 @@ static inline signed int VSUP_choose(signed int* list, float* wts, signed int cn
 {
     float dlta;
     float pt;
-    float hi;
     float lo;
+    float hi;
     signed int i;
     signed int idx = 0;
 
@@ -20608,15 +21050,10 @@ static inline void VEFX_place_gumBlob(xModelInstance* blob, _xMat4x3* mat)
     _xMat4x3 m = {};
 
     xMat3x3Euler((_xMat3x3*)&m, (_xVec3*)&g_O3);
-    m.right.x *= 1.0f;
-    m.right.y *= 1.0f;
-    m.right.z *= 1.0f;
-    m.up.x *= 1.0f;
-    m.up.y *= 1.0f;
-    m.up.z *= 1.0f;
-    m.at.x *= 1.0f;
-    m.at.y *= 1.0f;
-    m.at.z *= 1.0f;
+    xVec3SMulBy(&m.right, 1.0f);
+    xVec3SMulBy(&m.up, 1.0f);
+    xVec3SMulBy(&m.at, 1.0f);
+    m.flags = 0;
     m.pos = mat->pos;
     memcpy(blob->Mat, &m, sizeof(_xMat4x3));
 }

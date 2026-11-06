@@ -145,7 +145,7 @@ extern "C" {
 signed int sprintf(char* s, const char* format, ...);
 RwMatrixTag* RwMatrixUpdate(RwMatrixTag* matrix);
 // TODO: unidentified RenderWare matrix scale
-RwMatrixTag* fn_80162B60(RwMatrixTag* matrix, const RwV3d* scale, signed int combineOp);
+RwMatrixTag* RwMatrixScale(RwMatrixTag* matrix, const RwV3d* scale, signed int combineOp);
 // TODO: unidentified functions
 void fn_80015EAC(const char* fmt, ...);
 float fn_800294A0(float t);
@@ -365,16 +365,15 @@ void zEntPickupInit(_zEntPickup* ent, p2EntAsset* asset)
     }
     for (i = 0; i < ent->linkCount; i++)
     {
-        p2LinkAsset* link = &((p2LinkAsset*)ent->link)[i];
-        if (link->dstEvent == 0x99)
+        if (((p2LinkAsset*)ent->link)[i].dstEvent == 0x99)
         {
-            link->dstAssetID = ent->id;
+            ((p2LinkAsset*)ent->link)[i].dstAssetID = ent->id;
         }
     }
 
     ent->pflags = 0;
-    ent->penby = 0;
     ent->chkby = 0;
+    ent->penby = 0;
     ent->update = (void (*)(_xEnt*, _xScene*, float))zEntPickup_Update;
     ent->move = NULL;
     ent->eventFunc = zEntPickupEventCB;
@@ -402,12 +401,11 @@ void zEntPickupInit(_zEntPickup* ent, p2EntAsset* asset)
                     ((zEntPickupAsset*)asset)->pickupHash);
     }
 
-    unsigned int animID = p->animID;
     RpAtomic* model = (RpAtomic*)xSTFindAsset(p->modelID, &size);
     void* anim = NULL;
-    if (animID != 0)
+    if (p->animID != 0)
     {
-        anim = xSTFindAsset(animID, &size);
+        anim = xSTFindAsset(p->animID, &size);
         if (iAnimBoneCount(anim) != iModelNumBones(model))
         {
             anim = NULL;
@@ -415,7 +413,7 @@ void zEntPickupInit(_zEntPickup* ent, p2EntAsset* asset)
     }
 
     ent->model = xModelInstanceAlloc(model, ent, 0, 0, NULL);
-    ent->model->Flags &= ~2;
+    ent->model->Flags &= 0xFFFD;
     ent->state = 0x41;
     ent->p = p;
     if (ent->p->pickupType == 1 && ent->p->pickupIndex == 2)
@@ -1037,7 +1035,7 @@ void zEntPickup_Update(_zEntPickup* ent, _xScene* sc, float dt)
         iModelAnimMatrices(ent->model->Data, quat, tran, ent->model->Mat + 1);
     }
 
-    if (ent->shake_timer != 0.0f)
+    if (ent->shake_timer)
     {
         ent->shake_timer -= dt;
         if (ent->shake_timer < 0.0f)
@@ -1326,8 +1324,8 @@ void zEntPickup_Drop(_zEntPickup* ent)
             *(_xVec3*)&ent->model->Mat->pos = *(_xVec3*)&ent->useThisEntPos->model->Mat->pos;
         }
     }
-    float h = ent->model->Mat->pos.y - ent->droppos.y;
     float vy = xsqrt(75.0f);
+    float h = ent->model->Mat->pos.y - ent->droppos.y;
     ent->vel.x = 0.0f;
     ent->vel.y = vy;
     ent->vel.z = 0.0f;
@@ -1521,7 +1519,7 @@ void zEntPickup_UpdateFX(_zEntPickup* ent, _xScene* sc, float dt)
         doGlow = 1;
     }
 
-    if (doGlow && ent->fx_timer != 0.0f && sEmitGlow != NULL)
+    if (doGlow && ent->fx_timer && sEmitGlow != NULL)
     {
         info.color_birth[0] = r;
         info.color_birth[1] = g;
@@ -1561,7 +1559,7 @@ void zEntPickup_RenderList(_zEntPickup* plist, unsigned int pcount)
                 scale.x = plist->fx_scale;
                 scale.y = plist->fx_scale;
                 scale.z = plist->fx_scale;
-                fn_80162B60(&frame->ltm, &scale, 1);
+                RwMatrixScale(&frame->ltm, &scale, 1);
             }
             RwMatrixUpdate(&frame->ltm);
             (*(void (**)(RpAtomic*))((unsigned char*)model + 0x48))(model);
@@ -1795,7 +1793,7 @@ static inline unsigned int zEntPickup_snacksLeftInArea()
 
 unsigned int zEntPickup_lastSnackInArea()
 {
-    return zEntPickup_snacksLeftInArea() == 0;
+    return !zEntPickup_snacksLeftInArea();
 }
 
 void zEntPickup_UnlockSnackGate(_xEnt* ent)

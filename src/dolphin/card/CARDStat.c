@@ -1,4 +1,6 @@
 #include "dolphin/card.h"
+#define CARD_FILE "CARDStat.c"
+#include "dolphin/card/card_dbg.h"
 
 extern CARDDir* __CARDGetDirBlock(CARDControl* card);
 extern void __CARDSyncCallback(s32 chan, s32 result);
@@ -67,8 +69,8 @@ s32 CARDGetStatus(s32 chan, s32 fileNo, CARDStat* stat) {
     CARDDir* ent;
     s32 result;
 
-    ASSERTLINE(172, 0 <= chan && chan < 2);
-    ASSERTLINE(173, 0 <= fileNo && fileNo < CARD_MAX_FILE);
+    ASSERTLINE(169, 0 <= chan && chan < 2);
+    ASSERTLINE(170, 0 <= fileNo && fileNo < CARD_MAX_FILE);
 
     if (fileNo < 0 || CARD_MAX_FILE <= fileNo)
         return CARD_RESULT_FATAL_ERROR;
@@ -109,10 +111,10 @@ s32 CARDSetStatusAsync(s32 chan, s32 fileNo, CARDStat* stat, CARDCallback callba
     CARDDir* ent;
     s32 result;
 
-    ASSERTLINE(231, 0 <= fileNo && fileNo < CARD_MAX_FILE);
-    ASSERTLINE(232, 0 <= chan && chan < 2);
-    ASSERTMSGLINE(240, stat->iconAddr == 0xffffffff || stat->iconAddr < CARD_READ_SIZE, "CARDSetStatus[Async](): stat->iconAddr must be 0xffffffff or less than CARD_READ_SIZE.");
-    ASSERTMSGLINE(243, stat->commentAddr == 0xffffffff || (stat->commentAddr & 0x1FFF) <= 8128, "CARDSetStatus[Async](): comment strings (set by stat->commentAddr) must not cross 8KB byte boundary.");
+    ASSERTLINE(232, 0 <= fileNo && fileNo < CARD_MAX_FILE);
+    ASSERTLINE(233, 0 <= chan && chan < 2);
+    ASSERTMSGLINE(241, stat->iconAddr == 0xffffffff || stat->iconAddr < CARD_READ_SIZE, "CARDSetStatus[Async](): stat->iconAddr must be 0xffffffff or less than CARD_READ_SIZE.");
+    ASSERTMSGLINE(244, stat->commentAddr == 0xffffffff || (stat->commentAddr & 0x1FFF) <= 8128, "CARDSetStatus[Async](): comment strings (set by stat->commentAddr) must not cross 8KB byte boundary.");
 
     if (fileNo < 0 || CARD_MAX_FILE <= fileNo ||
         (stat->iconAddr != 0xffffffff && CARD_READ_SIZE <= stat->iconAddr) ||

@@ -14,30 +14,23 @@ _AISetStreamVolRight:
     addl $4, %esp
     xorl %eax, %eax
     ret
-    .globl __Z16iDebugScreenDumpv
-__Z16iDebugScreenDumpv:
-    pushl $Lname3
-    call _pc_stub_hit
-    addl $4, %esp
-    xorl %eax, %eax
-    ret
     .globl ___start
 ___start:
-    pushl $Lname4
+    pushl $Lname3
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __stack_addr
 __stack_addr:
-    pushl $Lname5
+    pushl $Lname4
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
     ret
     .globl __stack_end
 __stack_end:
-    pushl $Lname6
+    pushl $Lname5
     call _pc_stub_hit
     addl $4, %esp
     xorl %eax, %eax
@@ -46,32 +39,30 @@ __stack_end:
 Lname0: .asciz "_AISetStreamVolLeft"
 Lname1: .asciz "_AISetStreamVolRight"
 Lname2: .asciz "_GXNtsc480IntDf"
-Lname3: .asciz "iDebugScreenDump()"
-Lname4: .asciz "___start"
-Lname5: .asciz "__stack_addr"
-Lname6: .asciz "__stack_end"
-Lname7: .asciz "_gFXSurfaceFlags"
-Lname8: .asciz "_gFrameCount"
-Lname9: .asciz "_gScreenDump"
-Lname10: .asciz "_gVsyncCount"
-Lname11: .asciz "_g_xSceneCur"
-Lname12: .asciz "_globalCamera"
-Lname13: .asciz "_lastEnv"
-Lname14: .asciz "_lbl_801FE3B8"
-Lname15: .asciz "_lbl_801FE3C4"
-Lname16: .asciz "_lbl_801FE3D4"
-Lname17: .asciz "_lbl_8025E348"
-Lname18: .asciz "_lbl_8025E8A0"
-Lname19: .asciz "_lbl_8025E96C"
-Lname20: .asciz "_lbl_8025E970"
-Lname21: .asciz "_lbl_8025E974"
-Lname22: .asciz "_lbl_8025E978"
-Lname23: .asciz "_lbl_8025E97C"
-Lname24: .asciz "_lbl_8025E980"
-Lname25: .asciz "_lbl_8025E984"
-Lname26: .asciz "_lbl_8025E988"
-Lname27: .asciz "_lbl_8025EEC8"
-Lname28: .asciz "_sBeginDrawFX"
+Lname3: .asciz "___start"
+Lname4: .asciz "__stack_addr"
+Lname5: .asciz "__stack_end"
+Lname6: .asciz "_gFXSurfaceFlags"
+Lname7: .asciz "_gFrameCount"
+Lname8: .asciz "_gVsyncCount"
+Lname9: .asciz "_g_xSceneCur"
+Lname10: .asciz "_globalCamera"
+Lname11: .asciz "_lastEnv"
+Lname12: .asciz "_lbl_801FE3B8"
+Lname13: .asciz "_lbl_801FE3C4"
+Lname14: .asciz "_lbl_801FE3D4"
+Lname15: .asciz "_lbl_8025E348"
+Lname16: .asciz "_lbl_8025E8A0"
+Lname17: .asciz "_lbl_8025E96C"
+Lname18: .asciz "_lbl_8025E970"
+Lname19: .asciz "_lbl_8025E974"
+Lname20: .asciz "_lbl_8025E978"
+Lname21: .asciz "_lbl_8025E97C"
+Lname22: .asciz "_lbl_8025E980"
+Lname23: .asciz "_lbl_8025E984"
+Lname24: .asciz "_lbl_8025E988"
+Lname25: .asciz "_lbl_8025EEC8"
+Lname26: .asciz "_sBeginDrawFX"
     .bss
     .globl _GXNtsc480IntDf
     .balign 32
@@ -82,9 +73,6 @@ _gFXSurfaceFlags: .space 256
     .globl _gFrameCount
     .balign 32
 _gFrameCount: .space 256
-    .globl _gScreenDump
-    .balign 32
-_gScreenDump: .space 256
     .globl _gVsyncCount
     .balign 32
 _gVsyncCount: .space 256
