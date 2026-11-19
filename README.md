@@ -175,11 +175,11 @@ Launcher artwork
 | `pc/launcher/van.png` | Mystery Machine van in the header | Third-party clip art, **personal use only — not licensed for redistribution** |
 | `pc/launcher/launcher.ico` | Window, taskbar and file icon (16–256 px) | Rendered from `scooby.png`, so the same restriction applies |
 
-The two clip-art files are placeholders: they are scheduled to be replaced with
-original artwork, after which this repository and its release archive contain no
-third-party art at all. The launcher draws its own Great Dane badge and van in
-`pc/launcher/launcher.cpp` when those bitmap resources are absent, so removing
-the files is enough to fall back to the drawn versions.
+The two clip-art files are placeholders and can be replaced with original
+artwork at any time. The launcher draws its own Great Dane badge and van in
+`pc/launcher/launcher.cpp` when those bitmap resources are absent, so deleting
+`scooby.png`, `van.png` and `launcher.ico` is enough to ship without third-party
+art at all.
 
 If you are a rights holder and want something removed, open an issue and it will
 be taken down.
