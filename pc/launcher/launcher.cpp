@@ -531,7 +531,7 @@ enum
     ID_NAV_GRAPHICS,
     ID_NAV_CONTROLS,
     // Game files
-    ID_GAME_INFO, ID_ISO_LABEL, ID_ISO_PATH, ID_ISO_BROWSE, ID_EXTRACT, ID_PROGRESS, ID_GAME_STATUS, ID_GAME_FOLDER, ID_SKIP_LOGOS, ID_GAME_NOTE,
+    ID_GAME_INFO, ID_ISO_LABEL, ID_ISO_PATH, ID_ISO_BROWSE, ID_EXTRACT, ID_PROGRESS, ID_GAME_STATUS, ID_GAME_FOLDER, ID_SKIP_LOGOS, ID_GAME_NOTE, ID_LOGS,
     // Display
     ID_RES_LABEL, ID_RES, ID_MODE_LABEL, ID_MODE, ID_ASPECT_LABEL, ID_ASPECT, ID_VSYNC, ID_MSAA_LABEL, ID_MSAA,
     ID_DISPLAY_NOTE, ID_HUD_LABEL, ID_HUD,
@@ -658,6 +658,31 @@ static HBRUSH footer_brush() { return brush_for(&s_footerBrush, kBg); }
 static void set_text(int id, const std::wstring& t) { SetWindowTextW(item(id), t.c_str()); }
 
 static void status(const std::wstring& t) { set_text(ID_STATUS, t); }
+
+// The game writes scooby.log and crash-*.log to
+// %APPDATA%\ProjectMysteryMachine\logs (pc/src/main.cpp); this opens the same
+// folder, creating it first so the button always shows somewhere.
+static std::wstring log_dir()
+{
+    wchar_t appdata[MAX_PATH];
+    if (GetEnvironmentVariableW(L"APPDATA", appdata, MAX_PATH) && appdata[0])
+    {
+        return std::wstring(appdata) + L"\\ProjectMysteryMachine\\logs";
+    }
+    return exe_dir() + L"logs";
+}
+
+static void open_log_folder()
+{
+    std::wstring dir = log_dir();
+    std::wstring parent = dir.substr(0, dir.find_last_of(L'\\'));
+    CreateDirectoryW(parent.c_str(), NULL);
+    CreateDirectoryW(dir.c_str(), NULL);
+    if ((INT_PTR)ShellExecuteW(s_main, L"open", dir.c_str(), NULL, NULL, SW_SHOWNORMAL) <= 32)
+    {
+        MessageBoxW(s_main, (L"Can't open " + dir + L".").c_str(), L"Logs", MB_ICONERROR);
+    }
+}
 
 static void show_page(int page)
 {
@@ -1941,6 +1966,7 @@ static void create_controls()
     add(PAGE_GAME, ID_GAME_STATUS, L"STATIC", L"", 0, L, T + 180, W, 44);
     add(PAGE_GAME, ID_GAME_FOLDER, L"BUTTON", L"Use a folder I already extracted...",
         WS_TABSTOP | BS_PUSHBUTTON, L, T + 244, 300, 32);
+    add(PAGE_GAME, ID_LOGS, L"BUTTON", L"Open log folder", WS_TABSTOP | BS_PUSHBUTTON, L + 320, T + 244, 180, 32);
     add(PAGE_GAME, ID_SKIP_LOGOS, L"BUTTON", L"Skip the company logo movies when the game starts",
         WS_TABSTOP | BS_AUTOCHECKBOX, L, T + 292, 460, 24);
     add(PAGE_GAME, ID_GAME_NOTE, L"STATIC",
@@ -2136,6 +2162,7 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         case ID_ISO_BROWSE: browse_iso(); break;
         case ID_EXTRACT: start_extract(); break;
         case ID_GAME_FOLDER: choose_game_folder(); break;
+        case ID_LOGS: open_log_folder(); break;
         case ID_MODE:
             if (HIWORD(wp) == CBN_SELCHANGE)
             {

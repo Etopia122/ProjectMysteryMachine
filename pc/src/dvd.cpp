@@ -101,16 +101,32 @@ const char* pc_data_dir(void)
     return dir.c_str();
 }
 
+// Set by main.cpp when it opens the session log; NULL in builds without one.
+FILE* pc_log_stream;
+
 void pc_log(const char* fmt, ...)
 {
 #ifdef N3DS_PORT
     fprintf(stderr, "%6.2f ", pc_ticks_ms() / 1000.0);
 #endif
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
-    fputc('\n', stderr);
+    // The release build has no console, so the same lines also go to the log file.
+    FILE* outs[2] = { stderr, pc_log_stream };
+    for (FILE* o : outs)
+    {
+        if (!o)
+        {
+            continue;
+        }
+        va_list ap;
+        va_start(ap, fmt);
+        vfprintf(o, fmt, ap);
+        va_end(ap);
+        fputc('\n', o);
+    }
+    if (pc_log_stream)
+    {
+        fflush(pc_log_stream);
+    }
 }
 
 static std::string normalize(const char* p)

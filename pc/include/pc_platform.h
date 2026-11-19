@@ -3,6 +3,8 @@
 
 // Shared helpers of the PC platform layer (pc/src). Not seen by game code.
 
+#include <stdio.h>
+
 #ifdef __cplusplus
 #include <functional>
 
@@ -114,7 +116,10 @@ void pc_render_fmv_frame(const unsigned char* rgba, int w, int h, int letterbox)
 // Local time as seconds since 2000-01-01 (the GameCube clock's epoch).
 unsigned long pc_local_seconds_since_2000(void);
 
-// Logging for the platform layer.
+// Logging for the platform layer. The release build has no console, so
+// pc_log also writes to the log file main.cpp opens under
+// %APPDATA%\ProjectMysteryMachine\logs.
+extern FILE* pc_log_stream;
 void pc_log(const char* fmt, ...);
 
 #ifdef __cplusplus
