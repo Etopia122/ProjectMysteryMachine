@@ -124,7 +124,6 @@ struct PadBinding
 };
 static PadBinding s_bind[kNumActions];
 static bool s_swapSticks; // controller.sticks = swapped: the right stick moves Scooby
-static float s_mouseCamera; // keyboard.mouse_camera: mouse movement turns the C-stick (its sensitivity; 0 off)
 
 static std::string trim(const std::string& t)
 {
@@ -176,40 +175,6 @@ static void load_bindings()
         }
     }
     s_swapSticks = !strcmp(pc_setting_str("controller.sticks", "normal"), "swapped");
-    s_mouseCamera = pc_setting_int("keyboard.mouse_camera", 0) ? pc_setting_float("keyboard.mouse_sensitivity", 1.0f) : 0.0f;
-}
-
-// The mouse as the C-stick (keyboard.mouse_camera): the cursor is captured
-// while the game window has the keyboard and the debug menu is closed; how
-// far it moves in a frame is how far the C-stick is pushed.
-static void mouse_camera(int* cx, int* cy)
-{
-    if (s_mouseCamera <= 0.0f)
-    {
-        return;
-    }
-    bool capture = SDL_GetKeyboardFocus() != NULL && !pc_debug_menu_active();
-    if ((SDL_GetRelativeMouseMode() == SDL_TRUE) != capture)
-    {
-        SDL_SetRelativeMouseMode(capture ? SDL_TRUE : SDL_FALSE);
-        SDL_GetRelativeMouseState(NULL, NULL); // drop the jump from before
-        return;
-    }
-    if (!capture)
-    {
-        return;
-    }
-    int dx = 0, dy = 0;
-    SDL_GetRelativeMouseState(&dx, &dy);
-    int mx = (int)(dx * 8.0f * s_mouseCamera), my = (int)(-dy * 8.0f * s_mouseCamera);
-    if (abs(mx) > abs(*cx))
-    {
-        *cx = mx > 127 ? 127 : mx < -127 ? -127 : mx;
-    }
-    if (abs(my) > abs(*cy))
-    {
-        *cy = my > 127 ? 127 : my < -127 ? -127 : my;
-    }
 }
 
 static signed char axis8(Sint16 v)
@@ -292,7 +257,6 @@ unsigned int PADRead(PADStatus* status)
     {
         tr = 255;
     }
-    mouse_camera(&cx, &cy);
     // Two keys for one direction (A and Left) count once.
     sx = sx > 127 ? 127 : sx < -127 ? -127 : sx;
     sy = sy > 127 ? 127 : sy < -127 ? -127 : sy;

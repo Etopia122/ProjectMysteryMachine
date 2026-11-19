@@ -1,0 +1,51 @@
+name: 3DS build
+
+# The New 3DS port is built separately from the PC release. This workflow only
+# produces a .3dsx artifact; it never publishes a GitHub release and never
+# includes game data.
+on:
+  workflow_dispatch:
+
+jobs:
+  n3ds:
+    name: New 3DS build (.3dsx)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW32
+          update: true
+          install: >-
+            mingw-w64-i686-cmake
+            mingw-w64-i686-ninja
+            mingw-w64-i686-python
+            make
+
+      - name: Install devkitPro 3DS toolchain
+        run: |
+          printf '\n[dkp-libs]\nServer = https://pkg.devkitpro.org/packages\n[dkp-windows]\nServer = https://pkg.devkitpro.org/packages/windows/$arch/\n' >> /etc/pacman.conf
+          pacman-key --init
+          pacman-key --recv-keys BC26F752D25B92CE272E0F44F7FD5492264BB9D0 --keyserver keyserver.ubuntu.com
+          pacman-key --lsign-key BC26F752D25B92CE272E0F44F7FD5492264BB9D0
+          pacman -U --noconfirm https://pkg.devkitpro.org/devkitpro-keyring.pkg.tar.zst
+          pacman-key --populate devkitpro
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed 3ds-dev
+
+      - name: Build New 3DS app
+        run: sh n3ds/tools/rebuild.sh
+
+      - name: Upload .3dsx
+        uses: actions/upload-artifact@v4
+        with:
+          name: Scooby3DS
+          path: build/n3ds/scooby.3dsx
+          if-no-files-found: error

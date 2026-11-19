@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(ScoobyPC C CXX ASM)
+project(ProjectMysteryMachine C CXX ASM)
 
 # Configure (MSYS2 mingw32 shell or with C:/msys64/mingw32/bin on PATH):
 #   cmake -S pc -B build/pc -G Ninja
@@ -50,7 +50,18 @@ find_package(SDL2 REQUIRED CONFIG)
 file(GLOB PC_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.S
     ${CMAKE_CURRENT_SOURCE_DIR}/rw/*.cpp)
-add_executable(scooby ${PC_SOURCES})
+# The PC platform sources build once and link into two executables:
+#   scooby.exe        release: Windows GUI subsystem, so no console window.
+#   scooby_debug.exe  testing: console subsystem, so pc_log and the stub
+#                     reports are visible. Never packaged.
+add_library(scooby_pc OBJECT ${PC_SOURCES})
+target_include_directories(scooby_pc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/rw)
+target_compile_options(scooby_pc PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++17> -g -O0 -pthread)
+# Only for the usage requirements (includes, PC_PORT, ...) when compiling the
+# PC sources; the executables below link it again for real.
+target_link_libraries(scooby_pc PRIVATE scoobygame SDL2::SDL2)
+
+add_executable(scooby $<TARGET_OBJECTS:scooby_pc>)
 # PC_EXE_NAME lets a test build link while the normal exe is running.
 set(PC_EXE_NAME "scooby" CACHE STRING "Output name of the executable")
 set_target_properties(scooby PROPERTIES OUTPUT_NAME ${PC_EXE_NAME})
@@ -69,19 +80,34 @@ else()
     set(PC_FFMPEG_INCLUDE "")
     set(PC_FFMPEG_LIBS avformat avcodec swscale swresample avutil)
 endif()
+target_include_directories(scooby_pc PRIVATE ${PC_FFMPEG_INCLUDE})
+# -mwindows sets the GUI subsystem: main() still runs, but Windows never
+# creates a console for the game.
+target_link_options(scooby PRIVATE -mwindows)
 target_link_libraries(scooby PRIVATE scoobygame SDL2::SDL2 opengl32
     ${PC_FFMPEG_LIBS} -Wl,--large-address-aware)
-# Link the GCC runtime statically so only SDL2.dll ships next to the exe.
+# Link the GCC runtime statically. scooby.exe then needs only SDL2.dll; the
+# launcher's C++ runtime still imports libwinpthread-1.dll, which package.py
+# copies into the release next to SDL2.dll.
 target_link_options(scooby PRIVATE -static-libgcc -static-libstdc++
     -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive,-Bdynamic)
-target_include_directories(scooby PRIVATE ${PC_FFMPEG_INCLUDE} ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/rw)
-target_compile_options(scooby PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++17> -g -O0 -pthread)
+
+# Debug/testing build: same game, console subsystem so pc_log output and stub
+# reports are readable. It is not stripped and not packaged (package.py only
+# copies scooby.exe and scooby_launcher.exe).
+add_executable(scooby_debug $<TARGET_OBJECTS:scooby_pc>)
+set_target_properties(scooby_debug PROPERTIES OUTPUT_NAME "${PC_EXE_NAME}_debug")
+target_link_libraries(scooby_debug PRIVATE scoobygame SDL2::SDL2 opengl32
+    ${PC_FFMPEG_LIBS} -Wl,--large-address-aware)
+target_link_options(scooby_debug PRIVATE -static-libgcc -static-libstdc++
+    -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive,-Bdynamic)
 
 # The launcher: extracts the game files from a disc image, edits scooby.ini,
 # starts scooby.exe (pc/launcher).
 add_executable(scooby_launcher WIN32 launcher/launcher.cpp launcher/launcher.rc)
+set_property(SOURCE launcher/launcher.rc PROPERTY OBJECT_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/launcher/launcher.manifest;${CMAKE_CURRENT_SOURCE_DIR}/launcher/launcher.ico;${CMAKE_CURRENT_SOURCE_DIR}/launcher/logo.png;${CMAKE_CURRENT_SOURCE_DIR}/launcher/scooby.png;${CMAKE_CURRENT_SOURCE_DIR}/launcher/van.png")
 target_compile_definitions(scooby_launcher PRIVATE UNICODE _UNICODE)
 target_compile_options(scooby_launcher PRIVATE -std=gnu++17 -O2 -municode)
-target_link_options(scooby_launcher PRIVATE -municode -static-libgcc -static-libstdc++
-    -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive,-Bdynamic)
-target_link_libraries(scooby_launcher PRIVATE SDL2::SDL2 comctl32 comdlg32 shell32 ole32)
+target_link_options(scooby_launcher PRIVATE -municode -static-libgcc -static-libstdc++)
+target_link_libraries(scooby_launcher PRIVATE SDL2::SDL2 comctl32 comdlg32 shell32 ole32 dwmapi msimg32 uxtheme windowscodecs uuid)

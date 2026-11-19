@@ -1,4 +1,4 @@
-# Scooby-Doo! Night of 100 Frights — PC port
+# Project: Mystery Machine — Scooby-Doo! Night of 100 Frights PC port
 
 This branch (`pc-port`) is a fork of the GameCube decompilation. The decomp keeps
 the byte-matching GameCube build; this fork turns the same game code into a
@@ -61,15 +61,16 @@ native PC program. Game assets are not included: the player supplies their own d
 ```
 sh pc/tools/build_ffmpeg.sh     # once: minimal static FFmpeg (Bink only) in build/ffmpeg
 sh pc/tools/rebuild.sh          # build
-python pc/tools/deploy.py       # copy SDL2.dll next to the exe
+python pc/tools/deploy.py       # copy SDL2.dll/libwinpthread-1.dll next to the exes
 build/pc/scooby_launcher.exe    # or build/pc/scooby.exe; data from SCOOBY_DATA, scooby.ini or game/files
 ```
 
 `build_ffmpeg.sh` downloads the FFmpeg source release from ffmpeg.org, checks
 its signature and builds only the Bink demuxer and decoders (LGPL, no external
 libraries; needs `pacman -S make diffutils`). It is linked statically, as are
-libgcc, libstdc++ and winpthread, so SDL2.dll is the only DLL that ships.
-Without it CMake falls back to MSYS2's shared FFmpeg (~70 DLLs).
+libgcc and libstdc++, so SDL2.dll and the launcher's small
+libwinpthread-1.dll runtime are the only DLLs that ship. Without the static
+FFmpeg, CMake falls back to MSYS2's shared FFmpeg (~70 DLLs).
 
 ### Launcher, settings and release folder
 
@@ -77,9 +78,43 @@ Without it CMake falls back to MSYS2's shared FFmpeg (~70 DLLs).
 it extracts the game's files from their own disc image (USA, GIHE78; plain
 .iso/.gcm) into `data/` beside the program, edits `scooby.ini` and starts
 scooby.exe. `scooby_launcher --extract <image> [folder]` extracts without the
-window. `python pc/tools/package.py` puts the release folder together in
-`build/dist/ScoobyPC` (+ .zip): both programs stripped, SDL2.dll, a read-me and
-the SDL2/FFmpeg licences; no game data.
+window. The themed launcher uses a sidebar of case files (Game files, Display,
+Graphics, Controls) and needs no extra art files; every button, checkbox and
+slider is drawn by the launcher itself.
+
+`python pc/tools/package.py` puts the release folder together in
+`build/dist/ProjectMysteryMachine` (+ .zip): both programs stripped, SDL2.dll,
+libwinpthread-1.dll, a read-me and the SDL2/FFmpeg/winpthread licences; no game
+data. `python pc/tools/verify_release.py`
+checks that the archive contains `scooby_launcher.exe` and rejects any disc or
+game-asset extensions. The PC release workflow builds this archive on a tag
+(`v*`) and attaches it to the GitHub release; `.github/workflows/3ds-build.yml`
+is separate and only uploads a `.3dsx` artifact. The first tag therefore
+publishes the launcher and game together in `ProjectMysteryMachine.zip`, with
+no assets.
+
+For a clean PC-only build:
+
+```sh
+sh pc/tools/build_ffmpeg.sh   # once
+sh pc/tools/build.sh          # PC port only
+python pc/tools/package.py
+python pc/tools/verify_release.py
+```
+
+`sh pc/tools/rebuild.sh` remains the quicker iterative build. Neither script
+touches the New 3DS build (`n3ds/tools/rebuild.sh`).
+
+The build produces two executables from the same sources:
+
+| Executable | Subsystem | Use |
+|---|---|---|
+| `build/pc/scooby.exe` | Windows GUI | release: never opens a console window |
+| `build/pc/scooby_debug.exe` | console | testing: `pc_log` output and stub reports are visible (`cmake --build build/pc --target scooby_debug` if you build only that target) |
+
+The debug exe is never copied into the release: `pc/tools/package.py` copies
+only `scooby.exe` and `scooby_launcher.exe`, and `pc/tools/verify_release.py`
+rejects an archive that contains it.
 
 `scooby.ini` (pc/src/settings.cpp; `PC_SETTINGS=<file>` reads another one, for
 test runs). Without it everything is as before.
@@ -99,11 +134,11 @@ test runs). Without it everything is as before.
 | `graphics.brightness` | 0.5-2: the finished frame scaled by a blend pass (gpu_gl.cpp) |
 | `graphics.shadow_res` | 256 (GameCube), 512, 1024, 2048: the shadow camera's target (SetupShadow, PC_PORT) |
 | `game.skip_logos` | 1: no WB/THQ/Heavy Iron/RenderWare logo movies at start (zMenu.cpp, PC_PORT) |
-| `keyboard.mouse_camera`, `.mouse_sensitivity` | 1: the mouse pushes the C-stick (relative mouse mode while the window has focus); sensitivity 0.2-3 |
 | `graphics.trilinear`, `.anisotropy` | mipmapped filtering for the game's bilinear textures; 1-16 |
 | `keyboard.<input>` | SDL key names, comma-separated; inputs: `stick_up/down/left/right`, `cstick_*`, `a b x y start l r z`, `dpad_*` |
 | `controller.<input>` | an SDL controller button or axis (`a`, `rightshoulder`, `lefttrigger`, ...) |
 | `controller.sticks` | `normal` or `swapped` |
+| `debug.menu` | 1: enables the debug menu (F1 or the controller's Back button); off by default |
 
 The game has no model levels of detail (no LOD tables in the code or data);
 draw and effects distance are its distance settings.
@@ -113,7 +148,8 @@ keyboard: WASD/arrows move, IJKL camera, Space = A, Shift = B, E = X, R = Y,
 Enter = Start, Q = L, Tab = R, F = Z, keypad 8/2/4/6 = D-pad. Alt+Enter or F11
 toggles fullscreen. Saves go to `save/cardA` next to the exe.
 
-Debug menu: F1 (or the controller's Back/Select button) opens it. Warp to any
+Debug menu: off unless `debug.menu = 1` (the launcher's Controls page has the
+checkbox). Once enabled, F1 (or the controller's Back/Select button) opens it. Warp to any
 level and scene (from gameplay), all upgrades, unlock all warp gates, refill
 health/chances/ammo, +100 Scooby Snacks, infinite health, force boss damage
 (Black Knight so far), unlock movies and

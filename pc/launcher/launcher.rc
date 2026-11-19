@@ -1,2 +1,38 @@
-// Launcher resources: the manifest (common controls v6 look, DPI awareness).
+// Launcher resources: icon, manifest (common controls v6 look, DPI awareness)
+// and version information for the release build.
+#include <winver.h>
+
+1 ICON "launcher.ico"
 1 24 "launcher.manifest"
+
+// Header art, decoded at runtime with WIC.
+2 RCDATA "logo.png"
+3 RCDATA "scooby.png"
+4 RCDATA "van.png"
+
+1 VERSIONINFO
+FILEVERSION 0,1,0,0
+PRODUCTVERSION 0,1,0,0
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Project: Mystery Machine"
+            VALUE "FileDescription", "Project: Mystery Machine - Scooby-Doo! Night of 100 Frights Launcher"
+            VALUE "FileVersion", "0.1.0.0"
+            VALUE "InternalName", "project_mystery_machine_launcher"
+            VALUE "OriginalFilename", "scooby_launcher.exe"
+            VALUE "ProductName", "Project: Mystery Machine"
+            VALUE "ProductVersion", "0.1.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

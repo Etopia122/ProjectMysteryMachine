@@ -1,9 +1,20 @@
 // PC input for the debug menu (pc/src/debug_menu.cpp): F1 or the controller's
 // Back button opens it; arrows/Enter/Esc or the D-pad/A/B drive it. F3 shows
-// the coordinates, F4 saves them, F5 returns to the saved spot.
+// the coordinates, F4 saves them, F5 returns to the saved spot. The menu is
+// opt-in: the launcher's Controls page writes debug.menu = 1 in scooby.ini.
 #include "pc_platform.h"
 
 #include <SDL.h>
+
+static bool debug_input_enabled()
+{
+    static int enabled = -1;
+    if (enabled < 0)
+    {
+        enabled = pc_setting_int("debug.menu", 0) != 0;
+    }
+    return enabled != 0;
+}
 
 extern "C" int pc_platform_3ds() { return 0; }
 extern "C" void pc_texture_patch(const char* name, unsigned char* rgba, int w, int h) {}
@@ -23,6 +34,10 @@ extern "C" void pc_set_clipboard(const char* text)
 // Handles one SDL event; returns true if it was consumed.
 bool pc_debug_menu_event(const SDL_Event& e)
 {
+    if (!debug_input_enabled())
+    {
+        return false;
+    }
     if (e.type == SDL_KEYDOWN)
     {
         SDL_Keycode k = e.key.keysym.sym;

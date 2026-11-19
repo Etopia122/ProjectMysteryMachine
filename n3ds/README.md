@@ -4,6 +4,11 @@ A port of the PC port (`pc/`) to the New Nintendo 3DS / New 2DS XL only: it
 relies on the 804 MHz CPU mode, the larger memory budget, the C-stick and ZL/ZR.
 The game data comes from the player's own GameCube disc and lives on the SD card.
 
+This is a separate build from the PC release. Use `sh n3ds/tools/rebuild.sh` for
+the 3DS app; the PC workflow and `pc/tools/package.py` never include 3DS files,
+and the 3DS workflow only uploads `scooby.3dsx` as an artifact. A CIA that
+contains game data is for your own console only and must not be published.
+
 ## Status (2026-10-10, Azahar emulator only)
 
 - Boots through the copyright screen and title to the main menu; New Game

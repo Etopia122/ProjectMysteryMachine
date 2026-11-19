@@ -10,7 +10,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 BUILD = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'build' / 'n3ds'
-DKP = Path(os.environ.get('DEVKITPRO_WIN', 'C:/msys64/opt/devkitpro'))
+DKP = Path(os.environ.get('DEVKITPRO_WIN') or os.environ.get('DEVKITPRO') or 'C:/msys64/opt/devkitpro')
+if not (DKP / 'devkitARM').exists():
+    DKP = Path('C:/msys64/opt/devkitpro')
 ARM = DKP / 'devkitARM'
 OUT = ROOT / 'n3ds' / 'src' / 'stubs_gen.S'
 

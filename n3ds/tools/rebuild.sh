@@ -2,7 +2,9 @@
 # Rebuild the New 3DS app: game library, regenerate stubs, link, pack .3dsx.
 # usage: sh n3ds/tools/rebuild.sh
 set -e
-export PATH=/c/msys64/mingw32/bin:$PATH
+if [ -z "$MINGW_PREFIX" ] && [ -d /c/msys64/mingw32/bin ]; then
+    export PATH=/c/msys64/mingw32/bin:$PATH
+fi
 B=build/n3ds
 cfg() { cmake -S n3ds -B $B -G Ninja -DCMAKE_TOOLCHAIN_FILE=$PWD/n3ds/cmake/n3ds.cmake >/dev/null; }
 [ -f n3ds/src/stubs_gen.S ] || echo "@ placeholder" > n3ds/src/stubs_gen.S

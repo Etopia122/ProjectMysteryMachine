@@ -126,7 +126,7 @@ bool gpu_open()
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, msaa);
     }
-    s_window = SDL_CreateWindow("Scooby-Doo! Night of 100 Frights", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+    s_window = SDL_CreateWindow("Project: Mystery Machine - Scooby-Doo! Night of 100 Frights", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                 s_winW, s_winH, flags);
     if (!s_window && msaa > 1)
     {
@@ -134,7 +134,7 @@ bool gpu_open()
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
         msaa = 0;
-        s_window = SDL_CreateWindow("Scooby-Doo! Night of 100 Frights", SDL_WINDOWPOS_CENTERED,
+        s_window = SDL_CreateWindow("Project: Mystery Machine - Scooby-Doo! Night of 100 Frights", SDL_WINDOWPOS_CENTERED,
                                     SDL_WINDOWPOS_CENTERED, s_winW, s_winH, flags);
     }
     if (!s_window)

@@ -26,7 +26,11 @@ if [ ! -d ffmpeg-$VER ]; then
     tar xf ffmpeg-$VER.tar.xz
 fi
 
-export PATH=/c/msys64/mingw32/bin:/c/msys64/usr/bin:$PATH
+if [ -n "$MINGW_PREFIX" ]; then
+    export PATH="$MINGW_PREFIX/bin:/usr/bin:$PATH"
+else
+    export PATH=/c/msys64/mingw32/bin:/c/msys64/usr/bin:$PATH
+fi
 mkdir -p obj && cd obj
 ../ffmpeg-$VER/configure --prefix="$DIR/install" \
     --arch=x86 --target-os=mingw32 --cc=gcc \

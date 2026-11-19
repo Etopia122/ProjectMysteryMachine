@@ -1,4 +1,4 @@
-// Scooby-Doo! Night of 100 Frights PC launcher.
+// Project: Mystery Machine - the PC port of Scooby-Doo! Night of 100 Frights.
 //
 // Extracts the game's files from the player's own disc image (USA, GIHE78)
 // into data/ beside the program, edits scooby.ini (display, graphics and
@@ -16,6 +16,9 @@
 #include <commdlg.h>
 #include <shellapi.h>
 #include <shlobj.h>
+#include <dwmapi.h>
+#include <uxtheme.h>
+#include <wincodec.h>
 
 #include <SDL.h>
 
@@ -185,11 +188,11 @@ struct Ini
         {
             return false;
         }
-        fputs("; Scooby-Doo! Night of 100 Frights (PC) settings, written by the launcher.\n"
+        fputs("; Project: Mystery Machine (Scooby-Doo! Night of 100 Frights) settings, written by the launcher.\n"
               "; Key names are SDL's; controller inputs are SDL game controller buttons or axes.\n",
               f);
-        static const char* order[] = { "game", "display", "graphics", "keyboard", "controller" };
-        std::vector<std::string> secs(order, order + 5);
+        static const char* order[] = { "game", "display", "graphics", "keyboard", "controller", "debug" };
+        std::vector<std::string> secs(order, order + 6);
         for (const std::string& s : sections)
         {
             if (std::find(secs.begin(), secs.end(), s) == secs.end())
@@ -523,9 +526,12 @@ static DWORD WINAPI extract_thread(void* param)
 // ---------------------------------------------------------------- window
 enum
 {
-    ID_TABS = 100,
+    ID_NAV_GAME = 100,
+    ID_NAV_DISPLAY,
+    ID_NAV_GRAPHICS,
+    ID_NAV_CONTROLS,
     // Game files
-    ID_GAME_INFO, ID_ISO_LABEL, ID_ISO_PATH, ID_ISO_BROWSE, ID_EXTRACT, ID_PROGRESS, ID_GAME_STATUS, ID_GAME_FOLDER, ID_SKIP_LOGOS,
+    ID_GAME_INFO, ID_ISO_LABEL, ID_ISO_PATH, ID_ISO_BROWSE, ID_EXTRACT, ID_PROGRESS, ID_GAME_STATUS, ID_GAME_FOLDER, ID_SKIP_LOGOS, ID_GAME_NOTE,
     // Display
     ID_RES_LABEL, ID_RES, ID_MODE_LABEL, ID_MODE, ID_ASPECT_LABEL, ID_ASPECT, ID_VSYNC, ID_MSAA_LABEL, ID_MSAA,
     ID_DISPLAY_NOTE, ID_HUD_LABEL, ID_HUD,
@@ -534,13 +540,14 @@ enum
     ID_BRIGHT_LABEL, ID_BRIGHT, ID_BRIGHT_VALUE, ID_FILTER_LABEL, ID_FILTER, ID_SHADOW_LABEL, ID_SHADOW, ID_FPS_LABEL,
     ID_FPS, ID_GRAPHICS_NOTE,
     // Controls
-    ID_BINDS, ID_SET_KEY, ID_ADD_KEY, ID_SET_PAD, ID_CLEAR, ID_DEFAULTS, ID_SWAP_STICKS, ID_CAPTURE, ID_MOUSE_CAM,
-    ID_MOUSE_SENS_LABEL, ID_MOUSE_SENS,
+    ID_BINDS, ID_SET_KEY, ID_ADD_KEY, ID_SET_PAD, ID_CLEAR, ID_DEFAULTS, ID_SWAP_STICKS, ID_CAPTURE, ID_DEBUG_MENU,
     // Bottom
     ID_STATUS, ID_SAVE, ID_PLAY,
 };
 
 enum { PAGE_GAME, PAGE_DISPLAY, PAGE_GRAPHICS, PAGE_CONTROLS, PAGE_COUNT };
+
+static const int kNavIds[PAGE_COUNT] = { ID_NAV_GAME, ID_NAV_DISPLAY, ID_NAV_GRAPHICS, ID_NAV_CONTROLS };
 
 struct Control
 {
@@ -550,12 +557,35 @@ struct Control
 
 static HWND s_main;
 static HFONT s_font;
+static HFONT s_titleFont, s_pageFont, s_eyebrowFont, s_navFont, s_smallFont;
 static int s_dpi = 96;
 static std::vector<Control> s_controls;
 static Ini s_ini;
 static std::wstring s_dir, s_iniPath;
 static bool s_extracting;
 static std::vector<std::pair<int, int>> s_resolutions;
+static int s_page = PAGE_GAME;
+static int s_hotButton;
+static HBRUSH s_cardBrush, s_fieldBrush, s_footerBrush;
+
+// The launcher's palette: a plum night sky, parchment cards, Mystery Machine
+// teal and orange. The chrome is drawn; only the wordmark and mascot are
+// bitmaps, and both are compiled into the exe.
+static const COLORREF kBg = RGB(18, 15, 29);
+static const COLORREF kHeaderA = RGB(18, 58, 58);
+static const COLORREF kHeaderB = RGB(46, 24, 70);
+static const COLORREF kSidebar = RGB(31, 24, 47);
+static const COLORREF kSidebarEdge = RGB(58, 45, 82);
+static const COLORREF kCard = RGB(247, 240, 226);
+static const COLORREF kField = RGB(255, 251, 243);
+static const COLORREF kLine = RGB(218, 203, 178);
+static const COLORREF kInk = RGB(37, 30, 48);
+static const COLORREF kMuted = RGB(104, 91, 79);
+static const COLORREF kAccent = RGB(241, 146, 44);
+static const COLORREF kAccentDark = RGB(199, 107, 20);
+static const COLORREF kTeal = RGB(46, 166, 145);
+static const COLORREF kTrack = RGB(223, 210, 189);
+static const COLORREF kFooterText = RGB(213, 201, 184);
 
 // Remapping state: the row being captured, and how.
 enum { CAPTURE_NONE, CAPTURE_SET_KEY, CAPTURE_ADD_KEY, CAPTURE_PAD };
@@ -565,6 +595,13 @@ static std::vector<std::string> s_keys(kNumActions), s_pads(kNumActions);
 static Uint8 s_padBase[SDL_CONTROLLER_BUTTON_MAX];
 
 static int px(int v) { return MulDiv(v, s_dpi, 96); }
+
+static HFONT make_font(int points, int weight)
+{
+    return CreateFontW(-MulDiv(points, s_dpi, 72), 0, 0, 0, weight, FALSE, FALSE, FALSE,
+                       DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                       DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+}
 
 static HWND item(int id)
 {
@@ -578,16 +615,45 @@ static HWND item(int id)
     return NULL;
 }
 
+static LRESULT CALLBACK hot_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR id, DWORD_PTR);
+
 static HWND add(int page, int id, const wchar_t* cls, const wchar_t* text, DWORD style, int x, int y, int w, int h,
                 DWORD ex = 0)
 {
-    HWND hwnd = CreateWindowExW(ex, cls, text, WS_CHILD | style, px(x), px(y), px(w), px(h), s_main,
-                                (HMENU)(INT_PTR)id, GetModuleHandleW(NULL), NULL);
+    // Buttons and checkboxes are owner-drawn. An owner-drawn checkbox no longer
+    // toggles itself, so WM_COMMAND flips those four check states by hand.
+    // Only real buttons are converted: BS_PUSHBUTTON is 0, so testing the style
+    // alone also caught statics added with style 0 (SS_LEFT) and turned them
+    // into SS_SIMPLE labels, which neither wrap nor use the card background.
+    DWORD type = style & 0xF;
+    if (!wcscmp(cls, L"BUTTON") &&
+        (type == BS_PUSHBUTTON || type == BS_DEFPUSHBUTTON || type == BS_AUTOCHECKBOX))
+    {
+        style = (style & ~0xF) | BS_OWNERDRAW;
+    }
+    HWND hwnd = CreateWindowExW(ex, cls, text, WS_CHILD | WS_CLIPSIBLINGS | style, px(x), px(y), px(w), px(h),
+                                s_main, (HMENU)(INT_PTR)id, GetModuleHandleW(NULL), NULL);
     SendMessageW(hwnd, WM_SETFONT, (WPARAM)s_font, TRUE);
+    if ((style & 0xF) == BS_OWNERDRAW)
+    {
+        SetWindowSubclass(hwnd, hot_proc, (UINT_PTR)id, 0);
+    }
     Control c = { id, page, hwnd };
     s_controls.push_back(c);
     return hwnd;
 }
+
+static HBRUSH brush_for(HBRUSH* slot, COLORREF color)
+{
+    if (!*slot)
+    {
+        *slot = CreateSolidBrush(color);
+    }
+    return *slot;
+}
+static HBRUSH card_brush() { return brush_for(&s_cardBrush, kCard); }
+static HBRUSH field_brush() { return brush_for(&s_fieldBrush, kField); }
+static HBRUSH footer_brush() { return brush_for(&s_footerBrush, kBg); }
 
 static void set_text(int id, const std::wstring& t) { SetWindowTextW(item(id), t.c_str()); }
 
@@ -595,6 +661,11 @@ static void status(const std::wstring& t) { set_text(ID_STATUS, t); }
 
 static void show_page(int page)
 {
+    if (page < 0 || page >= PAGE_COUNT)
+    {
+        page = PAGE_GAME;
+    }
+    s_page = page;
     for (const Control& c : s_controls)
     {
         if (c.page >= 0)
@@ -602,6 +673,11 @@ static void show_page(int page)
             ShowWindow(c.hwnd, c.page == page ? SW_SHOW : SW_HIDE);
         }
     }
+    for (int i = 0; i < PAGE_COUNT; i++)
+    {
+        InvalidateRect(item(kNavIds[i]), NULL, TRUE);
+    }
+    InvalidateRect(s_main, NULL, FALSE);
 }
 
 static int combo_add(int id, const wchar_t* text)
@@ -610,8 +686,643 @@ static int combo_add(int id, const wchar_t* text)
 }
 static int combo_get(int id) { return (int)SendMessageW(item(id), CB_GETCURSEL, 0, 0); }
 static void combo_set(int id, int i) { SendMessageW(item(id), CB_SETCURSEL, i, 0); }
-static bool check_get(int id) { return SendMessageW(item(id), BM_GETCHECK, 0, 0) == BST_CHECKED; }
-static void check_set(int id, bool on) { SendMessageW(item(id), BM_SETCHECK, on ? BST_CHECKED : BST_UNCHECKED, 0); }
+// Owner-drawn buttons do not keep BM_SETCHECK state, so the four toggles live
+// here. load_settings fills them and save_settings reads them.
+static bool s_checkVsync = true, s_checkSkipLogos, s_checkSwapSticks, s_checkDebugMenu;
+
+static bool& check_state(int id)
+{
+    switch (id)
+    {
+    case ID_VSYNC: return s_checkVsync;
+    case ID_SKIP_LOGOS: return s_checkSkipLogos;
+    case ID_SWAP_STICKS: return s_checkSwapSticks;
+    case ID_DEBUG_MENU: return s_checkDebugMenu;
+    }
+    static bool unused;
+    return unused;
+}
+
+static bool check_get(int id) { return check_state(id); }
+static void check_set(int id, bool on)
+{
+    check_state(id) = on;
+    InvalidateRect(item(id), NULL, TRUE);
+}
+
+// ---------------------------------------------------------------- theme drawing
+static bool is_checkbox_id(int id)
+{
+    return id == ID_VSYNC || id == ID_SKIP_LOGOS || id == ID_SWAP_STICKS || id == ID_DEBUG_MENU;
+}
+
+static bool is_slider_id(int id)
+{
+    return id == ID_DRAW || id == ID_FX || id == ID_FOV || id == ID_BRIGHT;
+}
+
+static bool is_note_id(int id)
+{
+    return id == ID_GAME_INFO || id == ID_GAME_NOTE || id == ID_GAME_STATUS || id == ID_DISPLAY_NOTE ||
+           id == ID_GRAPHICS_NOTE || id == ID_CAPTURE;
+}
+
+static void fill_round(HDC dc, RECT r, int radius, COLORREF fill, COLORREF border)
+{
+    HBRUSH brush = CreateSolidBrush(fill);
+    HPEN pen = CreatePen(PS_SOLID, 1, border);
+    HGDIOBJ oldBrush = SelectObject(dc, brush);
+    HGDIOBJ oldPen = SelectObject(dc, pen);
+    RoundRect(dc, r.left, r.top, r.right, r.bottom, radius, radius);
+    SelectObject(dc, oldBrush);
+    SelectObject(dc, oldPen);
+    DeleteObject(brush);
+    DeleteObject(pen);
+}
+
+static void draw_line(HDC dc, int x1, int y1, int x2, int y2, COLORREF color, int width = 1)
+{
+    HPEN pen = CreatePen(PS_SOLID, width, color);
+    HGDIOBJ old = SelectObject(dc, pen);
+    MoveToEx(dc, x1, y1, NULL);
+    LineTo(dc, x2, y2);
+    SelectObject(dc, old);
+    DeleteObject(pen);
+}
+
+static void draw_text(HDC dc, const wchar_t* text, RECT r, HFONT font, COLORREF color,
+                      UINT flags = DT_LEFT | DT_VCENTER | DT_SINGLELINE)
+{
+    HGDIOBJ old = SelectObject(dc, font);
+    SetBkMode(dc, TRANSPARENT);
+    SetTextColor(dc, color);
+    DrawTextW(dc, text, -1, &r, flags);
+    SelectObject(dc, old);
+}
+
+// ------------------------------------------------------------- launcher art
+// The wordmark and the Great Dane badge are PNG resources compiled into the
+// exe and decoded with WIC, so the launcher is still a single portable exe.
+enum { IDR_WORDMARK_PNG = 2, IDR_MASCOT_PNG = 3, IDR_VAN_PNG = 4 };
+
+struct Image
+{
+    HBITMAP handle;
+    int w, h;
+};
+
+static Image load_png_image(int id)
+{
+    Image image = { NULL, 0, 0 };
+    HRSRC res = FindResourceW(NULL, MAKEINTRESOURCEW(id), RT_RCDATA);
+    if (!res)
+    {
+        return image;
+    }
+    DWORD size = SizeofResource(NULL, res);
+    const void* data = LockResource(LoadResource(NULL, res));
+    if (!data || !size)
+    {
+        return image;
+    }
+
+    IWICImagingFactory* factory = NULL;
+    IWICStream* stream = NULL;
+    IWICBitmapDecoder* decoder = NULL;
+    IWICBitmapFrameDecode* frame = NULL;
+    IWICFormatConverter* converter = NULL;
+    UINT w = 0, h = 0;
+
+    if (SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER,
+                                   IID_IWICImagingFactory, (void**)&factory)) &&
+        SUCCEEDED(factory->CreateStream(&stream)) &&
+        SUCCEEDED(stream->InitializeFromMemory((BYTE*)data, size)) &&
+        SUCCEEDED(factory->CreateDecoderFromStream(stream, NULL, WICDecodeMetadataCacheOnLoad,
+                                                   &decoder)) &&
+        SUCCEEDED(decoder->GetFrame(0, &frame)) &&
+        SUCCEEDED(factory->CreateFormatConverter(&converter)) &&
+        SUCCEEDED(converter->Initialize(frame, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone,
+                                       NULL, 0.0, WICBitmapPaletteTypeCustom)) &&
+        SUCCEEDED(converter->GetSize(&w, &h)))
+    {
+        BITMAPINFO info = {};
+        info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        info.bmiHeader.biWidth = (LONG)w;
+        info.bmiHeader.biHeight = -(LONG)h;  // top-down, matching the PNG
+        info.bmiHeader.biPlanes = 1;
+        info.bmiHeader.biBitCount = 32;
+        info.bmiHeader.biCompression = BI_RGB;
+        void* bits = NULL;
+        HDC screen = GetDC(NULL);
+        HBITMAP bitmap = CreateDIBSection(screen, &info, DIB_RGB_COLORS, &bits, NULL, 0);
+        ReleaseDC(NULL, screen);
+        if (bitmap && bits &&
+            SUCCEEDED(converter->CopyPixels(NULL, w * 4, w * 4 * h, (BYTE*)bits)))
+        {
+            image.handle = bitmap;
+            image.w = (int)w;
+            image.h = (int)h;
+        }
+        else if (bitmap)
+        {
+            DeleteObject(bitmap);
+        }
+    }
+
+    if (converter) converter->Release();
+    if (frame) frame->Release();
+    if (decoder) decoder->Release();
+    if (stream) stream->Release();
+    if (factory) factory->Release();
+    return image;
+}
+
+// Alpha-blend a loaded image, optionally clipped to rounded corners (the same
+// radius convention as fill_round).
+static void draw_image(HDC dc, const Image& image, RECT r, int radius)
+{
+    if (!image.handle)
+    {
+        return;
+    }
+    HDC src = CreateCompatibleDC(dc);
+    HGDIOBJ old = SelectObject(src, image.handle);
+    int saved = SaveDC(dc);
+    HRGN clip = NULL;
+    if (radius > 0)
+    {
+        clip = CreateRoundRectRgn(r.left, r.top, r.right + 1, r.bottom + 1, radius * 2, radius * 2);
+        SelectClipRgn(dc, clip);
+    }
+    BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+    AlphaBlend(dc, r.left, r.top, r.right - r.left, r.bottom - r.top, src, 0, 0, image.w, image.h,
+               blend);
+    RestoreDC(dc, saved);
+    if (clip)
+    {
+        DeleteObject(clip);
+    }
+    SelectObject(src, old);
+    DeleteDC(src);
+}
+
+static void draw_paw(HDC dc, int cx, int cy, int unit, COLORREF color)
+{
+    HBRUSH brush = CreateSolidBrush(color);
+    HPEN pen = CreatePen(PS_SOLID, 1, color);
+    HGDIOBJ oldBrush = SelectObject(dc, brush);
+    HGDIOBJ oldPen = SelectObject(dc, pen);
+    Ellipse(dc, cx - unit * 3 / 2, cy - unit / 2, cx + unit * 3 / 2, cy + unit * 3 / 2);
+    Ellipse(dc, cx - unit * 5 / 2, cy - unit * 3 / 2, cx - unit * 3 / 2, cy - unit / 2);
+    Ellipse(dc, cx - unit * 5 / 4, cy - unit * 2, cx - unit / 4, cy - unit);
+    Ellipse(dc, cx + unit / 4, cy - unit * 2, cx + unit * 5 / 4, cy - unit);
+    Ellipse(dc, cx + unit * 3 / 2, cy - unit * 3 / 2, cx + unit * 5 / 2, cy - unit / 2);
+    SelectObject(dc, oldBrush);
+    SelectObject(dc, oldPen);
+    DeleteObject(brush);
+    DeleteObject(pen);
+}
+
+static void draw_van(HDC dc, int x, int y, int w, int h)
+{
+    int bodyTop = y + h / 3;
+    RECT body = { x, bodyTop, x + w, y + h - 5 };
+    fill_round(dc, body, h / 4, kTeal, RGB(28, 116, 101));
+    RECT roof = { x + w / 6, y + 4, x + w - w / 8, bodyTop + 4 };
+    fill_round(dc, roof, h / 4, kTeal, RGB(28, 116, 101));
+    RECT stripe = { x + 5, y + h / 2, x + w - 5, y + h / 2 + 4 };
+    HBRUSH orange = CreateSolidBrush(kAccent);
+    FillRect(dc, &stripe, orange);
+    DeleteObject(orange);
+    RECT window = { x + w / 5, y + 9, x + w / 2, bodyTop - 2 };
+    fill_round(dc, window, 3, RGB(43, 58, 74), RGB(43, 58, 74));
+    HBRUSH wheel = CreateSolidBrush(RGB(27, 24, 33));
+    HPEN wheelPen = CreatePen(PS_SOLID, 1, RGB(27, 24, 33));
+    HGDIOBJ ob = SelectObject(dc, wheel), op = SelectObject(dc, wheelPen);
+    Ellipse(dc, x + w / 5, y + h - 9, x + w / 5 + 14, y + h + 5);
+    Ellipse(dc, x + w - w / 3, y + h - 9, x + w - w / 3 + 14, y + h + 5);
+    SelectObject(dc, ob);
+    SelectObject(dc, op);
+    DeleteObject(wheel);
+    DeleteObject(wheelPen);
+}
+
+// The hand-drawn Great Dane: only used if the mascot PNG cannot be loaded.
+static void draw_drawn_dog(HDC dc, int x, int y, int s)
+{
+    RECT outer = { x, y, x + s, y + s };
+    fill_round(dc, outer, s / 5, RGB(20, 52, 52), kAccent);
+    RECT inner = { x + s / 14, y + s / 14, x + s - s / 14, y + s - s / 14 };
+    fill_round(dc, inner, s / 6, RGB(28, 70, 67), RGB(238, 190, 112));
+
+    auto ellipse = [&](COLORREF fill, COLORREF border, int l, int t, int r, int b) {
+        HBRUSH brush = CreateSolidBrush(fill);
+        HPEN pen = CreatePen(PS_SOLID, 1, border);
+        HGDIOBJ oldBrush = SelectObject(dc, brush);
+        HGDIOBJ oldPen = SelectObject(dc, pen);
+        Ellipse(dc, x + s * l / 100, y + s * t / 100, x + s * r / 100, y + s * b / 100);
+        SelectObject(dc, oldBrush);
+        SelectObject(dc, oldPen);
+        DeleteObject(brush);
+        DeleteObject(pen);
+    };
+
+    // Floppy ears and the long Great Dane head.
+    ellipse(RGB(75, 44, 28), RGB(75, 44, 28), 14, 24, 39, 84);
+    ellipse(RGB(75, 44, 28), RGB(75, 44, 28), 61, 24, 86, 84);
+    ellipse(RGB(166, 104, 58), RGB(111, 66, 36), 24, 17, 76, 79);
+    // Two darker patches.
+    ellipse(RGB(92, 55, 34), RGB(92, 55, 34), 28, 24, 41, 35);
+    ellipse(RGB(92, 55, 34), RGB(92, 55, 34), 59, 22, 72, 33);
+    // A narrower, longer muzzle and nose.
+    ellipse(RGB(218, 163, 113), RGB(158, 99, 57), 37, 46, 63, 84);
+    ellipse(RGB(31, 26, 24), RGB(31, 26, 24), 44, 58, 56, 68);
+    // Eyes: white, then dark pupils.
+    ellipse(RGB(252, 249, 238), RGB(91, 59, 38), 35, 39, 47, 52);
+    ellipse(RGB(252, 249, 238), RGB(91, 59, 38), 53, 39, 65, 52);
+    ellipse(RGB(26, 22, 21), RGB(26, 22, 21), 39, 44, 44, 50);
+    ellipse(RGB(26, 22, 21), RGB(26, 22, 21), 56, 44, 61, 50);
+    // A small mouth line under the nose, then the collar over the neck.
+    draw_line(dc, x + s * 50 / 100, y + s * 68 / 100, x + s * 50 / 100, y + s * 75 / 100,
+              RGB(100, 59, 34), s > 48 ? 2 : 1);
+    RECT collar = { x + s * 27 / 100, y + s * 72 / 100, x + s * 73 / 100, y + s * 82 / 100 };
+    fill_round(dc, collar, s / 30, RGB(43, 139, 202), RGB(28, 98, 150));
+    ellipse(RGB(246, 197, 67), RGB(183, 132, 28), 45, 77, 55, 87);
+}
+
+// The header badge: the Great Dane portrait inside the orange-ringed plate.
+static void draw_dog_logo(HDC dc, int x, int y, int s, const Image& mascot)
+{
+    if (!mascot.handle)
+    {
+        draw_drawn_dog(dc, x, y, s);
+        return;
+    }
+    RECT outer = { x, y, x + s, y + s };
+    fill_round(dc, outer, s / 5, kAccent, kAccent);
+    int rim = (s * 37 + 500) / 1000;
+    if (rim < 2)
+    {
+        rim = 2;
+    }
+    RECT inner = { x + rim, y + rim, x + s - rim, y + s - rim };
+    fill_round(dc, inner, s / 6, RGB(20, 52, 52), RGB(20, 52, 52));
+    int pad = (s * 6 + 50) / 100;
+    RECT hole = { x + pad, y + pad, x + s - pad, y + s - pad };
+    fill_round(dc, hole, s / 9, RGB(28, 70, 67), RGB(28, 70, 67));
+    // Keep the portrait square and let it sit on the plate's floor, so the
+    // straight bottom of the crop reads as the frame edge rather than a cut.
+    int air = (s * 3 + 50) / 100;
+    int side = (hole.right - hole.left) - 2 * air;
+    RECT art = { hole.left + air, hole.bottom - side, hole.right - air, hole.bottom };
+    draw_image(dc, mascot, art, s / 9);
+}
+
+static void draw_nav_icon(HDC dc, int page, int x, int y, COLORREF color)
+{
+    HPEN pen = CreatePen(PS_SOLID, 2, color);
+    HBRUSH brush = CreateSolidBrush(color);
+    HGDIOBJ oldPen = SelectObject(dc, pen);
+    HGDIOBJ oldBrush = SelectObject(dc, brush);
+    switch (page)
+    {
+    case PAGE_GAME:
+        SelectObject(dc, GetStockObject(NULL_BRUSH));
+        Ellipse(dc, x + 1, y + 1, x + 19, y + 19);
+        Ellipse(dc, x + 7, y + 7, x + 13, y + 13);
+        break;
+    case PAGE_DISPLAY:
+        SelectObject(dc, GetStockObject(NULL_BRUSH));
+        RoundRect(dc, x + 1, y + 2, x + 19, y + 15, 2, 2);
+        draw_line(dc, x + 10, y + 15, x + 10, y + 19, color, 2);
+        draw_line(dc, x + 6, y + 19, x + 14, y + 19, color, 2);
+        break;
+    case PAGE_GRAPHICS:
+        for (int i = 0; i < 3; i++)
+        {
+            int yy = y + 4 + i * 6;
+            draw_line(dc, x + 1, yy, x + 19, yy, color, 2);
+            int kx = x + 5 + (i == 1 ? 8 : 3);
+            Ellipse(dc, kx - 2, yy - 3, kx + 2, yy + 3);
+        }
+        break;
+    default:
+        RoundRect(dc, x + 1, y + 4, x + 19, y + 17, 6, 6);
+        SelectObject(dc, GetStockObject(NULL_BRUSH));
+        draw_line(dc, x + 6, y + 10, x + 10, y + 10, color, 2);
+        draw_line(dc, x + 8, y + 8, x + 8, y + 12, color, 2);
+        Ellipse(dc, x + 13, y + 8, x + 15, y + 10);
+        Ellipse(dc, x + 15, y + 11, x + 17, y + 13);
+        break;
+    }
+    SelectObject(dc, oldPen);
+    SelectObject(dc, oldBrush);
+    DeleteObject(pen);
+    DeleteObject(brush);
+}
+
+static void draw_background(HDC dc, int w, int h)
+{
+    RECT all = { 0, 0, w, h };
+    HBRUSH bg = CreateSolidBrush(kBg);
+    FillRect(dc, &all, bg);
+    DeleteObject(bg);
+
+    // Header: a deep teal-to-plum night sky.
+    TRIVERTEX v[2] = {
+        { 0, 0, (COLOR16)(GetRValue(kHeaderA) << 8), (COLOR16)(GetGValue(kHeaderA) << 8),
+          (COLOR16)(GetBValue(kHeaderA) << 8), 0xFF00 },
+        { w, px(112), (COLOR16)(GetRValue(kHeaderB) << 8), (COLOR16)(GetGValue(kHeaderB) << 8),
+          (COLOR16)(GetBValue(kHeaderB) << 8), 0xFF00 },
+    };
+    GRADIENT_RECT gradient = { 0, 1 };
+    GradientFill(dc, v, 2, &gradient, 1, GRADIENT_FILL_RECT_H);
+
+    // A few low-contrast paw prints, the Great Dane badge and the Mystery Machine.
+    draw_paw(dc, px(704), px(28), px(9), RGB(35, 40, 51));
+    draw_paw(dc, px(732), px(97), px(5), RGB(40, 37, 57));
+    static const Image van = load_png_image(IDR_VAN_PNG);
+    if (van.handle)
+    {
+        int vanH = px(76);
+        int vanW = MulDiv(vanH, van.w, van.h);
+        RECT art = { w - px(26) - vanW, px(14), w - px(26), px(14) + vanH };
+        draw_image(dc, van, art, 0);
+    }
+    else
+    {
+        draw_van(dc, px(786), px(20), px(100), px(54));
+    }
+    static const Image mascot = load_png_image(IDR_MASCOT_PNG);
+    draw_dog_logo(dc, px(24), px(16), px(82), mascot);
+
+    static const Image wordmark = load_png_image(IDR_WORDMARK_PNG);
+    if (wordmark.handle)
+    {
+        // The wordmark sits on a parchment sticker so the black lettering keeps
+        // its contrast against the dark header.
+        int artH = px(44);
+        int artW = MulDiv(artH, wordmark.w, wordmark.h);
+        RECT plate = { px(112), px(8), px(112) + artW + px(26), px(8) + artH + px(12) };
+        fill_round(dc, plate, px(14), kCard, RGB(231, 219, 198));
+        RECT art = { plate.left + px(13), plate.top + px(6), plate.left + px(13) + artW,
+                     plate.top + px(6) + artH };
+        draw_image(dc, wordmark, art, 0);
+    }
+    else
+    {
+        RECT title = { px(122), px(12), px(640), px(64) };
+        RECT titleShadow = title;
+        OffsetRect(&titleShadow, px(2), px(3));
+        draw_text(dc, L"PROJECT: MYSTERY MACHINE", titleShadow, s_titleFont, RGB(16, 14, 25));
+        draw_text(dc, L"PROJECT: MYSTERY MACHINE", title, s_titleFont, kAccent);
+    }
+    RECT subtitle = { px(124), px(66), px(640), px(92) };
+    draw_text(dc, L"SCOOBY-DOO! NIGHT OF 100 FRIGHTS   /   PC", subtitle, s_smallFont,
+              RGB(240, 228, 205));
+
+    RECT badge = { px(646), px(30), px(758), px(56) };
+    fill_round(dc, badge, 12, RGB(26, 57, 62), kTeal);
+    RECT badgeText = badge;
+    draw_text(dc, L"PC EDITION", badgeText, s_eyebrowFont, RGB(235, 247, 239),
+              DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    // Sidebar.
+    RECT side = { px(24), px(124), px(204), px(600) };
+    fill_round(dc, side, px(16), kSidebar, kSidebarEdge);
+    RECT label = { px(40), px(142), px(190), px(164) };
+    draw_text(dc, L"PROJECT HQ", label, s_eyebrowFont, RGB(192, 174, 220),
+              DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    draw_paw(dc, px(156), px(548), px(13), RGB(51, 40, 72));
+    RECT edition = { px(40), px(574), px(188), px(594) };
+    draw_text(dc, L"PC PORT  /  NO GAME DATA", edition, s_eyebrowFont, RGB(127, 112, 151),
+              DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+    // Page card with a soft drop shadow.
+    RECT shadow = { px(226), px(129), px(900), px(623) };
+    fill_round(dc, shadow, px(18), RGB(11, 9, 17), RGB(11, 9, 17));
+    RECT card = { px(222), px(124), px(896), px(618) };
+    fill_round(dc, card, px(18), kCard, RGB(228, 214, 191));
+    draw_paw(dc, px(846), px(582), px(10), RGB(238, 228, 210));
+
+    static const wchar_t* kickers[PAGE_COUNT] = {
+        L"CASE FILE 01   /   THE MISSING DISC",
+        L"CASE FILE 02   /   SCREEN SETUP",
+        L"CASE FILE 03   /   LOOK & FEEL",
+        L"CASE FILE 04   /   GHOST-PROOF CONTROLS",
+    };
+    static const wchar_t* titles[PAGE_COUNT] = { L"Game files", L"Display", L"Graphics", L"Controls" };
+    static const wchar_t* subtitles[PAGE_COUNT] = {
+        L"Bring your own disc. The launcher takes it from there.",
+        L"Make the mystery look its best on your screen.",
+        L"Dial in the fog, shadows and frame rate.",
+        L"Pick up every clue with your keyboard or controller.",
+    };
+    RECT kicker = { px(248), px(140), px(870), px(158) };
+    draw_text(dc, kickers[s_page], kicker, s_eyebrowFont, kAccentDark,
+              DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    RECT pageTitle = { px(248), px(158), px(870), px(188) };
+    draw_text(dc, titles[s_page], pageTitle, s_pageFont, kInk, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    RECT pageSub = { px(248), px(188), px(870), px(208) };
+    draw_text(dc, subtitles[s_page], pageSub, s_smallFont, kMuted, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+
+    // Footer.
+    draw_line(dc, px(24), px(628), px(896), px(628), RGB(58, 45, 78), 1);
+    RECT footer = { px(24), px(668), px(220), px(690) };
+    draw_text(dc, L"PROJECT: MYSTERY MACHINE  /  PC", footer, s_eyebrowFont, RGB(133, 117, 151),
+              DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+}
+
+static void draw_owner_button(const DRAWITEMSTRUCT* d)
+{
+    if (!d)
+    {
+        return;
+    }
+    HDC dc = d->hDC;
+    RECT r = d->rcItem;
+    bool disabled = (d->itemState & ODS_DISABLED) != 0;
+    bool pressed = (d->itemState & ODS_SELECTED) != 0;
+    wchar_t text[512] = L"";
+    GetWindowTextW(d->hwndItem, text, 512);
+    int id = (int)d->CtlID;
+
+    if (id >= ID_NAV_GAME && id <= ID_NAV_CONTROLS)
+    {
+        HBRUSH bg = CreateSolidBrush(kSidebar);
+        FillRect(dc, &r, bg);
+        DeleteObject(bg);
+        InflateRect(&r, -px(2), -px(2));
+        bool active = id - ID_NAV_GAME == s_page;
+        bool hot = s_hotButton == id && !active && !disabled;
+        fill_round(dc, r, px(10), active ? kAccent : (hot ? RGB(54, 42, 77) : kSidebar),
+                   active ? kAccent : (hot ? RGB(78, 61, 105) : kSidebar));
+        if (active)
+        {
+            RECT bar = { r.left, r.top + px(10), r.left + px(4), r.bottom - px(10) };
+            HBRUSH orange = CreateSolidBrush(RGB(255, 217, 150));
+            FillRect(dc, &bar, orange);
+            DeleteObject(orange);
+        }
+        draw_nav_icon(dc, id - ID_NAV_GAME, r.left + px(14), r.top + (r.bottom - r.top - px(20)) / 2,
+                      active ? kInk : kTeal);
+        RECT tr = { r.left + px(44), r.top, r.right - px(8), r.bottom };
+        draw_text(dc, text, tr, s_navFont, active ? kInk : (disabled ? RGB(110, 96, 132) : RGB(240, 229, 210)),
+                  DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+        if (d->itemState & ODS_FOCUS)
+        {
+            RECT f = r;
+            InflateRect(&f, -px(4), -px(4));
+            DrawFocusRect(dc, &f);
+        }
+        return;
+    }
+
+    if (is_checkbox_id(id))
+    {
+        HBRUSH bg = CreateSolidBrush(kCard);
+        FillRect(dc, &r, bg);
+        DeleteObject(bg);
+        bool checked = check_get(id);
+        int box = px(18);
+        int top = r.top + (r.bottom - r.top - box) / 2;
+        RECT boxR = { r.left + px(2), top, r.left + px(2) + box, top + box };
+        fill_round(dc, boxR, px(5), checked ? (disabled ? RGB(198, 188, 172) : kTeal) : kField,
+                   checked ? (disabled ? RGB(198, 188, 172) : RGB(31, 127, 111)) : kLine);
+        if (checked)
+        {
+            HPEN pen = CreatePen(PS_SOLID, px(2), disabled ? RGB(120, 112, 101) : kField);
+            HGDIOBJ old = SelectObject(dc, pen);
+            MoveToEx(dc, boxR.left + px(4), boxR.top + px(9), NULL);
+            LineTo(dc, boxR.left + px(7), boxR.top + px(13));
+            LineTo(dc, boxR.left + px(14), boxR.top + px(5));
+            SelectObject(dc, old);
+            DeleteObject(pen);
+        }
+        RECT tr = { boxR.right + px(10), r.top, r.right - px(2), r.bottom };
+        draw_text(dc, text, tr, s_font, disabled ? kMuted : kInk,
+                  DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+        return;
+    }
+
+    bool play = id == ID_PLAY;
+    bool extract = id == ID_EXTRACT;
+    bool save = id == ID_SAVE;
+    COLORREF fill = (play || extract) ? kAccent : (save ? RGB(31, 88, 82) : kField);
+    COLORREF border = (play || extract) ? kAccentDark : (save ? kTeal : kLine);
+    COLORREF ink = (save ? RGB(242, 249, 242) : kInk);
+    if (disabled)
+    {
+        fill = RGB(226, 216, 198);
+        border = RGB(204, 193, 175);
+        ink = RGB(147, 134, 119);
+    }
+    else if (pressed)
+    {
+        fill = (play || extract) ? RGB(210, 118, 25) : (save ? RGB(24, 70, 66) : RGB(239, 229, 212));
+    }
+    else if (s_hotButton == id && !save)
+    {
+        fill = (play || extract) ? RGB(247, 163, 62) : RGB(255, 253, 247);
+        border = (play || extract) ? kAccentDark : RGB(198, 178, 148);
+    }
+    HBRUSH behind = CreateSolidBrush(save || play ? kBg : kCard);
+    FillRect(dc, &d->rcItem, behind);
+    DeleteObject(behind);
+    InflateRect(&r, -px(1), -px(1));
+    fill_round(dc, r, px(10), fill, border);
+    RECT tr = r;
+    InflateRect(&tr, -px(8), 0);
+    draw_text(dc, text, tr, s_font, ink, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+    if ((d->itemState & ODS_FOCUS) && !(d->itemState & ODS_NOFOCUSRECT))
+    {
+        RECT f = r;
+        InflateRect(&f, -px(4), -px(4));
+        DrawFocusRect(dc, &f);
+    }
+}
+
+static LRESULT slider_custom_draw(const NMCUSTOMDRAW* cd)
+{
+    if (cd->dwDrawStage == CDDS_PREPAINT)
+    {
+        FillRect(cd->hdc, &cd->rc, card_brush());
+        return CDRF_NOTIFYITEMDRAW;
+    }
+    if (cd->dwDrawStage == CDDS_ITEMPREPAINT)
+    {
+        if (cd->dwItemSpec == TBCD_CHANNEL)
+        {
+            RECT r = cd->rc;
+            int cy = (r.top + r.bottom) / 2;
+            RECT track = { r.left, cy - px(2), r.right, cy + px(2) };
+            fill_round(cd->hdc, track, px(2), kTrack, kTrack);
+            return CDRF_SKIPDEFAULT;
+        }
+        if (cd->dwItemSpec == TBCD_THUMB)
+        {
+            int cx = (cd->rc.left + cd->rc.right) / 2;
+            int cy = (cd->rc.top + cd->rc.bottom) / 2;
+            HBRUSH brush = CreateSolidBrush(kTeal);
+            HPEN pen = CreatePen(PS_SOLID, px(2), kField);
+            HGDIOBJ ob = SelectObject(cd->hdc, brush), op = SelectObject(cd->hdc, pen);
+            Ellipse(cd->hdc, cx - px(7), cy - px(7), cx + px(7), cy + px(7));
+            SelectObject(cd->hdc, ob);
+            SelectObject(cd->hdc, op);
+            DeleteObject(brush);
+            DeleteObject(pen);
+            return CDRF_SKIPDEFAULT;
+        }
+        if (cd->dwItemSpec == TBCD_TICS)
+        {
+            return CDRF_SKIPDEFAULT;
+        }
+    }
+    return CDRF_DODEFAULT;
+}
+
+static LRESULT CALLBACK hot_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR id, DWORD_PTR)
+{
+    switch (msg)
+    {
+    case WM_MOUSEMOVE:
+        if (s_hotButton != (int)id)
+        {
+            int old = s_hotButton;
+            s_hotButton = (int)id;
+            if (old)
+            {
+                InvalidateRect(item(old), NULL, TRUE);
+            }
+            InvalidateRect(hwnd, NULL, TRUE);
+        }
+        {
+            TRACKMOUSEEVENT tme = { sizeof(tme), TME_LEAVE, hwnd, 0 };
+            TrackMouseEvent(&tme);
+        }
+        break;
+    case WM_MOUSELEAVE:
+        if (s_hotButton == (int)id)
+        {
+            s_hotButton = 0;
+            InvalidateRect(hwnd, NULL, TRUE);
+        }
+        break;
+    }
+    return DefSubclassProc(hwnd, msg, wp, lp);
+}
+
+static void use_dark_titlebar(HWND hwnd)
+{
+    BOOL dark = TRUE;
+    DwmSetWindowAttribute(hwnd, 20, &dark, sizeof(dark)); // DWMWA_USE_IMMERSIVE_DARK_MODE
+    COLORREF caption = kBg;
+    DwmSetWindowAttribute(hwnd, 35, &caption, sizeof(caption)); // DWMWA_CAPTION_COLOR
+    COLORREF textColor = RGB(246, 236, 216);
+    DwmSetWindowAttribute(hwnd, 36, &textColor, sizeof(textColor)); // DWMWA_TEXT_COLOR
+    int corner = 2; // DWMWCP_ROUND
+    DwmSetWindowAttribute(hwnd, 33, &corner, sizeof(corner)); // DWMWA_WINDOW_CORNER_PREFERENCE
+}
 
 // ---------------------------------------------------------------- game files page
 // Where the game will find its files (the same order as pc/src/dvd.cpp).
@@ -832,8 +1543,6 @@ static void update_distance_labels()
     set_text(ID_FOV_VALUE, t);
     swprintf(t, 32, L"%d%%", slider(ID_BRIGHT) * 5);
     set_text(ID_BRIGHT_VALUE, t);
-    swprintf(t, 32, L"%d", slider(ID_MOUSE_SENS) * 10);
-    set_text(ID_MOUSE_SENS_LABEL, std::wstring(L"Mouse sensitivity: ") + t + L"%");
 }
 
 static void update_mode_dependent()
@@ -1098,9 +1807,6 @@ static void load_settings()
     int shadow = atoi(s_ini.get("graphics", "shadow_res", "1024").c_str());
     combo_set(ID_SHADOW, shadow >= 2048 ? 3 : shadow >= 1024 ? 2 : shadow >= 512 ? 1 : 0);
     check_set(ID_SKIP_LOGOS, s_ini.get("game", "skip_logos", "0") == "1");
-    check_set(ID_MOUSE_CAM, s_ini.get("keyboard", "mouse_camera", "0") == "1");
-    double sensv = atof(s_ini.get("keyboard", "mouse_sensitivity", "1").c_str());
-    SendMessageW(item(ID_MOUSE_SENS), TBM_SETPOS, TRUE, (LPARAM)(int)(sensv * 10 + 0.5));
     int tri = atoi(s_ini.get("graphics", "trilinear", "1").c_str());
     int aniso = atoi(s_ini.get("graphics", "anisotropy", "16").c_str());
     combo_set(ID_FILTER, 0);
@@ -1118,6 +1824,7 @@ static void load_settings()
         s_pads[i] = kActions[i].pad ? s_ini.get("controller", kActions[i].name, kActions[i].pad) : "";
     }
     check_set(ID_SWAP_STICKS, s_ini.get("controller", "sticks", "normal") == "swapped");
+    check_set(ID_DEBUG_MENU, s_ini.get("debug", "menu", "0") == "1");
     update_distance_labels();
     update_mode_dependent();
 }
@@ -1147,9 +1854,6 @@ static bool save_settings()
     static const int kShadow[] = { 256, 512, 1024, 2048 };
     s_ini.set("graphics", "shadow_res", std::to_string(kShadow[combo_get(ID_SHADOW) < 0 ? 0 : combo_get(ID_SHADOW)]));
     s_ini.set("game", "skip_logos", check_get(ID_SKIP_LOGOS) ? "1" : "0");
-    s_ini.set("keyboard", "mouse_camera", check_get(ID_MOUSE_CAM) ? "1" : "0");
-    snprintf(t, sizeof(t), "%.1f", slider(ID_MOUSE_SENS) / 10.0);
-    s_ini.set("keyboard", "mouse_sensitivity", t);
     int f = combo_get(ID_FILTER);
     s_ini.set("graphics", "trilinear", std::to_string(kFilters[f].trilinear));
     s_ini.set("graphics", "anisotropy", std::to_string(kFilters[f].aniso));
@@ -1162,6 +1866,7 @@ static bool save_settings()
         }
     }
     s_ini.set("controller", "sticks", check_get(ID_SWAP_STICKS) ? "swapped" : "normal");
+    s_ini.set("debug", "menu", check_get(ID_DEBUG_MENU) ? "1" : "0");
     if (!s_ini.save(s_iniPath))
     {
         MessageBoxW(s_main, (L"Can't write " + s_iniPath + L". Is the folder read-only?").c_str(), L"Settings",
@@ -1177,7 +1882,6 @@ static void play()
     std::wstring d = find_game_dir();
     if (d.empty() || !is_game_dir(d))
     {
-        TabCtrl_SetCurSel(item(ID_TABS), PAGE_GAME);
         show_page(PAGE_GAME);
         MessageBoxW(s_main, L"The game's files aren't there yet: extract them from your disc image first.",
                     L"Play", MB_ICONINFORMATION);
@@ -1205,57 +1909,70 @@ static void play()
 // ---------------------------------------------------------------- layout
 static void create_controls()
 {
-    HWND tabs = add(-1, ID_TABS, WC_TABCONTROLW, L"", WS_VISIBLE | WS_CLIPSIBLINGS, 10, 10, 560, 420);
-    const wchar_t* names[] = { L"Game files", L"Display", L"Graphics", L"Controls" };
+    const int L = 248, T = 216, W = 604;
+    const int CARD_RIGHT = L + W;
+
+    // Sidebar: four case files, always visible.
+    static const wchar_t* navNames[PAGE_COUNT] = { L"Game files", L"Display", L"Graphics", L"Controls" };
     for (int i = 0; i < PAGE_COUNT; i++)
     {
-        TCITEMW ti = {};
-        ti.mask = TCIF_TEXT;
-        ti.pszText = (LPWSTR)names[i];
-        TabCtrl_InsertItem(tabs, i, &ti);
+        add(-1, kNavIds[i], L"BUTTON", navNames[i], WS_VISIBLE | WS_TABSTOP | BS_OWNERDRAW,
+            34, 178 + 50 * i, 162, 42);
     }
-    const int L = 26, T = 48; // page origin inside the tab control
 
-    // Game files
+    // Game files.
     add(PAGE_GAME, ID_GAME_INFO, L"STATIC",
-        L"The game's files come from your own copy of Scooby-Doo! Night of 100 Frights for GameCube (the USA "
-        L"release, disc ID GIHE78). Choose a disc image you made from it (.iso or .gcm) and the launcher copies "
-        L"the game's files into the data folder beside the program. You only need to do this once.",
-        0, L, T, 528, 64);
-    add(PAGE_GAME, ID_ISO_LABEL, L"STATIC", L"Disc image:", 0, L, T + 80, 100, 20);
-    add(PAGE_GAME, ID_ISO_PATH, L"EDIT", L"", WS_BORDER | ES_AUTOHSCROLL | ES_READONLY, L, T + 100, 420, 24,
+        L"This release contains no game data. The launcher copies the files from your own USA GameCube disc "
+        L"(GIHE78) into the data folder beside the program. Choose a plain .iso or .gcm image; compressed "
+        L"RVZ, WIA, CISO and GCZ images must be converted to ISO first.",
+        0, L, T, W, 58);
+    add(PAGE_GAME, ID_ISO_LABEL, L"STATIC", L"Disc image:", 0, L, T + 70, 160, 20);
+    add(PAGE_GAME, ID_ISO_PATH, L"EDIT", L"", WS_BORDER | ES_AUTOHSCROLL | ES_READONLY, L, T + 90, 466, 28,
         WS_EX_CLIENTEDGE);
-    add(PAGE_GAME, ID_ISO_BROWSE, L"BUTTON", L"Browse...", WS_TABSTOP | BS_PUSHBUTTON, L + 428, T + 99, 100, 26);
-    HWND ex = add(PAGE_GAME, ID_EXTRACT, L"BUTTON", L"Extract game files", WS_TABSTOP | BS_PUSHBUTTON, L, T + 136,
-                  160, 30);
+    add(PAGE_GAME, ID_ISO_BROWSE, L"BUTTON", L"Browse...", WS_TABSTOP | BS_PUSHBUTTON, L + 478, T + 89, 126, 30);
+    HWND ex = add(PAGE_GAME, ID_EXTRACT, L"BUTTON", L"Extract game files", WS_TABSTOP | BS_PUSHBUTTON, L, T + 132,
+                  190, 34);
     EnableWindow(ex, FALSE);
-    HWND prog = add(PAGE_GAME, ID_PROGRESS, PROGRESS_CLASSW, L"", 0, L + 170, T + 140, 358, 22);
+    HWND prog = add(PAGE_GAME, ID_PROGRESS, PROGRESS_CLASSW, L"", 0, L + 204, T + 137, W - 204, 22);
     SendMessageW(prog, PBM_SETRANGE32, 0, 1000);
-    add(PAGE_GAME, ID_GAME_STATUS, L"STATIC", L"", 0, L, T + 184, 528, 60);
-    add(PAGE_GAME, ID_GAME_FOLDER, L"BUTTON", L"Use a folder I already extracted...", WS_TABSTOP | BS_PUSHBUTTON, L,
-        T + 254, 240, 28);
+    SetWindowTheme(prog, L"", L"");
+    SendMessageW(prog, PBM_SETBKCOLOR, 0, (LPARAM)kField);
+    SendMessageW(prog, PBM_SETBARCOLOR, 0, (LPARAM)kTeal);
+    add(PAGE_GAME, ID_GAME_STATUS, L"STATIC", L"", 0, L, T + 180, W, 44);
+    add(PAGE_GAME, ID_GAME_FOLDER, L"BUTTON", L"Use a folder I already extracted...",
+        WS_TABSTOP | BS_PUSHBUTTON, L, T + 244, 300, 32);
     add(PAGE_GAME, ID_SKIP_LOGOS, L"BUTTON", L"Skip the company logo movies when the game starts",
-        WS_TABSTOP | BS_AUTOCHECKBOX, L, T + 300, 400, 22);
+        WS_TABSTOP | BS_AUTOCHECKBOX, L, T + 292, 460, 24);
+    add(PAGE_GAME, ID_GAME_NOTE, L"STATIC",
+        L"Your disc image is only read locally. Nothing is uploaded, and the extracted files stay in data/ "
+        L"beside the launcher.",
+        0, L, T + 326, W, 40);
 
-    // Display
-    add(PAGE_DISPLAY, ID_RES_LABEL, L"STATIC", L"Resolution:", 0, L, T + 4, 150, 20);
-    add(PAGE_DISPLAY, ID_RES, WC_COMBOBOXW, L"", WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST, L + 160, T, 220, 300);
-    add(PAGE_DISPLAY, ID_MODE_LABEL, L"STATIC", L"Window mode:", 0, L, T + 44, 150, 20);
-    add(PAGE_DISPLAY, ID_MODE, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, T + 40, 220, 200);
-    add(PAGE_DISPLAY, ID_ASPECT_LABEL, L"STATIC", L"Aspect ratio:", 0, L, T + 84, 150, 20);
-    add(PAGE_DISPLAY, ID_ASPECT, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, T + 80, 220, 200);
-    add(PAGE_DISPLAY, ID_MSAA_LABEL, L"STATIC", L"Anti-aliasing:", 0, L, T + 124, 150, 20);
-    add(PAGE_DISPLAY, ID_MSAA, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, T + 120, 220, 200);
-    add(PAGE_DISPLAY, ID_HUD_LABEL, L"STATIC", L"HUD layout:", 0, L, T + 164, 150, 20);
-    add(PAGE_DISPLAY, ID_HUD, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, T + 160, 220, 200);
-    add(PAGE_DISPLAY, ID_VSYNC, L"BUTTON", L"Vertical sync (no tearing)", WS_TABSTOP | BS_AUTOCHECKBOX, L + 160,
-        T + 200, 300, 22);
+    // Display.
+    struct Row { int label; int combo; const wchar_t* text; };
+    static const Row rows[] = {
+        { ID_RES_LABEL, ID_RES, L"Resolution:" },
+        { ID_MODE_LABEL, ID_MODE, L"Window mode:" },
+        { ID_ASPECT_LABEL, ID_ASPECT, L"Aspect ratio:" },
+        { ID_MSAA_LABEL, ID_MSAA, L"Anti-aliasing:" },
+        { ID_HUD_LABEL, ID_HUD, L"HUD layout:" },
+    };
+    for (int i = 0; i < 5; i++)
+    {
+        int y = T + 8 + 40 * i;
+        add(PAGE_DISPLAY, rows[i].label, L"STATIC", rows[i].text, 0, L, y + 6, 180, 22);
+        HWND cb = add(PAGE_DISPLAY, rows[i].combo, WC_COMBOBOXW, L"", WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWNLIST,
+                      L + 190, y, 280, 240);
+        SetWindowTheme(cb, L"Explorer", NULL);
+    }
+    add(PAGE_DISPLAY, ID_VSYNC, L"BUTTON", L"Vertical sync (no tearing)", WS_TABSTOP | BS_AUTOCHECKBOX,
+        L + 190, T + 208, 300, 24);
     add(PAGE_DISPLAY, ID_DISPLAY_NOTE, L"STATIC",
         L"Widescreen shows more of each level at the sides without stretching the picture, and the HUD moves "
         L"out to the screen's corners (or stays in the middle with the original layout). The title screen and "
         L"movies keep their 4:3 shape. Borderless fullscreen uses your desktop's resolution; Alt+Enter "
         L"switches between a window and fullscreen while playing.",
-        0, L, T + 240, 528, 80);
+        0, L, T + 250, W, 92);
     for (const wchar_t* m : { kModes[0].label, kModes[1].label, kModes[2].label })
     {
         combo_add(ID_MODE, m);
@@ -1271,7 +1988,7 @@ static void create_controls()
     combo_add(ID_HUD, L"Widescreen (corners)");
     combo_add(ID_HUD, L"Original (4:3 middle)");
 
-    // Graphics: one row each, one note below.
+    // Graphics: one slider row each, then three dropdowns and a note.
     struct Slider { int label, bar, value; const wchar_t* text; int lo, hi, tic; } sliders[] = {
         { ID_DRAW_LABEL, ID_DRAW, ID_DRAW_VALUE, L"Draw distance:", 4, 16, 2 },
         { ID_FX_LABEL, ID_FX, ID_FX_VALUE, L"Effects distance:", 4, 16, 2 },
@@ -1280,14 +1997,15 @@ static void create_controls()
     };
     for (int i = 0; i < 4; i++)
     {
-        int y = T + 36 * i;
-        add(PAGE_GRAPHICS, sliders[i].label, L"STATIC", sliders[i].text, 0, L, y + 6, 150, 20);
-        HWND tb = add(PAGE_GRAPHICS, sliders[i].bar, TRACKBAR_CLASSW, L"", WS_TABSTOP | TBS_AUTOTICKS, L + 160, y,
-                      300, 30);
-        add(PAGE_GRAPHICS, sliders[i].value, L"STATIC", L"", 0, L + 470, y + 6, 60, 20);
+        int y = T + 8 + 38 * i;
+        add(PAGE_GRAPHICS, sliders[i].label, L"STATIC", sliders[i].text, 0, L, y + 7, 180, 22);
+        HWND tb = add(PAGE_GRAPHICS, sliders[i].bar, TRACKBAR_CLASSW, L"", WS_TABSTOP | TBS_AUTOTICKS,
+                      L + 190, y, 300, 30);
+        add(PAGE_GRAPHICS, sliders[i].value, L"STATIC", L"", 0, L + 516, y + 7, 84, 22);
         SendMessageW(tb, TBM_SETRANGE, TRUE, MAKELPARAM(sliders[i].lo, sliders[i].hi));
         SendMessageW(tb, TBM_SETTICFREQ, sliders[i].tic, 0);
         SendMessageW(tb, TBM_SETPAGESIZE, 0, sliders[i].tic);
+        SetWindowTheme(tb, L"", L"");
     }
     struct Combo { int label, combo; const wchar_t* text; } combos[] = {
         { ID_FILTER_LABEL, ID_FILTER, L"Texture filtering:" },
@@ -1296,16 +2014,18 @@ static void create_controls()
     };
     for (int i = 0; i < 3; i++)
     {
-        int y = T + 152 + 36 * i;
-        add(PAGE_GRAPHICS, combos[i].label, L"STATIC", combos[i].text, 0, L, y + 4, 150, 20);
-        add(PAGE_GRAPHICS, combos[i].combo, WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST, L + 160, y, 220, 200);
+        int y = T + 164 + 38 * i;
+        add(PAGE_GRAPHICS, combos[i].label, L"STATIC", combos[i].text, 0, L, y + 5, 180, 22);
+        HWND cb = add(PAGE_GRAPHICS, combos[i].combo, WC_COMBOBOXW, L"",
+                      WS_TABSTOP | CBS_DROPDOWNLIST, L + 190, y, 280, 220);
+        SetWindowTheme(cb, L"Explorer", NULL);
     }
     add(PAGE_GRAPHICS, ID_GRAPHICS_NOTE, L"STATIC",
         L"Draw distance pushes the far edge of the view and the fog back (some places expect fog to hide what "
         L"lies beyond); effects distance is how far particle effects still show. The game has no model levels "
         L"of detail, so these are its distance settings. 60 fps keeps jumps, speeds and timings as on the "
         L"GameCube; Field of view adds degrees to the game's camera.",
-        0, L, T + 266, 528, 84);
+        0, L, T + 286, W, 92);
     for (const auto& f : kFilters)
     {
         combo_add(ID_FILTER, f.label);
@@ -1317,12 +2037,16 @@ static void create_controls()
     combo_add(ID_FPS, L"30 fps (original)");
     combo_add(ID_FPS, L"60 fps");
 
-    // Controls
+    // Controls.
     HWND lv = add(PAGE_CONTROLS, ID_BINDS, WC_LISTVIEWW, L"",
-                  WS_TABSTOP | WS_BORDER | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS, L, T, 528, 230);
+                  WS_TABSTOP | WS_BORDER | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS,
+                  L, T, W, 224);
     ListView_SetExtendedListViewStyle(lv, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_DOUBLEBUFFER);
+    ListView_SetBkColor(lv, kField);
+    ListView_SetTextBkColor(lv, kField);
+    ListView_SetTextColor(lv, kInk);
     const wchar_t* cols[] = { L"Action", L"Keyboard", L"Controller" };
-    const int widths[] = { 170, 190, 145 };
+    const int widths[] = { 200, 220, 184 };
     for (int i = 0; i < 3; i++)
     {
         LVCOLUMNW c = {};
@@ -1339,28 +2063,26 @@ static void create_controls()
         it.pszText = (LPWSTR)kActions[i].label;
         ListView_InsertItem(lv, &it);
     }
-    add(PAGE_CONTROLS, ID_SET_KEY, L"BUTTON", L"Set key", WS_TABSTOP | BS_PUSHBUTTON, L, T + 238, 96, 28);
-    add(PAGE_CONTROLS, ID_ADD_KEY, L"BUTTON", L"Add key", WS_TABSTOP | BS_PUSHBUTTON, L + 102, T + 238, 96, 28);
-    add(PAGE_CONTROLS, ID_SET_PAD, L"BUTTON", L"Set button", WS_TABSTOP | BS_PUSHBUTTON, L + 204, T + 238, 96, 28);
-    add(PAGE_CONTROLS, ID_CLEAR, L"BUTTON", L"Clear", WS_TABSTOP | BS_PUSHBUTTON, L + 306, T + 238, 80, 28);
-    add(PAGE_CONTROLS, ID_DEFAULTS, L"BUTTON", L"Defaults", WS_TABSTOP | BS_PUSHBUTTON, L + 392, T + 238, 136, 28);
-    add(PAGE_CONTROLS, ID_SWAP_STICKS, L"BUTTON", L"Swap analog sticks (right stick moves, left stick is the camera)",
-        WS_TABSTOP | BS_AUTOCHECKBOX, L, T + 274, 528, 22);
-    add(PAGE_CONTROLS, ID_MOUSE_CAM, L"BUTTON", L"Mouse turns the camera (C-stick; captures the cursor)",
-        WS_TABSTOP | BS_AUTOCHECKBOX, L, T + 298, 330, 22);
-    add(PAGE_CONTROLS, ID_MOUSE_SENS_LABEL, L"STATIC", L"", 0, L + 340, T + 300, 190, 20);
-    HWND sens = add(PAGE_CONTROLS, ID_MOUSE_SENS, TRACKBAR_CLASSW, L"", WS_TABSTOP, L + 336, T + 318, 192, 26);
-    SendMessageW(sens, TBM_SETRANGE, TRUE, MAKELPARAM(2, 30));
-    SendMessageW(sens, TBM_SETPAGESIZE, 0, 2);
+    add(PAGE_CONTROLS, ID_SET_KEY, L"BUTTON", L"Set key", WS_TABSTOP | BS_PUSHBUTTON, L, T + 236, 100, 30);
+    add(PAGE_CONTROLS, ID_ADD_KEY, L"BUTTON", L"Add key", WS_TABSTOP | BS_PUSHBUTTON, L + 106, T + 236, 100, 30);
+    add(PAGE_CONTROLS, ID_SET_PAD, L"BUTTON", L"Set button", WS_TABSTOP | BS_PUSHBUTTON, L + 212, T + 236, 110, 30);
+    add(PAGE_CONTROLS, ID_CLEAR, L"BUTTON", L"Clear", WS_TABSTOP | BS_PUSHBUTTON, L + 328, T + 236, 80, 30);
+    add(PAGE_CONTROLS, ID_DEFAULTS, L"BUTTON", L"Defaults", WS_TABSTOP | BS_PUSHBUTTON, L + 414, T + 236, 190, 30);
+    add(PAGE_CONTROLS, ID_SWAP_STICKS, L"BUTTON",
+        L"Swap analog sticks (right stick moves, left stick is the camera)",
+        WS_TABSTOP | BS_AUTOCHECKBOX, L, T + 278, W, 24);
+    add(PAGE_CONTROLS, ID_DEBUG_MENU, L"BUTTON",
+        L"Enable the debug menu (F1 or the controller's Back button)",
+        WS_TABSTOP | BS_AUTOCHECKBOX, L, T + 304, W, 24);
     add(PAGE_CONTROLS, ID_CAPTURE, L"STATIC",
-        L"Pick an action, then Set key, Add key (for a second key) or Set button (controller). Double-click "
-        L"sets a key.",
-        0, L, T + 324, 330, 40);
+        L"Pick an action, then Set key, Add key (for a second key) or Set button (controller). "
+        L"Double-click sets a key.",
+        0, L, T + 352, 340, 40);
 
-    // Bottom
-    add(-1, ID_STATUS, L"STATIC", L"", WS_VISIBLE, 14, 446, 330, 20);
-    add(-1, ID_SAVE, L"BUTTON", L"Save settings", WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 350, 440, 110, 32);
-    add(-1, ID_PLAY, L"BUTTON", L"Play", WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON, 466, 440, 104, 32);
+    // Footer.
+    add(-1, ID_STATUS, L"STATIC", L"Ready when you are.", WS_VISIBLE | SS_ENDELLIPSIS, L, 674, 390, 20);
+    add(-1, ID_SAVE, L"BUTTON", L"Save settings", WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 656, 636, 118, 38);
+    add(-1, ID_PLAY, L"BUTTON", L"Play", WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON, 786, 636, 110, 38);
 }
 
 // ---------------------------------------------------------------- window procedure
@@ -1368,20 +2090,47 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
     switch (msg)
     {
+    case WM_ERASEBKGND:
+        return 1;
+    case WM_PAINT:
+    {
+        PAINTSTRUCT ps;
+        HDC dc = BeginPaint(hwnd, &ps);
+        RECT rc;
+        GetClientRect(hwnd, &rc);
+        HDC mem = CreateCompatibleDC(dc);
+        HBITMAP bmp = CreateCompatibleBitmap(dc, rc.right, rc.bottom);
+        HGDIOBJ old = SelectObject(mem, bmp);
+        draw_background(mem, rc.right, rc.bottom);
+        BitBlt(dc, 0, 0, rc.right, rc.bottom, mem, 0, 0, SRCCOPY);
+        SelectObject(mem, old);
+        DeleteObject(bmp);
+        DeleteDC(mem);
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+    case WM_DRAWITEM:
+        draw_owner_button((const DRAWITEMSTRUCT*)lp);
+        return TRUE;
     case WM_NOTIFY:
     {
         NMHDR* nm = (NMHDR*)lp;
-        if (nm->idFrom == ID_TABS && nm->code == TCN_SELCHANGE)
+        if (nm->code == NM_CUSTOMDRAW && is_slider_id((int)nm->idFrom))
         {
-            show_page(TabCtrl_GetCurSel(nm->hwndFrom));
+            return slider_custom_draw((const NMCUSTOMDRAW*)lp);
         }
-        else if (nm->idFrom == ID_BINDS && nm->code == NM_DBLCLK)
+        if (nm->idFrom == ID_BINDS && nm->code == NM_DBLCLK)
         {
             begin_capture(CAPTURE_SET_KEY);
         }
         return 0;
     }
     case WM_COMMAND:
+        if (LOWORD(wp) >= ID_NAV_GAME && LOWORD(wp) <= ID_NAV_CONTROLS)
+        {
+            show_page(LOWORD(wp) - ID_NAV_GAME);
+            return 0;
+        }
         switch (LOWORD(wp))
         {
         case ID_ISO_BROWSE: browse_iso(); break;
@@ -1392,6 +2141,18 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             {
                 update_mode_dependent();
             }
+            break;
+        case ID_VSYNC:
+            check_set(ID_VSYNC, !check_get(ID_VSYNC));
+            InvalidateRect(item(ID_VSYNC), NULL, TRUE);
+            break;
+        case ID_SKIP_LOGOS:
+            check_set(ID_SKIP_LOGOS, !check_get(ID_SKIP_LOGOS));
+            InvalidateRect(item(ID_SKIP_LOGOS), NULL, TRUE);
+            break;
+        case ID_DEBUG_MENU:
+            check_set(ID_DEBUG_MENU, !check_get(ID_DEBUG_MENU));
+            InvalidateRect(item(ID_DEBUG_MENU), NULL, TRUE);
             break;
         case ID_SET_KEY: begin_capture(CAPTURE_SET_KEY); break;
         case ID_ADD_KEY: begin_capture(CAPTURE_ADD_KEY); break;
@@ -1417,10 +2178,15 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 s_pads[i] = kActions[i].pad ? kActions[i].pad : "";
             }
             check_set(ID_SWAP_STICKS, false);
+            InvalidateRect(item(ID_SWAP_STICKS), NULL, TRUE);
             refresh_binds();
             set_text(ID_CAPTURE, L"All controls are back to their defaults.");
             break;
-        case ID_SWAP_STICKS: refresh_binds(); break;
+        case ID_SWAP_STICKS:
+            check_set(ID_SWAP_STICKS, !check_get(ID_SWAP_STICKS));
+            InvalidateRect(item(ID_SWAP_STICKS), NULL, TRUE);
+            refresh_binds();
+            break;
         case ID_SAVE: save_settings(); break;
         case ID_PLAY: play(); break;
         }
@@ -1433,15 +2199,32 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         return 0;
     case WM_CTLCOLORSTATIC:
     {
-        // Labels on the tab pages sit on its white body.
         HWND ctl = (HWND)lp;
-        if (GetDlgCtrlID(ctl) != ID_STATUS)
+        int id = GetDlgCtrlID(ctl);
+        if (id == ID_STATUS)
         {
+            SetTextColor((HDC)wp, kFooterText);
+            SetBkColor((HDC)wp, kBg);
             SetBkMode((HDC)wp, TRANSPARENT);
-            return (LRESULT)GetSysColorBrush(COLOR_WINDOW);
+            return (LRESULT)footer_brush();
         }
-        break;
+        wchar_t cls[32] = L"";
+        GetClassNameW(ctl, cls, 32);
+        bool field = !wcscmp(cls, L"ComboBox") || !wcscmp(cls, L"Edit");
+        SetTextColor((HDC)wp, is_note_id(id) ? kMuted : kInk);
+        SetBkColor((HDC)wp, field ? kField : kCard);
+        SetBkMode((HDC)wp, TRANSPARENT);
+        return (LRESULT)(field ? field_brush() : card_brush());
     }
+    case WM_CTLCOLOREDIT:
+    case WM_CTLCOLORLISTBOX:
+        SetTextColor((HDC)wp, kInk);
+        SetBkColor((HDC)wp, kField);
+        return (LRESULT)field_brush();
+    case WM_CTLCOLORBTN:
+        SetTextColor((HDC)wp, kInk);
+        SetBkColor((HDC)wp, kCard);
+        return (LRESULT)card_brush();
     case WM_EXTRACT_PROGRESS:
         SendMessageW(item(ID_PROGRESS), PBM_SETPOS, wp, 0);
         return 0;
@@ -1510,24 +2293,31 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show)
     HDC dc = GetDC(NULL);
     s_dpi = GetDeviceCaps(dc, LOGPIXELSY);
     ReleaseDC(NULL, dc);
-    NONCLIENTMETRICSW ncm = {};
-    ncm.cbSize = sizeof(ncm);
-    SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0);
-    s_font = CreateFontIndirectW(&ncm.lfMessageFont);
+    s_font = make_font(9, FW_NORMAL);
+    s_titleFont = make_font(24, FW_HEAVY);
+    s_pageFont = make_font(17, FW_BOLD);
+    s_eyebrowFont = make_font(8, FW_BOLD);
+    s_navFont = make_font(10, FW_SEMIBOLD);
+    s_smallFont = make_font(8, FW_NORMAL);
 
     WNDCLASSW wc = {};
+    wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = wnd_proc;
     wc.hInstance = inst;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.hbrBackground = GetSysColorBrush(COLOR_BTNFACE);
+    wc.hbrBackground = NULL;
     wc.hIcon = LoadIconW(inst, MAKEINTRESOURCEW(1));
-    wc.lpszClassName = L"ScoobyLauncher";
+    wc.lpszClassName = L"ProjectMysteryMachineLauncher";
     RegisterClassW(&wc);
-    RECT r = { 0, 0, px(580), px(484) };
-    DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+    RECT r = { 0, 0, px(920), px(700) };
+    DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPCHILDREN;
     AdjustWindowRect(&r, style, FALSE);
-    s_main = CreateWindowExW(0, wc.lpszClassName, L"Scooby-Doo! Night of 100 Frights - Launcher", style,
-                             CW_USEDEFAULT, CW_USEDEFAULT, r.right - r.left, r.bottom - r.top, NULL, NULL, inst, NULL);
+    int ww = r.right - r.left, wh = r.bottom - r.top;
+    s_main = CreateWindowExW(0, wc.lpszClassName, L"Project: Mystery Machine - Launcher", style,
+                             (GetSystemMetrics(SM_CXSCREEN) - ww) / 2,
+                             (GetSystemMetrics(SM_CYSCREEN) - wh) / 2,
+                             ww, wh, NULL, NULL, inst, NULL);
+    use_dark_titlebar(s_main);
     create_controls();
     s_ini.load(s_iniPath); // the resolution list includes the saved one
     fill_resolutions();
@@ -1540,7 +2330,6 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show)
     {
         page = _wtoi(argv[2]) % PAGE_COUNT;
     }
-    TabCtrl_SetCurSel(item(ID_TABS), page);
     show_page(page);
     if (!file_exists(s_dir + L"scooby.exe"))
     {
@@ -1555,6 +2344,22 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show)
         if (capture_key(msg))
         {
             continue;
+        }
+        // The Play button is owner-drawn, so it is no longer a dialog default
+        // button: keep Enter as the shortcut for Play unless a combo box is open.
+        if (!s_extracting && msg.message == WM_KEYDOWN && msg.wParam == VK_RETURN)
+        {
+            wchar_t cls[32] = L"";
+            HWND focus = GetFocus();
+            if (focus)
+            {
+                GetClassNameW(focus, cls, 32);
+            }
+            if (wcscmp(cls, L"ComboBox"))
+            {
+                play();
+                continue;
+            }
         }
         if (!IsDialogMessageW(s_main, &msg))
         {

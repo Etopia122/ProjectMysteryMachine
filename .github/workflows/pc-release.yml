@@ -1,0 +1,81 @@
+name: PC release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pc:
+    name: Windows PC build
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up MSYS2 (32-bit toolchain)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW32
+          update: true
+          install: >-
+            mingw-w64-i686-gcc
+            mingw-w64-i686-cmake
+            mingw-w64-i686-ninja
+            mingw-w64-i686-python
+            mingw-w64-i686-SDL2
+            make
+            diffutils
+            tar
+            xz
+
+      - name: Build minimal static FFmpeg
+        run: sh pc/tools/build_ffmpeg.sh
+
+      - name: "Build Project: Mystery Machine"
+        run: sh pc/tools/build.sh
+
+      - name: Package release (no game assets)
+        run: python pc/tools/package.py
+
+      - name: Verify launcher and asset-free archive
+        run: python pc/tools/verify_release.py build/dist/ProjectMysteryMachine.zip
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProjectMysteryMachine
+          path: build/dist/ProjectMysteryMachine.zip
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/dist/ProjectMysteryMachine.zip
+          generate_release_notes: true
+          body: |
+            **Project: Mystery Machine**
+
+            A native PC port of *Scooby-Doo! Night of 100 Frights*. This
+            release contains **no game data**. You need your own USA GameCube
+            disc image (GIHE78, plain .iso or .gcm).
+
+            1. Extract `ProjectMysteryMachine.zip`.
+            2. Run `scooby_launcher.exe`.
+            3. Choose your disc image and press **Extract game files**.
+            4. Press **Play**.
+
+            The launcher, game, SDL2/winpthread runtime and licences are all in
+            the archive. The New 3DS build is separate and is not part of this
+            release.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

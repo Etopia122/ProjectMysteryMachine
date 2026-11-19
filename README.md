@@ -11,6 +11,24 @@ Supported versions:
 
 - `GIHE78`: Rev 0 (USA) — `main.dol` SHA-1 `c77fb29d39b5898933e8ef4d1ccd2ddac404554e`
 
+Ports
+=====
+
+The decompilation and the two ports are separate builds:
+
+- `pc/` builds **Project: Mystery Machine**, the native Windows port
+  (`scooby.exe` and `scooby_launcher.exe`). `sh pc/tools/build.sh` builds only
+  this port; `python pc/tools/package.py` makes the asset-free
+  `ProjectMysteryMachine.zip` release archive.
+- `n3ds/` builds the experimental New 3DS port (`.3dsx`/CIA). It has its own
+  `n3ds/tools/rebuild.sh` and is never part of a PC release.
+
+The PC launcher extracts the game files from the player's own USA GameCube ISO
+(`GIHE78`) and starts the game. No game assets are stored in this repository or
+in the PC release archive. Releases are built by
+`.github/workflows/pc-release.yml`; the 3DS job is separate and only uploads a
+`.3dsx` artifact.
+
 Status
 ======
 
