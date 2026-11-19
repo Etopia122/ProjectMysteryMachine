@@ -11,6 +11,26 @@ Supported versions:
 
 - `GIHE78`: Rev 0 (USA) — `main.dol` SHA-1 `c77fb29d39b5898933e8ef4d1ccd2ddac404554e`
 
+Fan project and legal notice
+============================
+
+This is an unofficial, non-commercial fan project. It is not affiliated with,
+sponsored by or endorsed by Warner Bros. Discovery, Hanna-Barbera, Cartoon
+Network, THQ, Heavy Iron Studios or Nintendo. *Scooby-Doo! Night of 100
+Frights*, Scooby-Doo and all related characters, names, music and logos are the
+property of their respective owners.
+
+Neither this repository nor the PC release archive contains game data: no disc
+image, no extracted files, no models, textures, audio or video. You need your
+own copy of the game (USA, `GIHE78`) to build or play. Dumping your own disc is
+your responsibility under your local law; this project does not host or
+redistribute any part of the game.
+
+The decompiled sources in `src/`, `include/` and `config/` are derived from the
+retail game for study and for building a matching binary. They remain the
+copyright of the game's owners, and nothing here grants a licence to them, to
+the game, or to any character.
+
 Ports
 =====
 
@@ -25,8 +45,9 @@ The decompilation and the two ports are separate builds:
 
 The PC launcher extracts the game files from the player's own USA GameCube ISO
 (`GIHE78`) and starts the game. No game assets are stored in this repository or
-in the PC release archive. Releases are built by
-`.github/workflows/pc-release.yml`; the 3DS job is separate and only uploads a
+in the PC release archive. Releases are published from the archive built by
+`python pc/tools/package.py`; `.github/workflows/pc-release.yml` can be run by
+hand to check the build, and the 3DS job is separate and only uploads a
 `.3dsx` artifact.
 
 Status
@@ -113,3 +134,41 @@ Useful tools:
 - `python tools/m2c_fn.py GIHE78 <function>` — first C draft of a function via
   [m2c](https://github.com/matt-kempster/m2c)
   (`pip install git+https://github.com/matt-kempster/m2c.git`)
+
+Licence
+=======
+
+What is licensed, and what is not:
+
+- **Project code and tooling**: the port and build tooling in `pc/`, `n3ds/`
+  and `tools/`, plus the decompilation template itself, are released under
+  **CC0 1.0**, see [`LICENSE`](LICENSE).
+- **Decompiled game code** (`src/`, `include/`, `config/`): not ours to license.
+  It is derived from the retail game, remains the copyright of its owners, and
+  is included only so the matching binary can be built and studied. It is not
+  covered by the CC0 licence above.
+- **Third-party software**: SDL2 (zlib licence), libwinpthread (mingw-w64, MIT)
+  and FFmpeg (LGPL 2.1 or later; only its Bink decoders, linked into
+  `scooby.exe`). The PC release archive ships their licence texts in
+  `licences/`, together with the FFmpeg source it was built from.
+- **Launcher artwork**: see the table below. It is not covered by the CC0
+  licence.
+
+Launcher artwork
+----------------
+
+| File | What it is | Status |
+|---|---|---|
+| `pc/launcher/logo.png` | "PROJECT: MYSTERY MACHINE" wordmark | Project artwork, supplied by the author |
+| `pc/launcher/scooby.png` | Scooby-Doo portrait: the header badge | Third-party clip art, **personal use only — not licensed for redistribution** |
+| `pc/launcher/van.png` | Mystery Machine van in the header | Third-party clip art, **personal use only — not licensed for redistribution** |
+| `pc/launcher/launcher.ico` | Window, taskbar and file icon (16–256 px) | Rendered from `scooby.png`, so the same restriction applies |
+
+The two clip-art files are placeholders: they are scheduled to be replaced with
+original artwork, after which this repository and its release archive contain no
+third-party art at all. The launcher draws its own Great Dane badge and van in
+`pc/launcher/launcher.cpp` when those bitmap resources are absent, so removing
+the files is enough to fall back to the drawn versions.
+
+If you are a rights holder and want something removed, open an issue and it will
+be taken down.

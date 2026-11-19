@@ -40,6 +40,19 @@ decompiled game code. It contains no game data: you need your own copy of the
 game on GameCube (the USA release, disc ID GIHE78) as a disc image (.iso or
 .gcm) dumped from your disc.
 
+Fan project
+-----------
+This is an unofficial, non-commercial fan project. It is not affiliated with,
+sponsored by or endorsed by Warner Bros. Discovery, Hanna-Barbera, Cartoon
+Network, THQ, Heavy Iron Studios or Nintendo. Scooby-Doo! Night of 100
+Frights, Scooby-Doo and all related characters and logos belong to their
+respective owners. This archive holds no game data and no part of the game;
+you must own the disc to use it.
+
+The launcher currently uses third-party clip art for its Scooby-Doo badge and
+Mystery Machine van, which is licensed for personal use only: treat this
+archive as a personal fan build, not as something to redistribute.
+
 Getting started
 ---------------
 1. Run scooby_launcher.exe.
