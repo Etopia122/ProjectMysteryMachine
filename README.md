@@ -24,7 +24,9 @@ Neither this repository nor the PC release archive contains game data: no disc
 image, no extracted files, no models, textures, audio or video. You need your
 own copy of the game (USA, `GIHE78`) to build or play. Dumping your own disc is
 your responsibility under your local law; this project does not host or
-redistribute any part of the game.
+redistribute any part of the game. `tools/check_no_game_assets.py` enforces
+this: it runs on every push and pull request and fails on a tracked disc image,
+extracted asset, archive or oversized blob.
 
 The decompiled sources in `src/`, `include/` and `config/` are derived from the
 retail game for study and for building a matching binary. They remain the

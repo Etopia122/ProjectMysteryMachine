@@ -1,0 +1,27 @@
+name: Asset guard
+
+# The decompilation and both ports ship no game data: they read the game's files
+# from your own dump. A committed ISO would redistribute the game and add a
+# multi-gigabyte blob to history, so every push and pull request checks the
+# tracked tree and all refs for disc images, extracted assets, archives and
+# oversized files. Runs the same script you can run locally:
+#   python tools/check_no_game_assets.py --history
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  guard:
+    name: No game data in the repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # --history scans every commit, not just the checked-out tree.
+          fetch-depth: 0
+
+      - name: Check tracked files and history
+        run: python3 tools/check_no_game_assets.py --history

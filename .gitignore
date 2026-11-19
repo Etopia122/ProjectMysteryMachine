@@ -37,3 +37,40 @@ compile_commands.json
 # Reference material (not redistributed)
 /ref/
 /game/
+
+# Game data and disc images: read these from your own dump, never commit them.
+# Committing one would redistribute the game and put a huge blob in history.
+*.iso
+*.gcm
+*.rvz
+*.gcz
+*.wia
+*.ciso
+*.nkit
+*.chd
+*.cue
+*.bin
+*.img
+*.mdf
+*.mds
+*.nrg
+*.3dsx
+*.cia
+*.ncsd
+*.cci
+*.cxi
+*.hip
+*.bik
+*.aw
+*.txd
+*.dsp
+*.bnr
+*.thp
+*.vag
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+*.xz
+*.zst
