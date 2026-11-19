@@ -15,6 +15,7 @@ required = {
     'ProjectMysteryMachine/SDL2.dll',
     'ProjectMysteryMachine/libwinpthread-1.dll',
     'ProjectMysteryMachine/README.txt',
+    'ProjectMysteryMachine/licences/FAN-PROJECT-NOTICE.txt',
 }
 forbidden_suffixes = {'.iso', '.gcm', '.rvz', '.wia', '.ciso', '.gcz', '.dol', '.rel', '.hip', '.bik', '.aw', '.txd'}
 forbidden_roots = ('ProjectMysteryMachine/data/', 'ProjectMysteryMachine/game/', 'ProjectMysteryMachine/orig/')

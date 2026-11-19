@@ -49,9 +49,13 @@ Frights, Scooby-Doo and all related characters and logos belong to their
 respective owners. This archive holds no game data and no part of the game;
 you must own the disc to use it.
 
-The launcher currently uses third-party clip art for its Scooby-Doo badge and
-Mystery Machine van, which is licensed for personal use only: treat this
-archive as a personal fan build, not as something to redistribute.
+The launcher uses third-party clip art for its Scooby-Doo badge and Mystery
+Machine van. Those images are offered by their sources for personal use only,
+are not licensed for redistribution or commercial use, and are embedded in
+scooby_launcher.exe. Treat this archive as a personal fan build: do not sell it
+or republish the artwork on its own. The full statement is in
+licences/FAN-PROJECT-NOTICE.txt; the project's CC0 licence does not cover the
+artwork or the game.
 
 Getting started
 ---------------
@@ -98,6 +102,24 @@ SDL2 (zlib licence), libwinpthread (mingw-w64 runtime, MIT licence) and FFmpeg
 licences folder. FFmpeg's source:
 https://ffmpeg.org/releases/ffmpeg-8.1.1.tar.xz, built with
 pc/tools/build_ffmpeg.sh from this port's source.
+
+Licence
+-------
+What this archive contains and under what terms:
+
+- The launcher and port tooling are project code, released under CC0 1.0 by
+  their authors. The decompiled game code they are built from is not ours to
+  license: it stays the copyright of the game's owners.
+- SDL2, libwinpthread and FFmpeg keep their own licences (see above); their
+  texts are in the licences folder.
+- The launcher's Scooby-Doo badge, Mystery Machine van and file icon are
+  third-party clip art licensed for personal use only. They are not licensed
+  to you for redistribution, reuse or commercial use, and are removed on
+  request. See licences/FAN-PROJECT-NOTICE.txt and the project page for the
+  takedown contact.
+
+This archive contains no game data. Do not sell it, and do not republish the
+artwork or the game on their own.
 '''
 
 
@@ -158,6 +180,8 @@ if wp and (OUT / 'libwinpthread-1.dll').exists():
 ffmpeg = ffmpeg_source()
 shutil.copy2(ffmpeg / 'COPYING.LGPLv2.1', OUT / 'licences' / 'FFmpeg-LGPL-2.1.txt')
 shutil.copy2(ffmpeg / 'LICENSE.md', OUT / 'licences' / 'FFmpeg-LICENSE.md')
+# The fan-project / artwork notice travels with every archive.
+shutil.copy2('NOTICE', OUT / 'licences' / 'FAN-PROJECT-NOTICE.txt')
 
 # Guard the "no game assets" promise. This is deliberately checked after the
 # folder is assembled, before it becomes an archive.

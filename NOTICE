@@ -1,0 +1,72 @@
+Project: Mystery Machine - fan project and legal notice
+=======================================================
+
+Unofficial fan project
+----------------------
+
+Project: Mystery Machine is an unofficial, non-commercial fan project: a
+native Windows port of Scooby-Doo! Night of 100 Frights, built from a
+decompilation of the GameCube release. It is not affiliated with, sponsored by
+or endorsed by Warner Bros. Discovery, Hanna-Barbera, Cartoon Network, THQ,
+Heavy Iron Studios or Nintendo.
+
+Scooby-Doo! Night of 100 Frights, Scooby-Doo, the Mystery Machine and all
+related characters, names, music, artwork and logos are trademarks and/or
+copyrights of their respective owners. All rights remain with them.
+
+No game data
+------------
+
+Neither the source repository nor the release archive contains game data: no
+disc image, no extracted files, no models, textures, audio, video, text or
+level data. You need your own copy of the game (USA, disc ID GIHE78) and must
+dump your own disc; that is your responsibility under your local law.
+
+Decompiled game code
+--------------------
+
+The sources under src/, include/ and config/ are derived from the retail game
+for study and for building a matching binary. They remain the copyright of the
+game's owners. Nothing here grants you a licence to them, to the game, or to
+any character.
+
+Launcher artwork (third-party, personal use only)
+-------------------------------------------------
+
+The launcher's header badge and its icon use a Scooby-Doo portrait, and its
+header uses a Mystery Machine van, taken from free PNG clip-art sites. Those
+sites offer the files for personal, non-commercial use only and state that the
+depicted characters remain the property of their owners:
+
+  - Scooby-Doo portrait (header badge, and the source of launcher.ico):
+    "Scooby Doo Cartoon Character PNG", pngall.com
+  - Mystery Machine van (header): "The Mystery Machine", stickpng.com
+
+These two images, and the .ico rendered from the portrait, are NOT covered by
+the project's CC0 licence and are NOT licensed to you for redistribution,
+reuse or commercial use. They must not be extracted and republished on their
+own. They are included only so the launcher can be built and used as it looks;
+the compiled scooby_launcher.exe embeds them as resources.
+
+Building from source without them is supported: delete pc/launcher/scooby.png,
+pc/launcher/van.png and pc/launcher/launcher.ico and launcher.cpp draws its own
+Great Dane badge (and, if van.png is missing, its own van) instead.
+
+Takedown
+--------
+
+If you hold rights to any of this material and want it removed, open an issue
+at https://github.com/Etopia122/ProjectMysteryMachine/issues or contact the
+repository owner through GitHub, and it will be removed promptly.
+
+Software licences
+-----------------
+
+  - Project code and tooling (pc/, n3ds/, tools/ and the decompilation
+    template): CC0 1.0 Universal, see LICENSE.
+  - SDL2: zlib licence.
+  - libwinpthread: MIT licence (mingw-w64 runtime).
+  - FFmpeg: LGPL 2.1 or later, Bink decoders only.
+
+The full texts ship in the release archive's licences/ folder, together with
+the FFmpeg source it was built from.
