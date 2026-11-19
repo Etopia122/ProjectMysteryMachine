@@ -1,4 +1,4 @@
-Scooby-Doo! Night of 100 Frights
+PROJECT: Mystery Machine
 =================================
 
 A work-in-progress decompilation of *Scooby-Doo! Night of 100 Frights* for the
