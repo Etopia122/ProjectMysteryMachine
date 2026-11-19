@@ -1,13 +1,11 @@
-name: PC release
+name: PC build
 
+# Releases are published from a locally built archive (python pc/tools/package.py
+# then gh release create), so a tag push must not start a second, CI-built
+# release. Run this workflow by hand to check that the sources still build and
+# that the archive verifies.
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   pc:
@@ -56,26 +54,4 @@ jobs:
           path: build/dist/ProjectMysteryMachine.zip
           if-no-files-found: error
 
-      - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: build/dist/ProjectMysteryMachine.zip
-          generate_release_notes: true
-          body: |
-            **Project: Mystery Machine**
 
-            A native PC port of *Scooby-Doo! Night of 100 Frights*. This
-            release contains **no game data**. You need your own USA GameCube
-            disc image (GIHE78, plain .iso or .gcm).
-
-            1. Extract `ProjectMysteryMachine.zip`.
-            2. Run `scooby_launcher.exe`.
-            3. Choose your disc image and press **Extract game files**.
-            4. Press **Play**.
-
-            The launcher, game, SDL2/winpthread runtime and licences are all in
-            the archive. The New 3DS build is separate and is not part of this
-            release.
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
