@@ -166,6 +166,7 @@ RpWorld* RpWorldCreate(RwBBox* bbox)
     RpWorld* w = &p->w;
     s_worlds.push_back(w);
     w->object.type = 7;
+    w->renderOrder = rpWORLDRENDERBACK2FRONT; // as RpWorldCreate sets it
     rwLinkListInitialize(&w->clumpList);
     rwLinkListInitialize(&w->lightList);
     rwLinkListInitialize(&w->directionalLightList);
@@ -420,13 +421,13 @@ RpWorld* RpWorldSetSurfaceProperties(RpWorld* w, const RwSurfaceProperties* p)
 
 }
 
-void pc_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors);
+void pc_render_world(RpWorld* w);
 
 extern "C" {
 
 RpWorld* RpWorldRender(RpWorld* w)
 {
-    pc_render_world(w, *pc_world(w)->sectors);
+    pc_render_world(w);
     return w;
 }
 

@@ -1021,6 +1021,20 @@ static void draw_meshes(RpMeshHeader* mh, RpMaterialList* mats, const RwRGBA* pr
                            : draw_state(alpha, NULL, 0, 0, 0);
             s.matColor = matColor;
             s.addColor = addColor;
+            // The GameCube pipeline sets the alpha compare from each mesh's own
+            // texture before drawing it (_rxGCDefaultRender,
+            // src/rwsdk/world/pipe/gcn/gcallinone.c): a texture with alpha is
+            // tested "greater than 0" (fully clear texels drop out, the soft
+            // ones stay) and an opaque one always. That overwrites the game's
+            // GXSetAlphaCompare, so SDRS_AlphaModels' "alpha >= 128" never
+            // halved an alpha model's fade -- without this the lighthouse beams
+            // vanish whole as their fade passes half, then come back.
+            if (tex)
+            {
+                bool texAlpha = tex->isTarget || tex->hasAlpha;
+                s.alphaFunc = texAlpha ? PC_ALPHA_GREATER : PC_ALPHA_ALWAYS;
+                s.alphaRef = 0;
+            }
             // Debug: PC_HILITE_MAT=<n> paints world material n bright red.
             static const char* hilite = getenv("PC_HILITE_MAT");
             RpWorld* cw = (RpWorld*)rwGlobals()->curWorld;
@@ -1480,7 +1494,58 @@ static bool sector_visible(RpWorldSector* s)
     return true;
 }
 
-void pc_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors)
+// One visible sector; the log line names the first sector drawn in a frame.
+static void draw_sector(RpWorld* w, RpWorldSector* s)
+{
+    s_st.sectors++;
+    if (stats_on() && s_st.sectors == 1)
+    {
+        static int n;
+        if (n++ % 600 == 0)
+        {
+            pc_log("[sector] verts %d bbox %.1f %.1f %.1f - %.1f %.1f %.1f v0 %.2f %.2f %.2f prelit %p (%02x%02x%02x%02x) tex %p",
+                   s->numVertices, s->boundingBox.inf.x, s->boundingBox.inf.y, s->boundingBox.inf.z,
+                   s->boundingBox.sup.x, s->boundingBox.sup.y, s->boundingBox.sup.z, s->vertices[0].x,
+                   s->vertices[0].y, s->vertices[0].z, s->preLitLum, s->preLitLum ? s->preLitLum[0].red : 0,
+                   s->preLitLum ? s->preLitLum[0].green : 0, s->preLitLum ? s->preLitLum[0].blue : 0,
+                   s->preLitLum ? s->preLitLum[0].alpha : 0, s->texCoords[0]);
+        }
+    }
+    MeshArrays arr = { s->vertices, s->texCoords[0] };
+    draw_meshes(s->mesh, &w->matList, s->preLitLum, (w->flags & rpGEOMETRYMODULATEMATERIALCOLOR) != 0,
+                s->numVertices, NULL, 0, arr, s);
+}
+
+// RpWorldRender draws a world back to front, walking the BSP tree from the
+// camera's side outwards (WorldSyncCamera, src/rwsdk/world/baworobj.c). A fixed
+// tree order instead lets a farther blended surface paint over a nearer one
+// drawn before it, so overlapping transparent geometry (the rink's glass, the
+// light beams) drops in and out as the camera moves. Opaque geometry looks the
+// same in either order.
+static void render_sector_tree(RpWorld* w, RpSector* s, const RwV3d& cam)
+{
+    if (!s)
+    {
+        return;
+    }
+    if (s->type < 0)
+    {
+        RpWorldSector* sec = (RpWorldSector*)s;
+        if (sec->numVertices && sec->mesh && sector_visible(sec))
+        {
+            draw_sector(w, sec);
+        }
+        return;
+    }
+    RpPlaneSector* p = (RpPlaneSector*)s;
+    float c = p->type == 1 ? cam.y : p->type == 2 ? cam.z : cam.x;
+    // The half the camera is not in is the far one: draw it first.
+    bool leftFirst = (w->renderOrder != rpWORLDRENDERFRONT2BACK) == (c > p->value);
+    render_sector_tree(w, leftFirst ? p->leftSubTree : p->rightSubTree, cam);
+    render_sector_tree(w, leftFirst ? p->rightSubTree : p->leftSubTree, cam);
+}
+
+void pc_render_world(RpWorld* w)
 {
     if (!s_open || dbg_has("nosector"))
     {
@@ -1488,31 +1553,14 @@ void pc_render_world(RpWorld* w, std::vector<RpWorldSector*>& sectors)
     }
     ProfScope prof(PROF_WORLD);
     gpu_set_modelview(s_view);
-    for (size_t i = 0; i < sectors.size(); i++)
+    RwCamera* cam = rwGlobals()->curCamera;
+    RwFrame* f = cam ? (RwFrame*)cam->object.object.parent : NULL;
+    RwV3d c = { 0, 0, 0 };
+    if (f)
     {
-        RpWorldSector* s = sectors[i];
-        if (!s->numVertices || !s->mesh || !sector_visible(s))
-        {
-            continue;
-        }
-        s_st.sectors++;
-        if (stats_on() && s_st.sectors == 1)
-        {
-            static int n;
-            if (n++ % 600 == 0)
-            {
-                pc_log("[sector] verts %d bbox %.1f %.1f %.1f - %.1f %.1f %.1f v0 %.2f %.2f %.2f prelit %p (%02x%02x%02x%02x) tex %p",
-                       s->numVertices, s->boundingBox.inf.x, s->boundingBox.inf.y, s->boundingBox.inf.z,
-                       s->boundingBox.sup.x, s->boundingBox.sup.y, s->boundingBox.sup.z, s->vertices[0].x,
-                       s->vertices[0].y, s->vertices[0].z, s->preLitLum, s->preLitLum ? s->preLitLum[0].red : 0,
-                       s->preLitLum ? s->preLitLum[0].green : 0, s->preLitLum ? s->preLitLum[0].blue : 0,
-                       s->preLitLum ? s->preLitLum[0].alpha : 0, s->texCoords[0]);
-            }
-        }
-        MeshArrays arr = { s->vertices, s->texCoords[0] };
-        draw_meshes(s->mesh, &w->matList, s->preLitLum, (w->flags & rpGEOMETRYMODULATEMATERIALCOLOR) != 0,
-                    s->numVertices, NULL, 0, arr, s);
+        c = RwFrameGetLTM(f)->pos;
     }
+    render_sector_tree(w, w->rootSector, c);
 }
 
 // ---------------------------------------------------------------- immediate mode

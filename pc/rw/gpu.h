@@ -14,6 +14,7 @@ enum
 {
     PC_BLEND_SRCALPHA = 5,
     PC_BLEND_INVSRCALPHA = 6,
+    PC_ALPHA_GREATER = 5,
     PC_ALPHA_ALWAYS = 8,
     PC_CULL_NONE = 1,
     PC_CULL_BACK = 2,

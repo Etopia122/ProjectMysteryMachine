@@ -357,6 +357,8 @@ RW_ASSERT_LAYOUT(RpWorldSector, preLitLum, 0x30);
 RW_ASSERT_LAYOUT(RpWorldSector, mesh, 0x84);
 RW_ASSERT_SIZE(RpWorldSector, 0x94);
 enum { rpWORLDSECTOR_TYPE = -1 }; // RpSector.type of an atomic (leaf) sector
+// RpWorld.renderOrder: which way RpWorldRender walks the BSP tree.
+enum { rpWORLDRENDERFRONT2BACK = 1, rpWORLDRENDERBACK2FRONT = 2 };
 
 struct RpWorld
 {
