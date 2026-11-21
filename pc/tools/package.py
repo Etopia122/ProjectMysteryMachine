@@ -82,7 +82,9 @@ Graphics: draw distance (moves the far edge of the view and the fog back),
 Controls: every GameCube button for the keyboard (one or more keys) and for a
           controller (any button or trigger), swapping the analog sticks, and
           the debug menu toggle (off by default).
-Game:     skipping the company logo movies at start.
+Game:     skipping the company logo movies at start, and launch options:
+          extra switches for scooby.exe, e.g. PC_DBG=nosector, which
+          are handed over as environment variables when it starts.
 
 Default controls
 ----------------

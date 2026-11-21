@@ -79,7 +79,7 @@ it extracts the game's files from their own disc image (USA, GIHE78; plain
 .iso/.gcm) into `data/` beside the program, edits `scooby.ini` and starts
 scooby.exe. `scooby_launcher --extract <image> [folder]` extracts without the
 window. The themed launcher uses a sidebar of case files (Game files, Display,
-Graphics, Controls) and needs no extra art files; every button, checkbox and
+Graphics, Controls, Launch options) and needs no extra art files; every button, checkbox and
 slider is drawn by the launcher itself.
 
 `python pc/tools/package.py` puts the release folder together in
@@ -134,6 +134,7 @@ test runs). Without it everything is as before.
 | `graphics.brightness` | 0.5-2: the finished frame scaled by a blend pass (gpu_gl.cpp) |
 | `graphics.shadow_res` | 256 (GameCube), 512, 1024, 2048: the shadow camera's target (SetupShadow, PC_PORT) |
 | `game.skip_logos` | 1: no WB/THQ/Heavy Iron/RenderWare logo movies at start (zMenu.cpp, PC_PORT) |
+| `launch.options` | extra switches for `scooby.exe`, separated by spaces: `NAME=VALUE` becomes an environment variable (`PC_DBG=nosector`, `PC_STATS=1`), any other word is added to its command line (the launcher's Launch options page) |
 | `graphics.trilinear`, `.anisotropy` | mipmapped filtering for the game's bilinear textures; 1-16 |
 | `keyboard.<input>` | SDL key names, comma-separated; inputs: `stick_up/down/left/right`, `cstick_*`, `a b x y start l r z`, `dpad_*` |
 | `controller.<input>` | an SDL controller button or axis (`a`, `rightshoulder`, `lefttrigger`, ...) |

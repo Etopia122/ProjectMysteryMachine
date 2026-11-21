@@ -191,8 +191,9 @@ struct Ini
         fputs("; Project: Mystery Machine (Scooby-Doo! Night of 100 Frights) settings, written by the launcher.\n"
               "; Key names are SDL's; controller inputs are SDL game controller buttons or axes.\n",
               f);
-        static const char* order[] = { "game", "display", "graphics", "keyboard", "controller", "debug" };
-        std::vector<std::string> secs(order, order + 6);
+        static const char* order[] = { "game", "launch", "display", "graphics", "keyboard", "controller",
+                                       "debug" };
+        std::vector<std::string> secs(order, order + 7);
         for (const std::string& s : sections)
         {
             if (std::find(secs.begin(), secs.end(), s) == secs.end())
@@ -530,6 +531,7 @@ enum
     ID_NAV_DISPLAY,
     ID_NAV_GRAPHICS,
     ID_NAV_CONTROLS,
+    ID_NAV_LAUNCH,
     // Game files
     ID_GAME_INFO, ID_ISO_LABEL, ID_ISO_PATH, ID_ISO_BROWSE, ID_EXTRACT, ID_PROGRESS, ID_GAME_STATUS, ID_GAME_FOLDER, ID_SKIP_LOGOS, ID_GAME_NOTE, ID_LOGS,
     // Display
@@ -541,13 +543,16 @@ enum
     ID_FPS, ID_GRAPHICS_NOTE,
     // Controls
     ID_BINDS, ID_SET_KEY, ID_ADD_KEY, ID_SET_PAD, ID_CLEAR, ID_DEFAULTS, ID_SWAP_STICKS, ID_CAPTURE, ID_DEBUG_MENU,
+    // Launch options
+    ID_LAUNCH_LABEL, ID_LAUNCH, ID_LAUNCH_NOTE,
     // Bottom
     ID_STATUS, ID_SAVE, ID_PLAY,
 };
 
-enum { PAGE_GAME, PAGE_DISPLAY, PAGE_GRAPHICS, PAGE_CONTROLS, PAGE_COUNT };
+enum { PAGE_GAME, PAGE_DISPLAY, PAGE_GRAPHICS, PAGE_CONTROLS, PAGE_LAUNCH, PAGE_COUNT };
 
-static const int kNavIds[PAGE_COUNT] = { ID_NAV_GAME, ID_NAV_DISPLAY, ID_NAV_GRAPHICS, ID_NAV_CONTROLS };
+static const int kNavIds[PAGE_COUNT] = { ID_NAV_GAME, ID_NAV_DISPLAY, ID_NAV_GRAPHICS, ID_NAV_CONTROLS,
+                                         ID_NAV_LAUNCH };
 
 struct Control
 {
@@ -749,7 +754,7 @@ static bool is_slider_id(int id)
 static bool is_note_id(int id)
 {
     return id == ID_GAME_INFO || id == ID_GAME_NOTE || id == ID_GAME_STATUS || id == ID_DISPLAY_NOTE ||
-           id == ID_GRAPHICS_NOTE || id == ID_CAPTURE;
+           id == ID_GRAPHICS_NOTE || id == ID_CAPTURE || id == ID_LAUNCH_NOTE;
 }
 
 static void fill_round(HDC dc, RECT r, int radius, COLORREF fill, COLORREF border)
@@ -1031,6 +1036,13 @@ static void draw_nav_icon(HDC dc, int page, int x, int y, COLORREF color)
             Ellipse(dc, kx - 2, yy - 3, kx + 2, yy + 3);
         }
         break;
+    case PAGE_LAUNCH:
+        SelectObject(dc, GetStockObject(NULL_BRUSH));
+        RoundRect(dc, x + 1, y + 3, x + 19, y + 17, 3, 3);
+        draw_line(dc, x + 5, y + 7, x + 9, y + 10, color, 2);
+        draw_line(dc, x + 9, y + 10, x + 5, y + 13, color, 2);
+        draw_line(dc, x + 11, y + 13, x + 16, y + 13, color, 2);
+        break;
     default:
         RoundRect(dc, x + 1, y + 4, x + 19, y + 17, 6, 6);
         SelectObject(dc, GetStockObject(NULL_BRUSH));
@@ -1135,13 +1147,16 @@ static void draw_background(HDC dc, int w, int h)
         L"CASE FILE 02   /   SCREEN SETUP",
         L"CASE FILE 03   /   LOOK & FEEL",
         L"CASE FILE 04   /   GHOST-PROOF CONTROLS",
+        L"CASE FILE 05   /   DETECTIVE'S TOOLKIT",
     };
-    static const wchar_t* titles[PAGE_COUNT] = { L"Game files", L"Display", L"Graphics", L"Controls" };
+    static const wchar_t* titles[PAGE_COUNT] = { L"Game files", L"Display", L"Graphics", L"Controls",
+                                                 L"Launch options" };
     static const wchar_t* subtitles[PAGE_COUNT] = {
         L"Bring your own disc. The launcher takes it from there.",
         L"Make the mystery look its best on your screen.",
         L"Dial in the fog, shadows and frame rate.",
         L"Pick up every clue with your keyboard or controller.",
+        L"Extra switches for the game, like PC_DBG=nosector.",
     };
     RECT kicker = { px(248), px(140), px(870), px(158) };
     draw_text(dc, kickers[s_page], kicker, s_eyebrowFont, kAccentDark,
@@ -1172,7 +1187,7 @@ static void draw_owner_button(const DRAWITEMSTRUCT* d)
     GetWindowTextW(d->hwndItem, text, 512);
     int id = (int)d->CtlID;
 
-    if (id >= ID_NAV_GAME && id <= ID_NAV_CONTROLS)
+    if (id >= ID_NAV_GAME && id <= ID_NAV_LAUNCH)
     {
         HBRUSH bg = CreateSolidBrush(kSidebar);
         FillRect(dc, &r, bg);
@@ -1850,6 +1865,7 @@ static void load_settings()
     }
     check_set(ID_SWAP_STICKS, s_ini.get("controller", "sticks", "normal") == "swapped");
     check_set(ID_DEBUG_MENU, s_ini.get("debug", "menu", "0") == "1");
+    set_text(ID_LAUNCH, widen(s_ini.get("launch", "options", "")));
     update_distance_labels();
     update_mode_dependent();
 }
@@ -1892,6 +1908,9 @@ static bool save_settings()
     }
     s_ini.set("controller", "sticks", check_get(ID_SWAP_STICKS) ? "swapped" : "normal");
     s_ini.set("debug", "menu", check_get(ID_DEBUG_MENU) ? "1" : "0");
+    std::wstring launch(GetWindowTextLengthW(item(ID_LAUNCH)) + 1, L'\0');
+    GetWindowTextW(item(ID_LAUNCH), &launch[0], (int)launch.size());
+    s_ini.set("launch", "options", trim(narrow(std::wstring(launch.c_str()))));
     if (!s_ini.save(s_iniPath))
     {
         MessageBoxW(s_main, (L"Can't write " + s_iniPath + L". Is the folder read-only?").c_str(), L"Settings",
@@ -1899,6 +1918,59 @@ static bool save_settings()
         return false;
     }
     status(L"Settings saved.");
+    return true;
+}
+
+// Launch options: words split on spaces, double quotes grouping a word that
+// contains them (they are removed).
+static std::vector<std::wstring> split_options(const std::wstring& text)
+{
+    std::vector<std::wstring> words;
+    std::wstring word;
+    bool quoted = false, any = false;
+    for (wchar_t c : text)
+    {
+        if (c == L'"')
+        {
+            quoted = !quoted;
+            any = true;
+        }
+        else if (!quoted && (c == L' ' || c == L'\t'))
+        {
+            if (any)
+            {
+                words.push_back(word);
+            }
+            word.clear();
+            any = false;
+        }
+        else
+        {
+            word += c;
+            any = true;
+        }
+    }
+    if (any)
+    {
+        words.push_back(word);
+    }
+    return words;
+}
+
+static bool is_variable_name(const std::wstring& name)
+{
+    if (name.empty() || (name[0] >= L'0' && name[0] <= L'9'))
+    {
+        return false;
+    }
+    for (wchar_t c : name)
+    {
+        if (!((c >= L'a' && c <= L'z') || (c >= L'A' && c <= L'Z') ||
+              (c >= L'0' && c <= L'9') || c == L'_'))
+        {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -1920,9 +1992,50 @@ static void play()
     STARTUPINFOW si = {};
     si.cb = sizeof(si);
     PROCESS_INFORMATION pi = {};
+    // The launch options: a NAME=VALUE word becomes an environment variable
+    // for the game (PC_DBG and the other test switches are read with getenv),
+    // any other word goes on its command line. The launcher exits once the
+    // game is running, so the variables only have to last that long; they are
+    // put back if the game fails to start.
+    struct SavedVariable
+    {
+        std::wstring name, value;
+        bool had;
+    };
+    std::vector<SavedVariable> saved;
+    std::wstring args;
+    for (const std::wstring& w : split_options(widen(s_ini.get("launch", "options", ""))))
+    {
+        size_t eq = w.find(L'=');
+        if (eq != std::wstring::npos && is_variable_name(w.substr(0, eq)))
+        {
+            std::wstring name = w.substr(0, eq);
+            wchar_t old[32767];
+            DWORD n = GetEnvironmentVariableW(name.c_str(), old, 32767);
+            SavedVariable sv = { name, n && n < 32767 ? std::wstring(old, n) : std::wstring(), n != 0 };
+            saved.push_back(sv);
+            SetEnvironmentVariableW(name.c_str(), w.substr(eq + 1).c_str());
+        }
+        else if (!w.empty())
+        {
+            if (!args.empty())
+            {
+                args += L' ';
+            }
+            args += w.find(L' ') != std::wstring::npos ? L"\"" + w + L"\"" : w;
+        }
+    }
     std::wstring cmd = L"\"" + exe + L"\"";
+    if (!args.empty())
+    {
+        cmd += L" " + args;
+    }
     if (!CreateProcessW(exe.c_str(), &cmd[0], NULL, NULL, FALSE, 0, NULL, s_dir.c_str(), &si, &pi))
     {
+        for (const SavedVariable& sv : saved)
+        {
+            SetEnvironmentVariableW(sv.name.c_str(), sv.had ? sv.value.c_str() : NULL);
+        }
         MessageBoxW(s_main, (L"Can't start " + exe + L".").c_str(), L"Play", MB_ICONERROR);
         return;
     }
@@ -1937,8 +2050,9 @@ static void create_controls()
     const int L = 248, T = 216, W = 604;
     const int CARD_RIGHT = L + W;
 
-    // Sidebar: four case files, always visible.
-    static const wchar_t* navNames[PAGE_COUNT] = { L"Game files", L"Display", L"Graphics", L"Controls" };
+    // Sidebar: the case files, always visible.
+    static const wchar_t* navNames[PAGE_COUNT] = { L"Game files", L"Display", L"Graphics", L"Controls",
+                                                   L"Launch options" };
     for (int i = 0; i < PAGE_COUNT; i++)
     {
         add(-1, kNavIds[i], L"BUTTON", navNames[i], WS_VISIBLE | WS_TABSTOP | BS_OWNERDRAW,
@@ -2105,6 +2219,19 @@ static void create_controls()
         L"Double-click sets a key.",
         0, L, T + 352, 340, 40);
 
+    // Launch options.
+    add(PAGE_LAUNCH, ID_LAUNCH_LABEL, L"STATIC", L"Extra options for scooby.exe:", 0, L, T + 8, 400, 20);
+    add(PAGE_LAUNCH, ID_LAUNCH, L"EDIT", L"", WS_BORDER | ES_AUTOHSCROLL, L, T + 34, W, 28,
+        WS_EX_CLIENTEDGE);
+    add(PAGE_LAUNCH, ID_LAUNCH_NOTE, L"STATIC",
+        L"Options are separated by spaces and passed to scooby.exe when you press Play. Anything written as "
+        L"NAME=VALUE becomes an environment variable for the game: PC_DBG=nosector skips the world's "
+        L"sector drawing entirely, the switch to try if glass or light beams flicker as the camera moves, "
+        L"and PC_STATS=1 logs the render statistics. Any other word is added to the game's command line. "
+        L"Put values that contain spaces in double quotes, e.g. PC_AUTOPAD=\"2:1000,3:0100\". Leave the "
+        L"box empty for a normal start.",
+        0, L, T + 78, W, 130);
+
     // Footer.
     add(-1, ID_STATUS, L"STATIC", L"Ready when you are.", WS_VISIBLE | SS_ENDELLIPSIS, L, 674, 390, 20);
     add(-1, ID_SAVE, L"BUTTON", L"Save settings", WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 656, 636, 118, 38);
@@ -2152,7 +2279,7 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         return 0;
     }
     case WM_COMMAND:
-        if (LOWORD(wp) >= ID_NAV_GAME && LOWORD(wp) <= ID_NAV_CONTROLS)
+        if (LOWORD(wp) >= ID_NAV_GAME && LOWORD(wp) <= ID_NAV_LAUNCH)
         {
             show_page(LOWORD(wp) - ID_NAV_GAME);
             return 0;
