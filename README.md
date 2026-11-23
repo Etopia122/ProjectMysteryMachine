@@ -33,14 +33,6 @@ retail game for study and for building a matching binary. They remain the
 copyright of the game's owners, and nothing here grants a licence to them, to
 the game, or to any character.
 
-The PC launcher also ships two pieces of third-party clip art — a Scooby-Doo
-portrait (also used for the icon) and the Mystery Machine van — that their
-sources offer for **personal use only**. They are included so the launcher
-looks as intended and are embedded in the built `scooby_launcher.exe`; they are
-**not** licensed to anyone for redistribution, reuse or commercial use, and
-are removed on request. [`NOTICE`](NOTICE) has the details and the takedown
-contact; [Licence](#licence) says exactly what the CC0 licence covers.
-
 Ports
 =====
 
