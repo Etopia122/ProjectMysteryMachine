@@ -427,7 +427,7 @@ static std::wstring extract_disc(const ExtractJob* job)
         std::vector<std::pair<unsigned int, std::wstring>> stack;
         stack.push_back(std::make_pair(n, tmp + L"\\"));
         std::vector<unsigned char> buf(1 << 20);
-        int lastPermille = -1;
+        int lastPermille = -1, lastPercent = -1;
         size_t strt = (size_t)n * 12;
         for (unsigned int i = 1; i < n && err.empty(); i++)
         {
@@ -482,10 +482,17 @@ static std::wstring extract_disc(const ExtractJob* job)
                 left -= (unsigned int)chunk;
                 done += chunk;
                 int permille = total ? (int)(done * 1000 / total) : 0;
-                if (permille != lastPermille && job->notify)
+                if (job->notify && permille != lastPermille)
                 {
                     lastPermille = permille;
                     PostMessageW(job->notify, WM_EXTRACT_PROGRESS, permille, 0);
+                }
+                else if (!job->notify && permille / 10 != lastPercent)
+                {
+                    // --extract: a setup step reads these, one line per percent.
+                    lastPercent = permille / 10;
+                    printf("progress %.2f Copying the game's files from your disc\n", permille / 1000.0);
+                    fflush(stdout);
                 }
             }
             fclose(o);
@@ -2405,23 +2412,44 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     return DefWindowProcW(hwnd, msg, wp, lp);
 }
 
+// The release builds are GUI programs, so they have no console of their own.
+// A pipe, a script's redirect or a terminal that started them is already
+// stdout and is left alone; without one, borrow the terminal this was run
+// from. Never allocate a console: a window must not appear.
+static void prepare_console()
+{
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD type = h && h != INVALID_HANDLE_VALUE ? GetFileType(h) : FILE_TYPE_UNKNOWN;
+    if (type == FILE_TYPE_PIPE || type == FILE_TYPE_DISK)
+    {
+        return;
+    }
+    if (AttachConsole(ATTACH_PARENT_PROCESS))
+    {
+        freopen("CONOUT$", "w", stdout);
+    }
+}
+
 // scooby_launcher --extract <disc image> [folder]: extracts without the window
-// (default folder: data beside the program); exit code 0 when it worked.
+// (default folder: data beside the program); exit code 0 when it worked. The
+// lines it prints are a setup step's progress (`progress 0.42 text`).
 static int extract_command(int argc, wchar_t** argv)
 {
-    AttachConsole(ATTACH_PARENT_PROCESS);
+    prepare_console();
     ExtractJob job;
     job.iso = argv[2];
     job.out = argc > 3 ? std::wstring(argv[3]) : exe_dir() + L"data";
     job.notify = NULL;
     std::wstring err = extract_disc(&job);
-    FILE* out = _wfopen(L"CONOUT$", L"w");
-    if (out)
+    if (err.empty())
     {
-        std::string text = err.empty() ? "extracted to " + narrow(job.out) : narrow(err);
-        fprintf(out, "%s\n", text.c_str());
-        fclose(out);
+        printf("progress 1.00 Game files ready\nextracted to %s\n", narrow(job.out).c_str());
     }
+    else
+    {
+        printf("error: %s\n", narrow(err).c_str());
+    }
+    fflush(stdout);
     return err.empty() ? 0 : 1;
 }
 
