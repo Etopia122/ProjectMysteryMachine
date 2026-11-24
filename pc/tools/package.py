@@ -37,10 +37,6 @@ STRIP = find_tool('strip')
 OBJDUMP = find_tool('objdump')
 BIN = OBJDUMP.parent
 
-# The files Authenticode signing covers. The game exe stays unsigned for now;
-# these are the two the antivirus reports name (docs/false-positive-reports.md).
-SIGNED_FILES = ('scooby_launcher.exe', 'libwinpthread-1.dll')
-
 README = '''Project: Mystery Machine
 ========================
 Scooby-Doo! Night of 100 Frights - PC port
@@ -141,45 +137,6 @@ def strip_copy(src, dst):
     subprocess.run([str(STRIP), '--strip-debug', str(dst)], check=True)
 
 
-def find_signtool():
-    found = shutil.which('signtool') or shutil.which('signtool.exe')
-    if found:
-        return Path(found)
-    kits = Path('C:/Program Files (x86)/Windows Kits/10/bin')
-    for arch in ('x64', 'x86'):
-        candidates = sorted(kits.glob('*/%s/signtool.exe' % arch))
-        if candidates:
-            return candidates[-1]
-    raise SystemExit('signtool not found: install the Windows SDK, or put signtool.exe on PATH')
-
-
-def sign(path):
-    """Sign one file and verify the result.
-
-    The certificate comes from the Windows certificate store (PC_SIGN_SHA1) or a
-    PFX file (PC_SIGN_PFX, with PC_SIGN_PASSWORD when it needs one). A release is
-    never signed with a generated self-signed certificate: that is not a trusted
-    publisher and does not help players or antivirus engines.
-    """
-    signtool = find_signtool()
-    cmd = [str(signtool), 'sign', '/fd', 'SHA256',
-           '/td', 'http://timestamp.digicert.com', '/tr', 'http://timestamp.digicert.com']
-    sha1 = os.environ.get('PC_SIGN_SHA1')
-    pfx = os.environ.get('PC_SIGN_PFX')
-    if sha1:
-        cmd += ['/sha1', sha1]
-    elif pfx:
-        cmd += ['/f', pfx]
-        password = os.environ.get('PC_SIGN_PASSWORD')
-        if password:
-            cmd += ['/p', password]
-    else:
-        raise SystemExit('signing needs PC_SIGN_SHA1 (certificate thumbprint) or PC_SIGN_PFX (PFX file)')
-    cmd.append(str(path))
-    subprocess.run(cmd, check=True)
-    subprocess.run([str(signtool), 'verify', '/pa', '/v', str(path)], check=True)
-
-
 def imports(path):
     out = subprocess.run([str(OBJDUMP), '-p', str(path)], capture_output=True, text=True).stdout
     return re.findall(r'DLL Name: (\S+)', out)
@@ -211,12 +168,7 @@ def ffmpeg_source():
 parser = argparse.ArgumentParser(description='Package the PC release archive.')
 parser.add_argument('--no-captures', action='store_true',
                     help='skip the capture check (no disc data, e.g. CI)')
-parser.add_argument('--sign', action='store_true',
-                    help='Authenticode-sign %s (PC_SIGN_SHA1 or PC_SIGN_PFX)' % ' and '.join(SIGNED_FILES))
 args = parser.parse_args()
-# A configured certificate signs by default, so a release machine cannot forget
-# the flag and publish the same unsigned files again.
-signing = args.sign or os.environ.get('PC_SIGN_SHA1') or os.environ.get('PC_SIGN_PFX')
 if not args.no_captures:
     data = Path(os.environ.get('SCOOBY_DATA') or Path(__file__).resolve().parents[2] / 'game' / 'files')
     if not data.is_dir():
@@ -244,12 +196,6 @@ while todo:
             dlls.add(name.lower())
             shutil.copy2(BIN / name, OUT / name)
             todo.append(BIN / name)
-if signing:
-    for name in SIGNED_FILES:
-        if not (OUT / name).exists():
-            raise SystemExit('%s is missing from the release folder, so it cannot be signed' % name)
-        print('signing %s' % name)
-        sign(OUT / name)
 (OUT / 'README.txt').write_text(README.replace('\n', '\r\n'), encoding='utf-8', newline='')
 shutil.copy2(sdl_license(), OUT / 'licences' / 'SDL2.txt')
 wp = winpthread_license()
