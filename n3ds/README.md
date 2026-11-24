@@ -145,7 +145,14 @@ instead when they are there.
   `sdmc:/scooby/testsave` (`PC_SAVE_DIR`), never the player's saves; perf.sh,
   scenes.sh and sample.sh set it too. `PC_ALLWARPS=<sec>` opens every warp gate,
   `PC_AUTOTOUCH=<sec>:<x>:<y>` taps the bottom screen, `PC_WARPSEEN=<sec>` counts as
-  walking by a gate, `PC_FORCESAVE=<sec>` opens the save screen.
+  walking by a gate, `PC_FORCESAVE=<sec>` opens the save screen,
+  `PC_SNACKS=<sec>:<n>` collects n snacks and `PC_TOKENS=<sec>:<n>` gives the
+  first n monster tokens, both through the game's pickup path; `PC_CLUES=<sec>:<n>`
+  gives n clues as a pickup does (player inventory and level count);
+  `PC_DEATHS=<sec>:<n>` counts n deaths as losing a life does;
+  `PC_SCARES=<sec>:<n>` counts n scares the same way; `PC_AREAS=<sec>:<n>` marks
+  the first n real areas' snacks all found; `PC_MASTERMIND=<sec>` beats the
+  Mastermind through the game's own call (which also sets the endgame flag).
 - `PC_DBG=cpucolour|cpustatic|cpuuniform|nocache` (shared renderer) narrow
   down vertex colour problems to one path.
 

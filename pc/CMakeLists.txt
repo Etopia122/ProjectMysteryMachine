@@ -47,6 +47,12 @@ endif()
 
 find_package(SDL2 REQUIRED CONFIG)
 
+# Recomp Achievements: the client that reports achievements to RecompLauncher
+# over its local channel (pc/src/achievements.cpp, pc/third_party). Without
+# RecompLauncher it does nothing, so it is linked into every build.
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/rl-achievements
+    ${CMAKE_BINARY_DIR}/rl-achievements)
+
 file(GLOB PC_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.S
     ${CMAKE_CURRENT_SOURCE_DIR}/rw/*.cpp)
@@ -59,7 +65,7 @@ target_include_directories(scooby_pc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
 target_compile_options(scooby_pc PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++17> -g -O0 -pthread)
 # Only for the usage requirements (includes, PC_PORT, ...) when compiling the
 # PC sources; the executables below link it again for real.
-target_link_libraries(scooby_pc PRIVATE scoobygame SDL2::SDL2)
+target_link_libraries(scooby_pc PRIVATE scoobygame SDL2::SDL2 rl_achievements)
 
 add_executable(scooby $<TARGET_OBJECTS:scooby_pc>)
 # PC_EXE_NAME lets a test build link while the normal exe is running.
@@ -84,7 +90,7 @@ target_include_directories(scooby_pc PRIVATE ${PC_FFMPEG_INCLUDE})
 # -mwindows sets the GUI subsystem: main() still runs, but Windows never
 # creates a console for the game.
 target_link_options(scooby PRIVATE -mwindows)
-target_link_libraries(scooby PRIVATE scoobygame SDL2::SDL2 opengl32
+target_link_libraries(scooby PRIVATE scoobygame SDL2::SDL2 opengl32 rl_achievements
     ${PC_FFMPEG_LIBS} -Wl,--large-address-aware)
 # Link the GCC runtime statically. scooby.exe then needs only SDL2.dll; the
 # launcher's C++ runtime still imports libwinpthread-1.dll, which package.py
@@ -97,7 +103,7 @@ target_link_options(scooby PRIVATE -static-libgcc -static-libstdc++
 # copies scooby.exe and scooby_launcher.exe).
 add_executable(scooby_debug $<TARGET_OBJECTS:scooby_pc>)
 set_target_properties(scooby_debug PROPERTIES OUTPUT_NAME "${PC_EXE_NAME}_debug")
-target_link_libraries(scooby_debug PRIVATE scoobygame SDL2::SDL2 opengl32
+target_link_libraries(scooby_debug PRIVATE scoobygame SDL2::SDL2 opengl32 rl_achievements
     ${PC_FFMPEG_LIBS} -Wl,--large-address-aware)
 target_link_options(scooby_debug PRIVATE -static-libgcc -static-libstdc++
     -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive,-Bdynamic)

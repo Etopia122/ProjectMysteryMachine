@@ -1731,6 +1731,38 @@ extern "C" int pc_debug_area(int i, const char** name, const unsigned int** scen
     return 1;
 }
 
+// Achievements harness: marks the first n real areas cleared by topping their
+// snack tallies up to each area's total, the state the last snack leaves behind
+// (PC_AREAS=<seconds>:<n>). Area 0 is the table's sentinel and is never touched.
+extern "C" int pc_dbg_clear_areas(unsigned int count)
+{
+    unsigned int last = (unsigned int)(sizeof(sAreaTable) / sizeof(sAreaTable[0]));
+    if (count < 1 || count >= last)
+    {
+        return 0;
+    }
+    for (unsigned int area = 1; area <= count; area++)
+    {
+        if (globals.areaStats[area].snacks_tot < sAreaTable[area].totalSnacks)
+        {
+            globals.areaStats[area].snacks_tot = sAreaTable[area].totalSnacks;
+        }
+    }
+    return 1;
+}
+
+// One real area (never area 0) whose snacks are all found, the same comparison
+// the game's AllSnacksBonus row makes. The achievements counter sums these
+// instead of that row so the sentinel can never count as an area.
+extern "C" int pc_dbg_area_perfect(unsigned int area)
+{
+    if (area < 1 || area >= (unsigned int)(sizeof(sAreaTable) / sizeof(sAreaTable[0])))
+    {
+        return 0;
+    }
+    return globals.areaStats[area].snacks_tot >= sAreaTable[area].totalSnacks;
+}
+
 extern "C" unsigned int pc_debug_scene_id()
 {
     return globals.sceneCur ? globals.sceneCur->sceneID : 0;

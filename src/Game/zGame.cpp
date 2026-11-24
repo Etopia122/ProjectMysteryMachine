@@ -81,6 +81,9 @@ void xDebugUpdate();
 // by those names.
 void zVolume_OccludePrecalc(_xVec3* camPos);
 void xDebugUpdate();
+// pc/src/achievements.cpp: a pad cheat hands out progress, so the session stops
+// counting for Ranked (see pc/docs/achievements.md).
+extern "C" void pc_achievements_casual(const char* reason);
 #endif
 void zEntPlayer_Init(_xEnt* ent, p2EntAsset* asset);
 void zEntShaggy_SceneStart(zScene* sc);
@@ -988,10 +991,16 @@ static void zGameCheats(float dt)
 
             if (TestCheat(sCheatWarpGate))
             {
+#ifdef PC_PORT
+                pc_achievements_casual("cheat code");
+#endif
                 zEntPickupCheat_allWarps();
             }
             if (TestCheat(sCheatAllPowerups))
             {
+#ifdef PC_PORT
+                pc_achievements_casual("cheat code");
+#endif
                 globals.player.Inv_Specials |= 0x1;
                 globals.player.Inv_Specials |= 0x2;
                 globals.player.Inv_Specials |= 0x4;
@@ -1010,10 +1019,16 @@ static void zGameCheats(float dt)
             }
             if (TestCheat(sCheatUnlockCredits))
             {
+#ifdef PC_PORT
+                pc_achievements_casual("cheat code");
+#endif
                 zVarUnlockEndGame();
             }
             if (TestCheat(sCheatUnlockAllMovies))
             {
+#ifdef PC_PORT
+                pc_achievements_casual("cheat code");
+#endif
                 zVarUnlockAllMovies();
             }
             sCheatTimer = 0.35f;

@@ -67,6 +67,9 @@ Software licences
   - SDL2: zlib licence.
   - libwinpthread: MIT licence (mingw-w64 runtime).
   - FFmpeg: LGPL 2.1 or later, Bink decoders only.
+  - Recomp Achievements (pc/third_party/rl-achievements), with rcheevos and
+    cJSON: Recomp Achievements License 1.0 / MIT, linked into scooby.exe to
+    report achievements to RecompLauncher.
 
 The full texts ship in the release archive's licences/ folder, together with
 the FFmpeg source it was built from.

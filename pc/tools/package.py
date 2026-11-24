@@ -5,7 +5,13 @@
 # read-me and the third-party licences.
 # No game data: players extract their own disc with the launcher.
 # usage: python pc/tools/package.py   (after sh pc/tools/build.sh)
-import hashlib, os, re, shutil, subprocess, zipfile
+#
+# Before the archive is built the scripted capture check runs
+# (pc/tools/captures.py): a visual regression must not reach a release, and a
+# release cannot be re-cut once it is out. The check needs the extracted disc;
+# without one (CI, a machine with no dump) pass --no-captures, which is the only
+# way past it.
+import argparse, hashlib, os, re, shutil, subprocess, sys, zipfile
 from pathlib import Path
 
 BUILD = Path(os.environ.get('PC_BUILD_DIR', 'build/pc'))
@@ -30,6 +36,10 @@ def find_tool(name):
 STRIP = find_tool('strip')
 OBJDUMP = find_tool('objdump')
 BIN = OBJDUMP.parent
+
+# The files Authenticode signing covers. The game exe stays unsigned for now;
+# these are the two the antivirus reports name (docs/false-positive-reports.md).
+SIGNED_FILES = ('scooby_launcher.exe', 'libwinpthread-1.dll')
 
 README = '''Project: Mystery Machine
 ========================
@@ -83,8 +93,8 @@ Controls: every GameCube button for the keyboard (one or more keys) and for a
           controller (any button or trigger), swapping the analog sticks, and
           the debug menu toggle (off by default).
 Game:     skipping the company logo movies at start, and launch options:
-          extra switches for scooby.exe, e.g. PC_DBG=nosector, which
-          are handed over as environment variables when it starts.
+          extra switches for scooby.exe, e.g. PC_STATS=1, which are
+          handed over as environment variables when it starts.
 
 Default controls
 ----------------
@@ -99,9 +109,9 @@ F3 shows Scooby's position.
 
 Third-party software
 --------------------
-SDL2 (zlib licence), libwinpthread (mingw-w64 runtime, MIT licence) and FFmpeg
-(LGPL 2.1 or later; only its Bink decoders, linked into scooby.exe) - see the
-licences folder. FFmpeg's source:
+SDL2 (zlib licence), libwinpthread (mingw-w64 runtime, MIT licence), FFmpeg
+(LGPL 2.1 or later; only its Bink decoders, linked into scooby.exe) and Recomp
+Achievements with rcheevos and cJSON (MIT) - see the licences folder. FFmpeg's source:
 https://ffmpeg.org/releases/ffmpeg-8.1.1.tar.xz, built with
 pc/tools/build_ffmpeg.sh from this port's source.
 
@@ -112,8 +122,9 @@ What this archive contains and under what terms:
 - The launcher and port tooling are project code, released under CC0 1.0 by
   their authors. The decompiled game code they are built from is not ours to
   license: it stays the copyright of the game's owners.
-- SDL2, libwinpthread and FFmpeg keep their own licences (see above); their
-  texts are in the licences folder.
+- SDL2, libwinpthread, FFmpeg and Recomp Achievements (with rcheevos and
+  cJSON) keep their own licences (see above); their texts are in the licences
+  folder.
 - The launcher's Scooby-Doo badge, Mystery Machine van and file icon are
   third-party clip art licensed for personal use only. They are not licensed
   to you for redistribution, reuse or commercial use, and are removed on
@@ -128,6 +139,45 @@ artwork or the game on their own.
 def strip_copy(src, dst):
     shutil.copy2(src, dst)
     subprocess.run([str(STRIP), '--strip-debug', str(dst)], check=True)
+
+
+def find_signtool():
+    found = shutil.which('signtool') or shutil.which('signtool.exe')
+    if found:
+        return Path(found)
+    kits = Path('C:/Program Files (x86)/Windows Kits/10/bin')
+    for arch in ('x64', 'x86'):
+        candidates = sorted(kits.glob('*/%s/signtool.exe' % arch))
+        if candidates:
+            return candidates[-1]
+    raise SystemExit('signtool not found: install the Windows SDK, or put signtool.exe on PATH')
+
+
+def sign(path):
+    """Sign one file and verify the result.
+
+    The certificate comes from the Windows certificate store (PC_SIGN_SHA1) or a
+    PFX file (PC_SIGN_PFX, with PC_SIGN_PASSWORD when it needs one). A release is
+    never signed with a generated self-signed certificate: that is not a trusted
+    publisher and does not help players or antivirus engines.
+    """
+    signtool = find_signtool()
+    cmd = [str(signtool), 'sign', '/fd', 'SHA256',
+           '/td', 'http://timestamp.digicert.com', '/tr', 'http://timestamp.digicert.com']
+    sha1 = os.environ.get('PC_SIGN_SHA1')
+    pfx = os.environ.get('PC_SIGN_PFX')
+    if sha1:
+        cmd += ['/sha1', sha1]
+    elif pfx:
+        cmd += ['/f', pfx]
+        password = os.environ.get('PC_SIGN_PASSWORD')
+        if password:
+            cmd += ['/p', password]
+    else:
+        raise SystemExit('signing needs PC_SIGN_SHA1 (certificate thumbprint) or PC_SIGN_PFX (PFX file)')
+    cmd.append(str(path))
+    subprocess.run(cmd, check=True)
+    subprocess.run([str(signtool), 'verify', '/pa', '/v', str(path)], check=True)
 
 
 def imports(path):
@@ -158,6 +208,26 @@ def ffmpeg_source():
     raise SystemExit('minimal FFmpeg source not found: run sh pc/tools/build_ffmpeg.sh first')
 
 
+parser = argparse.ArgumentParser(description='Package the PC release archive.')
+parser.add_argument('--no-captures', action='store_true',
+                    help='skip the capture check (no disc data, e.g. CI)')
+parser.add_argument('--sign', action='store_true',
+                    help='Authenticode-sign %s (PC_SIGN_SHA1 or PC_SIGN_PFX)' % ' and '.join(SIGNED_FILES))
+args = parser.parse_args()
+# A configured certificate signs by default, so a release machine cannot forget
+# the flag and publish the same unsigned files again.
+signing = args.sign or os.environ.get('PC_SIGN_SHA1') or os.environ.get('PC_SIGN_PFX')
+if not args.no_captures:
+    data = Path(os.environ.get('SCOOBY_DATA') or Path(__file__).resolve().parents[2] / 'game' / 'files')
+    if not data.is_dir():
+        raise SystemExit('the capture check needs the extracted disc (%s): extract your disc, or pass '
+                         '--no-captures to package without the visual check' % data)
+    print('capture check: pc/tools/captures.py', flush=True)
+    check = subprocess.run([sys.executable, str(Path(__file__).with_name('captures.py'))])
+    if check.returncode != 0:
+        raise SystemExit('the capture check failed: fix the regression, or run '
+                         'pc/tools/captures.py --force-update if the new look is intended')
+
 if OUT.exists():
     shutil.rmtree(OUT)
 (OUT / 'licences').mkdir(parents=True)
@@ -174,11 +244,23 @@ while todo:
             dlls.add(name.lower())
             shutil.copy2(BIN / name, OUT / name)
             todo.append(BIN / name)
+if signing:
+    for name in SIGNED_FILES:
+        if not (OUT / name).exists():
+            raise SystemExit('%s is missing from the release folder, so it cannot be signed' % name)
+        print('signing %s' % name)
+        sign(OUT / name)
 (OUT / 'README.txt').write_text(README.replace('\n', '\r\n'), encoding='utf-8', newline='')
 shutil.copy2(sdl_license(), OUT / 'licences' / 'SDL2.txt')
 wp = winpthread_license()
 if wp and (OUT / 'libwinpthread-1.dll').exists():
     shutil.copy2(wp, OUT / 'licences' / 'libwinpthread.txt')
+# Recomp Achievements (pc/third_party/rl-achievements), linked into scooby.exe,
+# with the MIT parts it carries.
+sdk = Path(__file__).resolve().parents[1] / 'third_party' / 'rl-achievements'
+shutil.copy2(sdk / 'LICENSE', OUT / 'licences' / 'Recomp-Achievements.txt')
+shutil.copy2(sdk / 'third_party' / 'rcheevos' / 'LICENSE', OUT / 'licences' / 'rcheevos.txt')
+shutil.copy2(sdk / 'third_party' / 'cjson' / 'LICENSE', OUT / 'licences' / 'cJSON.txt')
 ffmpeg = ffmpeg_source()
 shutil.copy2(ffmpeg / 'COPYING.LGPLv2.1', OUT / 'licences' / 'FFmpeg-LGPL-2.1.txt')
 shutil.copy2(ffmpeg / 'LICENSE.md', OUT / 'licences' / 'FFmpeg-LICENSE.md')

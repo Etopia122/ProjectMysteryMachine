@@ -175,10 +175,12 @@ What is licensed, and what is not:
   It is derived from the retail game, remains the copyright of its owners, and
   is included only so the matching binary can be built and studied. It is not
   covered by the CC0 licence above.
-- **Third-party software**: SDL2 (zlib licence), libwinpthread (mingw-w64, MIT)
-  and FFmpeg (LGPL 2.1 or later; only its Bink decoders, linked into
-  `scooby.exe`). The PC release archive ships their licence texts in
-  `licences/`, together with the FFmpeg source it was built from.
+- **Third-party software**: SDL2 (zlib licence), libwinpthread (mingw-w64, MIT),
+  FFmpeg (LGPL 2.1 or later; only its Bink decoders, linked into `scooby.exe`)
+  and Recomp Achievements (Recomp Achievements License 1.0, with rcheevos and
+  cJSON under MIT; `pc/third_party/rl-achievements`). The PC release archive
+  ships their licence texts in `licences/`, together with the FFmpeg source it
+  was built from.
 - **Launcher artwork**: see the table below. It is not covered by the CC0
   licence.
 

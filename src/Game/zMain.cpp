@@ -106,6 +106,11 @@ void CalcJumpImpulse(zJumpParam* param);
 
 extern _tagxPad* gDebugPad;
 zGlobals globals;
+#ifdef PC_PORT
+// Recomp Achievements (pc/src/achievements.cpp).
+extern "C" void pc_achievements_event(const char* name);
+#endif
+
 static signed int sShowMenuOnBoot = 1;
 static st_SERIAL_PERCID_SIZE g_xser_sizeinfo[2] = { { 'PLYR', 0x148 }, { 0, 0 } };
 
@@ -263,6 +268,10 @@ static void zMainLoop()
         if (newGameSceneID == 0)
         {
             zVarNewGame();
+#ifdef PC_PORT
+            // A new game, not a loaded save: the one place the two part ways.
+            pc_achievements_event("new_game");
+#endif
             iTimeSetGame(0.0f);
             gameSceneID = (globals.sceneStart[0] << 24) | (globals.sceneStart[1] << 16) |
                           (globals.sceneStart[2] << 8) | globals.sceneStart[3];

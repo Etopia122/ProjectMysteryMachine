@@ -31,11 +31,23 @@ public:
 };
 
 void zEntPickupCheat_allWarps();
+unsigned int zEntPickup_WarpIsOpen(unsigned int idx);
+signed int zMenuRunning();
 void zEntEvent(char* to, unsigned int toEvent);
 signed int zEntPlayer_Damage(xBase* src, unsigned int damage);
 void zVarUnlockEndGame();
 void zVarUnlockAllMovies();
 signed int zGameStateGet();
+void zEntPlayer_GiveScoobySnack(unsigned int quantity);
+void zEntPlayer_GiveClue(unsigned int quantity);
+unsigned int zVarEntryCB_eVareVarDefeatedMM();
+extern "C" int pc_dbg_area_perfect(unsigned int area);
+unsigned int zCutSceneNamesTable_getStatus(unsigned int number);
+void zSceneGameStatsTally_token();
+void zSceneGameStatsTally_clue();
+void zSceneGameStatsTally_death();
+void zSceneGameStatsTally_scare();
+void zVarDefeatMasterMind();
 
 static zPortalAsset sWarpAsset;
 static _zPortal sWarpPortal;
@@ -96,6 +108,102 @@ void pc_dbg_refill()
 }
 
 void pc_dbg_add_snacks(unsigned int n) { globals.player.Inv_ScoobySnacks += n; }
+
+// Collects snacks through the game's own pickup path, so the collection tally
+// the progress screen and the area stats use moves as it does in play
+// (PC_SNACKS in the achievements harness). Returns 0 until a level is running.
+int pc_dbg_give_snacks(unsigned int n)
+{
+    if (globals.sceneCur == NULL)
+    {
+        return 0;
+    }
+    zEntPlayer_GiveScoobySnack(n);
+    return 1;
+}
+
+// The same for monster tokens: the two calls a token pickup makes (zEntPickup),
+// so the tally and the inventory agree with the tokens the player is given.
+// Tokens already held are skipped, so n is the count held afterwards, not an
+// amount added.
+int pc_dbg_give_tokens(unsigned int n)
+{
+    if (globals.sceneCur == NULL)
+    {
+        return 0;
+    }
+    for (unsigned int i = 0; i < 21 && i < n; i++)
+    {
+        if (!(globals.player.Inv_Mtokens[0] & (1 << i)))
+        {
+            globals.player.Inv_Mtokens[0] |= 1 << i;
+            zSceneGameStatsTally_token();
+        }
+    }
+    return 1;
+}
+
+// The two calls a clue pickup makes (zEntPickup_GiveClue plus its tally), so the
+// player's clues and the per-level count the progress screen shows agree. Both
+// need the level that is running: the tally reads its scene, and a new game
+// clears Inv_Clue.
+int pc_dbg_give_clues(unsigned int n)
+{
+    if (globals.sceneCur == NULL)
+    {
+        return 0;
+    }
+    zEntPlayer_GiveClue(n);
+    for (unsigned int i = 0; i < n; i++)
+    {
+        zSceneGameStatsTally_clue();
+    }
+    return 1;
+}
+
+// Counts deaths the way losing a life does: the area tally the player's death
+// makes (PC_DEATHS in the achievements harness). Returns 0 until a level runs.
+int pc_dbg_give_deaths(unsigned int n)
+{
+    if (globals.sceneCur == NULL)
+    {
+        return 0;
+    }
+    for (unsigned int i = 0; i < n; i++)
+    {
+        zSceneGameStatsTally_death();
+    }
+    return 1;
+}
+
+// The same for a scare, the tally zEntPlayer_Damage makes when something jumps
+// out (PC_SCARES in the achievements harness). Returns 0 until a level runs.
+int pc_dbg_give_scares(unsigned int n)
+{
+    if (globals.sceneCur == NULL)
+    {
+        return 0;
+    }
+    for (unsigned int i = 0; i < n; i++)
+    {
+        zSceneGameStatsTally_scare();
+    }
+    return 1;
+}
+
+// Beats the Mastermind through the game's own call (the 0x127 dispatcher event),
+// which sets the defeated flag and the endgame one (PC_MASTERMIND in the
+// achievements harness). Returns 0 until a level runs, so the endgame flag is
+// not set on the title screen.
+int pc_dbg_defeat_mastermind(unsigned int)
+{
+    if (globals.sceneCur == NULL)
+    {
+        return 0;
+    }
+    zVarDefeatMasterMind();
+    return 1;
+}
 
 int pc_dbg_toggle_infinite_health() { return sInfiniteHealth = !sInfiniteHealth; }
 
@@ -202,6 +310,104 @@ void pc_dbg_frame()
     {
         globals.player.Health = 5;
     }
+}
+
+// Recomp Achievements (pc/src/achievements.cpp): the counters its watchers read
+// each frame. Only snacks the player collected are counted: areaStats[].snacks_tot
+// is the tally the pickup path adds to, never the authored area totals. Area 0 is
+// the table's sentinel (999), so the sum starts at the first real area; including
+// it would hand out snacks_1000 after a single snack.
+unsigned int pc_ach_snacks()
+{
+    unsigned int total = 0;
+    for (int i = 1; i < 30; i++)
+    {
+        total += globals.areaStats[i].snacks_tot;
+    }
+    return total;
+}
+
+unsigned int pc_ach_tokens()
+{
+    unsigned int count = 0;
+    for (int i = 0; i < 21; i++)
+    {
+        count += (globals.player.Inv_Mtokens[0] >> i) & 1;
+    }
+    return count;
+}
+
+unsigned int pc_ach_clues()
+{
+    return globals.player.Inv_Clue;
+}
+
+// The save's own scare and death tallies (globals.stats), the ones the HUD and
+// the save file count.
+unsigned int pc_ach_deaths()
+{
+    return globals.stats.deaths_sum;
+}
+
+unsigned int pc_ach_scares()
+{
+    return globals.stats.scares_sum;
+}
+
+// Areas whose snacks are all found. Only the 29 real areas count; area 0 is a
+// sentinel, and a scene the area table does not name must not turn into one.
+unsigned int pc_ach_areas()
+{
+    unsigned int count = 0;
+    for (unsigned int i = 1; i < 30; i++)
+    {
+        count += pc_dbg_area_perfect(i) ? 1 : 0;
+    }
+    return count;
+}
+
+unsigned int pc_ach_warps()
+{
+    unsigned int count = 0;
+    for (unsigned int i = 0; i < 26; i++)
+    {
+        count += zEntPickup_WarpIsOpen(i) ? 1 : 0;
+    }
+    return count;
+}
+
+// Upgrades are the 15 bits of Inv_Specials, of which SD2.INI starts five set,
+// so the count is what a player has, not what the mask says.
+unsigned int pc_ach_upgrades()
+{
+    unsigned int count = 0;
+    for (int i = 0; i < 15; i++)
+    {
+        count += (globals.player.Inv_Specials >> i) & 1;
+    }
+    return count;
+}
+
+// The movies screen's table: 14 cutscenes, 1-based in the getter.
+unsigned int pc_ach_cutscenes()
+{
+    unsigned int count = 0;
+    for (unsigned int i = 1; i <= 14; i++)
+    {
+        count += zCutSceneNamesTable_getStatus(i) ? 1 : 0;
+    }
+    return count;
+}
+
+unsigned int pc_ach_mastermind()
+{
+    return zVarEntryCB_eVareVarDefeatedMM();
+}
+
+// 1 once a level is running: the title screen and its menus are not play.
+int pc_ach_playing()
+{
+    return !zMenuRunning() && globals.sceneCur != NULL;
 }
 
 }

@@ -272,6 +272,7 @@ bool pc_debug_menu_event(const SDL_Event& e);
 // Window/system events; called once per presented frame.
 void pc_events_pump()
 {
+    pc_achievements_frame();
     pc_debug_menu_frame();
     pc_debug_hooks_frame();
     // PC_FPTRAP=N: trap invalid FP operations from the Nth presented frame on.
@@ -352,6 +353,8 @@ extern "C" void pc_fptrap()
 int main(int argc, char** argv)
 {
     pc_log_init();
+    // Recomp Achievements: opens the launcher's channel if there is one.
+    pc_achievements_init();
     SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_TIMER) != 0)
     {

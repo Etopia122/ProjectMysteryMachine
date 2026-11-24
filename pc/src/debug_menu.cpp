@@ -276,6 +276,12 @@ extern "C" void pc_debug_menu_toggle()
 {
     s_open = !s_open;
     s_page = MAIN;
+    if (s_open)
+    {
+        // Opening the menu is using a cheat: unlocks from here on stay off the
+        // leaderboards (pc/docs/achievements.md).
+        pc_achievements_casual("debug");
+    }
 }
 
 extern "C" void pc_debug_coords_toggle()

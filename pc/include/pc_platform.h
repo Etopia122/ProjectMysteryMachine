@@ -71,6 +71,17 @@ void pc_debug_coords_return(void);
 // Environment-driven test hooks (pc/src/debug_hooks.cpp), once per frame.
 void pc_debug_hooks_frame(void);
 
+// Recomp Achievements (pc/src/achievements.cpp): reports what the player earned
+// to RecompLauncher over its local channel. Started without RecompLauncher
+// there is nobody to report to and every call does nothing.
+void pc_achievements_init(void);
+void pc_achievements_frame(void);
+void pc_achievements_event(const char* name);
+// What keeps Ranked honest: a loaded save, or a cheat used (debug menu or a
+// PC_* switch). Unlocks after it are kept but don't count on the leaderboards.
+void pc_achievements_save_loaded(void);
+void pc_achievements_casual(const char* reason);
+
 // The platform's key names for the menu's hints.
 enum { PC_HINT_MENU, PC_HINT_SAVE, PC_HINT_RETURN };
 const char* pc_debug_key_hint(int which);

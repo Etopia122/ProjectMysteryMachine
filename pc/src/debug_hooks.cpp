@@ -21,6 +21,22 @@ extern "C" void pc_dbg_player_anim(const char** name, unsigned int* userFlags, u
 extern "C" void pc_debug_probe(float x, float z);
 extern "C" void pc_debug_sectors();
 extern "C" void pc_debug_sphere(float x, float y, float z, float r);
+extern "C" int pc_dbg_give_snacks(unsigned int n);
+extern "C" int pc_dbg_give_tokens(unsigned int n);
+extern "C" int pc_dbg_give_clues(unsigned int n);
+extern "C" int pc_dbg_give_deaths(unsigned int n);
+extern "C" int pc_dbg_give_scares(unsigned int n);
+extern "C" int pc_dbg_defeat_mastermind(unsigned int unused);
+extern "C" int pc_dbg_clear_areas(unsigned int count);
+
+// A PC_* switch that gives progress once play starts, read as <seconds>:<n>. The
+// call returns 0 until a level is running, so it is retried each frame.
+struct GiveSwitch
+{
+    int (*give)(unsigned int);
+    const char* what;
+    const char* when; // the environment value, cleared once it has run
+};
 
 // Read on the first frame: the 3DS sets its environment in main.
 static bool s_teleportDone;
@@ -33,6 +49,23 @@ extern "C" void pc_debug_hooks_frame()
     {
         started = true;
         s_teleportDone = !getenv("PC_TELEPORT");
+        // A switch that changes the game is a cheat: the session's unlocks stay
+        // off the leaderboards (pc/docs/achievements.md). The switches below
+        // that only log (PC_POSLOG, PC_PROBE, PC_SPHERE, PC_SURFDUMP,
+        // PC_ENTINFO) are not in the list.
+        static const char* cheats[] = { "PC_SCENE",    "PC_WARP",     "PC_PORTAL",  "PC_TELEPORT", "PC_FORCESAVE",
+                                        "PC_ALLWARPS", "PC_UPGRADES", "PC_WARPSEEN", "PC_EVENT",    "PC_BOSSDMG",
+                                        "PC_HURT",     "PC_MENU",     "PC_SNACKS",   "PC_TOKENS",
+                                        "PC_AREAS",    "PC_CLUES",    "PC_DEATHS",   "PC_SCARES",
+                                        "PC_MASTERMIND" };
+        for (int i = 0; i < (int)(sizeof(cheats) / sizeof(cheats[0])); i++)
+        {
+            if (getenv(cheats[i]))
+            {
+                pc_achievements_casual(cheats[i]);
+                break;
+            }
+        }
     }
     // Debug: PC_PORTAL=<seconds>:<index> takes a portal of the current scene.
     static const char* portal = getenv("PC_PORTAL");
@@ -134,6 +167,33 @@ extern "C" void pc_debug_hooks_frame()
         pc_dbg_all_upgrades();
         pc_dbg_refill();
         pc_log("[debug] all upgrades, refilled");
+    }
+    // Debug: progress switches, once the level they act on is running.
+    // PC_SNACKS/PC_TOKENS/PC_CLUES/PC_DEATHS/PC_SCARES=<seconds>:<n> give n of
+    // each, PC_AREAS=<seconds>:<n> finishes the first n areas' snacks, and
+    // PC_MASTERMIND=<seconds> beats the Mastermind through the game's own call
+    // (the 0x127 dispatcher event). That call also sets the endgame flag, so the
+    // harness gives PC_MASTERMIND a run of its own.
+    static GiveSwitch gives[] = { { pc_dbg_give_snacks, "snacks collected", getenv("PC_SNACKS") },
+                                  { pc_dbg_give_tokens, "monster tokens", getenv("PC_TOKENS") },
+                                  { pc_dbg_give_clues, "clues", getenv("PC_CLUES") },
+                                  { pc_dbg_give_deaths, "deaths", getenv("PC_DEATHS") },
+                                  { pc_dbg_give_scares, "scares", getenv("PC_SCARES") },
+                                  { pc_dbg_clear_areas, "areas cleared", getenv("PC_AREAS") },
+                                  { pc_dbg_defeat_mastermind, "Mastermind beaten", getenv("PC_MASTERMIND") } };
+    for (int i = 0; i < (int)(sizeof(gives) / sizeof(gives[0])); i++)
+    {
+        const char* at = gives[i].when;
+        if (at && pc_ticks_ms() >= (unsigned int)(atof(at) * 1000))
+        {
+            const char* c = strchr(at, ':');
+            unsigned int n = c ? (unsigned int)atoi(c + 1) : 1;
+            if (gives[i].give(n))
+            {
+                gives[i].when = NULL;
+                pc_log("[debug] %u %s", n, gives[i].what);
+            }
+        }
     }
     // Debug: PC_WARPSEEN=<seconds> counts as walking by a warp gate (no gate opens).
     static const char* warpSeen = getenv("PC_WARPSEEN");

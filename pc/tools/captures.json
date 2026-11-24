@@ -1,0 +1,24 @@
+{
+  "resolution": [640, 480],
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "f010-beams",
+      "scene": "F010",
+      "autopad": "2:1000,3:0100,4:0000,8:0000:0:200,12:0000",
+      "start": 450,
+      "frames": 110,
+      "max_diff": 6.0,
+      "timeout": 150
+    },
+    {
+      "name": "h001-hub",
+      "scene": "H001",
+      "autopad": "2:1000,3:0100,4:0000",
+      "start": 300,
+      "frames": 90,
+      "max_diff": 6.0,
+      "timeout": 150
+    }
+  ]
+}

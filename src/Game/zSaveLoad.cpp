@@ -138,6 +138,8 @@ extern "C" void pc_save_flags_set(int slot, int value);
 #define PC_SAVE_FLAG_WARP 1
 signed int zEntPickup_PCWarpSeen();
 void zEntPickup_PCWarpSetSeen(signed int seen);
+// Recomp Achievements (pc/src/achievements.cpp).
+extern "C" void pc_achievements_save_loaded();
 #endif
 signed int zSaveLoad_CardCheckGames(signed int cardNumber, signed int mode);
 signed int zSaveLoad_CardCheckSpace(signed int cardNumber, signed int mode, signed int checkGames);
@@ -1844,6 +1846,8 @@ unsigned int zSaveLoad_LoadLoop()
 #ifdef PC_PORT
                 // What the slot's save data can't hold (pc_save_flags).
                 zEntPickup_PCWarpSetSeen(pc_save_flags_get(currentGame) & PC_SAVE_FLAG_WARP);
+                // Ranked stays honest: unlocks from here on are kept but Casual.
+                pc_achievements_save_loaded();
 #endif
                 zGameModeSwitch(eGameMode_Game);
                 zGameStateSwitch(0);
