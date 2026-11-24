@@ -23,6 +23,30 @@ VirusTotal report:
 address appears only in VirusTotal's false-positive contacts table and the
 vendor publishes no working form; those are the weakest contacts.
 
+## Sending
+
+Five emails and one form; nothing is automated. Check the three
+VirusTotal pages first and drop any engine that has already cleared.
+Send from a mailbox you can receive replies at, attach only the files
+in `build/dist/v0.3.0/attachments/<vendor>/` (the published v0.3.0
+asset, never a local rebuild), and record the date and any ticket ID
+in `Sent`.
+
+1. AliCloud — `antivirus@alibabacloud.com`, attach
+   `libwinpthread-1.dll`.
+2. Trend Micro — `virus_doctor@trendmicro.com`, attach
+   `ProjectMysteryMachine.zip`.
+3. MaxSecure — `tech@maxpcsecure.com`, attach
+   `ProjectMysteryMachine.zip`.
+4. Gridinsoft — `virus@gridinsoft.com`, attach
+   `libwinpthread-1.dll`; the
+   [form](https://gridinsoft.com/incorrect-detection) is the fallback.
+5. Sophos — `samples@sophos.com`, attach
+   `ProjectMysteryMachine-infected.zip` (password `infected`).
+6. SecureAge —
+   [form](https://uav.secureage.com/falsepositive), upload
+   `scooby_launcher.exe`; this one has no email route.
+
 ## Shared facts
 
 - **Project: Mystery Machine**, an open-source Windows PC port of
@@ -176,14 +200,15 @@ include the links in the message.
 Detection: Trojan.Malware.691063983.susgen ("susgen" = suspicious, generic)
 File: ProjectMysteryMachine.zip
 SHA-256: c410f5c54b0b9c77a64e7e1f934b3823de431829119a0b78625526ad697dd752
-Size: 3,666,051 bytes (11 files, 10.5 MB unpacked)
+Size: 3,666,051 bytes (11 files, 11,025,615 bytes unpacked)
 Download: https://github.com/Etopia122/ProjectMysteryMachine/releases/tag/v0.3.0
 VirusTotal: https://www.virustotal.com/gui/file/c410f5c54b0b9c77a64e7e1f934b3823de431829119a0b78625526ad697dd752
 
 Contents: scooby.exe and scooby_launcher.exe (unsigned MinGW-w64 i686 builds;
 the launcher extracts files from the user's own game disc and starts the game),
 SDL2.dll, libwinpthread-1.dll (stock MinGW-w64 runtime), recomplauncher.json,
-README.txt and five licence texts. The source is public at the URL above.
+README.txt and five licence texts. The source is public at
+https://github.com/Etopia122/ProjectMysteryMachine (tag `v0.3.0`).
 
 No component imports WinINet/WinHTTP/URLMon or uses sockets, and the sandbox
 reports no network communication. The executables are unsigned and carry a
