@@ -7,6 +7,13 @@ Nintendo GameCube (Heavy Iron Studios / THQ, 2002).
 This repository does **not** contain any game assets or assembly. An existing
 copy of the game is required.
 
+<a href="https://recomplauncher.com"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
+
+The PC release installs from [RecompLauncher](https://recomplauncher.com): it
+checks your disc, copies the game's files out of it and starts the game, with
+its display and graphics settings on the game's page. Installing by hand works
+the same way through `scooby_launcher.exe`.
+
 Supported versions:
 
 - `GIHE78`: Rev 0 (USA) — `main.dol` SHA-1 `c77fb29d39b5898933e8ef4d1ccd2ddac404554e`

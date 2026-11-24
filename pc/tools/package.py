@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Puts together the PC release folder build/dist/ProjectMysteryMachine
 # (and ProjectMysteryMachine.zip):
-# the launcher, the game, SDL2.dll + libwinpthread-1.dll, a read-me and the
-# third-party licences.
+# the launcher, the game, SDL2.dll + libwinpthread-1.dll, recomplauncher.json, a
+# read-me and the third-party licences.
 # No game data: players extract their own disc with the launcher.
 # usage: python pc/tools/package.py   (after sh pc/tools/build.sh)
 import os, re, shutil, subprocess, zipfile
@@ -184,6 +184,12 @@ shutil.copy2(ffmpeg / 'COPYING.LGPLv2.1', OUT / 'licences' / 'FFmpeg-LGPL-2.1.tx
 shutil.copy2(ffmpeg / 'LICENSE.md', OUT / 'licences' / 'FFmpeg-LICENSE.md')
 # The fan-project / artwork notice travels with every archive.
 shutil.copy2('NOTICE', OUT / 'licences' / 'FAN-PROJECT-NOTICE.txt')
+# RecompLauncher reads this beside the programs: the disc check, the windowless
+# extraction step and the settings it shows on the game's page. It has to sit at
+# the top of the archive, so it cannot be left behind.
+if not Path('recomplauncher.json').exists():
+    raise SystemExit('recomplauncher.json is missing: it ships at the top of every release')
+shutil.copy2('recomplauncher.json', OUT / 'recomplauncher.json')
 
 # Guard the "no game assets" promise. This is deliberately checked after the
 # folder is assembled, before it becomes an archive.

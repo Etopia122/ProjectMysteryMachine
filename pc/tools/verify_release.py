@@ -2,7 +2,7 @@
 # Check a packaged PC release: the launcher must be present, the game must be
 # present, and no game assets or disc images may be inside.
 # usage: python pc/tools/verify_release.py [build/dist/ProjectMysteryMachine.zip]
-import sys, zipfile
+import json, sys, zipfile
 from pathlib import Path
 
 archive = Path(sys.argv[1] if len(sys.argv) > 1 else 'build/dist/ProjectMysteryMachine.zip')
@@ -15,6 +15,7 @@ required = {
     'ProjectMysteryMachine/SDL2.dll',
     'ProjectMysteryMachine/libwinpthread-1.dll',
     'ProjectMysteryMachine/README.txt',
+    'ProjectMysteryMachine/recomplauncher.json',
     'ProjectMysteryMachine/licences/FAN-PROJECT-NOTICE.txt',
 }
 forbidden_suffixes = {'.iso', '.gcm', '.rvz', '.wia', '.ciso', '.gcz', '.dol', '.rel', '.hip', '.bik', '.aw', '.txd'}
@@ -22,10 +23,15 @@ forbidden_roots = ('ProjectMysteryMachine/data/', 'ProjectMysteryMachine/game/',
 
 with zipfile.ZipFile(archive) as z:
     names = set(z.namelist())
+    missing = sorted(required - names)
+    if missing:
+        raise SystemExit('release is missing: ' + ', '.join(missing))
+    # The launcher reads this beside the programs; a broken one is skipped and
+    # players lose Easy Setup, so it has to parse.
+    manifest = json.loads(z.read('ProjectMysteryMachine/recomplauncher.json'))
 
-missing = sorted(required - names)
-if missing:
-    raise SystemExit('release is missing: ' + ', '.join(missing))
+if manifest.get('format') != 1:
+    raise SystemExit('recomplauncher.json: format must be 1')
 # The console build is for testing only.
 debug_exes = sorted(n for n in names if '_debug' in n.lower())
 if debug_exes:

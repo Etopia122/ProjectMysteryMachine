@@ -78,16 +78,24 @@ FFmpeg, CMake falls back to MSYS2's shared FFmpeg (~70 DLLs).
 it extracts the game's files from their own disc image (USA, GIHE78; plain
 .iso/.gcm) into `data/` beside the program, edits `scooby.ini` and starts
 scooby.exe. `scooby_launcher --extract <image> [folder]` extracts without the
-window. The themed launcher uses a sidebar of case files (Game files, Display,
+window, printing `progress 0.42 ...` lines to stdout (or the terminal it was
+started from) for a caller that shows progress. The themed launcher uses a sidebar of case files (Game files, Display,
 Graphics, Controls, Launch options) and needs no extra art files; every button, checkbox and
 slider is drawn by the launcher itself.
 
 `python pc/tools/package.py` puts the release folder together in
 `build/dist/ProjectMysteryMachine` (+ .zip): both programs stripped, SDL2.dll,
 libwinpthread-1.dll, a read-me and the SDL2/FFmpeg/winpthread licences; no game
-data. `python pc/tools/verify_release.py`
-checks that the archive contains `scooby_launcher.exe` and rejects any disc or
-game-asset extensions. The PC release workflow builds this archive on a tag
+data, and `recomplauncher.json` beside the programs, which
+`python pc/tools/verify_release.py` also requires (it must parse and be
+`format: 1`); that script rejects any disc or game-asset extensions.
+
+`recomplauncher.json` (repository root) is RecompLauncher's manifest: it checks
+the player's USA disc (`GIHE78`, plus the known Redump dump for the verified
+badge), runs `scooby_launcher.exe --extract` as the windowless setup step into
+`data/`, starts `scooby.exe`, and exposes the display/graphics settings in
+`scooby.ini` on the game's page. Without RecompLauncher nothing changes: the
+launcher and the game start exactly as before. The PC release workflow builds this archive on a tag
 (`v*`) and attaches it to the GitHub release; `.github/workflows/3ds-build.yml`
 is separate and only uploads a `.3dsx` artifact. The first tag therefore
 publishes the launcher and game together in `ProjectMysteryMachine.zip`, with

@@ -1,0 +1,192 @@
+{
+  "$schema": "https://recomplauncher.com/schema/recomplauncher.json",
+  "format": 1,
+  "name": "Project: Mystery Machine",
+  "game": {
+    "kind": "iso",
+    "label": "Your own dump of the USA GameCube disc (GIHE78) as a plain .iso or .gcm. Compressed images (RVZ, WIA, CISO, GCZ) have to be converted to ISO first, e.g. with Dolphin's Convert File.",
+    "check": { "ids": ["GIHE78"] },
+    "dumps": [
+      { "name": "USA", "size": 1459978240, "crc32": "9aea6fc1" }
+    ]
+  },
+  "start": {
+    "program": ["scooby.exe"]
+  },
+  "prepare": {
+    "program": ["scooby_launcher.exe"],
+    "args": ["--extract", "{game}"],
+    "label": "Copying the game's files from your disc",
+    "done": ["{install}/data/boot.HIP", "{install}/data/sd2.ini"]
+  },
+  "config": [
+    {
+      "id": "main",
+      "format": "ini",
+      "file": [{ "path": "{install}/scooby.ini" }],
+      "new": {
+        "display/mode": "borderless",
+        "display/aspect": "auto",
+        "display/vsync": "1",
+        "display/msaa": "4",
+        "graphics/fps": "60",
+        "graphics/draw_distance": "1.00",
+        "graphics/fov": "0",
+        "graphics/brightness": "1.00",
+        "graphics/shadow_res": "1024",
+        "graphics/trilinear": "1",
+        "graphics/anisotropy": "16",
+        "game/skip_logos": "0"
+      }
+    }
+  ],
+  "settings": [
+    {
+      "id": "window",
+      "label": "Window",
+      "group": "Display",
+      "help": "Borderless fills your screen and switches apps instantly. Exclusive gives the game the screen to itself. Windowed uses Window size.",
+      "choices": [
+        { "label": "Borderless", "set": { "display/mode": "borderless" } },
+        { "label": "Exclusive", "set": { "display/mode": "fullscreen" } },
+        { "label": "Windowed", "set": { "display/mode": "windowed" } }
+      ],
+      "defaults": { "display/mode": "borderless" }
+    },
+    {
+      "id": "window_size",
+      "label": "Window size",
+      "group": "Display",
+      "help": "The size of the game window in Windowed mode.",
+      "choices": [
+        { "label": "1280 x 720", "set": { "display/width": "1280", "display/height": "720" } },
+        { "label": "1600 x 900", "set": { "display/width": "1600", "display/height": "900" } },
+        { "label": "1920 x 1080", "set": { "display/width": "1920", "display/height": "1080" } },
+        { "label": "2560 x 1440", "set": { "display/width": "2560", "display/height": "1440" } },
+        { "label": "3840 x 2160", "set": { "display/width": "3840", "display/height": "2160" } }
+      ],
+      "defaults": { "display/width": "1920", "display/height": "1080", "display/mode": "windowed" },
+      "when": { "display/mode": "windowed" }
+    },
+    {
+      "id": "aspect",
+      "label": "Aspect ratio",
+      "group": "Display",
+      "help": "Fill the window widens the 3D view and keeps the HUD in the corners; the title screen and movies stay 4:3.",
+      "choices": [
+        { "label": "Fill the window", "set": { "display/aspect": "auto" } },
+        { "label": "4:3 (original)", "set": { "display/aspect": "4:3" } },
+        { "label": "16:9", "set": { "display/aspect": "16:9" } },
+        { "label": "16:10", "set": { "display/aspect": "16:10" } },
+        { "label": "21:9", "set": { "display/aspect": "21:9" } }
+      ],
+      "defaults": { "display/aspect": "auto" }
+    },
+    {
+      "id": "msaa",
+      "label": "Anti-aliasing",
+      "group": "Display",
+      "help": "Smooths jagged edges. 4x is a good balance; 8x costs more on a slower graphics card.",
+      "choices": [
+        { "label": "Off", "set": { "display/msaa": "0" } },
+        { "label": "2x", "set": { "display/msaa": "2" } },
+        { "label": "4x", "set": { "display/msaa": "4" } },
+        { "label": "8x", "set": { "display/msaa": "8" } }
+      ],
+      "defaults": { "display/msaa": "4" }
+    },
+    {
+      "id": "vsync",
+      "label": "V-Sync",
+      "group": "Display",
+      "help": "Waits for the screen's refresh, so the picture never tears.",
+      "choices": [
+        { "label": "On", "set": { "display/vsync": "1" } },
+        { "label": "Off", "set": { "display/vsync": "0" } }
+      ],
+      "defaults": { "display/vsync": "1" }
+    },
+    {
+      "id": "fps",
+      "label": "Frame rate",
+      "group": "Graphics",
+      "help": "60 doubles the frame rate and keeps jumps, speeds and timings as on the GameCube.",
+      "choices": [
+        { "label": "60", "set": { "graphics/fps": "60" } },
+        { "label": "30 (as on the GameCube)", "set": { "graphics/fps": "30" } }
+      ],
+      "defaults": { "graphics/fps": "60" }
+    },
+    {
+      "id": "filter",
+      "label": "Texture filtering",
+      "group": "Graphics",
+      "help": "Keeps textures sharp when you look along floors and walls; 16x is the sharpest.",
+      "choices": [
+        { "label": "Original (bilinear)", "set": { "graphics/trilinear": "0", "graphics/anisotropy": "1" } },
+        { "label": "Trilinear", "set": { "graphics/trilinear": "1", "graphics/anisotropy": "1" } },
+        { "label": "Anisotropic 4x", "set": { "graphics/trilinear": "1", "graphics/anisotropy": "4" } },
+        { "label": "Anisotropic 8x", "set": { "graphics/trilinear": "1", "graphics/anisotropy": "8" } },
+        { "label": "Anisotropic 16x", "set": { "graphics/trilinear": "1", "graphics/anisotropy": "16" } }
+      ],
+      "defaults": { "graphics/trilinear": "1", "graphics/anisotropy": "16" }
+    },
+    {
+      "id": "shadow",
+      "label": "Shadow quality",
+      "group": "Graphics",
+      "help": "The size of the shadow map. Higher is softer and smoother at the edges.",
+      "choices": [
+        { "label": "Original (256)", "set": { "graphics/shadow_res": "256" } },
+        { "label": "High (512)", "set": { "graphics/shadow_res": "512" } },
+        { "label": "Very high (1024)", "set": { "graphics/shadow_res": "1024" } },
+        { "label": "Ultra (2048)", "set": { "graphics/shadow_res": "2048" } }
+      ],
+      "defaults": { "graphics/shadow_res": "1024" }
+    },
+    {
+      "id": "draw_distance",
+      "label": "Draw distance",
+      "group": "Graphics",
+      "help": "Moves the far edge of the view and the fog back; some places expect fog to hide what lies beyond.",
+      "slider": { "key": "graphics/draw_distance", "min": 1, "max": 8, "step": 1, "format": "%.2f" },
+      "defaults": { "graphics/draw_distance": "1.00" }
+    },
+    {
+      "id": "fov",
+      "label": "Field of view",
+      "group": "Graphics",
+      "help": "Adds degrees to the game's camera. A few degrees show more of the room.",
+      "slider": { "key": "graphics/fov", "min": 0, "max": 30, "step": 1, "format": "%d" },
+      "defaults": { "graphics/fov": "0" }
+    },
+    {
+      "id": "brightness",
+      "label": "Brightness",
+      "group": "Graphics",
+      "help": "Brightens or darkens the finished picture.",
+      "slider": { "key": "graphics/brightness", "min": 0.5, "max": 2, "step": 0.05, "format": "%.2f" },
+      "defaults": { "graphics/brightness": "1.00" }
+    },
+    {
+      "id": "logos",
+      "label": "Company logos",
+      "group": "Game",
+      "help": "The publisher and studio movies played before the title screen.",
+      "choices": [
+        { "label": "Play them", "set": { "game/skip_logos": "0" } },
+        { "label": "Skip them", "set": { "game/skip_logos": "1" } }
+      ],
+      "defaults": { "game/skip_logos": "0" }
+    }
+  ],
+  "saves": ["{install}/save"],
+  "folders": {
+    "saves": [{ "path": "{install}/save" }],
+    "logs": [{ "path": "{config}/ProjectMysteryMachine/logs" }]
+  },
+  "actions": [
+    { "id": "saves", "label": "Saves", "help": "Scooby's memory card (card A).", "open": "saves" },
+    { "id": "logs", "label": "Logs", "help": "The last run's log and any crash reports.", "open": "logs" }
+  ]
+}
