@@ -16,7 +16,7 @@ and the list can be fixed without a new build.
 | Start-up | `pc_achievements_init()` in `pc/src/main.cpp`, before the game boots |
 | Per frame | `pc_achievements_frame()` from `pc_events_pump()` |
 | Events fired | `new_game` (`zMain.cpp`, the new-game branch, not a load) and, from the watchers in `pc/src/achievements.cpp`, `first_snack`, `snacks_100`, `snacks_1000`, `area_perfect_1`, `areas_perfect_10`, `areas_perfect_all`, `first_token`, `tokens_half`, `tokens_all`, `first_clue`, `clues_10`, `first_warp`, `warps_all`, `first_upgrade`, `upgrades_all`, `all_cutscenes`, `beat_mastermind`, `deaths_10`, `scares_50` |
-| Fairness | `rl_ach_save_loaded()` on a successful load (`zSaveLoad.cpp`); `rl_ach_casual()` when the debug menu opens (`debug_menu.cpp`), when a retail pad cheat runs (`zGame.cpp`: the warp gate, all powerups, credits and all movies codes), or when a `PC_*` switch that changes the game is set (`debug_hooks.cpp`: `PC_SCENE`, `PC_WARP`, `PC_PORTAL`, `PC_TELEPORT`, `PC_FORCESAVE`, `PC_ALLWARPS`, `PC_UPGRADES`, `PC_WARPSEEN`, `PC_EVENT`, `PC_BOSSDMG`, `PC_HURT`, `PC_MENU`, `PC_SNACKS`, `PC_TOKENS`, `PC_AREAS`, `PC_CLUES`, `PC_DEATHS`, `PC_SCARES`, `PC_MASTERMIND`) |
+| Fairness | `rl_ach_save_loaded()` on a successful load (`zSaveLoad.cpp`); `rl_ach_casual()` when the debug menu opens (`debug_menu.cpp`), when a retail pad cheat runs (`zGame.cpp`: the warp gate, all powerups, credits and all movies codes), or when a `PC_*` switch that changes the game is set (`debug_hooks.cpp`: `PC_SCENE`, `PC_WARP`, `PC_PORTAL`, `PC_TELEPORT`, `PC_FORCESAVE`, `PC_ALLWARPS`, `PC_UPGRADES`, `PC_WARPSEEN`, `PC_EVENT`, `PC_BOSSDMG`, `PC_HURT`, `PC_MENU`, `PC_SNACKS`, `PC_TOKENS`, `PC_AREAS`, `PC_CLUES`, `PC_DEATHS`, `PC_SCARES`, `PC_CUTSCENES`, `PC_MASTERMIND`) |
 
 Everything is behind the SDK's own check for `RL_SESSION`: started by hand, or
 by a launcher that has gone away, there is no channel, every call returns
@@ -64,8 +64,9 @@ to the game's 6,748, so `snacks_100` and `snacks_1000` come with it),
 `first_upgrade` and `upgrades_all` once `PC_UPGRADES` gives every upgrade, which
 is more than the five `SD2.INI` starts with, `deaths_10` once `PC_DEATHS` counts
 ten deaths the way losing a life counts them, `scares_50` once `PC_SCARES` counts
-fifty scares the same way, and `casual` because the run itself starts with the
-`PC_SCENE` cheat switch);
+fifty scares the same way, `all_cutscenes` once `PC_CUTSCENES` marks the 14
+cutscenes seen, and `casual` because the run itself starts with the `PC_SCENE`
+cheat switch);
 with only `PC_CLUES` set, which must mark the session casual under its own name
 (the other runs stop at `PC_SCENE`, the first switch in the list, so they cannot
 show that a give switch is listed); with only `PC_MASTERMIND` set, which must
@@ -73,9 +74,8 @@ report `beat_mastermind` and also name itself as the casual switch; without
 `RL_SESSION`; and with `RL_SESSION` naming a pipe nobody is serving. The same
 run without those switches reports only `new_game`, which is what shows the
 watchers react to the counters rather than to state that was already true.
-Loading a save is not scripted by the harness, so `save_loaded` is wired but not
-exercised there. `all_cutscenes` is the same (the run plays no cutscene): its
-getter runs every frame but never sees its threshold.
+All 20 rows are exercised by these runs. Loading a save is not scripted, so
+`save_loaded` is wired but not exercised there.
 
 `beat_mastermind` gets a run of its own because the game's own call,
 `zVarDefeatMasterMind()` (the 0x127 dispatcher event), sets the endgame flag as

@@ -219,3 +219,21 @@ unsigned int zCutSceneNamesTable_getStatus(unsigned int number)
 {
     return zCutSceneNamesTable[number - 1].played != 0;
 }
+
+#ifdef PC_PORT
+// Achievements harness: marks the first n cutscenes seen, the state playing
+// them leaves behind (PC_CUTSCENES). Returns 0 until a level runs, so it is
+// retried rather than firing on the title screen.
+extern "C" int pc_dbg_unlock_cutscenes(unsigned int count)
+{
+    if (globals.sceneCur == NULL || count < 1 || count > 14)
+    {
+        return 0;
+    }
+    for (unsigned int i = 0; i < count; i++)
+    {
+        zCutSceneNamesTable[i].played = 1;
+    }
+    return 1;
+}
+#endif

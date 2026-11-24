@@ -242,8 +242,8 @@ def run_with_launcher(exe, ini, seconds):
     # clues as a clue pickup does, PC_DEATHS and PC_SCARES count ten deaths and
     # fifty scares the way losing a life and a fright do, PC_AREAS finishes every
     # real area's snacks (which also proves the 100 and 1,000 snack totals),
-    # PC_ALLWARPS opens every gate, and PC_UPGRADES gives the debug menu's
-    # every-upgrade item.
+    # PC_CUTSCENES marks all 14 cutscenes seen, PC_ALLWARPS opens every gate, and
+    # PC_UPGRADES gives the debug menu's every-upgrade item.
     proc = start(exe, ini, {
         'RL_SESSION': launcher.name,
         'PC_SNACKS': '12:1',
@@ -254,8 +254,9 @@ def run_with_launcher(exe, ini, seconds):
         'PC_DEATHS': '17:10',
         'PC_AREAS': '18:29',
         'PC_SCARES': '19:50',
+        'PC_CUTSCENES': '20:14',
     })
-    launcher.wait_event('scares_50', seconds)  # the last switch to run
+    launcher.wait_event('all_cutscenes', seconds)  # the last switch to run
     time.sleep(0.5)  # let anything queued arrive
     stop(proc)
     types = launcher.kinds()
@@ -278,13 +279,13 @@ def run_with_launcher(exe, ini, seconds):
     # the hub's lone one), the 15 upgrades at 16 s must report first_upgrade (more
     # than the five SD2.INI starts with) and upgrades_all, ten deaths at 17 s must
     # report deaths_10, finishing all 29 areas at 18 s must report the snack
-    # totals and all three area milestones, and fifty scares at 19 s must report
-    # scares_50.
+    # totals and all three area milestones, fifty scares at 19 s must report
+    # scares_50, and all 14 cutscenes at 20 s must report all_cutscenes.
     for wanted in ('first_snack', 'snacks_100', 'snacks_1000', 'first_token',
                    'tokens_half', 'tokens_all', 'first_clue', 'clues_10',
                    'warps_all', 'first_warp', 'first_upgrade', 'upgrades_all',
                    'deaths_10', 'area_perfect_1', 'areas_perfect_10',
-                   'areas_perfect_all', 'scares_50'):
+                   'areas_perfect_all', 'scares_50', 'all_cutscenes'):
         if wanted not in events:
             print('FAIL: the counters moved but the watcher did not report %s' % wanted)
             ok = False
