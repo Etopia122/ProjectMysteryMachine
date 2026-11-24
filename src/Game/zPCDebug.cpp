@@ -313,14 +313,26 @@ void pc_dbg_frame()
 }
 
 // Recomp Achievements (pc/src/achievements.cpp): the counters its watchers read
-// each frame. Only snacks the player collected are counted: areaStats[].snacks_tot
-// is the tally the pickup path adds to, never the authored area totals. Area 0 is
-// the table's sentinel (999), so the sum starts at the first real area; including
+// each frame. The limits are the game's own tables: 29 real areas (sAreaTable's
+// entry 0 is a sentinel), 21 monster tokens, 26 warp gates, 15 upgrade bits and
+// 14 cutscene names.
+enum
+{
+    eAchAreas = 29,
+    eAchTokens = 21,
+    eAchWarps = 26,
+    eAchUpgrades = 15,
+    eAchCutscenes = 14,
+};
+
+// Only snacks the player collected are counted: areaStats[].snacks_tot is the
+// tally the pickup path adds to, never the authored area totals. Area 0 is the
+// table's sentinel (999), so the sum starts at the first real area; including
 // it would hand out snacks_1000 after a single snack.
 unsigned int pc_ach_snacks()
 {
     unsigned int total = 0;
-    for (int i = 1; i < 30; i++)
+    for (unsigned int i = 1; i <= eAchAreas; i++)
     {
         total += globals.areaStats[i].snacks_tot;
     }
@@ -330,7 +342,7 @@ unsigned int pc_ach_snacks()
 unsigned int pc_ach_tokens()
 {
     unsigned int count = 0;
-    for (int i = 0; i < 21; i++)
+    for (int i = 0; i < eAchTokens; i++)
     {
         count += (globals.player.Inv_Mtokens[0] >> i) & 1;
     }
@@ -359,7 +371,7 @@ unsigned int pc_ach_scares()
 unsigned int pc_ach_areas()
 {
     unsigned int count = 0;
-    for (unsigned int i = 1; i < 30; i++)
+    for (unsigned int i = 1; i <= eAchAreas; i++)
     {
         count += pc_dbg_area_perfect(i) ? 1 : 0;
     }
@@ -369,7 +381,7 @@ unsigned int pc_ach_areas()
 unsigned int pc_ach_warps()
 {
     unsigned int count = 0;
-    for (unsigned int i = 0; i < 26; i++)
+    for (unsigned int i = 0; i < eAchWarps; i++)
     {
         count += zEntPickup_WarpIsOpen(i) ? 1 : 0;
     }
@@ -381,7 +393,7 @@ unsigned int pc_ach_warps()
 unsigned int pc_ach_upgrades()
 {
     unsigned int count = 0;
-    for (int i = 0; i < 15; i++)
+    for (int i = 0; i < eAchUpgrades; i++)
     {
         count += (globals.player.Inv_Specials >> i) & 1;
     }
@@ -392,7 +404,7 @@ unsigned int pc_ach_upgrades()
 unsigned int pc_ach_cutscenes()
 {
     unsigned int count = 0;
-    for (unsigned int i = 1; i <= 14; i++)
+    for (unsigned int i = 1; i <= eAchCutscenes; i++)
     {
         count += zCutSceneNamesTable_getStatus(i) ? 1 : 0;
     }

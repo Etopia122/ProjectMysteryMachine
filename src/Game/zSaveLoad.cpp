@@ -258,7 +258,17 @@ zSaveLoadGame zSaveLoadGameTable[3];
 
 static inline void zSaveLoad_UIEvent(signed int i, unsigned int toEvent)
 {
-    zEntEvent(zSceneFindObject(zSaveLoadUITable[i].nameID), toEvent);
+    xBase* base = zSceneFindObject(zSaveLoadUITable[i].nameID);
+#ifdef PC_PORT
+    // The screens' objects live with the scene that owns them (mnu4 has the save
+    // screen's, mnu3 the load screen's), and both the save and the load code fire
+    // events for both, so a scene without one would be handed to zEntEvent as
+    // NULL. Skip it: those events only show and hide prompts.
+    if (base)
+#endif
+    {
+        zEntEvent(base, toEvent);
+    }
 }
 
 // Is the card for this slot still in? 1 yes, 0 no, -1 can't tell.
@@ -1728,10 +1738,39 @@ signed int zSaveLoad_LoadGame()
 
     if (success && teststat)
     {
+#ifdef PC_PORT
+        // Ranked stays honest: unlocks from here on are kept but Casual.
+        pc_achievements_save_loaded();
+#endif
         return 1;
     }
     return -1;
 }
+
+#ifdef PC_PORT
+// Achievements harness: writes slot 0 through the save menu's own call, then
+// reads it back through the load menu's, so save_loaded comes from a real card
+// file (PC_SAVELOAD=<seconds>). Both draw a frame of their own while they work,
+// and that frame runs the hooks again, so a nested entry does nothing.
+extern "C" int pc_dbg_save_and_load(unsigned int)
+{
+    static bool busy;
+    if (globals.sceneCur == NULL)
+    {
+        return 0;
+    }
+    if (busy)
+    {
+        return 0;
+    }
+    busy = true;
+    currentCard = 0;
+    currentGame = 0;
+    bool ok = zSaveLoad_SaveGame() == 1 && zSaveLoad_LoadGame() == 1;
+    busy = false;
+    return ok;
+}
+#endif
 
 static inline void zSaveLoadUITableInit(zSaveLoadUI* saveTable)
 {
@@ -1846,8 +1885,6 @@ unsigned int zSaveLoad_LoadLoop()
 #ifdef PC_PORT
                 // What the slot's save data can't hold (pc_save_flags).
                 zEntPickup_PCWarpSetSeen(pc_save_flags_get(currentGame) & PC_SAVE_FLAG_WARP);
-                // Ranked stays honest: unlocks from here on are kept but Casual.
-                pc_achievements_save_loaded();
 #endif
                 zGameModeSwitch(eGameMode_Game);
                 zGameStateSwitch(0);

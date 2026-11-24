@@ -152,8 +152,9 @@ instead when they are there.
   `PC_DEATHS=<sec>:<n>` counts n deaths as losing a life does;
   `PC_SCARES=<sec>:<n>` counts n scares the same way; `PC_AREAS=<sec>:<n>` marks
   the first n real areas' snacks all found; `PC_CUTSCENES=<sec>:<n>` marks n
-  cutscenes seen; `PC_MASTERMIND=<sec>` beats the Mastermind through the game's
-  own call (which also sets the endgame flag).
+  cutscenes seen; `PC_SAVELOAD=<sec>` writes save slot 0 and reads it back;
+  `PC_MASTERMIND=<sec>` beats the Mastermind through the game's own call (which
+  also sets the endgame flag).
 - `PC_DBG=cpucolour|cpustatic|cpuuniform|nocache` (shared renderer) narrow
   down vertex colour problems to one path.
 

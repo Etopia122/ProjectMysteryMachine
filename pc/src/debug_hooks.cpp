@@ -29,6 +29,7 @@ extern "C" int pc_dbg_give_scares(unsigned int n);
 extern "C" int pc_dbg_defeat_mastermind(unsigned int unused);
 extern "C" int pc_dbg_clear_areas(unsigned int count);
 extern "C" int pc_dbg_unlock_cutscenes(unsigned int count);
+extern "C" int pc_dbg_save_and_load(unsigned int unused);
 
 // A PC_* switch that gives progress once play starts, read as <seconds>:<n>. The
 // call returns 0 until a level is running, so it is retried each frame.
@@ -58,7 +59,7 @@ extern "C" void pc_debug_hooks_frame()
                                         "PC_ALLWARPS", "PC_UPGRADES", "PC_WARPSEEN", "PC_EVENT",    "PC_BOSSDMG",
                                         "PC_HURT",     "PC_MENU",     "PC_SNACKS",   "PC_TOKENS",
                                         "PC_AREAS",    "PC_CLUES",    "PC_DEATHS",   "PC_SCARES",
-                                        "PC_CUTSCENES", "PC_MASTERMIND" };
+                                        "PC_CUTSCENES", "PC_SAVELOAD", "PC_MASTERMIND" };
         for (int i = 0; i < (int)(sizeof(cheats) / sizeof(cheats[0])); i++)
         {
             if (getenv(cheats[i]))
@@ -172,7 +173,8 @@ extern "C" void pc_debug_hooks_frame()
     // Debug: progress switches, once the level they act on is running.
     // PC_SNACKS/PC_TOKENS/PC_CLUES/PC_DEATHS/PC_SCARES=<seconds>:<n> give n of
     // each, PC_AREAS=<seconds>:<n> finishes the first n areas' snacks,
-    // PC_CUTSCENES=<seconds>:<n> marks n cutscenes seen, and
+    // PC_CUTSCENES=<seconds>:<n> marks n cutscenes seen,
+    // PC_SAVELOAD=<seconds> writes slot 0 and reads it back, and
     // PC_MASTERMIND=<seconds> beats the Mastermind through the game's own call
     // (the 0x127 dispatcher event). That call also sets the endgame flag, so the
     // harness gives PC_MASTERMIND a run of its own.
@@ -183,6 +185,7 @@ extern "C" void pc_debug_hooks_frame()
                                   { pc_dbg_give_scares, "scares", getenv("PC_SCARES") },
                                   { pc_dbg_clear_areas, "areas cleared", getenv("PC_AREAS") },
                                   { pc_dbg_unlock_cutscenes, "cutscenes seen", getenv("PC_CUTSCENES") },
+                                  { pc_dbg_save_and_load, "save written and read back", getenv("PC_SAVELOAD") },
                                   { pc_dbg_defeat_mastermind, "Mastermind beaten", getenv("PC_MASTERMIND") } };
     for (int i = 0; i < (int)(sizeof(gives) / sizeof(gives[0])); i++)
     {

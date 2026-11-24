@@ -16,7 +16,7 @@ and the list can be fixed without a new build.
 | Start-up | `pc_achievements_init()` in `pc/src/main.cpp`, before the game boots |
 | Per frame | `pc_achievements_frame()` from `pc_events_pump()` |
 | Events fired | `new_game` (`zMain.cpp`, the new-game branch, not a load) and, from the watchers in `pc/src/achievements.cpp`, `first_snack`, `snacks_100`, `snacks_1000`, `area_perfect_1`, `areas_perfect_10`, `areas_perfect_all`, `first_token`, `tokens_half`, `tokens_all`, `first_clue`, `clues_10`, `first_warp`, `warps_all`, `first_upgrade`, `upgrades_all`, `all_cutscenes`, `beat_mastermind`, `deaths_10`, `scares_50` |
-| Fairness | `rl_ach_save_loaded()` on a successful load (`zSaveLoad.cpp`); `rl_ach_casual()` when the debug menu opens (`debug_menu.cpp`), when a retail pad cheat runs (`zGame.cpp`: the warp gate, all powerups, credits and all movies codes), or when a `PC_*` switch that changes the game is set (`debug_hooks.cpp`: `PC_SCENE`, `PC_WARP`, `PC_PORTAL`, `PC_TELEPORT`, `PC_FORCESAVE`, `PC_ALLWARPS`, `PC_UPGRADES`, `PC_WARPSEEN`, `PC_EVENT`, `PC_BOSSDMG`, `PC_HURT`, `PC_MENU`, `PC_SNACKS`, `PC_TOKENS`, `PC_AREAS`, `PC_CLUES`, `PC_DEATHS`, `PC_SCARES`, `PC_CUTSCENES`, `PC_MASTERMIND`) |
+| Fairness | `rl_ach_save_loaded()` on a successful load (`zSaveLoad.cpp`); `rl_ach_casual()` when the debug menu opens (`debug_menu.cpp`), when a retail pad cheat runs (`zGame.cpp`: the warp gate, all powerups, credits and all movies codes), or when a `PC_*` switch that changes the game is set (`debug_hooks.cpp`: `PC_SCENE`, `PC_WARP`, `PC_PORTAL`, `PC_TELEPORT`, `PC_FORCESAVE`, `PC_ALLWARPS`, `PC_UPGRADES`, `PC_WARPSEEN`, `PC_EVENT`, `PC_BOSSDMG`, `PC_HURT`, `PC_MENU`, `PC_SNACKS`, `PC_TOKENS`, `PC_AREAS`, `PC_CLUES`, `PC_DEATHS`, `PC_SCARES`, `PC_CUTSCENES`, `PC_SAVELOAD`, `PC_MASTERMIND`) |
 
 Everything is behind the SDK's own check for `RL_SESSION`: started by hand, or
 by a launcher that has gone away, there is no channel, every call returns
@@ -53,7 +53,7 @@ Still to do before the list goes out:
 ## Testing
 
 `pc/tools/fake_launcher.py` plays the launcher's side of the channel over the
-Windows named pipe and checks five runs: with a launcher (it must see `hello`,
+Windows named pipe and checks six runs: with a launcher (it must see `hello`,
 answer the list, the `new_game` event, `first_snack` once `PC_SNACKS` collects a
 snack mid-game, `first_token`, `tokens_half` and `tokens_all` once `PC_TOKENS`
 gives the 21 tokens, `first_clue` and `clues_10` once `PC_CLUES` gives 10 clues,
@@ -70,12 +70,27 @@ cheat switch);
 with only `PC_CLUES` set, which must mark the session casual under its own name
 (the other runs stop at `PC_SCENE`, the first switch in the list, so they cannot
 show that a give switch is listed); with only `PC_MASTERMIND` set, which must
-report `beat_mastermind` and also name itself as the casual switch; without
-`RL_SESSION`; and with `RL_SESSION` naming a pipe nobody is serving. The same
-run without those switches reports only `new_game`, which is what shows the
-watchers react to the counters rather than to state that was already true.
-All 20 rows are exercised by these runs. Loading a save is not scripted, so
-`save_loaded` is wired but not exercised there.
+report `beat_mastermind` and also name itself as the casual switch; with
+`PC_SAVELOAD` and a card folder of its own, which must write slot 0 and read it
+back, report `save_loaded` once and leave a card file holding the level it was
+written in; without `RL_SESSION`; and with `RL_SESSION` naming a pipe nobody is
+serving. The same run without those switches reports only `new_game`, which is
+what shows the watchers react to the counters rather than to state that was
+already true. All 20 rows are exercised by these runs.
+
+`PC_SAVELOAD` saves and loads through `zSaveLoad_SaveGame()` and
+`zSaveLoad_LoadGame()`, the functions the save and load screens call, after
+`PC_SNACKS` has collected a few snacks: the card file is written from the
+running level, and the reload has that progress in it. The file is checked on
+disk (a 40 KiB `ScoobyDoo00.dat` whose `ROOM` block names `I001`) and the
+notification at the launcher, and the run must not report `new_game` a second
+time. The load only reads the slot (applying it is `zSceneLoad`, when the game
+starts a scene), so the run keeps playing afterwards. Both functions fire
+events at every object of both screens, and the screens' objects live in
+different scenes (`mnu4` has the save screen's, `mnu3` the load screen's), so
+`zSaveLoad_UIEvent` skips an object the current scene does not carry instead of
+handing `zEntEvent` a NULL; without that, a load outside `mnu3` and a save
+outside `mnu4` crash.
 
 `beat_mastermind` gets a run of its own because the game's own call,
 `zVarDefeatMasterMind()` (the 0x127 dispatcher event), sets the endgame flag as

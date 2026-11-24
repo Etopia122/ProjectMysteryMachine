@@ -226,7 +226,8 @@ unsigned int zCutSceneNamesTable_getStatus(unsigned int number)
 // retried rather than firing on the title screen.
 extern "C" int pc_dbg_unlock_cutscenes(unsigned int count)
 {
-    if (globals.sceneCur == NULL || count < 1 || count > 14)
+    if (globals.sceneCur == NULL || count < 1 ||
+        count > sizeof(zCutSceneNamesTable) / sizeof(zCutSceneNamesTable[0]))
     {
         return 0;
     }

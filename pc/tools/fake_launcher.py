@@ -5,7 +5,7 @@ Unix socket. The Windows build of the game opens the named pipe that
 ``RL_SESSION`` names instead, so this speaks the same protocol over that pipe
 and checks the same kinds of message.
 
-Five runs, all of them the game starting a new game (``PC_AUTOPAD`` presses
+Six runs, all of them the game starting a new game (``PC_AUTOPAD`` presses
 Start then A, as the capture check does):
 
 1. With a launcher: it must send ``hello``, answer the list, and then report the
@@ -15,9 +15,11 @@ Start then A, as the capture check does):
 3. With ``PC_MASTERMIND`` and no ``PC_SCENE``: the Mastermind is beaten through
    the game's own call, in a run of its own because that also sets the endgame
    flag.
-4. Without ``RL_SESSION``, as when a player starts scooby.exe by hand: no
+4. With ``PC_SAVELOAD`` and a scratch card folder: a real save is written and
+   read back, and the launcher hears ``save_loaded``.
+5. Without ``RL_SESSION``, as when a player starts scooby.exe by hand: no
    channel, the game runs normally.
-5. With ``RL_SESSION`` naming a pipe nobody serves: the same, without waiting.
+6. With ``RL_SESSION`` naming a pipe nobody serves: the same, without waiting.
 
 usage: python pc/tools/fake_launcher.py [exe] [--seconds N]
 """
@@ -25,6 +27,7 @@ usage: python pc/tools/fake_launcher.py [exe] [--seconds N]
 import ctypes
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -355,6 +358,63 @@ def run_mastermind(exe, ini, seconds):
     return ok
 
 
+def run_save_load(exe, ini, seconds):
+    """A real save is written and read back, and the launcher hears about it.
+
+    PC_SAVELOAD calls the save and load screens' own functions
+    (zSaveLoad_SaveGame/zSaveLoad_LoadGame) with slot 0, so the notification
+    comes from a file on disk rather than from the menu around it. The card
+    folder is a scratch one of its own (PC_SAVE_DIR), emptied first, and the
+    snacks given before the save are what the file holds.
+    """
+    name = 'achievements-save'
+    card = BUILD / name / 'cardA'
+    shutil.rmtree(BUILD / name, ignore_errors=True)
+    launcher = Launcher()
+    log = log_path()
+    offset = log_size(log) if log else 0
+    print('run: %s, PC_SAVELOAD with PC_SAVE_DIR=%s' % (exe.name, name))
+    proc = start(exe, ini, {'RL_SESSION': launcher.name, 'PC_SAVE_DIR': name,
+                            'PC_SNACKS': '12:3', 'PC_SAVELOAD': '15'})
+    loaded = launcher.wait_for('save_loaded', seconds)
+    time.sleep(0.5)
+    stop(proc)
+    types = launcher.kinds()
+    events = launcher.events()
+    launcher.close()
+    text = log_since(log, offset) if log else ''
+    saves = sorted(card.glob('*.dat')) if card.is_dir() else []
+    print('messages: %s' % ', '.join(str(t) for t in types))
+    print('events:   %s' % (', '.join(events) or '(none)'))
+    print('card:     %s' % (', '.join('%s %d bytes' % (p.name, p.stat().st_size) for p in saves)
+                            or '(no files)'))
+    ok = loaded
+    if not loaded:
+        print('FAIL: the game saved and loaded but the launcher did not see save_loaded')
+    if types.count('save_loaded') != 1:
+        print('FAIL: save_loaded arrived %d times (one save, one load)' % types.count('save_loaded'))
+        ok = False
+    if events.count('new_game') != 1:
+        print('FAIL: the reload reported new_game %d times (a load is not a new game)'
+              % events.count('new_game'))
+        ok = False
+    if log:
+        if '[debug] 1 save written and read back' not in text:
+            print('FAIL: PC_SAVELOAD never ran (no "save written and read back" line)')
+            ok = False
+        if '[ach] save loaded' not in text:
+            print('FAIL: the game did not log the load')
+            ok = False
+    if not saves:
+        print('FAIL: PC_SAVELOAD left no card file in %s' % card)
+        ok = False
+    elif b'I001' not in saves[0].read_bytes():
+        print('FAIL: the save file does not hold the scene it was written in')
+        ok = False
+    shutil.rmtree(BUILD / name, ignore_errors=True)
+    return ok
+
+
 def run_without_launcher(exe, ini, seconds, session):
     log = log_path()
     offset = log_size(log) if log else 0
@@ -397,6 +457,7 @@ def main():
     results.append(('with a launcher', run_with_launcher(exe, ini, seconds)))
     results.append(('give switch casual', run_casual_switch(exe, ini, seconds)))
     results.append(('beat the Mastermind', run_mastermind(exe, ini, seconds)))
+    results.append(('save and reload', run_save_load(exe, ini, seconds)))
     results.append(('without a launcher', run_without_launcher(
         exe, ini, 20, None)))
     results.append(('launcher gone', run_without_launcher(
