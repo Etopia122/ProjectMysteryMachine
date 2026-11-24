@@ -1,6 +1,8 @@
 PROJECT: Mystery Machine
 =================================
 
+[![Verified developer on RecompStore](https://recompstore.com/assets/press/verified-dark.svg)](https://recompstore.com/dev/etopia122)
+
 A work-in-progress decompilation of *Scooby-Doo! Night of 100 Frights* for the
 Nintendo GameCube (Heavy Iron Studios / THQ, 2002).
 
