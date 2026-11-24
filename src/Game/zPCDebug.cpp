@@ -303,6 +303,13 @@ void pc_dbg_ent_info(const char* name)
     }
 }
 
+// A game from the title's Load Game option has started (zMain.cpp): what the
+// save carried was read back by zSceneLoad, so this is the loaded progress.
+extern "C" void pc_dbg_loaded_game(const char* scene)
+{
+    pc_log("[debug] loaded %s: %u snacks", scene, globals.stats.snacks_tot);
+}
+
 // Called once per frame.
 void pc_dbg_frame()
 {

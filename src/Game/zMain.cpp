@@ -109,6 +109,8 @@ zGlobals globals;
 #ifdef PC_PORT
 // Recomp Achievements (pc/src/achievements.cpp).
 extern "C" void pc_achievements_event(const char* name);
+// The port's log for a game the title's Load Game option started (zPCDebug.cpp).
+extern "C" void pc_dbg_loaded_game(const char* scene);
 #endif
 
 static signed int sShowMenuOnBoot = 1;
@@ -291,6 +293,14 @@ static void zMainLoop()
 #endif
         zGameInit(gameSceneID);
         zGameSetup();
+#ifdef PC_PORT
+        // A save was loaded (not a new game): the port's log says which level
+        // came back and what the save carried, which a test can check.
+        if (newGameSceneID != 0)
+        {
+            pc_dbg_loaded_game(xUtil_idtag2string(gameSceneID, 0));
+        }
+#endif
         iProfileClear(gameSceneID);
         zGameLoop();
         zGameExit();

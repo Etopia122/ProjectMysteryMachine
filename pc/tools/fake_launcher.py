@@ -5,7 +5,7 @@ Unix socket. The Windows build of the game opens the named pipe that
 ``RL_SESSION`` names instead, so this speaks the same protocol over that pipe
 and checks the same kinds of message.
 
-Six runs, all of them the game starting a new game (``PC_AUTOPAD`` presses
+Seven runs, all of them the game starting a new game (``PC_AUTOPAD`` presses
 Start then A, as the capture check does):
 
 1. With a launcher: it must send ``hello``, answer the list, and then report the
@@ -17,9 +17,14 @@ Start then A, as the capture check does):
    flag.
 4. With ``PC_SAVELOAD`` and a scratch card folder: a real save is written and
    read back, and the launcher hears ``save_loaded``.
-5. Without ``RL_SESSION``, as when a player starts scooby.exe by hand: no
+5. With the pad: the hub's Mystery Machine save point opens the save screen
+   (there is no Save in the menus). Slot 0 is saved into a scratch card folder,
+   then saved over through its overwrite prompt (which starts on NO), and a
+   third run at the title chooses Load Game and that slot; the level that comes
+   back holds the snacks the second save had.
+6. Without ``RL_SESSION``, as when a player starts scooby.exe by hand: no
    channel, the game runs normally.
-6. With ``RL_SESSION`` naming a pipe nobody serves: the same, without waiting.
+7. With ``RL_SESSION`` naming a pipe nobody serves: the same, without waiting.
 
 usage: python pc/tools/fake_launcher.py [exe] [--seconds N]
 """
@@ -43,6 +48,11 @@ OUT = BUILD / 'achievements'
 # game: Start at 2 s, A (New Game) at 3 s, release at 4 s.
 AUTOPAD = '2:1000,3:0100,4:0000'
 SCENE = 'I001'
+# The Mystery Machine save point in the hub (H001's SAVEPOINT pickup, in front
+# of the van; I001 has none): PC_TELEPORT moves Scooby onto it at 14 s, which
+# opens the save screen.
+HUB = 'H001'
+HUB_SAVEPOINT = '14:2.23,1.58,3.67'
 
 PIPE_ACCESS_DUPLEX = 0x00000003
 PIPE_TYPE_BYTE = 0x00000000
@@ -215,12 +225,12 @@ class Launcher:
         kernel32.CloseHandle(self.handle)
 
 
-def start(exe, ini, extra_env, scene=True):
+def start(exe, ini, extra_env, scene=True, autopad=AUTOPAD):
     env = dict(os.environ)
     env.update({
         'PC_SETTINGS': str(ini),
         'PC_NOFMV': '1',
-        'PC_AUTOPAD': AUTOPAD,
+        'PC_AUTOPAD': autopad,
     })
     if scene:
         env['PC_SCENE'] = SCENE
@@ -415,6 +425,88 @@ def run_save_load(exe, ini, seconds):
     return ok
 
 
+def run_save_screen_load(exe, ini, seconds):
+    """Saving and loading the way a player does them: with the pad.
+
+    The save screen has no menu entry: it opens at a Mystery Machine save point,
+    which fires the game's own save event (the SAVEPOINT pickup). Each save
+    starts a new game in the hub, collects its snacks, moves Scooby onto the
+    hub's save point, and the pad picks slot 0. The first save lands on an empty
+    slot; the second one saves over it, which brings up the overwrite prompt
+    (it starts on NO, so the pad goes down to YES and confirms). A last process
+    starts at the title, chooses Load Game with the pad and picks slot 0; the
+    level that comes back must hold the snacks the second save was written
+    with. That is the claim pc/docs/achievements.md makes about the reload,
+    checked on the loaded game rather than only on the file.
+    """
+    name = 'achievements-pad'
+    card = BUILD / name / 'cardA'
+    save = card / 'ScoobyDoo00.dat'
+    shutil.rmtree(BUILD / name, ignore_errors=True)
+    log = log_path()
+
+    def save_at_point(snacks, pad, wait):
+        """Play, collect `snacks`, touch the save point and work the pad."""
+        offset = log_size(log) if log else 0
+        before = save.read_bytes() if save.is_file() else None
+        # Start is pressed at 2 s and New Game (A) at 3 s, as every run does;
+        # the snacks arrive at 12 s and the save point at 14 s opens the screen.
+        print('run: %s, save point with %d snacks' % (exe.name, snacks))
+        proc = start(exe, ini, {'PC_SAVE_DIR': name, 'PC_SNACKS': '12:%d' % snacks,
+                                'PC_SCENE': HUB, 'PC_TELEPORT': HUB_SAVEPOINT}, scene=False,
+                     autopad='2:1000,3:0100,4:0000,' + pad)
+        deadline = time.time() + wait
+        while time.time() < deadline:
+            if save.is_file() and save.read_bytes() != before:
+                break
+            time.sleep(0.2)
+        time.sleep(0.5)
+        stop(proc)
+        return save.is_file() and save.read_bytes() != before
+
+    # Phase 1: an empty card, so A on slot 0 saves it.
+    saved = save_at_point(3, '16:0100,16.15:0000', seconds)
+    if not saved:
+        print('FAIL: the save point opened the save screen but the pad wrote no card file')
+        shutil.rmtree(BUILD / name, ignore_errors=True)
+        return False
+    size = save.stat().st_size
+    print('card:     %s %d bytes' % (save.name, size))
+    ok = size == 40960 and HUB.encode() in save.read_bytes()
+    if not ok:
+        print('FAIL: the card file is not the 40 KiB save of the hub it was written in')
+
+    # Phase 2: the same slot again. Its overwrite prompt starts on NO, so Down
+    # moves to YES and A confirms it.
+    overwritten = save_at_point(5, '16:0100,16.15:0000,19:0004,19.15:0000,21:0100,21.15:0000',
+                                seconds)
+    if not overwritten:
+        print('FAIL: slot 0 kept its old save: the overwrite prompt was not confirmed')
+        ok = False
+
+    # Phase 3: title -> Load Game (Start, one Down, A) -> the load screen's slot
+    # 0 (A). Both screens start on slot 0, and only a load logs the line below, so
+    # it also says the pad chose Load Game rather than New Game.
+    offset = log_size(log) if log else 0
+    print('run: %s, Load Game from the title with the pad' % exe.name)
+    proc = start(exe, ini, {'PC_SAVE_DIR': name}, scene=False,
+                 autopad='6:1000,6.15:0000,8:0004,8.15:0000,10:0100,10.15:0000,18:0100,18.15:0000')
+    loaded = '[debug] loaded %s: 5 snacks' % HUB
+    text = ''
+    deadline = time.time() + seconds
+    while log and time.time() < deadline and loaded not in text:
+        text = log_since(log, offset)
+        time.sleep(0.2)
+    stop(proc)
+    if not log:
+        print('note: no %APPDATA%, so the game log was not checked')
+    elif loaded not in text:
+        print('FAIL: the loaded game did not carry the snacks the second save held')
+        ok = False
+    shutil.rmtree(BUILD / name, ignore_errors=True)
+    return ok
+
+
 def run_without_launcher(exe, ini, seconds, session):
     log = log_path()
     offset = log_size(log) if log else 0
@@ -458,6 +550,7 @@ def main():
     results.append(('give switch casual', run_casual_switch(exe, ini, seconds)))
     results.append(('beat the Mastermind', run_mastermind(exe, ini, seconds)))
     results.append(('save and reload', run_save_load(exe, ini, seconds)))
+    results.append(('save screen and load', run_save_screen_load(exe, ini, seconds)))
     results.append(('without a launcher', run_without_launcher(
         exe, ini, 20, None)))
     results.append(('launcher gone', run_without_launcher(

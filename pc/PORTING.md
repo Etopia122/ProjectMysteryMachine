@@ -190,7 +190,9 @@ and the `PC_FPCHECK` CMake option finds x87 stack leaks.
 ## TODO
 
 - **Gameplay testing:** play through levels and compare with the GameCube
-  build; saving in-game hasn't been exercised yet.
+  build. Saving in-game has been exercised: the achievements harness saves at a
+  Mystery Machine save point and reloads the slot from the title
+  (`pc/docs/achievements.md`).
 
 - **PS2 assets as an alternative source.** PS2 data is little-endian and librw
   already reads PS2-native geometry and textures. Supporting a PS2 disc needs

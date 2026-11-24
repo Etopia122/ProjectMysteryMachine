@@ -53,7 +53,7 @@ Still to do before the list goes out:
 ## Testing
 
 `pc/tools/fake_launcher.py` plays the launcher's side of the channel over the
-Windows named pipe and checks six runs: with a launcher (it must see `hello`,
+Windows named pipe and checks seven runs: with a launcher (it must see `hello`,
 answer the list, the `new_game` event, `first_snack` once `PC_SNACKS` collects a
 snack mid-game, `first_token`, `tokens_half` and `tokens_all` once `PC_TOKENS`
 gives the 21 tokens, `first_clue` and `clues_10` once `PC_CLUES` gives 10 clues,
@@ -73,24 +73,44 @@ show that a give switch is listed); with only `PC_MASTERMIND` set, which must
 report `beat_mastermind` and also name itself as the casual switch; with
 `PC_SAVELOAD` and a card folder of its own, which must write slot 0 and read it
 back, report `save_loaded` once and leave a card file holding the level it was
-written in; without `RL_SESSION`; and with `RL_SESSION` naming a pipe nobody is
-serving. The same run without those switches reports only `new_game`, which is
-what shows the watchers react to the counters rather than to state that was
-already true. All 20 rows are exercised by these runs.
+written in; with the pad, in three processes, which saves slot 0 at a Mystery
+Machine save point, saves over it through the overwrite prompt, and then loads
+it from the title's Load Game option, and the loaded level must hold the snacks
+the second save was written with; without `RL_SESSION`; and with
+`RL_SESSION` naming a pipe nobody is serving. The same run without those
+switches reports only `new_game`, which is what shows the watchers react to the
+counters rather than to state that was already true. All 20 rows are exercised
+by these runs.
 
 `PC_SAVELOAD` saves and loads through `zSaveLoad_SaveGame()` and
 `zSaveLoad_LoadGame()`, the functions the save and load screens call, after
-`PC_SNACKS` has collected a few snacks: the card file is written from the
-running level, and the reload has that progress in it. The file is checked on
-disk (a 40 KiB `ScoobyDoo00.dat` whose `ROOM` block names `I001`) and the
-notification at the launcher, and the run must not report `new_game` a second
-time. The load only reads the slot (applying it is `zSceneLoad`, when the game
-starts a scene), so the run keeps playing afterwards. Both functions fire
-events at every object of both screens, and the screens' objects live in
-different scenes (`mnu4` has the save screen's, `mnu3` the load screen's), so
-`zSaveLoad_UIEvent` skips an object the current scene does not carry instead of
-handing `zEntEvent` a NULL; without that, a load outside `mnu3` and a save
-outside `mnu4` crash.
+`PC_SNACKS` has collected a few snacks. The file is checked on disk (a 40 KiB
+`ScoobyDoo00.dat` whose `ROOM` block names `I001`) and the notification at the
+launcher, and the run must not report `new_game` a second time. The load there
+only reads the slot (applying it is `zSceneLoad`, when the game starts a scene),
+so the run keeps playing afterwards and cannot show what the reload carried.
+
+That is what the pad run is for, and it also covers the screens the functions
+skip. The save screen has no menu entry: it opens at a Mystery Machine save
+point, the `SAVEPOINT` pickup the levels carry. A first process starts a new
+game in the hub (`PC_SCENE=H001`), collects the three snacks `PC_SNACKS` gives,
+and moves Scooby onto the hub's save point (`PC_TELEPORT`); the pickup fires the
+game's own save event (0x99, `zEntPickup.cpp`) and the pad picks slot 0 on the
+screen that opens with A. A second process does the same with five snacks and
+saves over slot 0, which opens the overwrite prompt: it starts on NO, so the pad
+presses Down to reach YES and confirms with A. A third process then starts at
+the title with no `PC_SCENE`, presses Start, moves one item down to Load Game and
+picks slot 0 on the load screen; the level that comes back must hold the five
+snacks the second save was written with. `pc_dbg_loaded_game` logs the loaded
+level and its snack total after `zSceneLoad`, and the harness reads
+`[debug] loaded H001: 5 snacks`. Both screens start on slot 0, and the ports skip
+the memory-card screen (`zSaveLoad_CardPick`), so no card has to be chosen.
+
+Both the save and the load functions fire events at every object of both
+screens, and the screens' objects live in different scenes (`mnu4` has the save
+screen's, `mnu3` the load screen's), so `zSaveLoad_UIEvent` skips an object the
+current scene does not carry instead of handing `zEntEvent` a NULL; without
+that, a load outside `mnu3` and a save outside `mnu4` crash.
 
 `beat_mastermind` gets a run of its own because the game's own call,
 `zVarDefeatMasterMind()` (the 0x127 dispatcher event), sets the endgame flag as
