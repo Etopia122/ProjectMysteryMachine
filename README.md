@@ -61,6 +61,23 @@ in the PC release archive. Releases are published from the archive built by
 hand to check the build, and the 3DS job is separate and only uploads a
 `.3dsx` artifact.
 
+Releases
+========
+
+Releases are built locally with `python pc/tools/package.py`, which prints the
+archive's SHA-256 and writes `ProjectMysteryMachine.zip.sha256` beside it.
+
+- v0.3.0 — `ProjectMysteryMachine.zip`, 3,666,051 bytes, SHA-256
+  `c410f5c54b0b9c77a64e7e1f934b3823de431829119a0b78625526ad697dd752`; the
+  same value is attached to the release as `ProjectMysteryMachine.zip.sha256`.
+  Check it with `Get-FileHash .\ProjectMysteryMachine.zip -Algorithm SHA256`
+  (Windows) or `sha256sum ProjectMysteryMachine.zip`.
+
+Some VirusTotal engines flag the archive's unsigned MinGW binaries with generic
+heuristics rather than a specific malware family; per-file results and the
+false-positive reports are in
+[`docs/false-positive-reports.md`](docs/false-positive-reports.md).
+
 Status
 ======
 

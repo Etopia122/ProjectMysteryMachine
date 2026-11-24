@@ -5,7 +5,7 @@
 # read-me and the third-party licences.
 # No game data: players extract their own disc with the launcher.
 # usage: python pc/tools/package.py   (after sh pc/tools/build.sh)
-import os, re, shutil, subprocess, zipfile
+import hashlib, os, re, shutil, subprocess, zipfile
 from pathlib import Path
 
 BUILD = Path(os.environ.get('PC_BUILD_DIR', 'build/pc'))
@@ -204,6 +204,15 @@ with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z:
     for f in sorted(OUT.rglob('*')):
         if f.is_file():
             z.write(f, Path('ProjectMysteryMachine') / f.relative_to(OUT))
+digest = hashlib.sha256()
+with open(archive, 'rb') as f:
+    for chunk in iter(lambda: f.read(1 << 20), b''):
+        digest.update(chunk)
 size = sum(f.stat().st_size for f in OUT.rglob('*') if f.is_file())
 print('%s: %d files, %.1f MB (%s, %.1f MB); DLLs: %s' % (OUT, sum(1 for f in OUT.rglob('*') if f.is_file()),
       size / 1e6, archive, archive.stat().st_size / 1e6, ', '.join(sorted(dlls))))
+checksum = digest.hexdigest()
+checksum_file = archive.parent / (archive.name + '.sha256')
+# LF endings so sha256sum -c works on other platforms too.
+checksum_file.write_text('%s  %s\n' % (checksum, archive.name), encoding='ascii', newline='\n')
+print('SHA-256: %s' % checksum)
