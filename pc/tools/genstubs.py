@@ -52,6 +52,19 @@ for o in objs:
         elif len(parts) == 2 and parts[0] == 'U':
             undefined.add(parts[1])
 
+# The minimal static FFmpeg the port links (pc/tools/build_ffmpeg.sh), which is
+# what the link uses wherever build/ffmpeg/install exists. Only its definitions
+# count: its members' undefined symbols are satisfied by that same link. Without
+# this the FFmpeg calls in pc/src/fmv.cpp look missing and get stubbed, which
+# silently drops the codec code from the executable unless the shared
+# mingw-w64-i686-ffmpeg import libraries happen to be installed.
+ffmpeg_lib = ROOT / 'build' / 'ffmpeg' / 'install' / 'lib'
+for library in sorted(ffmpeg_lib.glob('lib*.a')):
+    for l in nm('-g', '--defined-only', str(library)).splitlines():
+        parts = l.split()
+        if len(parts) == 3:
+            defined.add(parts[2])
+
 # Whatever the C/C++ runtime and Windows import libraries provide.
 libs = ['libmsvcrt.a', 'libstdc++.a', 'libgcc.a', 'libkernel32.a', 'libmingwex.a', 'libmingw32.a',
         'libucrt.a', 'libucrtbase.a', 'libmoldname.a', 'libgcc_eh.a', 'libwinpthread.a', 'libpthread.a',
