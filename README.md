@@ -205,9 +205,9 @@ Launcher artwork
 | File | What it is | Status |
 |---|---|---|
 | `pc/launcher/logo.png` | "PROJECT: MYSTERY MACHINE" wordmark | Project artwork, supplied by the author |
-| `pc/launcher/scooby.png` | Scooby-Doo portrait: the header badge | Third-party clip art, **personal use only — not licensed for redistribution** |
-| `pc/launcher/van.png` | Mystery Machine van in the header | Third-party clip art, **personal use only — not licensed for redistribution** |
-| `pc/launcher/launcher.ico` | Window, taskbar and file icon (16–256 px) | Rendered from `scooby.png`, so the same restriction applies |
+| `pc/launcher/scooby.png` | Scooby-Doo portrait: the header badge | Third-party clip art |
+| `pc/launcher/van.png` | Mystery Machine van in the header | Third-party clip art |
+| `pc/launcher/launcher.ico` | Window, taskbar and file icon (16–256 px) | Rendered from `scooby.png` |
 
 The two clip-art files are placeholders and can be replaced with original
 artwork at any time. The launcher draws its own Great Dane badge and van in
