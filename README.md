@@ -56,16 +56,22 @@ The decompilation and the two ports are separate builds:
 
 The PC launcher extracts the game files from the player's own USA GameCube ISO
 (`GIHE78`) and starts the game. No game assets are stored in this repository or
-in the PC release archive. Releases are published from the archive built by
-`python pc/tools/package.py`; `.github/workflows/pc-release.yml` can be run by
-hand to check the build, and the 3DS job is separate and only uploads a
-`.3dsx` artifact.
+in the PC release archive. Releases are built by
+`.github/workflows/pc-release.yml` when a `v*` tag is pushed (it opens a draft
+release with the archive and its checksum); the 3DS job is separate and only
+uploads a `.3dsx` artifact.
 
 Releases
 ========
 
-Releases are built locally with `python pc/tools/package.py`, which prints the
-archive's SHA-256 and writes `ProjectMysteryMachine.zip.sha256` beside it.
+Pushing a `v*` tag builds the PC release in `.github/workflows/pc-release.yml`,
+which opens a **draft** release carrying `ProjectMysteryMachine.zip`,
+`ProjectMysteryMachine.zip.sha256`, and the notes from
+`docs/releases/vX.Y.Z.md` plus a generated **Verifying the download** block.
+Nothing is public until the draft is reviewed and published. The archive is not
+reproducible: a locally built one (`python pc/tools/package.py`, which prints
+the SHA-256 and writes the `.sha256` beside it) never has the same hash as a
+CI-built one.
 
 - v0.3.0 — `ProjectMysteryMachine.zip`, 3,666,051 bytes, SHA-256
   `c410f5c54b0b9c77a64e7e1f934b3823de431829119a0b78625526ad697dd752`; the

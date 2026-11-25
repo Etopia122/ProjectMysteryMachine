@@ -2,13 +2,34 @@
 
 ## Releases
 
-`python pc/tools/package.py` prints the archive's SHA-256 and writes
-`build/dist/ProjectMysteryMachine.zip.sha256`. Every release needs:
+The PC release is built by `.github/workflows/pc-release.yml`: pushing a `v*`
+tag builds the port with the MSYS2 mingw32 toolchain, packages it with
+`python pc/tools/package.py --no-captures`, verifies the archive and opens a
+**draft** release with `ProjectMysteryMachine.zip` and
+`ProjectMysteryMachine.zip.sha256`. Nothing is public until the draft is
+reviewed and published by hand. `workflow_dispatch` runs the build and
+verification without creating a release.
 
-1. that `.sha256` uploaded as a release asset beside the zip;
-2. a **Verifying the download** block in the release body with the hash and
-   byte size (see the v0.3.0 release body);
-3. a matching bullet in the `Releases` section of `README.md`.
+Every release needs:
+
+1. `docs/releases/vX.Y.Z.md`, the release notes, checked in **before** the tag
+   is pushed (CI fails without it). It holds the prose only: the workflow
+   appends a **Verifying the download** block with the archive's real hash and
+   byte size, so never write a checksum there.
+2. `pc/launcher/launcher.rc` bumped to the same version: CI refuses a tag whose
+   version does not match `FILEVERSION` (`v0.3.0` ↔ `0,3,0,0`).
+3. a matching bullet in the `Releases` section of `README.md`, with the hash
+   from the draft body. The hash only exists once CI has built the archive, so
+   this is a follow-up commit; the archive is not reproducible, so a locally
+   built zip never has the same hash.
+
+The capture check (`pc/tools/captures.py`) needs the extracted disc and a GPU,
+so CI always passes `--no-captures`: run the visual check locally before
+tagging.
+
+`python pc/tools/package.py` still builds and packages the archive by hand (it
+prints the SHA-256 and writes the `.sha256` beside it), which is how a local
+test build is checked.
 
 The checksum is how downloaders verify the archive: the unsigned MinGW builds
 draw generic antivirus flags (see `docs/false-positive-reports.md`).
