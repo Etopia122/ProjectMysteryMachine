@@ -21,10 +21,13 @@ Every release needs:
 3. a matching bullet in the `Releases` section of `README.md`, with the hash
    from the draft body. The hash only exists once CI has built the archive, so
    this is a follow-up commit. The archive is reproducible from the same tag and
-   the same MSYS2 toolchain: the programs carry no build timestamp and
+   the same MSYS2 toolchain: the programs carry no build timestamp or checkout
+   path (FFmpeg's objects too, when `build_ffmpeg.sh` built them) and
    `package.py` writes fixed zip entries, so a rebuild reproduces the published
-   hash. A `workflow_dispatch` run builds it twice (`build/pc-repro`) and fails
-   if the two archives differ.
+   hash. Delete `build/ffmpeg` first when it was built before the path maps: its
+   old absolute paths stay in `scooby.exe` and the hash will not match. A
+   `workflow_dispatch` run builds it twice (`build/pc-repro`) and fails if the two
+   archives differ.
 
 The capture check (`pc/tools/captures.py`) needs the extracted disc and a GPU,
 so CI always passes `--no-captures`: run the visual check locally before

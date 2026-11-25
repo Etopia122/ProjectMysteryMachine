@@ -69,9 +69,13 @@ which opens a **draft** release carrying `ProjectMysteryMachine.zip`,
 `ProjectMysteryMachine.zip.sha256`, and the notes from
 `docs/releases/vX.Y.Z.md` plus a generated **Verifying the download** block.
 Nothing is public until the draft is reviewed and published. The archive is
-reproducible: `python pc/tools/package.py` (which prints the SHA-256 and writes
-the `.sha256` beside it) produces the same bytes as CI from the same tag and MSYS2
-toolchain, so a rebuild can be checked against the published hash.
+reproducible from the same tag and MSYS2 toolchain: the programs carry no build
+timestamp or checkout path (FFmpeg's objects included, when
+`pc/tools/build_ffmpeg.sh` built them) and `package.py` writes fixed zip entries,
+so `python pc/tools/package.py` (which prints the SHA-256 and writes the
+`.sha256` beside it) rebuilds the bytes CI publishes. This starts with the first
+release after v0.3.1: the v0.3.1 and v0.3.0 archives below were built before
+those flags, so their hashes are the published values and cannot be rebuilt.
 
 - v0.3.1 — `ProjectMysteryMachine.zip`, 3,740,752 bytes, SHA-256
   `4a41e9332c5906d0300f15bab03b343f365df5f930e5043f8ba9b21ce29d2c4e`; built by
