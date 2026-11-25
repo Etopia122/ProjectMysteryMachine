@@ -94,19 +94,64 @@ def executable(override=None):
     raise SystemExit('%s is missing: build it first (sh pc/tools/build.sh)' % (BUILD / 'scooby.exe'))
 
 
-def stop(proc):
+def pid_running(pid):
+    """Whether a process with this pid still exists.
+
+    The child handle alone is not enough: the point of checking is that the
+    instance is really gone, not that a kill command was issued.
+    """
+    if os.name == 'nt':
+        try:
+            out = subprocess.run(['tasklist', '/FI', 'PID eq %d' % pid, '/NH'],
+                                 capture_output=True, text=True, timeout=10)
+        except (OSError, subprocess.SubprocessError):
+            return True  # cannot tell: treat it as alive and keep trying
+        return str(pid) in out.stdout
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        return True
+    return True
+
+
+def stop(proc, timeout=20.0):
+    """Stops the game this run started, and returns only once it has exited.
+
+    taskkill's result is checked rather than trusted, and the process handle is
+    terminated directly if it is still there, because an instance that survives
+    keeps running and writes shots into the folder the next scene measures.
+    """
     if proc.poll() is not None:
         return
-    if os.name == 'nt':
-        # Only this run's process tree: taskkill by the exact pid.
-        subprocess.run(['taskkill', '/F', '/T', '/PID', str(proc.pid)],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    else:
-        proc.terminate()
-    try:
-        proc.wait(timeout=20)
-    except subprocess.TimeoutExpired:
-        proc.kill()
+    deadline = time.time() + timeout
+    asked_taskkill = False
+    while True:
+        if not asked_taskkill:
+            if os.name == 'nt':
+                # Only this run's process tree: taskkill by the exact pid.
+                subprocess.run(['taskkill', '/F', '/T', '/PID', str(proc.pid)],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                proc.terminate()
+            asked_taskkill = True
+        else:
+            # taskkill did not work: terminate the handle itself, which needs
+            # no other process and cannot be refused.
+            proc.kill()
+        try:
+            proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            pass
+        proc.poll()  # reap it if it has exited
+        if not pid_running(proc.pid):
+            return
+        if time.time() > deadline:
+            break
+        time.sleep(0.25)
+    raise RuntimeError('the game (pid %d) survived stop(): it would keep writing shots for '
+                       'the next scene, so the run stops here' % proc.pid)
 
 
 def run_scene(scene, cfg, ini, extra_env, exe):
@@ -134,12 +179,15 @@ def run_scene(scene, cfg, ini, extra_env, exe):
                                 stdout=out, stderr=subprocess.STDOUT)
     wanted = [SHOT_DIR / ('shot_%d.bmp' % (start + i)) for i in range(count)]
     deadline = time.time() + float(scene.get('timeout', 180))
-    while time.time() < deadline:
-        if wanted[-1].exists() or proc.poll() is not None:
-            break
-        time.sleep(0.2)
-    time.sleep(0.3)  # let the last screenshot finish being written
-    stop(proc)
+    try:
+        while time.time() < deadline:
+            if wanted[-1].exists() or proc.poll() is not None:
+                break
+            time.sleep(0.2)
+        time.sleep(0.3)  # let the last screenshot finish being written
+    finally:
+        # Also on Ctrl-C or a timeout: the game must not outlive the scene.
+        stop(proc)
     return wanted, run_log, proc.returncode
 
 
