@@ -36,13 +36,14 @@ jobs:
           # only adds time and flakiness; the package cache keeps re-runs fast.
           update: false
           cache: true
+          # SDL2's dependencies that the 32-bit repo still has; SDL2 itself is
+          # pinned in a later step. Keep this scalar to package names only:
+          # comments inside it are folded into the command as arguments.
           install: >-
             mingw-w64-i686-gcc
             mingw-w64-i686-cmake
             mingw-w64-i686-ninja
             mingw-w64-i686-python
-            # SDL2's dependencies that the 32-bit repo still has; SDL2 itself
-            # is pinned in the next step.
             mingw-w64-i686-cc-libs
             mingw-w64-i686-libiconv
             make
