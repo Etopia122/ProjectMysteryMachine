@@ -73,6 +73,12 @@ reproducible: a locally built one (`python pc/tools/package.py`, which prints
 the SHA-256 and writes the `.sha256` beside it) never has the same hash as a
 CI-built one.
 
+- v0.3.1 — `ProjectMysteryMachine.zip`, 3,740,752 bytes, SHA-256
+  `4a41e9332c5906d0300f15bab03b343f365df5f930e5043f8ba9b21ce29d2c4e`; built by
+  the tag workflow, and the same value is attached to the release as
+  `ProjectMysteryMachine.zip.sha256`. Check it with
+  `Get-FileHash .\ProjectMysteryMachine.zip -Algorithm SHA256` (Windows) or
+  `sha256sum ProjectMysteryMachine.zip`.
 - v0.3.0 — `ProjectMysteryMachine.zip`, 3,666,051 bytes, SHA-256
   `c410f5c54b0b9c77a64e7e1f934b3823de431829119a0b78625526ad697dd752`; the
   same value is attached to the release as `ProjectMysteryMachine.zip.sha256`.
