@@ -35,10 +35,15 @@ OUT = ROOT / 'pc' / 'src' / 'stubs_gen.S'
 def nm(*args):
     return subprocess.run([str(NM), *args], capture_output=True, text=True, env=env).stdout
 
-# Everything defined on PC: the game library plus PC sources (excluding old stubs).
+# Everything defined on PC: the game library, the PC sources (excluding old
+# stubs) and the achievement client's library, whose C sources are otherwise
+# unknown here. The PC objects live in the scooby_pc object library; scooby.dir
+# is scanned too because an older configure leaves objects there.
 defined, undefined = set(), set()
-objs = [BUILD / 'libscoobygame.a'] + [p for p in (BUILD / 'CMakeFiles' / 'scooby.dir').rglob('*.obj')
-                                      if 'stubs_gen' not in p.name]
+pc_dirs = [BUILD / 'CMakeFiles' / name for name in ('scooby_pc.dir', 'scooby.dir')]
+objs = [p for p in (BUILD / 'libscoobygame.a', BUILD / 'rl-achievements' / 'librl_achievements.a')
+        if p.exists()]
+objs += [p for d in pc_dirs for p in d.rglob('*.obj') if 'stubs_gen' not in p.name]
 for o in objs:
     for l in nm(str(o)).splitlines():
         parts = l.split()
