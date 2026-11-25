@@ -41,13 +41,31 @@ jobs:
             mingw-w64-i686-cmake
             mingw-w64-i686-ninja
             mingw-w64-i686-python
-            mingw-w64-i686-SDL2
+            # SDL2's dependencies that the 32-bit repo still has; SDL2 itself
+            # is pinned in the next step.
+            mingw-w64-i686-cc-libs
+            mingw-w64-i686-libiconv
             make
             diffutils
             tar
             xz
             curl
             gnupg
+
+      # MSYS2 dropped mingw-w64-i686-SDL2 in its 32-bit phase-out: the repo no
+      # longer has it, but the mirror still serves the last package file, so pin
+      # that. Its vulkan dependency is build-time only (SDL2 loads vulkan-1.dll
+      # at runtime) and i686 vulkan is gone as well, hence --assume-installed.
+      # Bump the version and the hash together, and keep them matching the
+      # package the archive is tested against locally.
+      - name: Install the pinned i686 SDL2
+        run: |
+          set -e
+          sdl=mingw-w64-i686-SDL2-2.32.10-1-any.pkg.tar.zst
+          sha=81b39469a581fd4b1bd1d88785fbb02d5a46c9ef85343a620c8ae2f877ac6c42
+          curl -fsSLO "https://mirror.msys2.org/mingw/mingw32/$sdl"
+          echo "$sha  $sdl" | sha256sum -c -
+          pacman --noconfirm -U --needed --assume-installed mingw-w64-i686-vulkan "$sdl"
 
       # A release whose tag and launcher version disagree would ship programs
       # that report the wrong version, and notes are checked in per tag; both
