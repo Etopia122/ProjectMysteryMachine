@@ -183,6 +183,11 @@ void RwFreeListDestroy(void* freelist) { rwFree(freelist); }
 static int rw_stricmp(const char* a, const char* b) { return strcasecmp(a, b); }
 static char* rw_strupr(char* s) { for (char* p = s; *p; p++) *p = (char)toupper((unsigned char)*p); return s; }
 static char* rw_strlwr(char* s) { for (char* p = s; *p; p++) *p = (char)tolower((unsigned char)*p); return s; }
+// The newer mingw-w64 headers declare C++ overloads of these three, so casting
+// the bare name to a function pointer no longer resolves; wrap them instead.
+static char* rw_strrchr(const char* s, int c) { return (char*)strrchr(s, c); }
+static char* rw_strchr(const char* s, int c) { return (char*)strchr(s, c); }
+static char* rw_strstr(const char* s, const char* find) { return (char*)strstr(s, find); }
 
 // ---------------------------------------------------------------- default (host) file functions
 static RwInt32 host_fexist(const char* name) { FILE* f = fopen(name, "rb"); if (f) fclose(f); return f != NULL; }
@@ -221,8 +226,8 @@ RwInt32 RwEngineInit(RwMemoryFunctions* memFuncs, RwUInt32 initFlags, RwUInt32 r
     RwStringFunctions& s = g->stringFuncs;
     s.vecSprintf = (void*)sprintf; s.vecVsprintf = (void*)vsprintf;
     s.vecStrcpy = strcpy; s.vecStrncpy = strncpy; s.vecStrcat = strcat; s.vecStrncat = strncat;
-    s.vecStrrchr = (char* (*)(const char*, int))strrchr; s.vecStrchr = (char* (*)(const char*, int))strchr;
-    s.vecStrstr = (char* (*)(const char*, const char*))strstr; s.vecStrcmp = strcmp; s.vecStricmp = rw_stricmp;
+    s.vecStrrchr = rw_strrchr; s.vecStrchr = rw_strchr;
+    s.vecStrstr = rw_strstr; s.vecStrcmp = strcmp; s.vecStricmp = rw_stricmp;
     s.vecStrlen = strlen; s.vecStrUpr = rw_strupr; s.vecStrLwr = rw_strlwr; s.vecStrtok = strtok;
     s.vecSscanf = (void*)sscanf;
 
