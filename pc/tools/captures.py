@@ -21,13 +21,14 @@
 #   python pc/tools/captures.py --env PC_DBG=nocull   # extra environment
 #
 # The run needs the game's own files (game/files beside the project, or
-# SCOOBY_DATA). No image is kept by the project: the frames land in
-# build/pc/shot_<frame>.bmp, and the baseline is numbers only, in
-# build/pc/captures/baseline.json, rewritten per machine because the GPU and
-# driver change the exact pixels.
+# SCOOBY_DATA). No image is kept by the project: the frames land in a folder of
+# their own per run, build/pc/captures/run-<stamp>/shot_<frame>.bmp, and the
+# baseline is numbers only, in build/pc/captures/baseline.json, rewritten per
+# machine because the GPU and driver change the exact pixels.
 import argparse
 import json
 import os
+import shutil
 import struct
 import subprocess
 import sys
@@ -36,9 +37,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 BUILD = Path(os.environ.get('PC_BUILD_DIR') or ROOT / 'build' / 'pc')
-# PC_SHOT always writes build/pc/shot_<frame>.bmp (pc/rw/gpu_gl.cpp).
-SHOT_DIR = ROOT / 'build' / 'pc'
 OUT = BUILD / 'captures'
+# The game writes its screenshots into PC_SHOT_DIR (pc/rw/gpu_gl.cpp); each run
+# points that at a folder of its own inside OUT, so frames cannot collide.
+LOCK = OUT / 'captures.lock'
 CONFIG = Path(__file__).with_name('captures.json')
 BASELINE = OUT / 'baseline.json'
 # Coarse brightness grid: geometry that stops drawing changes many cells at
@@ -92,6 +94,67 @@ def executable(override=None):
         if path.exists():
             return path
     raise SystemExit('%s is missing: build it first (sh pc/tools/build.sh)' % (BUILD / 'scooby.exe'))
+
+
+_lock = None
+
+
+def take_lock():
+    """Takes an exclusive lock: one capture run at a time.
+
+    Two runs would write into the same reports and baseline, and only one game
+    at a time should be producing frames. The operating system holds the lock
+    and releases it when the process ends, so a run that is killed leaves
+    nothing to clean up and never blocks the next one.
+    """
+    global _lock
+    OUT.mkdir(parents=True, exist_ok=True)
+    f = open(LOCK, 'a+')
+    f.seek(0)  # msvcrt locks from the current position: everyone locks byte 0
+    try:
+        if os.name == 'nt':
+            import msvcrt
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        # The pid in the file cannot be read back while the other run holds the
+        # byte it sits in, so the message names the folder instead.
+        f.close()
+        raise SystemExit('%s is in use by another capture run: wait for it to finish, or stop '
+                         'that process first' % OUT)
+    f.seek(0)
+    f.truncate()
+    f.write('%d\n' % os.getpid())
+    f.flush()
+    _lock = f
+
+
+def drop_lock():
+    global _lock
+    if _lock is None:
+        return
+    try:
+        if os.name == 'nt':
+            import msvcrt
+            _lock.seek(0)
+            msvcrt.locking(_lock.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(_lock.fileno(), fcntl.LOCK_UN)
+    except OSError:
+        pass
+    _lock.close()
+    _lock = None
+
+
+def begin_run():
+    """Locks this run and clears the frames of earlier ones."""
+    take_lock()
+    for old in OUT.glob('run-*'):
+        if old.is_dir():
+            shutil.rmtree(old, ignore_errors=True)
 
 
 def pid_running(pid):
@@ -156,8 +219,8 @@ def stop(proc, timeout=20.0):
 
 def run_scene(scene, cfg, ini, extra_env, exe):
     """Runs one scene and returns the frames it captured, in order."""
-    for old in SHOT_DIR.glob('shot_*.bmp'):
-        old.unlink()
+    frames_dir = OUT / ('run-%s-%d' % (time.strftime('%Y%m%d-%H%M%S', time.gmtime()), os.getpid()))
+    frames_dir.mkdir(parents=True, exist_ok=False)
     start, count = int(scene['start']), int(scene['frames'])
     env = dict(os.environ)
     env.update({
@@ -166,6 +229,7 @@ def run_scene(scene, cfg, ini, extra_env, exe):
         'PC_NOFMV': '1',
         'PC_AUTOPAD': scene.get('autopad', ''),
         'PC_SHOT': '%d,1' % start,
+        'PC_SHOT_DIR': str(frames_dir),
     })
     data = Path(os.environ.get('SCOOBY_DATA') or ROOT / 'game' / 'files')
     if data.is_dir():
@@ -177,7 +241,7 @@ def run_scene(scene, cfg, ini, extra_env, exe):
     with open(run_log, 'wb') as out:
         proc = subprocess.Popen([str(exe)], cwd=str(ROOT), env=env,
                                 stdout=out, stderr=subprocess.STDOUT)
-    wanted = [SHOT_DIR / ('shot_%d.bmp' % (start + i)) for i in range(count)]
+    wanted = [frames_dir / ('shot_%d.bmp' % (start + i)) for i in range(count)]
     deadline = time.time() + float(scene.get('timeout', 180))
     try:
         while time.time() < deadline:
@@ -308,7 +372,7 @@ def check_scene(scene, frames, baseline, log_text, new_crashes):
     return result, problems
 
 
-def main():
+def run():
     parser = argparse.ArgumentParser(description='Scripted capture check for visual regressions.')
     parser.add_argument('--update', action='store_true',
                         help='record the baseline from this run (only if it passes)')
@@ -394,6 +458,14 @@ def main():
         return 1
     print('%d scene(s) ok' % len(scenes))
     return 0
+
+
+def main():
+    begin_run()
+    try:
+        return run()
+    finally:
+        drop_lock()
 
 
 if __name__ == '__main__':

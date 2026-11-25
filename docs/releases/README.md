@@ -15,9 +15,8 @@ Keep to what the published bodies do:
 
 **Do not write a checksum.** The workflow appends a **Verifying the download**
 block with the archive's real byte size and SHA-256 via
-`pc/tools/release_body.py`: the archive is not reproducible, so only the
-CI-built hash is the one GitHub serves, and it does not exist until the build
-has run.
+`pc/tools/release_body.py`: only the CI-built hash is the one GitHub serves, and
+it does not exist until the build has run.
 
 The workflow fails if the file for the pushed tag is missing, so land it before
 the tag. Earlier bodies are on the

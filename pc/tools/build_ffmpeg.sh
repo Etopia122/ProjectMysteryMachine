@@ -31,6 +31,7 @@ if [ -n "$MINGW_PREFIX" ]; then
 else
     export PATH=/c/msys64/mingw32/bin:/c/msys64/usr/bin:$PATH
 fi
+win() { cygpath -m "$1" 2>/dev/null || echo "$1"; }
 mkdir -p obj && cd obj
 ../ffmpeg-$VER/configure --prefix="$DIR/install" \
     --arch=x86 --target-os=mingw32 --cc=gcc \
@@ -40,6 +41,13 @@ mkdir -p obj && cd obj
     --enable-avformat --enable-avcodec --enable-swscale --enable-swresample \
     --enable-demuxer=bink --enable-decoder=bink,binkaudio_rdft,binkaudio_dct \
     --enable-protocol=file --disable-x86asm --enable-w32threads >configure.log
+# Reproducible objects: the compiler records the path of every file it compiles,
+# and FFmpeg puts __FILE__ into its log messages, so without these maps the
+# archive would depend on where the build tree sits. configure rewrites
+# --extra-cflags and chokes on the "=" in a map, so they go into the generated
+# config.mak instead. The executable gets the same treatment in pc/CMakeLists.txt.
+printf 'CFLAGS := $(CFLAGS) -ffile-prefix-map=%s=/ffmpeg -ffile-prefix-map=%s=/mingw32\n' \
+    "$(win "$DIR/ffmpeg-$VER")" "$(win "${MINGW_PREFIX:-/c/msys64/mingw32}")" >> ffbuild/config.mak
 make -j"$(nproc)" >make.log 2>&1
 make install >>make.log 2>&1
 echo "FFmpeg $VER installed to $DIR/install"

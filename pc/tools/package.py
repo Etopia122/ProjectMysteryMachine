@@ -11,7 +11,7 @@
 # release cannot be re-cut once it is out. The check needs the extracted disc;
 # without one (CI, a machine with no dump) pass --no-captures, which is the only
 # way past it.
-import argparse, hashlib, os, re, shutil, subprocess, sys, zipfile
+import argparse, hashlib, os, re, shutil, struct, subprocess, sys, zipfile
 from pathlib import Path
 
 BUILD = Path(os.environ.get('PC_BUILD_DIR', 'build/pc'))
@@ -135,6 +135,17 @@ artwork or the game on their own.
 def strip_copy(src, dst):
     shutil.copy2(src, dst)
     subprocess.run([str(STRIP), '--strip-debug', str(dst)], check=True)
+    # strip stamps the copy in the PE header with the current time, and a
+    # checksum over it, so the same source would pack differently on every
+    # build. Both fields are cleared: nothing reads them in an exe, and the
+    # archive has to hash the same each time for a rebuild to be checkable.
+    data = bytearray(dst.read_bytes())
+    if data[:2] == b'MZ':
+        pe = struct.unpack_from('<I', data, 0x3C)[0]
+        if data[pe:pe + 4] == b'PE\0\0':
+            struct.pack_into('<I', data, pe + 8, 0)     # COFF TimeDateStamp
+            struct.pack_into('<I', data, pe + 0x58, 0)  # optional header CheckSum
+            dst.write_bytes(bytes(data))
 
 
 def imports(path):
@@ -227,11 +238,23 @@ if bad:
 if not (OUT / 'scooby_launcher.exe').exists():
     raise SystemExit('the launcher is missing from the release')
 
+# Reproducible archive: a fixed timestamp, mode and order for every entry, so
+# two builds of the same source produce the same bytes (and so the same
+# SHA-256 the release publishes). Without this the zip records each file's
+# mtime, and no two builds agree. The programs themselves are kept free of
+# build timestamps by the link flags in pc/CMakeLists.txt.
+ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 archive = OUT.parent / 'ProjectMysteryMachine.zip'
-with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as z:
-    for f in sorted(OUT.rglob('*')):
-        if f.is_file():
-            z.write(f, Path('ProjectMysteryMachine') / f.relative_to(OUT))
+if archive.exists():
+    archive.unlink()
+with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+    for f in sorted(p for p in OUT.rglob('*') if p.is_file()):
+        name = str(Path('ProjectMysteryMachine') / f.relative_to(OUT)).replace(os.sep, '/')
+        info = zipfile.ZipInfo(name, date_time=ZIP_TIME)
+        info.compress_type = zipfile.ZIP_DEFLATED
+        info.create_system = 3  # Unix, so the archive does not depend on the host
+        info.external_attr = 0o100644 << 16
+        z.writestr(info, f.read_bytes())
 digest = hashlib.sha256()
 with open(archive, 'rb') as f:
     for chunk in iter(lambda: f.read(1 << 20), b''):

@@ -68,10 +68,10 @@ Pushing a `v*` tag builds the PC release in `.github/workflows/pc-release.yml`,
 which opens a **draft** release carrying `ProjectMysteryMachine.zip`,
 `ProjectMysteryMachine.zip.sha256`, and the notes from
 `docs/releases/vX.Y.Z.md` plus a generated **Verifying the download** block.
-Nothing is public until the draft is reviewed and published. The archive is not
-reproducible: a locally built one (`python pc/tools/package.py`, which prints
-the SHA-256 and writes the `.sha256` beside it) never has the same hash as a
-CI-built one.
+Nothing is public until the draft is reviewed and published. The archive is
+reproducible: `python pc/tools/package.py` (which prints the SHA-256 and writes
+the `.sha256` beside it) produces the same bytes as CI from the same tag and MSYS2
+toolchain, so a rebuild can be checked against the published hash.
 
 - v0.3.1 — `ProjectMysteryMachine.zip`, 3,740,752 bytes, SHA-256
   `4a41e9332c5906d0300f15bab03b343f365df5f930e5043f8ba9b21ce29d2c4e`; built by

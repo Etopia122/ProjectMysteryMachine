@@ -68,6 +68,21 @@ jobs:
           echo "$sha  $sdl" | sha256sum -c -
           pacman --noconfirm -U --needed --assume-installed mingw-w64-i686-vulkan "$sdl"
 
+      # What a rebuild has to match to reproduce the published hash: a different
+      # gcc, binutils or SDL2 produces different code. Recorded on the run page
+      # so the versions behind a release are never a matter of memory.
+      - name: Record the toolchain
+        run: |
+          set -e
+          {
+            echo '### Toolchain'
+            echo '```'
+            gcc --version | head -1
+            ld --version | head -1
+            pacman -Q mingw-w64-i686-SDL2 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # A release whose tag and launcher version disagree would ship programs
       # that report the wrong version, and notes are checked in per tag; both
       # are cheap to check and expensive to discover after the build.
@@ -114,6 +129,26 @@ jobs:
 
       - name: Verify launcher and asset-free archive
         run: python pc/tools/verify_release.py build/dist/ProjectMysteryMachine.zip
+
+      # The tag path stays short, so this second build runs on demand: it checks
+      # the claim the release makes, in the environment that makes the archive.
+      - name: Check the archive is reproducible (build twice)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -e
+          first=$(cut -d' ' -f1 build/dist/ProjectMysteryMachine.zip.sha256)
+          cp build/dist/ProjectMysteryMachine.zip build/dist/repro-first.zip
+          export PC_BUILD_DIR=build/pc-repro
+          sh pc/tools/build.sh
+          python pc/tools/package.py --no-captures
+          second=$(cut -d' ' -f1 build/dist/ProjectMysteryMachine.zip.sha256)
+          echo "first build:  $first"
+          echo "second build: $second"
+          if [ "$first" != "$second" ]; then
+            echo "::error::two builds of the same commit produced different archives"
+            exit 1
+          fi
+          echo "the archive is reproducible: $second" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the archive and its checksum
         uses: actions/upload-artifact@v4

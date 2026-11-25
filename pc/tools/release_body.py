@@ -3,10 +3,10 @@
 # (docs/releases/<tag>.md) followed by the "Verifying the download" block, with
 # the archive's real byte size and SHA-256.
 #
-# The block is generated rather than written by hand: the archive is not
-# reproducible, so its hash only exists once it has been built and is the one
-# GitHub serves. When ARCHIVE.sha256 sits beside ARCHIVE (package.py writes it),
-# the two are checked against each other first.
+# The block is generated rather than written by hand: the hash only exists once
+# the archive has been built and is the one GitHub serves. When ARCHIVE.sha256
+# sits beside ARCHIVE (package.py writes it), the two are checked against each
+# other first.
 #
 # usage: python pc/tools/release_body.py NOTES ARCHIVE OUT
 import hashlib, sys

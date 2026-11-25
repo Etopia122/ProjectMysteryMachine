@@ -659,8 +659,10 @@ int gpu_overlay_begin(int* width, int* height)
 }
 
 // ---------------------------------------------------------------- present
-// Debug: PC_SHOT=<frame> saves build/pc/shot.bmp of that frame (and every 600 frames after).
-// PC_SHOT=<frame>,<step> saves build/pc/shot_<frame>.bmp every <step> frames instead.
+// Debug: PC_SHOT=<frame> saves <PC_SHOT_DIR>/shot.bmp of that frame (and every
+// 600 frames after). PC_SHOT=<frame>,<step> saves shot_<frame>.bmp every <step>
+// frames instead. PC_SHOT_DIR is the folder they go in (default build/pc): one
+// folder per run keeps two runs from overwriting each other's frames.
 static void maybe_screenshot()
 {
     static int frame;
@@ -689,14 +691,20 @@ static void maybe_screenshot()
     {
         memcpy((unsigned char*)surf->pixels + y * surf->pitch, &px[(size_t)(s_winH - 1 - y) * s_winW * 4], (size_t)s_winW * 4);
     }
-    char name[64];
+    static const char* dir;
+    if (!dir)
+    {
+        const char* d = getenv("PC_SHOT_DIR");
+        dir = d && *d ? d : "build/pc";
+    }
+    char name[512];
     if (numbered)
     {
-        snprintf(name, sizeof(name), "build/pc/shot_%d.bmp", frame);
+        snprintf(name, sizeof(name), "%s/shot_%d.bmp", dir, frame);
     }
     else
     {
-        snprintf(name, sizeof(name), "build/pc/shot.bmp");
+        snprintf(name, sizeof(name), "%s/shot.bmp", dir);
     }
     SDL_SaveBMP(surf, name);
     SDL_FreeSurface(surf);
